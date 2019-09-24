@@ -357,6 +357,39 @@ class DriveTrainWrapper(Wrapper):
                     resource.release()
 
 
+class JoystickWrapper(Wrapper):
+    max_rpm = 150
+
+    def __init__(self, script, drivetrain, resource):
+        super().__init__(script, resource)
+        self._drivetrain = drivetrain
+        self._res = None
+
+    def set_speeds(self, sl, sr):
+        if self._res:
+            # we already have the resource - check if it was taken away
+            if self._res.is_interrupted:
+                # need to release the stick before re-taking
+                if sl == sr == 0:
+                    self._res = None
+            else:
+                # the resource is ours, use it
+                self._drivetrain.set_speeds(sl, sr)
+                if sl == sr == 0:
+                    # manual stop: allow lower priority scripts to move
+                    self._res.release()
+                    self._res = None
+        else:
+            self._res = self.try_take_resource()
+            if self._res:
+                try:
+                    self._drivetrain.set_speeds(sl, sr)
+                finally:
+                    if sl == sr == 0:
+                        self._res.release()
+                        self._res = None
+
+
 class SoundWrapper(Wrapper):
     def __init__(self, script, sound, resource):
         super().__init__(script, resource)
@@ -390,6 +423,7 @@ class RobotInterface:
         self._sound = SoundWrapper(script, robot.sound, resources['sound'])
         self._ring_led = RingLedWrapper(script, robot.led_ring, resources['led_ring'])
         self._drivetrain = DriveTrainWrapper(script, robot.drivetrain, resources['drivetrain'])
+        self._joystick = JoystickWrapper(script, robot.drivetrain, resources['drivetrain'])
 
         self._script = script
 
@@ -420,6 +454,10 @@ class RobotInterface:
     @property
     def drivetrain(self):
         return self._drivetrain
+
+    @property
+    def joystick(self):
+        return self._joystick
 
     def play_note(self): pass  # TODO
 
