@@ -47,7 +47,7 @@ class Command:
         except (UnknownCommandError, ValueError) as e:
             print('Error response for command: {0:X} with payload {1} (length {2})'
                   .format(self._command_byte, payload, len(payload)))
-            print(e)
+            raise e
 
     def __call__(self, *args):
         if args:
