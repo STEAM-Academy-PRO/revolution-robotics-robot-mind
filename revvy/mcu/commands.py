@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import struct
+import traceback
 from abc import ABC
 from collections import namedtuple
 
@@ -33,14 +34,20 @@ class Command:
             except KeyError:
                 status = 'Unknown status (code {})'.format(response.status)
 
-            raise ValueError('Command status: {} payload: {}'.format(status, repr(response.payload)))
+            raise ValueError('Command status: "{}" with payload: {}'.format(status, repr(response.payload)))
 
     def _send(self, payload=None):
         """Send the command with the given payload and process the response"""
         if payload is None:
             payload = []
         response = self._transport.send_command(self._command_byte, payload)
-        return self._process(response)
+
+        try:
+            return self._process(response)
+        except (UnknownCommandError, ValueError) as e:
+            print('Error response for command: {0:X} with payload {1} (length {2})'
+                  .format(self._command_byte, payload, len(payload)))
+            print(e)
 
     def __call__(self, *args):
         if args:
