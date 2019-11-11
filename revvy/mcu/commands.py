@@ -214,8 +214,8 @@ class RequestDifferentialDriveTrainSpeedCommand(Command):
     @property
     def command_id(self): return 0x1B
 
-    def __call__(self, left, right, pwr_limit=0):
-        speed_cmd = list(struct.pack('<bffb', 1, left, right, pwr_limit))
+    def __call__(self, left, right, power_limit=0):
+        speed_cmd = list(struct.pack('<bffb', 1, left, right, power_limit))
         return self._send(speed_cmd)
 
 
