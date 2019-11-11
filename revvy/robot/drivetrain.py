@@ -3,6 +3,11 @@
 from revvy.mcu.rrrc_control import RevvyControl
 
 
+class DrivetrainTypes:
+    NONE = 0
+    DIFFERENTIAL = 1
+
+
 class DifferentialDrivetrain:
     NOT_ASSIGNED = 0
     LEFT = 1
@@ -51,7 +56,7 @@ class DifferentialDrivetrain:
         for motor in self._right_motors:
             motors[motor] = DifferentialDrivetrain.RIGHT
 
-        self._interface.set_drivetrain_motors(motors)
+        self._interface.configure_drivetrain(DrivetrainTypes.DIFFERENTIAL, motors)
 
     @property
     def is_moving(self):
