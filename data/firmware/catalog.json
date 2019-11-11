@@ -1,20 +1,8 @@
 {
-    "1.0.1": {
-        "version": "0.1.336",
-        "md5": "7b6962bb27d440b4cc160a8828097349",
-        "filename": "revvy_firmware-0.1.336.bin",
-        "length": 107896
-    },
     "2.0.0": {
         "version": "0.2.747",
         "filename": "revvy_firmware-0.2.747.bin",
         "length": 72056,
         "md5": "ee5169c67c3d5d535978ce7f8271e6c4"
-    },
-    "1.0.0": {
-        "version": "0.1.336",
-        "md5": "7b6962bb27d440b4cc160a8828097349",
-        "filename": "revvy_firmware-0.1.336.bin",
-        "length": 107896
     }
 }
