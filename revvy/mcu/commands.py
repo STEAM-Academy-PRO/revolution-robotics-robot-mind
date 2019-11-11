@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import struct
+import traceback
 from abc import ABC
 from collections import namedtuple
 
@@ -33,14 +34,20 @@ class Command:
             except KeyError:
                 status = 'Unknown status (code {})'.format(response.status)
 
-            raise ValueError('Command status: {} payload: {}'.format(status, repr(response.payload)))
+            raise ValueError('Command status: "{}" with payload: {}'.format(status, repr(response.payload)))
 
     def _send(self, payload=None):
         """Send the command with the given payload and process the response"""
         if payload is None:
             payload = []
         response = self._transport.send_command(self._command_byte, payload)
-        return self._process(response)
+
+        try:
+            return self._process(response)
+        except (UnknownCommandError, ValueError) as e:
+            print('Error response for command: {0:X} with payload {1} (length {2})'
+                  .format(self._command_byte, payload, len(payload)))
+            raise e
 
     def __call__(self, *args):
         if args:
@@ -195,12 +202,12 @@ class SendRingLedUserFrameCommand(Command):
         return self._send(led_bytes)
 
 
-class SetDifferentialDriveTrainMotorsCommand(Command):
+class ConfigureDrivetrain(Command):
     @property
     def command_id(self): return 0x1A
 
-    def __call__(self, motors):
-        return self._send([0] + motors)
+    def __call__(self, drivetrain_type, config):
+        return self._send([drivetrain_type, *config])
 
 
 class RequestDifferentialDriveTrainSpeedCommand(Command):
@@ -223,10 +230,10 @@ class RequestDifferentialDriveTrainPositionCommand(Command):
 
 class RequestDifferentialDriveTrainTurnCommand(Command):
     @property
-    def command_id(self): return 0x1C
+    def command_id(self): return 0x1B
 
     def __call__(self, turn_angle, wheel_speed=0, power_limit=0):
-        turn_cmd = list(struct.pack('<lfb', turn_angle, wheel_speed, power_limit))
+        turn_cmd = list(struct.pack('<blfb', 3, turn_angle, wheel_speed, power_limit))
         return self._send(turn_cmd)
 
 

@@ -31,7 +31,7 @@ class RevvyControl:
         self.set_motor_port_control_value = SetMotorPortControlCommand(transport)
         self.get_motor_position = ReadMotorPortStatusCommand(transport)
 
-        self.set_drivetrain_motors = SetDifferentialDriveTrainMotorsCommand(transport)
+        self.configure_drivetrain = ConfigureDrivetrain(transport)
         self.set_drivetrain_position = RequestDifferentialDriveTrainPositionCommand(transport)
         self.set_drivetrain_speed = RequestDifferentialDriveTrainSpeedCommand(transport)
         self.drivetrain_turn = RequestDifferentialDriveTrainTurnCommand(transport)
