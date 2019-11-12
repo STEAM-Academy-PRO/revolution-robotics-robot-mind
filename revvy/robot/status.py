@@ -42,9 +42,12 @@ class RemoteControllerStatus:
 
 
 class RobotStatusIndicator:
-    master_led_not_configured = 0
-    master_led_configured = 1
-    master_led_controlled = 2
+    master_led_unknown = 0
+    master_led_not_configured = 1
+    master_led_configured = 2
+    master_led_controlled = 3
+    master_led_configuring = 4
+    master_led_updating = 5
 
     bluetooth_led_not_connected = 0
     bluetooth_led_connected = 1
@@ -78,8 +81,21 @@ class RobotStatusIndicator:
                 self._set_master_led(self.master_led_controlled)
             else:
                 self._set_master_led(self.master_led_configured)
-        else:
+
+        elif self._robot_status == RobotStatus.Configuring:
+            self._set_master_led(self.master_led_configuring)
+
+        elif self._robot_status == RobotStatus.Updating:
+            self._set_master_led(self.master_led_updating)
+
+        elif self._robot_status == RobotStatus.NotConfigured:
             self._set_master_led(self.master_led_not_configured)
+
+        elif self._robot_status == RobotStatus.Stopped:
+            self._set_master_led(self.master_led_not_configured)
+
+        else:
+            self._set_master_led(self.master_led_unknown)
 
         if self._controller_status == RemoteControllerStatus.NotConnected:
             self._set_bluetooth_led(self.bluetooth_led_not_connected)
