@@ -24,12 +24,15 @@ class LongMessageImplementation:
         self._robot = robot
         self._ignore_config = ignore_config
 
-    def on_upload_started(self):
+    def on_upload_started(self, message_type):
         """Visual indication that an upload has started
 
         Requests LED ring change in the background"""
 
-        self._robot.run_in_background(lambda: self._robot.robot.led_ring.set_scenario(RingLed.ColorWheel))
+        if message_type == LongMessageType.FRAMEWORK_DATA:
+            self._robot.run_in_background(lambda: self._robot.robot.led_ring.set_scenario(RingLed.ColorWheel))
+        else:
+            self._robot.robot.status.robot_status = RobotStatus.Configuring
 
     def on_transmission_finished(self):
         """Visual indication that an upload has finished

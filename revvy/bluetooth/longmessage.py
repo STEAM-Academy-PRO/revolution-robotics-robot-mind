@@ -129,7 +129,7 @@ class LongMessageHandler:
         self._status = "READ"
         self._aggregator = None
         self._callback = lambda x, y: None
-        self._upload_started_callback = lambda: None
+        self._upload_started_callback = lambda mt: None
         self._upload_finished_callback = lambda: None
 
     def on_message_updated(self, callback):
@@ -171,7 +171,7 @@ class LongMessageHandler:
             raise LongMessageError("init-transfer needs to be called after select_long_message_type")
         self._status = "WRITE"
         self._aggregator = LongMessageAggregator(md5)
-        self._upload_started_callback()
+        self._upload_started_callback(self._long_message_type)
 
     def upload_message(self, data):
         print("LongMessageHandler:upload_message")
