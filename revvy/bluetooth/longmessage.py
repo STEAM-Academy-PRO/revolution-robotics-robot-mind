@@ -154,7 +154,7 @@ class LongMessageHandler:
 
     def select_long_message_type(self, long_message_type):
         if self._status == "WRITE":
-            self._upload_finished_callback()
+            self._upload_finished_callback(long_message_type)
 
         print("LongMessageHandler:select_long_message_type")
         LongMessageType.validate(long_message_type)

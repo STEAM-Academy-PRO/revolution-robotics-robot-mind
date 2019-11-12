@@ -92,7 +92,7 @@ class RobotStatusIndicator:
             self._set_master_led(self.master_led_not_configured)
 
         elif self._robot_status == RobotStatus.Stopped:
-            self._set_master_led(self.master_led_not_configured)
+            pass  # don't send status, MCU will reset if it needs to and doesn't if it doesn't (e.g. update)
 
         else:
             self._set_master_led(self.master_led_unknown)
