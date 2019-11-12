@@ -28,6 +28,24 @@ class TestRobotConfig(unittest.TestCase):
             config = RobotConfig.from_string('{"robotconfig": [], "blocklylist": []}')
             self.assertIsNotNone(config)
 
+    def test_scripts_without_code_or_script_name_fail(self):
+        config = RobotConfig.from_string('''
+        {
+            "robotConfig": [],
+            "blocklyList": [
+                {
+                    "assignments": {
+                        "buttons": [
+                            {"id": 0, "priority": 2},
+                            {"id": 2, "priority": 0}
+                        ]
+                    }
+                }
+            ]
+        }''')
+
+        self.assertIsNone(config)
+
     def test_scripts_can_be_assigned_to_multiple_buttons(self):
         json = '''
         {
