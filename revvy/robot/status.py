@@ -8,13 +8,15 @@ class RobotStatus:
     NotConfigured = 1
     Configured = 2
     Configuring = 3
-    Stopped = 4
+    Updating = 4
+    Stopped = 5
 
     _names = {
         StartingUp:    "StartingUp",
         NotConfigured: "NotConfigured",
         Configured:    "Configured",
         Configuring:   "Configuring",
+        Updating:      "Updating",
         Stopped:       "Stopped"
     }
 

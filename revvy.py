@@ -71,6 +71,7 @@ class LongMessageImplementation:
                     self._robot.configure(parsed_config, self._robot.start_remote_controller)
 
         elif message_type == LongMessageType.FRAMEWORK_DATA:
+            self._robot.robot.status.robot_status = RobotStatus.Updating
             self._robot.request_update()
 
 
