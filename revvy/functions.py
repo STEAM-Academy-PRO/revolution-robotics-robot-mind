@@ -143,13 +143,17 @@ def dict_get_first(dictionary: dict, keys: list):
     'bar'
     >>> dict_get_first({'a': 'foo', 'b': 'bar', 'c': 'foobar'}, ['d', 'c'])
     'foobar'
+    >>> dict_get_first({'a': 'foo', 'b': 'bar', 'c': 'foobar'}, ['e', 'f'])
+    Traceback (most recent call last):
+    ...
+    KeyError: 'e, f'
     """
     for key in keys:
         try:
             return dictionary[key]
         except KeyError:
             pass
-    raise KeyError
+    raise KeyError(', '.join(keys))
 
 
 def bytestr_hash(byte_str):
