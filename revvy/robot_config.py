@@ -55,7 +55,12 @@ class RobotConfig:
     def from_string(config_string):
         try:
             json_config = json.loads(config_string)
+        except JSONDecodeError:
+            print('Received configuration is not a valid json string')
+            print(traceback.format_exc())
+            return None
 
+        try:
             config = RobotConfig()
 
             robot_config = dict_get_first(json_config, ['robotConfig', 'robotconfig'])
@@ -137,7 +142,7 @@ class RobotConfig:
                     i += 1
 
             return config
-        except (JSONDecodeError, KeyError, ValueError):
+        except (TypeError, IndexError, KeyError, ValueError):
             print('Failed to decode received configuration')
             print(traceback.format_exc())
             return None
