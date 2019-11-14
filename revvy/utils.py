@@ -465,6 +465,7 @@ class RobotManager:
         self._remote_controller_thread.start()
 
     def stop(self):
+        self._robot.status.controller_status = RemoteControllerStatus.NotConnected
         self._robot.status.robot_status = RobotStatus.Stopped
         self._remote_controller_thread.exit()
         self._ble.stop()

@@ -129,8 +129,8 @@ class LongMessageHandler:
         self._status = "READ"
         self._aggregator = None
         self._callback = lambda x, y: None
-        self._upload_started_callback = lambda: None
-        self._upload_finished_callback = lambda: None
+        self._upload_started_callback = lambda mt: None
+        self._upload_finished_callback = lambda mt: None
 
     def on_message_updated(self, callback):
         self._callback = callback
@@ -154,7 +154,7 @@ class LongMessageHandler:
 
     def select_long_message_type(self, long_message_type):
         if self._status == "WRITE":
-            self._upload_finished_callback()
+            self._upload_finished_callback(long_message_type)
 
         print("LongMessageHandler:select_long_message_type")
         LongMessageType.validate(long_message_type)
@@ -165,13 +165,13 @@ class LongMessageHandler:
         print("LongMessageHandler:init_transfer")
 
         if self._status == "WRITE":
-            self._upload_finished_callback()
+            self._upload_finished_callback(self._long_message_type)
 
         if self._long_message_type is None:
             raise LongMessageError("init-transfer needs to be called after select_long_message_type")
         self._status = "WRITE"
         self._aggregator = LongMessageAggregator(md5)
-        self._upload_started_callback()
+        self._upload_started_callback(self._long_message_type)
 
     def upload_message(self, data):
         print("LongMessageHandler:upload_message")
@@ -190,7 +190,7 @@ class LongMessageHandler:
             self._callback(self._long_message_storage, self._long_message_type)
 
         elif self._status == "WRITE":
-            self._upload_finished_callback()
+            self._upload_finished_callback(self._long_message_type)
             if self._aggregator.finalize():
                 self._long_message_storage.set_long_message(self._long_message_type, self._aggregator.data,
                                                             self._aggregator.md5)
