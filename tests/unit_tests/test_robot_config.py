@@ -28,6 +28,24 @@ class TestRobotConfig(unittest.TestCase):
             config = RobotConfig.from_string('{"robotconfig": [], "blocklylist": []}')
             self.assertIsNotNone(config)
 
+    def test_scripts_without_code_or_script_name_fail(self):
+        config = RobotConfig.from_string('''
+        {
+            "robotConfig": [],
+            "blocklyList": [
+                {
+                    "assignments": {
+                        "buttons": [
+                            {"id": 0, "priority": 2},
+                            {"id": 2, "priority": 0}
+                        ]
+                    }
+                }
+            ]
+        }''')
+
+        self.assertIsNone(config)
+
     def test_scripts_can_be_assigned_to_multiple_buttons(self):
         json = '''
         {
@@ -54,6 +72,39 @@ class TestRobotConfig(unittest.TestCase):
 
         self.assertEqual(2, config.scripts['user_script_0']['priority'])
         self.assertEqual(0, config.scripts['user_script_1']['priority'])
+
+    def test_assigning_script_to_wrong_button_fails_parsing(self):
+        config = RobotConfig.from_string('''
+        {
+            "robotConfig": [],
+            "blocklyList": [
+                {
+                    "pythonCode": "",
+                    "assignments": {
+                        "buttons": [
+                            {"id": 33, "priority": 0}
+                        ]
+                    }
+                }
+            ]
+        }''')
+        self.assertIsNone(config)
+
+        config = RobotConfig.from_string('''
+        {
+            "robotConfig": [],
+            "blocklyList": [
+                {
+                    "pythonCode": "",
+                    "assignments": {
+                        "buttons": [
+                            {"id": "nan", "priority": 0}
+                        ]
+                    }
+                }
+            ]
+        }''')
+        self.assertIsNone(config)
 
     def test_scripts_can_be_assigned_to_multiple_analog_channels(self):
         json = '''

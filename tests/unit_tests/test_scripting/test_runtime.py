@@ -272,3 +272,19 @@ while not ctx.stop_requested:
 
         sm.reset()
         self.assertEqual(1, mock.call_count)
+
+    def test_crashing_script_calls_stopped_handler(self):
+        robot_mock = create_robot_mock()
+
+        cont = Event()
+
+        sm = ScriptManager(robot_mock)
+        sm.add_script('test', '''raise Excepti''')
+        sm['test'].on_stopped(cont.set)
+
+        # first call, make sure the script runs
+        sm['test'].start().wait()
+        if not cont.wait(2):
+            self.fail("Script.on_stopped handler was not called")
+
+        sm.reset()
