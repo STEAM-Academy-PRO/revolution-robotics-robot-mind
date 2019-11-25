@@ -22,6 +22,7 @@ class McuStatusUpdater:
     def __init__(self, robot: RevvyControl):
         self._robot = robot
         self._is_enabled = [False] * 32
+        self._is_enabled[14] = True
         self._handlers = [lambda x: None] * 32
         self._log = Logger('McuStatusUpdater')
 
@@ -29,6 +30,7 @@ class McuStatusUpdater:
         self._log('reset all slots')
         self._handlers = [lambda x: None] * 32
         self._is_enabled = [False] * 32
+        self._is_enabled[14] = True
         self._robot.status_updater_reset()
 
     def _enable_slot(self, slot):
@@ -45,13 +47,13 @@ class McuStatusUpdater:
         if callable(cb):
             if not self._is_enabled[slot]:
                 self._is_enabled[slot] = True
-                self._handlers[slot] = cb
                 self._enable_slot(slot)
+            self._handlers[slot] = cb
         else:
             if self._is_enabled[slot]:
                 self._is_enabled[slot] = False
-                self._handlers[slot] = lambda x: None
                 self._disable_slot(slot)
+            self._handlers[slot] = lambda x: None
 
     def read(self):
         data = self._robot.status_updater_read()
