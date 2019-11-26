@@ -158,10 +158,10 @@ class DcMotorController:
 
     def update_status(self, data):
         if len(data) == 9:
-            (pos, speed, power) = struct.unpack('<lfb', bytearray(data))
+            (power, pos, speed) = struct.unpack('<blf', bytearray(data))
             pos_reached = None
         elif len(data) == 10:
-            (pos, speed, power, pos_reached) = struct.unpack('<lfbb', bytearray(data))
+            (power, pos, speed, pos_reached) = struct.unpack('<blfb', bytearray(data))
         else:
             print('{}: Received {} bytes of data instead of 9 or 10'.format(self._name, len(data)))
             return
