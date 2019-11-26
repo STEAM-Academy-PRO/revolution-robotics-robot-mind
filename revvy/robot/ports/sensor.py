@@ -6,9 +6,6 @@ from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler, PortInstance
 
 
-SensorValue = namedtuple('SensorValue', ['raw', 'converted'])
-
-
 def create_sensor_port_handler(interface: RevvyControl, configs: dict):
     port_amount = interface.get_sensor_port_amount()
     port_types = interface.get_sensor_port_types()
@@ -33,9 +30,6 @@ class NullSensor:
 
     def update_status(self, data):
         pass
-
-    def read(self):
-        return SensorValue(raw=0, converted=0)
 
     @property
     def value(self):
@@ -72,12 +66,6 @@ class BaseSensorPortDriver:
                 self._value = converted
 
             self._raise_value_changed_callback()
-
-    def read(self):
-        data = self._interface.get_sensor_port_value(self._port.id)
-        self.update_status(data)
-
-        return SensorValue(raw=self._raw_value, converted=self._value)
 
     @property
     def value(self):

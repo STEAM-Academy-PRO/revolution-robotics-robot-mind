@@ -274,11 +274,6 @@ class ReadMotorPortStatusCommand(ReadPortStatusCommand):
     def command_id(self): return 0x15
 
 
-class ReadSensorPortStatusCommand(ReadPortStatusCommand):
-    @property
-    def command_id(self): return 0x24
-
-
 class McuStatusUpdater_ResetCommand(Command):
     @property
     def command_id(self): return 0x3A
