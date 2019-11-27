@@ -22,18 +22,16 @@ class RevvyTransportI2CDevice(RevvyTransportInterface):
         try:
             read_msg = i2c_msg.read(self._address, length)
             self._bus.i2c_rdwr(read_msg)
-        except TypeError:
-            traceback.print_exc()
-            raise TransportException()
+        except TypeError as e:
+            raise TransportException() from e
         return list(read_msg)
 
     def write(self, data):
         try:
             write_msg = i2c_msg.write(self._address, data)
             self._bus.i2c_rdwr(write_msg)
-        except TypeError:
-            traceback.print_exc()
-            raise TransportException()
+        except TypeError as e:
+            raise TransportException() from e
 
 
 class RevvyTransportI2C:
