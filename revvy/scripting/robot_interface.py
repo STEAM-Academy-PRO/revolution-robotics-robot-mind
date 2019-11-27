@@ -60,12 +60,9 @@ class SensorPortWrapper(Wrapper):
 
     def read(self):
         """Return the last converted value"""
-        start = time.time()
         while not self._sensor.has_data:
             self.check_terminated()
             self.sleep(0.1)
-            if time.time() - start > 2:
-                raise TimeoutError
 
         self.check_terminated()
         return self._sensor.value
