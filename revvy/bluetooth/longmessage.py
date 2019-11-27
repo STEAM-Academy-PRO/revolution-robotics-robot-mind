@@ -240,7 +240,7 @@ class LongMessageProtocol:
                 result = LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH
 
         elif header == MessageType.UPLOAD_MESSAGE:
-            if len(data) > 1:
+            if len(data) > 0:
                 self._handler.upload_message(data)
                 result = LongMessageProtocol.RESULT_SUCCESS
             else:
