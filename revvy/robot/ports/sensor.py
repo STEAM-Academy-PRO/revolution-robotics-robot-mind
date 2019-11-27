@@ -162,7 +162,8 @@ class Ev3Mode:
         start = 0
         values = []
         for i in range(0, self._nSamples):
-            (value, ) = struct.unpack(self._type_info[self._dataType]['read_pattern'], bytes(data[start:start+data_size]))
+            chunk = bytes(data[start:start + data_size])
+            (value, ) = struct.unpack(self._type_info[self._dataType]['read_pattern'], chunk)
             start += data_size
 
             values.append(self._convert_single(value))
