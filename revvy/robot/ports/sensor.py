@@ -255,9 +255,10 @@ class Ev3UARTSensor(BaseSensorPortDriver):
 
 
 class Color:
-    def __init__(self, id, name):
+    def __init__(self, id, name, rgb):
         self._id = id
         self._name = name
+        self._rgb = rgb
 
     @property
     def id(self):
@@ -266,6 +267,10 @@ class Color:
     @property
     def name(self):
         return self._name
+
+    @property
+    def rgb(self):
+        return self._rgb
 
     def __str__(self) -> str:
         return self._name
@@ -277,14 +282,14 @@ def ev3_color(port: PortInstance, cfg):
     ev3_convert = sensor.convert_sensor_value
 
     color_map = [
-        'No color',
-        'Black',
-        'Blue',
-        'Green',
-        'Yellow',
-        'Red',
-        'White',
-        'Brown'
+        {'name': 'No color', 'rgb': '#000000'},
+        {'name': 'Black',    'rgb': '#000000'},
+        {'name': 'Blue',     'rgb': '#0000ff'},
+        {'name': 'Green',    'rgb': '#00ff00'},
+        {'name': 'Yellow',   'rgb': '#00ffff'},
+        {'name': 'Red',      'rgb': '#ff0000'},
+        {'name': 'White',    'rgb': '#ffffff'},
+        {'name': 'Brown',    'rgb': '#ffff00'}
     ]
 
     def convert(raw):
@@ -293,7 +298,7 @@ def ev3_color(port: PortInstance, cfg):
             return None
 
         color_id = int(value[0])
-        return Color(id=color_id, name=color_map[color_id])
+        return Color(id=color_id, name=color_map[color_id]['name'], rgb=color_map[color_id]['rgb'])
 
     sensor.convert_sensor_value = convert
     sensor.on_configured = lambda: sensor.select_mode(2)
