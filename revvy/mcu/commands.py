@@ -252,6 +252,14 @@ class SetSensorPortConfigCommand(SetPortConfigCommand):
     def command_id(self): return 0x23
 
 
+class ReadSensorPortInfoCommand(Command):
+    @property
+    def command_id(self): return 0x24
+
+    def __call__(self, port_idx, page=0):
+        return self._send([port_idx, page])
+
+
 class SetMotorPortControlCommand(Command):
     @property
     def command_id(self): return 0x14

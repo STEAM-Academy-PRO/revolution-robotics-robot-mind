@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
-
+import struct
 from collections import namedtuple
 
+from revvy.functions import map_values
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler, PortInstance
 
@@ -116,3 +117,123 @@ def hcsr04(port: PortInstance, cfg):
 
     sensor.convert_sensor_value = process_ultrasonic
     return sensor
+
+
+class Ev3Mode:
+    _type_info = [
+        {'data_size': 1, 'read_pattern': 'B'},
+        {'data_size': 1, 'read_pattern': 'b'},
+        {'data_size': 2, 'read_pattern': '<H'},
+        {'data_size': 2, 'read_pattern': '<h'},
+        {'data_size': 2, 'read_pattern': '>h'},
+        {'data_size': 4, 'read_pattern': '<l'},
+        {'data_size': 4, 'read_pattern': '>l'},
+        {'data_size': 4, 'read_pattern': '<f'}
+    ]
+
+    def __init__(self, n_samples, data_type, figures, decimals, raw_min, raw_max, pct_min, pct_max, si_min, si_max):
+        self._nSamples = n_samples
+        self._dataType = data_type
+        self._figures = figures
+        self._decimals = decimals
+        self._raw_min = raw_min
+        self._raw_max = raw_max
+        self._pct_min = pct_min
+        self._pct_max = pct_max
+        self._si_min = si_min
+        self._si_max = si_max
+
+    def _convert_single(self, value):
+        return map_values(value, self._raw_min, self._raw_max, self._si_min, self._si_max)
+
+    def convert(self, data):
+        data_size = self._type_info[self._dataType]['data_size']
+
+        start = 0
+        values = []
+        for i in range(0, self._nSamples):
+            value = struct.unpack(self._type_info[self._dataType]['read_pattern'], data[start:start+data_size])
+            start += data_size
+
+            values.append(self._convert_single(value))
+
+        return values
+
+
+class Ev3UARTSensor(BaseSensorPortDriver):
+    STATE_RESET = 0
+    STATE_CONFIGURE = 1
+    STATE_DATA = 2
+
+    MODE_MASK = 0x07
+    REMOTE_STATUS_MASK = 0xC0
+    REMOTE_STATES = {
+        0x00: STATE_RESET,
+        0x40: STATE_CONFIGURE,
+        0x80: STATE_DATA
+    }
+
+    def __init__(self, port: PortInstance, modes=None):
+        super().__init__(port)
+        self._state = self.STATE_RESET
+        self._modes = modes
+        self._current_mode = 0
+
+    def select_mode(self, mode):
+        if mode < len(self._modes):
+            self._interface.set_sensor_port_config(self._port.id, [mode])
+            self._current_mode = mode
+
+    def convert_sensor_value(self, raw):
+        if len(raw) == 0:
+            return None
+
+        try:
+            state = self.REMOTE_STATES[raw[0] & self.REMOTE_STATUS_MASK]
+
+            if self._state != state:
+                if state == self.STATE_DATA:
+                    if self._modes is None:
+                        self._modes = self._get_modes()
+                    self.on_configured()
+                self._state = state
+
+            if state == self.STATE_DATA:
+
+                mode_idx = raw[0] & self.MODE_MASK
+                if mode_idx == self._current_mode:
+                    try:
+                        mode = self._modes[mode_idx]
+
+                        return mode.convert(raw)
+                    except IndexError:
+                        return None
+                else:
+                    # handle case when mode switch does not happen (count wrong messages, reconfigure/reset)
+                    pass
+
+        except KeyError:
+            return None
+
+    def _get_modes(self):
+        sensor_info = self._interface.read_sensor_info(self._port.id, 0)
+
+        (sensor_type, speed, nModes, nViews) = struct.unpack('<blbb', sensor_info)
+
+        modes = []
+        for i in range(0, nModes):
+            mode_info = self._interface.read_sensor_info(self._port.id, i + 1)
+            (nSamples, dataType, figures, decimals,
+             raw_min, raw_max,
+             pct_min, pct_max,
+             si_min, si_max) = struct.unpack('<' + 'b'*4 + 'f'*6, mode_info)
+
+            modes.append(Ev3Mode(nSamples, dataType, figures, decimals,
+                                 raw_min, raw_max,
+                                 pct_min, pct_max,
+                                 si_min, si_max))
+
+        return modes
+
+    def on_configured(self):
+        pass
