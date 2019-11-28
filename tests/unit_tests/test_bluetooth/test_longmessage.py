@@ -15,6 +15,7 @@ class TestLongMessageHandler(unittest.TestCase):
         LongMessageType.FRAMEWORK_DATA,
         LongMessageType.CONFIGURATION_DATA,
         LongMessageType.TEST_KIT,
+        LongMessageType.ASSET_DATA
     ]
 
     def test_init_is_required_before_write_and_finalize(self):
@@ -27,7 +28,7 @@ class TestLongMessageHandler(unittest.TestCase):
         handler = LongMessageHandler(None)
 
         self.assertRaises(LongMessageError, lambda: handler.select_long_message_type(0))
-        self.assertRaises(LongMessageError, lambda: handler.select_long_message_type(5))
+        self.assertRaises(LongMessageError, lambda: handler.select_long_message_type(6))
 
         for mt in self.known_message_types:
             with self.subTest(mt=mt):

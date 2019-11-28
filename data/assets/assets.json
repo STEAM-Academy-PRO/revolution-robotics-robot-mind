@@ -1,0 +1,22 @@
+{
+    "files": {
+        "sounds": {
+            "alarm_clock": "alarm_clock.mp3",
+            "bell": "bell.mp3",
+            "buzzer": "buzzer.mp3",
+            "car_horn": "car-horn.mp3",
+            "cat": "cat.mp3",
+            "dog": "dog.mp3",
+            "duck": "duck.mp3",
+            "engine_revving": "engine-revving.mp3",
+            "lion": "lion.mp3",
+            "oh_no": "oh-no.mp3",
+            "robot": "robot.mp3",
+            "robot2": "robot2.mp3",
+            "siren": "siren.mp3",
+            "ta_da": "tada.mp3",
+            "uh_oh": "uh-oh.mp3",
+            "yee_haw": "yee-haw.mp3"
+        }
+    }
+}

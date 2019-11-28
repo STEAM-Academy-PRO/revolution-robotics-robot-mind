@@ -98,7 +98,7 @@ RobotVersion = namedtuple("RobotVersion", ['hw', 'fw', 'sw'])
 
 
 class Robot:
-    def __init__(self, interface: RevvyControl, sound_paths, sw_version):
+    def __init__(self, interface: RevvyControl, sounds, sw_version):
         self._interface = interface
 
         self._start_time = time.time()
@@ -124,7 +124,7 @@ class Robot:
         }
 
         self._ring_led = RingLed(interface)
-        self._sound = Sound(setup[hw], play[hw], sound_paths or {})
+        self._sound = Sound(setup[hw], play[hw], sounds)
 
         self._status = RobotStatusIndicator(interface)
         self._status_updater = McuStatusUpdater(interface)
@@ -229,12 +229,12 @@ class RevvyStatusCode(enum.IntEnum):
 class RobotManager:
 
     # FIXME: revvy intentionally doesn't have a type hint at this moment because it breaks tests right now
-    def __init__(self, interface: RevvyControl, revvy, sound_paths, sw_version, default_config=None):
+    def __init__(self, interface: RevvyControl, revvy, sounds, sw_version, default_config=None):
         print("RobotManager: __init__()")
         self.needs_interrupting = True
 
         self._configuring = False
-        self._robot = Robot(interface, sound_paths, sw_version)
+        self._robot = Robot(interface, sounds, sw_version)
         self._interface = interface
         self._ble = revvy
         self._default_configuration = default_config or RobotConfig()

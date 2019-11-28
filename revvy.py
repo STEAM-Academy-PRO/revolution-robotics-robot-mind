@@ -1,6 +1,10 @@
 #!/usr/bin/python3
 # SPDX-License-Identifier: GPL-3.0-only
+import io
+import shutil
+import tarfile
 
+from revvy.assets import Assets
 from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
 from revvy.file_storage import FileStorage, MemoryStorage
 from revvy.firmware_updater import McuUpdater, McuUpdateManager
@@ -16,6 +20,42 @@ import sys
 from tools.check_manifest import check_manifest
 
 default_robot_config = None
+
+
+def extract_asset_longmessage(storage, asset_dir):
+    """
+    Extract the ASSET_DATA long message into a folder.
+
+    After successfully extracting, store the checksum of the asset message in the .hash file.
+    Skip extracting if the long message has the same checksum as stored in the folder.
+    The folder will be deleted if exists before decompression.
+
+    :param storage: the source where the asset data message is stored
+    :param asset_dir: the destination directory
+    """
+
+    asset_status = storage.read_status(LongMessageType.ASSET_DATA)
+
+    if asset_status.status == LongMessageStatus.READY:
+        # noinspection PyBroadException
+        try:
+            with open(os.path.join(asset_dir, '.hash'), 'r') as asset_hash_file:
+                stored_hash = asset_hash_file.read()
+
+            if stored_hash == asset_status.md5:
+                return
+        except Exception:
+            pass
+
+        if os.path.isdir(asset_dir):
+            shutil.rmtree(asset_dir)
+
+        message_data = storage.get_long_message(LongMessageType.ASSET_DATA)
+        with tarfile.open(fileobj=io.StringIO(message_data), mode="r|gz") as tar:
+            tar.extractall(path=asset_dir)
+
+        with open(os.path.join(asset_dir, '.hash'), 'w') as asset_hash_file:
+            asset_hash_file.write(asset_status.md5)
 
 
 class LongMessageImplementation:
@@ -75,6 +115,11 @@ class LongMessageImplementation:
             self._robot.robot.status.robot_status = RobotStatus.Updating
             self._robot.request_update()
 
+        elif message_type == LongMessageType.ASSET_DATA:
+            writeable_data_dir = os.path.join('..', '..', '..', 'user')
+            asset_dir = os.path.join(writeable_data_dir, 'assets')
+            extract_asset_longmessage(storage, asset_dir)
+
 
 def start_revvy(config: RobotConfig = None):
     current_installation = os.path.dirname(os.path.realpath(__file__))
@@ -116,29 +161,13 @@ def start_revvy(config: RobotConfig = None):
     device_storage = FileStorage(data_dir)
     ble_storage = FileStorage(ble_storage_dir)
 
-    sound_files = {
-        'alarm_clock':    'alarm_clock.mp3',
-        'bell':           'bell.mp3',
-        'buzzer':         'buzzer.mp3',
-        'car_horn':       'car-horn.mp3',
-        'cat':            'cat.mp3',
-        'dog':            'dog.mp3',
-        'duck':           'duck.mp3',
-        'engine_revving': 'engine-revving.mp3',
-        'lion':           'lion.mp3',
-        'oh_no':          'oh-no.mp3',
-        'robot':          'robot.mp3',
-        'robot2':         'robot2.mp3',
-        'siren':          'siren.mp3',
-        'ta_da':          'tada.mp3',
-        'uh_oh':          'uh-oh.mp3',
-        'yee_haw':        'yee-haw.mp3',
-    }
+    assets = Assets([
+        os.path.join(package_data_dir, 'assets'),
+        os.path.join(writeable_data_dir, 'assets')
+    ])
 
-    def sound_path(file):
-        return os.path.join(package_data_dir, 'assets', file)
-
-    sound_paths = {key: sound_path(sound_files[key]) for key in sound_files}
+    def sound_lookup(file):
+        return assets.get_asset_file('sounds', file)
 
     dnp = DeviceNameProvider(device_storage, lambda: 'Revvy_{}'.format(serial))
     device_name = Observable(dnp.get_device_name())
@@ -146,6 +175,8 @@ def start_revvy(config: RobotConfig = None):
 
     long_message_storage = LongMessageStorage(ble_storage, MemoryStorage())
     long_message_handler = LongMessageHandler(long_message_storage)
+
+    extract_asset_longmessage(long_message_storage, os.path.join(writeable_data_dir, 'assets'))
 
     ble = RevvyBLE(device_name, serial, long_message_handler)
 
@@ -164,7 +195,7 @@ def start_revvy(config: RobotConfig = None):
         update_manager = McuUpdateManager(os.path.join(package_data_dir, 'firmware'), updater)
         update_manager.update_if_necessary()
 
-        robot = RobotManager(robot_control, ble, sound_paths, manifest['version'], initial_config)
+        robot = RobotManager(robot_control, ble, sound_lookup, manifest['version'], initial_config)
 
         lmi = LongMessageImplementation(robot, config is not None)
         long_message_handler.on_upload_started(lmi.on_upload_started)
