@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # SPDX-License-Identifier: GPL-3.0-only
-
+from revvy.assets import Assets
 from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
 from revvy.file_storage import FileStorage, MemoryStorage
 from revvy.firmware_updater import McuUpdater, McuUpdateManager
@@ -116,29 +116,12 @@ def start_revvy(config: RobotConfig = None):
     device_storage = FileStorage(data_dir)
     ble_storage = FileStorage(ble_storage_dir)
 
-    sound_files = {
-        'alarm_clock':    'alarm_clock.mp3',
-        'bell':           'bell.mp3',
-        'buzzer':         'buzzer.mp3',
-        'car_horn':       'car-horn.mp3',
-        'cat':            'cat.mp3',
-        'dog':            'dog.mp3',
-        'duck':           'duck.mp3',
-        'engine_revving': 'engine-revving.mp3',
-        'lion':           'lion.mp3',
-        'oh_no':          'oh-no.mp3',
-        'robot':          'robot.mp3',
-        'robot2':         'robot2.mp3',
-        'siren':          'siren.mp3',
-        'ta_da':          'tada.mp3',
-        'uh_oh':          'uh-oh.mp3',
-        'yee_haw':        'yee-haw.mp3',
-    }
+    assets = Assets([
+        os.path.join(package_data_dir, 'assets')
+    ])
 
-    def sound_path(file):
-        return os.path.join(package_data_dir, 'assets', file)
-
-    sound_paths = {key: sound_path(sound_files[key]) for key in sound_files}
+    def sound_lookup(file):
+        return assets.get_asset_file('sounds', file)
 
     dnp = DeviceNameProvider(device_storage, lambda: 'Revvy_{}'.format(serial))
     device_name = Observable(dnp.get_device_name())
@@ -164,7 +147,7 @@ def start_revvy(config: RobotConfig = None):
         update_manager = McuUpdateManager(os.path.join(package_data_dir, 'firmware'), updater)
         update_manager.update_if_necessary()
 
-        robot = RobotManager(robot_control, ble, sound_paths, manifest['version'], initial_config)
+        robot = RobotManager(robot_control, ble, sound_lookup, manifest['version'], initial_config)
 
         lmi = LongMessageImplementation(robot, config is not None)
         long_message_handler.on_upload_started(lmi.on_upload_started)
