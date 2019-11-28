@@ -46,9 +46,10 @@ class LongMessageType:
     FRAMEWORK_DATA = 2
     CONFIGURATION_DATA = 3
     TEST_KIT = 4
-    MAX = 5
+    ASSET_DATA = 5
+    MAX = 6
 
-    PermanentMessages = [FIRMWARE_DATA, FRAMEWORK_DATA]
+    PermanentMessages = [FIRMWARE_DATA, FRAMEWORK_DATA, ASSET_DATA]
 
     @staticmethod
     def validate(long_message_type):
