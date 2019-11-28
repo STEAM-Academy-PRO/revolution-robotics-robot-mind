@@ -48,6 +48,8 @@ def get_serial():
                     cpu_serial = line.rstrip()[-16:].lstrip('0')
                     break
     except Exception:
+        print('Failed to read cpuid')
+        print(traceback.format_exc())
         cpu_serial = "ERROR000000000"
 
     return cpu_serial

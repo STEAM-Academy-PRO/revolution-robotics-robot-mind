@@ -239,8 +239,8 @@ class LongMessageProtocol:
                 value += status.length.to_bytes(4, byteorder="big")
 
             return value
-        except (IOError, TypeError, JSONDecodeError):
-            raise LongMessageError('Could not read long message')
+        except (IOError, TypeError, JSONDecodeError) as e:
+            raise LongMessageError('Could not read long message') from e
 
     def handle_write(self, header, data):
         if header == MessageType.SELECT_LONG_MESSAGE_TYPE:

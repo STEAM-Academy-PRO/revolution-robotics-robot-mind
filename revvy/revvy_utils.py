@@ -288,6 +288,7 @@ class RobotManager:
                 self._log('Running background function')
                 fn()
         except TransportException:
+            print(traceback.format_exc())
             self.exit(RevvyStatusCode.ERROR)
         except Exception:
             print(traceback.format_exc())

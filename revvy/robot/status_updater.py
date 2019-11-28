@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 from revvy.mcu.rrrc_control import RevvyControl
-
+from revvy.utils.logger import Logger
 
 mcu_updater_slots = {
     "motors": {i: i-1 for i in range(1, 7)},
@@ -23,19 +23,20 @@ class McuStatusUpdater:
         self._robot = robot
         self._is_enabled = [False] * 32
         self._handlers = [lambda x: None] * 32
+        self._log = Logger('McuStatusUpdater')
 
     def reset(self):
-        print('McuStatusUpdater: reset all slots')
+        self._log('reset all slots')
         self._handlers = [lambda x: None] * 32
         self._is_enabled = [False] * 32
         self._robot.status_updater_reset()
 
     def _enable_slot(self, slot):
-        print('McuStatusUpdater: enable slot {}'.format(slot))
+        self._log('enable slot {}'.format(slot))
         self._robot.status_updater_control(slot, True)
 
     def _disable_slot(self, slot):
-        print('McuStatusUpdater: disable slot {}'.format(slot))
+        self._log('disable slot {}'.format(slot))
         self._robot.status_updater_control(slot, False)
 
     def set_slot(self, slot: int, cb):
@@ -66,6 +67,6 @@ class McuStatusUpdater:
             if data_end <= len(data):
                 self._handlers[slot](data[data_start:data_end])
             else:
-                print('McuStatusUpdater: invalid slot length')
+                self._log('invalid slot length')
 
             idx = data_end
