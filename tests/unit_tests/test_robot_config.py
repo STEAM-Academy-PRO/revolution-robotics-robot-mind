@@ -2,7 +2,7 @@
 
 import unittest
 
-from revvy.functions import b64_encode_str
+from revvy.utils.functions import b64_encode_str
 from revvy.robot_config import RobotConfig
 
 

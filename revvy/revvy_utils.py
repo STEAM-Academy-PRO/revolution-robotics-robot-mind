@@ -4,11 +4,13 @@ import enum
 import os
 import signal
 import traceback
+import time
 from collections import namedtuple
+from threading import Lock
 
-from revvy.file_storage import StorageInterface, StorageError
 from revvy.hardware_dependent.sound import setup_sound_v1, play_sound_v1, setup_sound_v2, play_sound_v2, reset_volume
 from revvy.mcu.rrrc_control import RevvyControl, BatteryStatus, Version
+from revvy.mcu.rrrc_transport import TransportException
 from revvy.robot.drivetrain import DifferentialDrivetrain
 from revvy.robot.imu import IMU
 from revvy.robot.remote_controller import RemoteController, RemoteControllerScheduler, create_remote_controller_thread
@@ -23,9 +25,8 @@ from revvy.robot_config import RobotConfig
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import MotorConstants
 from revvy.scripting.runtime import ScriptManager
-from revvy.thread_wrapper import periodic
-
-from revvy.mcu.rrrc_transport import *
+from revvy.utils.logger import Logger
+from revvy.utils.thread_wrapper import periodic
 
 
 Motors = {
@@ -231,15 +232,15 @@ class RevvyStatusCode(enum.IntEnum):
 class RobotManager:
 
     # FIXME: revvy intentionally doesn't have a type hint at this moment because it breaks tests right now
-    def __init__(self, interface: RevvyControl, revvy, sounds, sw_version, default_config=None):
-        print("RobotManager: __init__()")
+    def __init__(self, interface: RevvyControl, revvy, sounds, sw_version):
+        self._log = Logger('RobotManager')
+        self._log('init')
         self.needs_interrupting = True
 
         self._configuring = False
         self._robot = Robot(interface, sounds, sw_version)
         self._interface = interface
         self._ble = revvy
-        self._default_configuration = default_config or RobotConfig()
 
         self._status_update_thread = periodic(self._update, 0.02, "RobotStatusUpdaterThread")
         self._background_fn_lock = Lock()
@@ -251,7 +252,6 @@ class RobotManager:
         rcs.on_controller_lost(self._on_controller_lost)
 
         self._remote_controller = rc
-        self._remote_controller_scheduler = rcs
         self._remote_controller_thread = create_remote_controller_thread(rcs)
 
         self._resources = {
@@ -263,11 +263,11 @@ class RobotManager:
             **{'sensor_{}'.format(port.id): Resource() for port in self._robot.sensors}
         }
 
-        revvy['live_message_service'].register_message_handler(self._remote_controller_scheduler.data_ready)
+        revvy['live_message_service'].register_message_handler(rcs.data_ready)
         revvy.on_connection_changed(self._on_connection_changed)
 
         self._scripts = ScriptManager(self)
-        self._config = self._default_configuration
+        self._config = RobotConfig()
 
         self._status_code = RevvyStatusCode.OK
         self.exited = False
@@ -285,7 +285,7 @@ class RobotManager:
                 self._background_fns.clear()
 
             for fn in fns:
-                print("Running background function")
+                self._log('Running background function')
                 fn()
         except TransportException:
             self.exit(RevvyStatusCode.ERROR)
@@ -317,6 +317,7 @@ class RobotManager:
         return self._remote_controller
 
     def exit(self, status_code):
+        self._log('exit requested with code {}'.format(status_code))
         self._status_code = status_code
         if self.needs_interrupting:
             os.kill(os.getpid(), signal.SIGINT)
@@ -324,16 +325,16 @@ class RobotManager:
 
     def request_update(self):
         def update():
-            print('Exiting to update')
+            self._log('Exiting to update')
             time.sleep(1)
             self.exit(RevvyStatusCode.UPDATE_REQUEST)
 
         self.run_in_background(update)
 
     def start(self):
-        print("RobotManager: start()")
+        self._log('start')
         if self._robot.status.robot_status == RobotStatus.StartingUp:
-            print("Waiting for MCU")
+            self._log('Waiting for MCU')
             # TODO if we are getting stuck here (> ~3s), firmware is probably not valid
             self._ping_robot()
 
@@ -351,11 +352,11 @@ class RobotManager:
     def run_in_background(self, callback):
         if callable(callback):
             with self._background_fn_lock:
-                print("Registering new background function")
+                self._log('Registering new background function')
                 self._background_fns.append(callback)
 
     def _on_connection_changed(self, is_connected):
-        print('Phone connected' if is_connected else 'Phone disconnected')
+        self._log('Phone connected' if is_connected else 'Phone disconnected')
         if not is_connected:
             self._robot.status.controller_status = RemoteControllerStatus.NotConnected
             self.configure(None)
@@ -364,15 +365,17 @@ class RobotManager:
             self._robot.sound.play_tune('bell')
 
     def _on_controller_detected(self):
+        self._log('Remote controller detected')
         self._robot.status.controller_status = RemoteControllerStatus.Controlled
 
     def _on_controller_lost(self):
+        self._log('Remote controller lost')
         if self._robot.status.controller_status != RemoteControllerStatus.NotConnected:
             self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
             self.configure(None)
 
     def configure(self, config, after=None):
-        print('RobotManager: configure()')
+        self._log('Request configuration')
         if self._robot.status.robot_status != RobotStatus.Stopped:
             if not self._configuring:
                 self._configuring = True
@@ -399,7 +402,7 @@ class RobotManager:
 
     def _apply_new_configuration(self, config):
         # apply new configuration
-        print("Applying new configuration")
+        self._log('Applying new configuration')
 
         live_service = self._ble['live_message_service']
 
@@ -442,24 +445,24 @@ class RobotManager:
             self._scripts[script].start()
 
     def _configure(self, config):
-        is_default_config = config is None
 
         if not config and self._robot.status.robot_status != RobotStatus.Stopped:
-            config = self._default_configuration
+            config = RobotConfig()
+            is_default_config = True
+        else:
+            is_default_config = False
+
         self._config = config
 
         self._scripts.stop_all_scripts()
         self._reset_configuration()
 
-        if config is not None:
-            self._apply_new_configuration(config)
-            if is_default_config:
-                print('Default configuration applied')
-                self._robot.status.robot_status = RobotStatus.NotConfigured
-            else:
-                self._robot.status.robot_status = RobotStatus.Configured
-        else:
+        self._apply_new_configuration(config)
+        if is_default_config:
+            self._log('Default configuration applied')
             self._robot.status.robot_status = RobotStatus.NotConfigured
+        else:
+            self._robot.status.robot_status = RobotStatus.Configured
 
         self._configuring = False
 
@@ -483,25 +486,3 @@ class RobotManager:
             except (BrokenPipeError, IOError, OSError):
                 retry_ping = True
                 time.sleep(0.1)
-
-
-class DeviceNameProvider:
-    def __init__(self, storage: StorageInterface, default):
-        self._filename = 'device-name'
-        self._storage = storage
-        try:
-            self._name = storage.read(self._filename).decode("utf-8")
-        except StorageError:
-            self._name = default()
-        print('Device name: {}'.format(self._name))
-
-    def get_device_name(self):
-        return self._name
-
-    def update_device_name(self, new_device_name):
-        if new_device_name != self._name:
-            self._name = new_device_name
-            self._storage.write(self._filename, self._name.encode("utf-8"))
-            print('Device name changed to {}'.format(self._name))
-        else:
-            print('Device name not changed')

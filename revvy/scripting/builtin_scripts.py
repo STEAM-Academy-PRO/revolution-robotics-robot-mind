@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
-from revvy.functions import clip, map_values
+from revvy.utils.functions import clip, map_values
 from revvy.scripting.controllers import stick_controller, joystick
 
 

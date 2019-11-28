@@ -1,12 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import struct
-import traceback
 from abc import ABC
 from collections import namedtuple
 
-from revvy.functions import split
-from revvy.version import Version, FormatError
+from revvy.utils.functions import split
+from revvy.utils.version import Version, FormatError
 from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseHeader
 
 

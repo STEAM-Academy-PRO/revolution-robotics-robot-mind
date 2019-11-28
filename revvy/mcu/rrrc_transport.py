@@ -4,7 +4,7 @@ import time
 import binascii
 from threading import Lock
 
-from revvy.functions import retry
+from revvy.utils.functions import retry
 
 
 class TransportException(Exception):

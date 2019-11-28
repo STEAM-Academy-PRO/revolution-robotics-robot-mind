@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 import struct
 
-from revvy.functions import map_values
+from revvy.utils.functions import map_values
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler, PortInstance
 
@@ -256,8 +256,8 @@ class Ev3UARTSensor(BaseSensorPortDriver):
 
 
 class Color:
-    def __init__(self, id, name, rgb):
-        self._id = id
+    def __init__(self, color_id, name, rgb):
+        self._id = color_id
         self._name = name
         self._rgb = rgb
 
@@ -299,7 +299,7 @@ def ev3_color(port: PortInstance, cfg):
             return None
 
         color_id = int(value[0])
-        return Color(id=color_id, name=color_map[color_id]['name'], rgb=color_map[color_id]['rgb'])
+        return Color(color_id=color_id, name=color_map[color_id]['name'], rgb=color_map[color_id]['rgb'])
 
     sensor.convert_sensor_value = convert
     sensor.on_configured = lambda: sensor.select_mode(2)

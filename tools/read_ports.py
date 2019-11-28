@@ -4,11 +4,11 @@ import argparse
 import sys
 import time
 
-from revvy.functions import read_json
+from revvy.utils.functions import read_json
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.mcu.rrrc_control import RevvyControl
-from revvy.thread_wrapper import periodic
-from revvy.utils import Robot
+from revvy.utils.thread_wrapper import periodic
+from revvy.revvy_utils import Robot
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 
 import os
 
-from revvy.functions import read_json
+from revvy.utils.functions import read_json
 
 
 class Assets:

@@ -6,7 +6,7 @@ import traceback
 
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.mcu.rrrc_control import RevvyControl
-from revvy.version import Version
+from revvy.utils.version import Version
 from tools.utils import parse_cfsr
 
 
@@ -40,7 +40,7 @@ exception_names = [
 ]
 
 
-def format_error(error, current_fw_version: Version, only_current=False):
+def format_error(error, installed_fw: Version, only_current=False):
     # noinspection PyBroadException
     try:
         error_id = error[0]
@@ -63,8 +63,7 @@ def format_error(error, current_fw_version: Version, only_current=False):
             if cfsr_reasons:
                 details_str += "\n\tReasons:"
                 for reason in cfsr_reasons:
-                    if reason:
-                        details_str += "\n\t\t" + reason
+                    details_str += "\n\t\t" + reason
 
         elif error_id == ErrorType.StackOverflow:
             task = bytes(error_data).decode("utf-8")
@@ -95,7 +94,7 @@ def format_error(error, current_fw_version: Version, only_current=False):
         except IndexError:
             exception_name = 'Unknown error'
 
-        if Version(fw_str) == current_fw_version:
+        if Version(fw_str) == installed_fw:
             error_template = '{} ({}, HW: {}, FW: {})\nDetails: {}'
         elif not only_current:
             error_template = '{} ({}, HW: {}, FW: {} (NOT CURRENT))\nDetails: {}'
@@ -149,12 +148,12 @@ if __name__ == "__main__":
 
             remaining -= len(errors)
 
-            for err in errors:
-                error = format_error(err, current_fw_version, only_current=args.only_current)
-                if error is not None:
+            for error_entry in errors:
+                formatted_error = format_error(error_entry, current_fw_version, only_current=args.only_current)
+                if formatted_error is not None:
                     print('----------------------------------------')
                     print('Error {}'.format(i))
-                    print(error)
+                    print(formatted_error)
                 i += 1
 
         if args.clear:

@@ -2,7 +2,7 @@
 
 import time
 
-from revvy.functions import hex2rgb
+from revvy.utils.functions import hex2rgb
 from revvy.hardware_dependent.sound import set_volume
 from revvy.robot.ports.common import PortInstance, PortCollection
 

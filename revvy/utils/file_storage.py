@@ -5,7 +5,7 @@ import json
 from collections import namedtuple
 from json import JSONDecodeError
 
-from revvy.functions import bytestr_hash, read_json
+from revvy.utils.functions import bytestr_hash, read_json
 
 
 class StorageError(Exception):

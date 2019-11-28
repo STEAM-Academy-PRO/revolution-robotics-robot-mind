@@ -8,7 +8,7 @@ import os
 import shutil
 from os import path
 
-from revvy.functions import file_hash, read_json
+from revvy.utils.functions import file_hash, read_json
 from tools.common import find_files
 from tools.generate_manifest import gen_manifest
 
@@ -70,11 +70,11 @@ if __name__ == "__main__":
     print('Remove downloaded packages')
     shutil.rmtree('install/packages')
 
-    filehash = file_hash(package_path)
-    filesize = os.stat(package_path).st_size
+    file_hash = file_hash(package_path)
+    file_size = os.stat(package_path).st_size
 
     with open(meta_file, "w") as mf:
-        json.dump({'length': filesize, 'md5': filehash}, mf)
+        json.dump({'length': file_size, 'md5': file_hash}, mf)
 
     print('Package created: {}'.format(package_path))
-    print('Package checksum: {}'.format(filehash))
+    print('Package checksum: {}'.format(file_hash))

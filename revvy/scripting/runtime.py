@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 from revvy.scripting.robot_interface import RobotInterface
-from revvy.thread_wrapper import *
 import time
+
+from revvy.utils.logger import Logger
+from revvy.utils.thread_wrapper import ThreadContext, ThreadWrapper
 
 
 class TimeWrapper:
@@ -74,13 +76,14 @@ class ScriptManager:
         self._robot = robot
         self._globals = {}
         self._scripts = {}
+        self._log = Logger('ScriptManager')
 
     def reset(self):
-        print('ScriptManager: stopping scripts')
+        self._log('stopping scripts')
         for script in self._scripts:
             self._scripts[script].cleanup()
 
-        print('ScriptManager: resetting state')
+        self._log('resetting state')
         self._globals.clear()
         self._scripts.clear()
 
@@ -91,10 +94,10 @@ class ScriptManager:
 
     def add_script(self, name, script, priority=0):
         if name in self._scripts:
-            print('ScriptManager: Stopping {} before overriding'.format(name))
+            self._log('Stopping {} before overriding'.format(name))
             self._scripts[name].cleanup()
 
-        print('ScriptManager: New script: {}'.format(name))
+        self._log('New script: {}'.format(name))
         script = ScriptHandle(self, script, name, self._globals)
         try:
             robot = self._robot

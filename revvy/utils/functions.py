@@ -36,7 +36,7 @@ def map_values(x, min_x, max_x, min_y, max_y):
     return (x - min_x) * (full_scale_out / full_scale_in) + min_y
 
 
-def getserial():
+def get_serial():
     """Extract serial from cpuinfo file"""
 
     cpu_serial = "0000000000000000"
@@ -119,6 +119,18 @@ def b64_decode_str(to_decode):
     return a2b_base64(to_decode.encode("utf-8")).decode("utf-8")
 
 
+def is_bit_set(reg, bit):
+    """
+    >>> is_bit_set(1, 0)
+    True
+    >>> is_bit_set(2, 1)
+    True
+    >>> is_bit_set(3, 1)
+    True
+    """
+    return reg & (1 << bit) != 0
+
+
 def bits_to_bool_list(byte_list):
     """
     >>> bits_to_bool_list([0xFF])
@@ -130,7 +142,7 @@ def bits_to_bool_list(byte_list):
     """
 
     def expand_byte(byte):
-        return [(byte & (1 << x)) != 0 for x in range(8)]
+        return [is_bit_set(byte, x) for x in range(8)]
 
     return [j for i in [expand_byte(byte) for byte in byte_list] for j in i]
 
@@ -156,6 +168,7 @@ def dict_get_first(dictionary: dict, keys: list):
     raise KeyError(', '.join(keys))
 
 
+# noinspection SpellCheckingInspection
 def bytestr_hash(byte_str):
     hash_fn = hashlib.md5()
     hash_fn.update(byte_str)

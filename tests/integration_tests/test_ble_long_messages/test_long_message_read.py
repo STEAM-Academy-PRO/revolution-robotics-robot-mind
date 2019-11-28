@@ -5,7 +5,7 @@ import unittest
 
 from revvy.bluetooth.longmessage import LongMessageStorage, LongMessageHandler, LongMessageProtocol, bytes2hexdigest, \
     MessageType
-from revvy.file_storage import MemoryStorage
+from revvy.utils.file_storage import MemoryStorage
 
 
 class TestLongMessageRead(unittest.TestCase):

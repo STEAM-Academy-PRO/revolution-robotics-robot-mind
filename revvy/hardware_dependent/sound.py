@@ -3,7 +3,7 @@
 import subprocess
 import threading
 
-from revvy.functions import map_values, clip
+from revvy.utils.functions import map_values, clip
 
 max_parallel_sounds = 4
 default_volume = 90

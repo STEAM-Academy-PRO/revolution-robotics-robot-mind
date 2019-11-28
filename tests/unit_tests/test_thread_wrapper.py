@@ -6,7 +6,7 @@ from threading import Event
 
 from mock import Mock
 
-from revvy.thread_wrapper import ThreadWrapper, ThreadContext
+from revvy.utils.thread_wrapper import ThreadWrapper, ThreadContext
 
 
 class TestThreadWrapper(unittest.TestCase):

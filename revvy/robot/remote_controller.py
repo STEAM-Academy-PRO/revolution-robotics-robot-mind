@@ -4,9 +4,9 @@ import time
 from collections import namedtuple
 from threading import Lock, Event
 
-from revvy.activation import EdgeTrigger
-from revvy.thread_wrapper import ThreadWrapper, ThreadContext
-
+from revvy.utils.activation import EdgeTrigger
+from revvy.utils.thread_wrapper import ThreadWrapper, ThreadContext
+from revvy.utils.logger import Logger
 
 RemoteControllerCommand = namedtuple('RemoteControllerCommand', ['analog', 'buttons'])
 
@@ -104,6 +104,10 @@ class RemoteController:
 
 
 class RemoteControllerScheduler:
+
+    first_message_timeout = 2
+    message_max_period = 0.5
+
     def __init__(self, rc: RemoteController):
         self._controller = rc
         self._data_ready_event = Event()
@@ -111,14 +115,21 @@ class RemoteControllerScheduler:
         self._controller_lost_callback = lambda: None
         self._data_mutex = Lock()
         self._message = None
+        self._log = Logger('RemoteControllerScheduler')
 
     def data_ready(self, message: RemoteControllerCommand):
         with self._data_mutex:
             self._message = message
         self._data_ready_event.set()
 
+    def _wait_for_message(self, is_first_message):
+        if is_first_message:
+            return self._data_ready_event.wait(self.first_message_timeout)
+        else:
+            return self._data_ready_event.wait(self.message_max_period)
+
     def handle_controller(self, ctx: ThreadContext):
-        print('RemoteControllerScheduler: Waiting for controller')
+        self._log('Waiting for controller')
 
         self._data_ready_event.clear()
 
@@ -128,12 +139,12 @@ class RemoteControllerScheduler:
         first = True
 
         start_time = time.time()
-        while self._data_ready_event.wait(2 if first else 0.5):
+        while self._wait_for_message(first):
             if ctx.stop_requested:
                 break
 
             if first:
-                print("Time to first message: {}s".format(time.time() - start_time))
+                self._log("Time to first message: {}s".format(time.time() - start_time))
                 self._controller_detected_callback()
                 first = False
 
@@ -147,20 +158,16 @@ class RemoteControllerScheduler:
 
         # reset here, controller was lost or stopped
         self._controller.reset()
-        print('RemoteControllerScheduler: exited')
+        self._log('exited')
 
     def on_controller_detected(self, callback):
-        print('RemoteControllerScheduler: Register controller found handler')
+        self._log('Register controller found handler')
         self._controller_detected_callback = callback
 
     def on_controller_lost(self, callback):
-        print('RemoteControllerScheduler: Register controller lost handler')
+        self._log('Register controller lost handler')
         self._controller_lost_callback = callback
 
 
 def create_remote_controller_thread(rcs: RemoteControllerScheduler):
-    def _run(ctx: ThreadContext):
-        rcs.handle_controller(ctx)
-        print('RemoteControllerScheduler: Stopped')
-
-    return ThreadWrapper(_run, "RemoteControllerThread")
+    return ThreadWrapper(rcs.handle_controller, "RemoteControllerThread")

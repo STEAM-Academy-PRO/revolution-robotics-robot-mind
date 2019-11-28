@@ -4,7 +4,7 @@ import json
 import traceback
 from json import JSONDecodeError
 
-from revvy.functions import b64_decode_str, dict_get_first
+from revvy.utils.functions import b64_decode_str, dict_get_first
 from revvy.scripting.builtin_scripts import builtin_scripts
 
 motor_types = [
