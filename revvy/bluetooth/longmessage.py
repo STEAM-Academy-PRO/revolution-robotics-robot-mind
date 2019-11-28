@@ -234,7 +234,7 @@ class LongMessageProtocol:
 
         elif header == MessageType.INIT_TRANSFER:
             if len(data) == 16:
-                self._handler.init_transfer(bytes2hexdigest(data[0:16]))
+                self._handler.init_transfer(bytes2hexdigest(data))
                 result = LongMessageProtocol.RESULT_SUCCESS
             else:
                 result = LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH
