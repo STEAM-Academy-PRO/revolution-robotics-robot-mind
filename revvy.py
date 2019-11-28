@@ -1,21 +1,26 @@
 #!/usr/bin/python3
 # SPDX-License-Identifier: GPL-3.0-only
 import io
+import os
 import shutil
+import sys
 import tarfile
+import time
+import traceback
 
+from revvy.mcu.rrrc_control import RevvyControl, BootloaderControl
+from revvy.revvy_utils import RobotManager, RevvyStatusCode
+from revvy.robot.led_ring import RingLed
+from revvy.robot.status import RobotStatus
 from revvy.utils.assets import Assets
 from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
+from revvy.utils.error_handler import register_uncaught_exception_handler
 from revvy.utils.file_storage import FileStorage, MemoryStorage, StorageError
 from revvy.firmware_updater import McuUpdater, McuUpdateManager
 from revvy.utils.functions import get_serial, read_json
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType, LongMessageStatus
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-from revvy.robot_config import empty_robot_config
-from revvy.revvy_utils import *
-from revvy.mcu.rrrc_transport import *
-from revvy.mcu.rrrc_control import *
-import sys
+from revvy.robot_config import empty_robot_config, RobotConfig
 
 from tools.check_manifest import check_manifest
 
@@ -121,6 +126,7 @@ class LongMessageImplementation:
 if __name__ == "__main__":
     current_installation = os.path.dirname(os.path.realpath(__file__))
     os.chdir(current_installation)
+    print('Revvy run from {} ({})'.format(current_installation, __file__))
 
     # base directories
     writeable_data_dir = os.path.join(current_installation, '..', '..', '..', 'user')
@@ -134,20 +140,7 @@ if __name__ == "__main__":
         print('Revvy not started because manifest is invalid')
         sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
 
-    def log_uncaught_exception(exctype, value, tb):
-        log_message = 'Uncaught exception: {}\n' \
-                      'Value: {}\n' \
-                      'Traceback: \n\t{}\n' \
-                      '\n'.format(exctype, value, "\t".join(traceback.format_tb(tb)))
-        print(log_message)
-        logfile = os.path.join(data_dir, 'revvy_crash.log')
-
-        with open(logfile, 'a') as logf:
-            logf.write(log_message)
-
-    sys.excepthook = log_uncaught_exception
-
-    print('Revvy run from {} ({})'.format(current_installation, __file__))
+    register_uncaught_exception_handler(logfile=os.path.join(data_dir, 'revvy_crash.log'))
 
     # prepare environment
 
