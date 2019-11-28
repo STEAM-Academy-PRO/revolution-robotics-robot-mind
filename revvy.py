@@ -117,7 +117,8 @@ def start_revvy(config: RobotConfig = None):
     ble_storage = FileStorage(ble_storage_dir)
 
     assets = Assets([
-        os.path.join(package_data_dir, 'assets')
+        os.path.join(package_data_dir, 'assets'),
+        os.path.join(writeable_data_dir, 'assets')
     ])
 
     def sound_lookup(file):
