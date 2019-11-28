@@ -17,7 +17,8 @@ if __name__ == "__main__":
     port_config_map = {
         'Ultrasonic': 'HC_SR04',
         'Button':     'BumperSwitch',
-        'EV3':        'EV3'
+        'EV3':        'EV3',
+        'EV3_Color':  'EV3_Color',
     }
 
     parser = argparse.ArgumentParser()
