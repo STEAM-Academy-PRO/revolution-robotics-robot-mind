@@ -1,5 +1,9 @@
 #!/usr/bin/python3
 # SPDX-License-Identifier: GPL-3.0-only
+import io
+import shutil
+import tarfile
+
 from revvy.assets import Assets
 from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
 from revvy.file_storage import FileStorage, MemoryStorage
@@ -16,6 +20,32 @@ import sys
 from tools.check_manifest import check_manifest
 
 default_robot_config = None
+
+
+def extract_asset_longmessage(storage, asset_dir):
+
+    asset_status = storage.read_status(LongMessageType.ASSET_DATA)
+
+    if asset_status.status == LongMessageStatus.READY:
+        # noinspection PyBroadException
+        try:
+            with open(os.path.join(asset_dir, '.hash'), 'r') as asset_hash_file:
+                stored_hash = asset_hash_file.read()
+
+            if stored_hash == asset_status.md5:
+                return
+        except Exception:
+            pass
+
+        if os.path.isdir(asset_dir):
+            shutil.rmtree(asset_dir)
+
+        message_data = storage.get_long_message(LongMessageType.ASSET_DATA)
+        with tarfile.open(fileobj=io.StringIO(message_data), mode="r|gz") as tar:
+            tar.extractall(path=asset_dir)
+
+        with open(os.path.join(asset_dir, '.hash'), 'w') as asset_hash_file:
+            asset_hash_file.write(asset_status.md5)
 
 
 class LongMessageImplementation:
@@ -75,6 +105,11 @@ class LongMessageImplementation:
             self._robot.robot.status.robot_status = RobotStatus.Updating
             self._robot.request_update()
 
+        elif message_type == LongMessageType.ASSET_DATA:
+            writeable_data_dir = os.path.join('..', '..', '..', 'user')
+            asset_dir = os.path.join(writeable_data_dir, 'assets')
+            extract_asset_longmessage(storage, asset_dir)
+
 
 def start_revvy(config: RobotConfig = None):
     current_installation = os.path.dirname(os.path.realpath(__file__))
@@ -130,6 +165,8 @@ def start_revvy(config: RobotConfig = None):
 
     long_message_storage = LongMessageStorage(ble_storage, MemoryStorage())
     long_message_handler = LongMessageHandler(long_message_storage)
+
+    extract_asset_longmessage(long_message_storage, os.path.join(writeable_data_dir, 'assets'))
 
     ble = RevvyBLE(device_name, serial, long_message_handler)
 
