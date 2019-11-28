@@ -23,6 +23,16 @@ default_robot_config = None
 
 
 def extract_asset_longmessage(storage, asset_dir):
+    """
+    Extract the ASSET_DATA long message into a folder.
+
+    After successfully extracting, store the checksum of the asset message in the .hash file.
+    Skip extracting if the long message has the same checksum as stored in the folder.
+    The folder will be deleted if exists before decompression.
+
+    :param storage: the source where the asset data message is stored
+    :param asset_dir: the destination directory
+    """
 
     asset_status = storage.read_status(LongMessageType.ASSET_DATA)
 
