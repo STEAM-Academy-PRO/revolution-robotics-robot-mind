@@ -252,6 +252,17 @@ class SetSensorPortConfigCommand(SetPortConfigCommand):
     def command_id(self): return 0x23
 
 
+class ReadSensorPortInfoCommand(Command):
+    @property
+    def command_id(self): return 0x24
+
+    def __call__(self, port_idx, page=0):
+        return self._send([port_idx, page])
+
+    def parse_response(self, payload):
+        return payload
+
+
 class SetMotorPortControlCommand(Command):
     @property
     def command_id(self): return 0x14
@@ -272,11 +283,6 @@ class ReadPortStatusCommand(Command, ABC):
 class ReadMotorPortStatusCommand(ReadPortStatusCommand):
     @property
     def command_id(self): return 0x15
-
-
-class ReadSensorPortStatusCommand(ReadPortStatusCommand):
-    @property
-    def command_id(self): return 0x24
 
 
 class McuStatusUpdater_ResetCommand(Command):

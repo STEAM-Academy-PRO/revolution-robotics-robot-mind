@@ -25,7 +25,7 @@ motor_types = [
 
 motor_sides = ["left", "right"]
 
-sensor_types = ["NotConfigured", "HC_SR04", "BumperSwitch"]
+sensor_types = ["NotConfigured", "HC_SR04", "BumperSwitch", "EV3_Color"]
 
 
 class PortConfig:

@@ -13,10 +13,12 @@ from revvy.utils import Robot
 
 if __name__ == "__main__":
 
-    port_choices = ['Ultrasonic', 'Button']
+    port_choices = ['Ultrasonic', 'Button', 'EV3', 'EV3_Color']
     port_config_map = {
         'Ultrasonic': 'HC_SR04',
-        'Button': 'BumperSwitch'
+        'Button':     'BumperSwitch',
+        'EV3':        'EV3',
+        'EV3_Color':  'EV3_Color',
     }
 
     parser = argparse.ArgumentParser()

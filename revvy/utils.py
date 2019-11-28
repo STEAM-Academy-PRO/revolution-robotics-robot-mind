@@ -91,6 +91,8 @@ Sensors = {
     'NotConfigured': {'driver': 'NotConfigured', 'config': {}},
     'HC_SR04':       {'driver': 'HC_SR04', 'config': {}},
     'BumperSwitch':  {'driver': 'BumperSwitch', 'config': {}},
+    'EV3':           {'driver': 'EV3', 'config': {}},
+    'EV3_Color':     {'driver': 'EV3_Color', 'config': {}},
 }
 
 

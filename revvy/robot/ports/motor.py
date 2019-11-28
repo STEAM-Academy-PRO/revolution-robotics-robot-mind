@@ -28,7 +28,7 @@ def create_motor_port_handler(interface: RevvyControl, configs: dict):
 
 class NullMotor:
     def __init__(self, port: PortInstance, port_config):
-        pass
+        self.driver = 'NotConfigured'
 
     def on_status_changed(self, cb):
         pass
@@ -68,6 +68,7 @@ class NullMotor:
 class DcMotorController:
     """Generic driver for dc motors"""
     def __init__(self, port: PortInstance, port_config):
+        self.driver = 'DcMotor'
         self._name = 'Motor {}'.format(port.id)
         self._port = port
 
