@@ -84,7 +84,7 @@ class TestDcMotorDriver(unittest.TestCase):
     config = {
         'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
         'position_controller': [10, 0, 0, -900, 900],
-        'position_limits':     [0, 0],
+        'acceleration_limits': [10, 10],
         'encoder_resolution':  1168
     }
 

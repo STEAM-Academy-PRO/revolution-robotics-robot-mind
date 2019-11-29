@@ -80,14 +80,15 @@ class DcMotorController:
         self._power = 0
         self._pos_reached = None
 
-        (posMin, posMax) = port_config['position_limits']
         (posP, posI, posD, speedLowerLimit, speedUpperLimit) = port_config['position_controller']
         (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = port_config['speed_controller']
+        (decMax, accMax) = port_config['acceleration_limits']
 
-        config = list(struct.pack("<ll", posMin, posMax))
+        config = []
         config += list(struct.pack("<{}".format("f" * 5), posP, posI, posD, speedLowerLimit, speedUpperLimit))
         config += list(struct.pack("<{}".format("f" * 5), speedP, speedI, speedD, powerLowerLimit, powerUpperLimit))
         config += list(struct.pack("<h", port_config['encoder_resolution']))
+        config += list(struct.pack("<ff", decMax, accMax))
 
         print('{}: Sending configuration: {}'.format(self._name, config))
 
