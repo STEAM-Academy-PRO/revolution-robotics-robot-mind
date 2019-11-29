@@ -344,11 +344,17 @@ class DriveTrainWrapper(Wrapper):
             finally:
                 resource.release()
 
-    def set_speeds(self, sl, sr):
+    def set_speeds(self, sl, sr, unit_speed=MotorConstants.UNIT_SPEED_RPM):
         resource = self.try_take_resource()
         if resource:
             try:
-                self._drivetrain.set_speeds(sl, sr)
+                if unit_speed == MotorConstants.UNIT_SPEED_RPM:
+                    self._drivetrain.set_speeds(
+                        rpm2dps(sl),
+                        rpm2dps(sr)
+                    )
+                elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
+                    pass
             finally:
                 if sl == sr == 0:
                     resource.release()
