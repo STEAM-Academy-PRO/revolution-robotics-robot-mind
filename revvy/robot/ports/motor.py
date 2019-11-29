@@ -85,9 +85,9 @@ class DcMotorController:
         (decMax, accMax) = port_config['acceleration_limits']
 
         config = []
+        config += list(struct.pack("<h", port_config['encoder_resolution']))
         config += list(struct.pack("<{}".format("f" * 5), posP, posI, posD, speedLowerLimit, speedUpperLimit))
         config += list(struct.pack("<{}".format("f" * 5), speedP, speedI, speedD, powerLowerLimit, powerUpperLimit))
-        config += list(struct.pack("<h", port_config['encoder_resolution']))
         config += list(struct.pack("<ff", decMax, accMax))
 
         print('{}: Sending configuration: {}'.format(self._name, config))
