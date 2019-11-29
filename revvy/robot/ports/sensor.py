@@ -27,6 +27,9 @@ class NullSensor:
     def __init__(self, port: PortInstance, port_config):
         self.driver = 'NotConfigured'
 
+    def on_port_type_set(self):
+        pass
+
     def on_value_changed(self, cb):
         pass
 
@@ -49,6 +52,9 @@ class BaseSensorPortDriver:
         self._value = None
         self._raw_value = None
         self._value_changed_callback = lambda p: None
+
+    def on_port_type_set(self):
+        pass
 
     @property
     def has_data(self):
