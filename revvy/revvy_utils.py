@@ -36,7 +36,7 @@ Motors = {
         'config': {
             'speed_controller':    [1 / 37.5, 0.3, 0, -100, 100],
             'position_controller': [10, 0, 0, -900, 900],
-            'acceleration_limits': [720, 360],
+            'acceleration_limits': [3600, 1800],
             'encoder_resolution':  1536
         }
     },
@@ -45,7 +45,7 @@ Motors = {
         'config': {
             'speed_controller':    [1 / 37.5, 0.3, 0, -100, 100],
             'position_controller': [10, 0, 0, -900, 900],
-            'acceleration_limits': [720, 360],
+            'acceleration_limits': [3600, 1800],
             'encoder_resolution': -1536
         }
     },
@@ -54,7 +54,7 @@ Motors = {
         'config': {
             'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
             'position_controller': [10, 0, 0, -900, 900],
-            'acceleration_limits': [720, 360],
+            'acceleration_limits': [3600, 1800],
             'encoder_resolution':  1168
         }
     },
@@ -63,7 +63,7 @@ Motors = {
         'config': {
             'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
             'position_controller': [10, 0, 0, -900, 900],
-            'acceleration_limits': [720, 360],
+            'acceleration_limits': [3600, 1800],
             'encoder_resolution': -1168
         }
     },
@@ -72,7 +72,7 @@ Motors = {
         'config': {
             'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
             'position_controller': [10, 0, 0, -900, 900],
-            'acceleration_limits': [720, 360],
+            'acceleration_limits': [3600, 1800],
             'encoder_resolution':  292
         }
     },
