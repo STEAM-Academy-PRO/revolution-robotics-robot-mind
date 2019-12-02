@@ -58,6 +58,8 @@ class PortHandler:
         driver = self._drivers[new_driver_name](port, config['config'])
         self._set_port_type(port.id, self._types[driver.driver])
 
+        driver.on_port_type_set()
+
         return driver
 
 

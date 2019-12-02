@@ -8,6 +8,7 @@ from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler, PortInstance
 import struct
 
+from revvy.utils.logger import Logger
 
 DcMotorStatus = namedtuple("DcMotorStatus", ['position', 'speed', 'power'])
 
@@ -29,6 +30,9 @@ def create_motor_port_handler(interface: RevvyControl, configs: dict):
 class NullMotor:
     def __init__(self, port: PortInstance, port_config):
         self.driver = 'NotConfigured'
+
+    def on_port_type_set(self):
+        pass
 
     def on_status_changed(self, cb):
         pass
@@ -71,6 +75,8 @@ class DcMotorController:
         self.driver = 'DcMotor'
         self._name = 'Motor {}'.format(port.id)
         self._port = port
+        self._port_config = port_config
+        self._log = Logger(self._name)
 
         self._configure = lambda cfg: port.interface.set_motor_port_config(port.id, cfg)
         self._read = lambda: port.interface.get_motor_position(port.id)
@@ -80,19 +86,22 @@ class DcMotorController:
         self._power = 0
         self._pos_reached = None
 
-        (posMin, posMax) = port_config['position_limits']
-        (posP, posI, posD, speedLowerLimit, speedUpperLimit) = port_config['position_controller']
-        (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = port_config['speed_controller']
+        self._status_changed_callback = lambda p: None
 
-        config = list(struct.pack("<ll", posMin, posMax))
+    def on_port_type_set(self):
+        (posP, posI, posD, speedLowerLimit, speedUpperLimit) = self._port_config['position_controller']
+        (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = self._port_config['speed_controller']
+        (decMax, accMax) = self._port_config['acceleration_limits']
+
+        config = []
+        config += list(struct.pack("<h", self._port_config['encoder_resolution']))
         config += list(struct.pack("<{}".format("f" * 5), posP, posI, posD, speedLowerLimit, speedUpperLimit))
         config += list(struct.pack("<{}".format("f" * 5), speedP, speedI, speedD, powerLowerLimit, powerUpperLimit))
-        config += list(struct.pack("<h", port_config['encoder_resolution']))
+        config += list(struct.pack("<ff", decMax, accMax))
 
-        print('{}: Sending configuration: {}'.format(self._name, config))
+        self._log('Sending configuration: {}'.format(config))
 
         self._configure(config)
-        self._status_changed_callback = lambda p: None
 
     def _control(self, ctrl, value, pos_ctrl=False):
         self._pos_reached = False if pos_ctrl else None
@@ -132,7 +141,7 @@ class DcMotorController:
             return not (self._pos_reached and stopped)
 
     def set_speed(self, speed, power_limit=None):
-        print('{}::set_speed'.format(self._name))
+        self._log('set_speed')
         control = list(struct.pack("<f", speed))
         if power_limit is not None:
             control += list(struct.pack("<f", power_limit))
@@ -140,7 +149,7 @@ class DcMotorController:
         self._control(1, control)
 
     def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute'):
-        print('{}::set_position'.format(self._name))
+        self._log('set_position')
         control = list(struct.pack('<l', position))
 
         if speed_limit is not None and power_limit is not None:
@@ -154,7 +163,7 @@ class DcMotorController:
         self._control(pos_request_types[pos_type], control, True)
 
     def set_power(self, power):
-        print('{}::set_power'.format(self._name))
+        self._log('set_power')
         self._control(0, [power])
 
     def update_status(self, data):
@@ -164,7 +173,7 @@ class DcMotorController:
         elif len(data) == 10:
             (power, pos, speed, pos_reached) = struct.unpack('<blfb', bytearray(data))
         else:
-            print('{}: Received {} bytes of data instead of 9 or 10'.format(self._name, len(data)))
+            self._log('Received {} bytes of data instead of 9 or 10'.format(len(data)))
             return
 
         self._pos = pos

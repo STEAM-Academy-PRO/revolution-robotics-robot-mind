@@ -84,7 +84,7 @@ class TestDcMotorDriver(unittest.TestCase):
     config = {
         'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
         'position_controller': [10, 0, 0, -900, 900],
-        'position_limits':     [0, 0],
+        'acceleration_limits': [10, 10],
         'encoder_resolution':  1168
     }
 
@@ -100,12 +100,14 @@ class TestDcMotorDriver(unittest.TestCase):
 
         return port
 
-    def test_constructor_sends_configuration(self):
+    def test_constructor_does_not_send_configuration(self):
         port = self.create_port()
 
-        DcMotorController(port, self.config)
+        driver = DcMotorController(port, self.config)
 
-        self.assertEqual(1, port.interface.set_motor_port_config.call_count)
+        self.assertEqual(0, port.interface.set_motor_port_config.call_count)
+
+        driver.on_port_type_set()
         (passed_port_id, passed_config) = port.interface.set_motor_port_config.call_args[0]
 
         self.assertEqual(3, passed_port_id)
