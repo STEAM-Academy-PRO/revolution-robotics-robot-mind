@@ -34,8 +34,8 @@ Motors = {
     'RevvyMotor':    {
         'driver': 'DcMotor',
         'config': {
-            'speed_controller':    [1 / 40, 0.25, 0, -100, 100],
-            'position_controller': [10, 0, 0, -600, 600],
+            'speed_controller':    [1 / 35, 0.25, 0, -100, 100],
+            'position_controller': [4, 0, 0, -600, 600],
             'acceleration_limits': [14400, 3600],
             'encoder_resolution':  1536
         }
@@ -43,8 +43,8 @@ Motors = {
     'RevvyMotor_CCW': {
         'driver': 'DcMotor',
         'config': {
-            'speed_controller':    [1 / 40, 0.25, 0, -100, 100],
-            'position_controller': [10, 0, 0, -600, 600],
+            'speed_controller':    [1 / 35, 0.25, 0, -100, 100],
+            'position_controller': [4, 0, 0, -600, 600],
             'acceleration_limits': [14400, 3600],
             'encoder_resolution': -1536
         }

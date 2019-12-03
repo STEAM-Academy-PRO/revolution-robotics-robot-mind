@@ -280,6 +280,10 @@ class DriveTrainWrapper(Wrapper):
                     while not resource.is_interrupted and self._drivetrain.is_moving:
                         self.sleep(0.2)
 
+                    if not resource.is_interrupted:
+                        resource.run_uninterruptable(lambda: self._drivetrain.set_speeds(0, 0))
+                        self.sleep(0.2)
+
                 elif unit_rotation == MotorConstants.UNIT_SEC:
                     self.sleep(rotation)
 
@@ -334,6 +338,10 @@ class DriveTrainWrapper(Wrapper):
                     # wait for movement to finish
                     self.sleep(0.2)
                     while not resource.is_interrupted and self._drivetrain.is_moving:
+                        self.sleep(0.2)
+
+                    if not resource.is_interrupted:
+                        resource.run_uninterruptable(lambda: self._drivetrain.set_speeds(0, 0))
                         self.sleep(0.2)
 
                 elif unit_rotation == MotorConstants.UNIT_SEC:
