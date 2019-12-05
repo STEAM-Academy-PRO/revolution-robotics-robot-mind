@@ -426,7 +426,7 @@ class RobotInterface:
     def __init__(self, script, robot, config, res, priority=0):
         self._start_time = robot.start_time
 
-        resources = {name: ResourceWrapper(res[name], priority) for name in res}
+        self._resources = {name: ResourceWrapper(res[name], priority) for name in res}
 
         def motor_name(port):
             return 'motor_{}'.format(port.id)
@@ -434,16 +434,16 @@ class RobotInterface:
         def sensor_name(port):
             return 'sensor_{}'.format(port.id)
 
-        motor_wrappers = [MotorPortWrapper(script, port, resources[motor_name(port)]) for port in robot.motors]
-        sensor_wrappers = [SensorPortWrapper(script, port, resources[sensor_name(port)]) for port in robot.sensors]
+        motor_wrappers = [MotorPortWrapper(script, port, self._resources[motor_name(port)]) for port in robot.motors]
+        sensor_wrappers = [SensorPortWrapper(script, port, self._resources[sensor_name(port)]) for port in robot.sensors]
         self._motors = PortCollection(motor_wrappers)
         self._sensors = PortCollection(sensor_wrappers)
         self._motors.aliases.update(config.motors.names)
         self._sensors.aliases.update(config.sensors.names)
-        self._sound = SoundWrapper(script, robot.sound, resources['sound'])
-        self._ring_led = RingLedWrapper(script, robot.led_ring, resources['led_ring'])
-        self._drivetrain = DriveTrainWrapper(script, robot.drivetrain, resources['drivetrain'])
-        self._joystick = JoystickWrapper(script, robot.drivetrain, resources['drivetrain'])
+        self._sound = SoundWrapper(script, robot.sound, self._resources['sound'])
+        self._ring_led = RingLedWrapper(script, robot.led_ring, self._resources['led_ring'])
+        self._drivetrain = DriveTrainWrapper(script, robot.drivetrain, self._resources['drivetrain'])
+        self._joystick = JoystickWrapper(script, robot.drivetrain, self._resources['drivetrain'])
 
         self._script = script
 
@@ -486,3 +486,7 @@ class RobotInterface:
 
     # property alias
     led_ring = led
+
+    def release_resources(self):
+        for res in self._resources.values():
+            res.interrupt()

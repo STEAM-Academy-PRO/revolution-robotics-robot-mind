@@ -255,12 +255,12 @@ class RobotManager:
         self._remote_controller_thread = create_remote_controller_thread(rcs)
 
         self._resources = {
-            'led_ring':   Resource(),
-            'drivetrain': Resource(),
-            'sound':      Resource(),
+            'led_ring':   Resource('RingLed'),
+            'drivetrain': Resource('DriveTrain'),
+            'sound':      Resource('Sound'),
 
-            **{'motor_{}'.format(port.id): Resource() for port in self._robot.motors},
-            **{'sensor_{}'.format(port.id): Resource() for port in self._robot.sensors}
+            **{'motor_{}'.format(port.id): Resource('Motor {}'.format(port.id)) for port in self._robot.motors},
+            **{'sensor_{}'.format(port.id): Resource('Sensor {}'.format(port.id)) for port in self._robot.sensors}
         }
 
         revvy['live_message_service'].register_message_handler(rcs.data_ready)
