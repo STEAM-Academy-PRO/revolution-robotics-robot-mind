@@ -434,8 +434,10 @@ class RobotInterface:
         def sensor_name(port):
             return 'sensor_{}'.format(port.id)
 
-        motor_wrappers = [MotorPortWrapper(script, port, self._resources[motor_name(port)]) for port in robot.motors]
-        sensor_wrappers = [SensorPortWrapper(script, port, self._resources[sensor_name(port)]) for port in robot.sensors]
+        motor_wrappers = [MotorPortWrapper(script, port, self._resources[motor_name(port)])
+                          for port in robot.motors]
+        sensor_wrappers = [SensorPortWrapper(script, port, self._resources[sensor_name(port)])
+                           for port in robot.sensors]
         self._motors = PortCollection(motor_wrappers)
         self._sensors = PortCollection(sensor_wrappers)
         self._motors.aliases.update(config.motors.names)
