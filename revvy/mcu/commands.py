@@ -223,7 +223,7 @@ class RequestDifferentialDriveTrainPositionCommand(Command):
     def command_id(self): return 0x1B
 
     def __call__(self, left, right, left_speed=0, right_speed=0, power_limit=0):
-        pos_cmd = list(struct.pack('<bllffb', 0, left, right, left_speed, right_speed, power_limit))
+        pos_cmd = list(struct.pack('<bllffb', 0, int(left), int(right), left_speed, right_speed, power_limit))
         return self._send(pos_cmd)
 
 
@@ -232,7 +232,7 @@ class RequestDifferentialDriveTrainTurnCommand(Command):
     def command_id(self): return 0x1B
 
     def __call__(self, turn_angle, wheel_speed=0, power_limit=0):
-        turn_cmd = list(struct.pack('<blfb', 3, turn_angle, wheel_speed, power_limit))
+        turn_cmd = list(struct.pack('<blfb', 3, int(turn_angle), wheel_speed, power_limit))
         return self._send(turn_cmd)
 
 

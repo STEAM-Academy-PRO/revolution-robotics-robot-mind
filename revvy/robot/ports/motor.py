@@ -149,8 +149,14 @@ class DcMotorController:
         self._control(1, control)
 
     def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute'):
+        """
+        @param position: measured in degrees, depending on pos_type
+        @param speed_limit: maximum speed in degrees per seconds
+        @param power_limit: maximum power in percent
+        @param pos_type: 'absolute': turn to this angle, counted from startup; 'relative': turn this many degrees
+        """
         self._log('set_position')
-        control = list(struct.pack('<l', position))
+        control = list(struct.pack('<l', int(position)))
 
         if speed_limit is not None and power_limit is not None:
             control += list(struct.pack("<ff", speed_limit, power_limit))
