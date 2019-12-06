@@ -35,6 +35,10 @@ class Resource:
         self._current_priority = -1
         self._active_handle = None
 
+    @property
+    def lock(self):
+        return self._lock
+
     def reset(self):
         self._log('Reset')
         with self._lock:
