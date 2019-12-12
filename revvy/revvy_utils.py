@@ -102,6 +102,7 @@ RobotVersion = namedtuple("RobotVersion", ['hw', 'fw', 'sw'])
 
 class Robot:
     def __init__(self, interface: RevvyControl, sounds, sw_version):
+        self._log = Logger('Robot')
         self._interface = interface
 
         self._start_time = time.time()
@@ -197,6 +198,7 @@ class Robot:
         self._status_updater.read()
 
     def reset(self):
+        self._log('reset()')
         self._ring_led.set_scenario(RingLed.BreathingGreen)
         self._status_updater.reset()
 
@@ -213,6 +215,8 @@ class Robot:
         self._status_updater.set_slot("axl", self._imu.update_axl_data)
         self._status_updater.set_slot("gyro", self._imu.update_gyro_data)
         self._status_updater.set_slot("yaw", self._imu.update_yaw_angles)
+        # TODO: do something useful with the reset signal
+        self._status_updater.set_slot("reset", lambda x: self._log('MCU reset detected'))
 
         self._drivetrain.reset()
         self._motor_ports.reset()
