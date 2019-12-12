@@ -359,6 +359,7 @@ class RobotManager:
         self._log('Phone connected' if is_connected else 'Phone disconnected')
         if not is_connected:
             self._robot.status.controller_status = RemoteControllerStatus.NotConnected
+            self._robot.sound.play_tune('disconnect')
             self.configure(None)
         else:
             self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
