@@ -3,7 +3,6 @@
 import time
 
 from revvy.utils.functions import hex2rgb
-from revvy.hardware_dependent.sound import set_volume
 from revvy.robot.ports.common import PortInstance, PortCollection
 
 
@@ -415,8 +414,19 @@ class SoundWrapper(Wrapper):
         super().__init__(script, resource)
         self._sound = sound
 
+        self.set_volume = sound.set_volume
+        self._is_playing = False
+
+    def _sound_finished(self):
+        self._is_playing = False
+
+    def _play(self, name):
+        if not self._is_playing:
+            self._is_playing = True
+            self._sound.play_tune(name, self._sound_finished)
+
     def play_tune(self, name):
-        self.if_resource_available(lambda resource: self._sound.play_tune(name))
+        self.if_resource_available(lambda resource: self._play(name))
 
 
 # FIXME: type hints missing because of circular reference that causes ImportError
@@ -453,7 +463,7 @@ class RobotInterface:
         self.drive = self._drivetrain.drive
         self.turn = self._drivetrain.turn
         self.play_tune = self._sound.play_tune
-        self.set_volume = set_volume
+        self.set_volume = self._sound.set_volume
 
         self.imu = robot.imu
 

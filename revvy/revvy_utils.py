@@ -8,7 +8,7 @@ import time
 from collections import namedtuple
 from threading import Lock
 
-from revvy.hardware_dependent.sound import setup_sound_v1, play_sound_v1, setup_sound_v2, play_sound_v2, reset_volume
+from revvy.hardware_dependent.sound import SoundControlV1, SoundControlV2
 from revvy.mcu.rrrc_control import RevvyControl, BatteryStatus, Version
 from revvy.mcu.rrrc_transport import TransportException
 from revvy.robot.drivetrain import DifferentialDrivetrain
@@ -117,18 +117,13 @@ class Robot:
         self._version = RobotVersion(hw, fw, sw)
 
         setup = {
-            Version('1.0'): setup_sound_v1,
-            Version('1.1'): setup_sound_v1,
-            Version('2.0'): setup_sound_v2,
-        }
-        play = {
-            Version('1.0'): play_sound_v1,
-            Version('1.1'): play_sound_v1,
-            Version('2.0'): play_sound_v2,
+            Version('1.0'): SoundControlV1,
+            Version('1.1'): SoundControlV1,
+            Version('2.0'): SoundControlV2,
         }
 
         self._ring_led = RingLed(interface)
-        self._sound = Sound(setup[hw], play[hw], sounds)
+        self._sound = Sound(setup[hw](), sounds)
 
         self._status = RobotStatusIndicator(interface)
         self._status_updater = McuStatusUpdater(interface)
@@ -364,6 +359,7 @@ class RobotManager:
         self._log('Phone connected' if is_connected else 'Phone disconnected')
         if not is_connected:
             self._robot.status.controller_status = RemoteControllerStatus.NotConnected
+            self._robot.sound.play_tune('disconnect')
             self.configure(None)
         else:
             self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
@@ -389,7 +385,7 @@ class RobotManager:
                 self.run_in_background(after)
 
     def _reset_configuration(self):
-        reset_volume()
+        self.sound.reset_volume()
 
         self._scripts.reset()
         self._scripts.assign('Motor', MotorConstants)

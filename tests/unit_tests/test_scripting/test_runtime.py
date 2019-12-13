@@ -5,6 +5,7 @@ from threading import Event
 
 from mock import Mock
 
+from revvy.hardware_dependent.sound import SoundControlBase
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import RobotInterface
 from revvy.scripting.runtime import ScriptManager
@@ -12,6 +13,12 @@ from revvy.scripting.runtime import ScriptManager
 
 class mockobj:
     pass
+
+
+# noinspection PyMissingConstructor
+class MockSound(SoundControlBase):
+    def __init__(self):
+        pass
 
 
 def create_robot_mock():
@@ -37,7 +44,7 @@ def create_robot_mock():
     robot_mock.config.sensors.names = {}
 
     robot_mock.robot.drivetrain = mockobj()
-    robot_mock.robot.sound = mockobj()
+    robot_mock.robot.sound = MockSound()
     robot_mock.robot.led_ring = mockobj()
     robot_mock.robot.led_ring.count = 0
 
