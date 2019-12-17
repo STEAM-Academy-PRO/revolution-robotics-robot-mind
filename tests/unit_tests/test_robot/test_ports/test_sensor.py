@@ -5,7 +5,7 @@ import unittest
 from mock import Mock
 
 from revvy.robot.ports.common import PortInstance
-from revvy.robot.ports.sensor import create_sensor_port_handler, BaseSensorPortDriver, bumper_switch, hcsr04
+from revvy.robot.ports.sensor import create_sensor_port_handler, BaseSensorPortDriver
 
 
 class TestSensorPortHandler(unittest.TestCase):
@@ -98,57 +98,3 @@ class TestBaseSensorPortDriver(unittest.TestCase):
         sensor.convert_sensor_value = Mock(return_value=5)
 
         self.assertFalse(sensor.has_data)
-        sensor.read()
-        self.assertEqual(1, port.interface.get_sensor_port_value.call_count)
-        self.assertEqual(3, port.interface.get_sensor_port_value.call_args[0][0])
-
-        self.assertEqual(1, sensor.convert_sensor_value.call_count)
-        self.assertTrue(sensor.has_data)
-
-
-class TestBumperSwitch(unittest.TestCase):
-
-    def test_bumper_returns_boolean(self):
-        port = create_port()
-
-        port.interface.get_sensor_port_value.side_effect = [[1, 1], [0, 0], [0, 1]]
-
-        sensor = bumper_switch(port, None)
-
-        sensor.read()
-        self.assertTrue(sensor.value)
-
-        sensor.read()
-        self.assertFalse(sensor.value)
-
-        sensor.read()
-        self.assertFalse(sensor.value)
-
-
-class TestHcSr04(unittest.TestCase):
-
-    def test_sensor_has_no_value_before_first_nonzero_read(self):
-        port = create_port()
-
-        port.interface.get_sensor_port_value.side_effect = [
-            bytes([0, 0, 0, 0]),
-            bytes([0, 0, 0, 0]),
-            bytes([5, 0, 0, 0]),  # little endian
-            bytes([0, 0, 0, 0])]
-
-        sensor = hcsr04(port, None)
-
-        sensor.read()
-        self.assertFalse(sensor.has_data)
-
-        sensor.read()
-        self.assertFalse(sensor.has_data)
-
-        sensor.read()
-        self.assertTrue(sensor.has_data)
-        self.assertEqual(5, sensor.value)
-
-        # if no valid data is read, substitute with last valid
-        sensor.read()
-        self.assertTrue(sensor.has_data)
-        self.assertEqual(5, sensor.value)

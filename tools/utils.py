@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
-
+from revvy.utils.functions import is_bit_set
 
 cfsr_reasons = [
     "The processor has attempted to execute an undefined instruction",
@@ -32,9 +32,4 @@ cfsr_reasons = [
 
 
 def parse_cfsr(cfsr):
-    messages = []
-    for bit in range(0, len(cfsr_reasons)):
-        if (cfsr & 1 << bit) != 0:
-            messages.append(cfsr_reasons[bit])
-
-    return messages
+    return [reason for bit, reason in enumerate(cfsr_reasons) if is_bit_set(cfsr, bit) and reason]

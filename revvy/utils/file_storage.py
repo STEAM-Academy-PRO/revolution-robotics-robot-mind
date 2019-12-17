@@ -5,7 +5,7 @@ import json
 from collections import namedtuple
 from json import JSONDecodeError
 
-from revvy.functions import bytestr_hash, read_json
+from revvy.utils.functions import bytestr_hash, read_json
 
 
 class StorageError(Exception):
@@ -126,7 +126,7 @@ class FileStorage(StorageInterface):
                 if bytestr_hash(data) != metadata['md5']:
                     raise IntegrityError('Checksum')
                 return data
-        except IOError:
-            raise StorageElementNotFoundError
-        except JSONDecodeError:
-            raise IntegrityError('Metadata')
+        except IOError as e:
+            raise StorageElementNotFoundError from e
+        except JSONDecodeError as e:
+            raise IntegrityError('Metadata') from e

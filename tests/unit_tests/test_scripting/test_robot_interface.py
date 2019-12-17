@@ -3,7 +3,7 @@
 import unittest
 from mock import Mock
 
-from revvy.functions import hex2rgb
+from revvy.utils.functions import hex2rgb
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import RingLedWrapper, PortCollection, ResourceWrapper
 

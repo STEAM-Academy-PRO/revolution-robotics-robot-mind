@@ -2,7 +2,7 @@
 
 import time
 
-from revvy.functions import hex2rgb
+from revvy.utils.functions import hex2rgb
 from revvy.hardware_dependent.sound import set_volume
 from revvy.robot.ports.common import PortInstance, PortCollection
 
@@ -60,12 +60,9 @@ class SensorPortWrapper(Wrapper):
 
     def read(self):
         """Return the last converted value"""
-        start = time.time()
         while not self._sensor.has_data:
             self.check_terminated()
             self.sleep(0.1)
-            if time.time() - start > 2:
-                raise TimeoutError
 
         self.check_terminated()
         return self._sensor.value
@@ -283,6 +280,10 @@ class DriveTrainWrapper(Wrapper):
                     while not resource.is_interrupted and self._drivetrain.is_moving:
                         self.sleep(0.2)
 
+                    if not resource.is_interrupted:
+                        resource.run_uninterruptable(lambda: self._drivetrain.set_speeds(0, 0))
+                        self.sleep(0.2)
+
                 elif unit_rotation == MotorConstants.UNIT_SEC:
                     self.sleep(rotation)
 
@@ -339,6 +340,10 @@ class DriveTrainWrapper(Wrapper):
                     while not resource.is_interrupted and self._drivetrain.is_moving:
                         self.sleep(0.2)
 
+                    if not resource.is_interrupted:
+                        resource.run_uninterruptable(lambda: self._drivetrain.set_speeds(0, 0))
+                        self.sleep(0.2)
+
                 elif unit_rotation == MotorConstants.UNIT_SEC:
                     self.sleep(rotation)
 
@@ -347,13 +352,28 @@ class DriveTrainWrapper(Wrapper):
             finally:
                 resource.release()
 
-    def set_speeds(self, sl, sr):
+    def set_speeds(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM):
+        multipliers = {
+            MotorConstants.DIRECTION_FWD:   1,
+            MotorConstants.DIRECTION_BACK: -1,
+        }
+
         resource = self.try_take_resource()
         if resource:
             try:
-                self._drivetrain.set_speeds(sl, sr)
+                if unit_speed == MotorConstants.UNIT_SPEED_RPM:
+                    self._drivetrain.set_speeds(
+                        multipliers[direction] * rpm2dps(speed),
+                        multipliers[direction] * rpm2dps(speed)
+                    )
+                elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
+                    self._drivetrain.set_speeds(
+                        multipliers[direction] * rpm2dps(self.max_rpm),
+                        multipliers[direction] * rpm2dps(self.max_rpm),
+                        power_limit=speed
+                    )
             finally:
-                if sl == sr == 0:
+                if speed == 0:
                     resource.release()
 
 
@@ -406,7 +426,7 @@ class RobotInterface:
     def __init__(self, script, robot, config, res, priority=0):
         self._start_time = robot.start_time
 
-        resources = {name: ResourceWrapper(res[name], priority) for name in res}
+        self._resources = {name: ResourceWrapper(res[name], priority) for name in res}
 
         def motor_name(port):
             return 'motor_{}'.format(port.id)
@@ -414,16 +434,18 @@ class RobotInterface:
         def sensor_name(port):
             return 'sensor_{}'.format(port.id)
 
-        motor_wrappers = [MotorPortWrapper(script, port, resources[motor_name(port)]) for port in robot.motors]
-        sensor_wrappers = [SensorPortWrapper(script, port, resources[sensor_name(port)]) for port in robot.sensors]
+        motor_wrappers = [MotorPortWrapper(script, port, self._resources[motor_name(port)])
+                          for port in robot.motors]
+        sensor_wrappers = [SensorPortWrapper(script, port, self._resources[sensor_name(port)])
+                           for port in robot.sensors]
         self._motors = PortCollection(motor_wrappers)
         self._sensors = PortCollection(sensor_wrappers)
         self._motors.aliases.update(config.motors.names)
         self._sensors.aliases.update(config.sensors.names)
-        self._sound = SoundWrapper(script, robot.sound, resources['sound'])
-        self._ring_led = RingLedWrapper(script, robot.led_ring, resources['led_ring'])
-        self._drivetrain = DriveTrainWrapper(script, robot.drivetrain, resources['drivetrain'])
-        self._joystick = JoystickWrapper(script, robot.drivetrain, resources['drivetrain'])
+        self._sound = SoundWrapper(script, robot.sound, self._resources['sound'])
+        self._ring_led = RingLedWrapper(script, robot.led_ring, self._resources['led_ring'])
+        self._drivetrain = DriveTrainWrapper(script, robot.drivetrain, self._resources['drivetrain'])
+        self._joystick = JoystickWrapper(script, robot.drivetrain, self._resources['drivetrain'])
 
         self._script = script
 
@@ -466,3 +488,7 @@ class RobotInterface:
 
     # property alias
     led_ring = led
+
+    def release_resources(self):
+        for res in self._resources.values():
+            res.interrupt()

@@ -1,27 +1,70 @@
 #!/usr/bin/python3
 # SPDX-License-Identifier: GPL-3.0-only
+import io
+import os
+import shutil
+import sys
+import tarfile
+import time
+import traceback
 
+from revvy.mcu.rrrc_control import RevvyControl, BootloaderControl
+from revvy.revvy_utils import RobotManager, RevvyStatusCode
+from revvy.robot.led_ring import RingLed
+from revvy.robot.status import RobotStatus
+from revvy.utils.assets import Assets
 from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
-from revvy.file_storage import FileStorage, MemoryStorage
+from revvy.utils.error_handler import register_uncaught_exception_handler
+from revvy.utils.file_storage import FileStorage, MemoryStorage, StorageError
 from revvy.firmware_updater import McuUpdater, McuUpdateManager
-from revvy.functions import getserial, read_json
+from revvy.utils.functions import get_serial, read_json
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType, LongMessageStatus
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-from revvy.robot_config import empty_robot_config
-from revvy.utils import *
-from revvy.mcu.rrrc_transport import *
-from revvy.mcu.rrrc_control import *
-import sys
+from revvy.robot_config import empty_robot_config, RobotConfig
 
 from tools.check_manifest import check_manifest
 
-default_robot_config = None
+
+def extract_asset_longmessage(storage, asset_dir):
+    """
+    Extract the ASSET_DATA long message into a folder.
+
+    After successfully extracting, store the checksum of the asset message in the .hash file.
+    Skip extracting if the long message has the same checksum as stored in the folder.
+    The folder will be deleted if exists before decompression.
+
+    :param storage: the source where the asset data message is stored
+    :param asset_dir: the destination directory
+    """
+
+    asset_status = storage.read_status(LongMessageType.ASSET_DATA)
+
+    if asset_status.status == LongMessageStatus.READY:
+        # noinspection PyBroadException
+        try:
+            with open(os.path.join(asset_dir, '.hash'), 'r') as asset_hash_file:
+                stored_hash = asset_hash_file.read()
+
+            if stored_hash == asset_status.md5:
+                return
+        except Exception:
+            pass
+
+        if os.path.isdir(asset_dir):
+            shutil.rmtree(asset_dir)
+
+        message_data = storage.get_long_message(LongMessageType.ASSET_DATA)
+        with tarfile.open(fileobj=io.StringIO(message_data), mode="r|gz") as tar:
+            tar.extractall(path=asset_dir)
+
+        with open(os.path.join(asset_dir, '.hash'), 'w') as asset_hash_file:
+            asset_hash_file.write(asset_status.md5)
 
 
 class LongMessageImplementation:
     # TODO: this, together with the other long message classes is probably a lasagna worth simplifying
-    def __init__(self, robot: RobotManager, ignore_config):
-        self._robot = robot
+    def __init__(self, robot_manager: RobotManager, ignore_config):
+        self._robot = robot_manager
         self._ignore_config = ignore_config
 
     def on_upload_started(self, message_type):
@@ -49,15 +92,15 @@ class LongMessageImplementation:
             message_data = storage.get_long_message(message_type).decode()
             print('Running test script: {}'.format(message_data))
 
-            robot = self._robot
+            robot_manager = self._robot
 
             def start_script():
                 print("Starting new test script")
-                robot._scripts.add_script("test_kit", message_data, 0)
-                robot._scripts["test_kit"].on_stopped(lambda: robot.configure(None))
+                robot_manager._scripts.add_script("test_kit", message_data, 0)
+                robot_manager._scripts["test_kit"].on_stopped(lambda: robot_manager.configure(None))
 
                 # start can't run in on_stopped handler because overwriting script causes deadlock
-                robot.run_in_background(lambda: robot._scripts["test_kit"].start())
+                robot_manager.run_in_background(lambda: robot_manager._scripts["test_kit"].start())
 
             self._robot.configure(empty_robot_config, start_script)
 
@@ -75,10 +118,15 @@ class LongMessageImplementation:
             self._robot.robot.status.robot_status = RobotStatus.Updating
             self._robot.request_update()
 
+        elif message_type == LongMessageType.ASSET_DATA:
+            asset_dir = os.path.join('..', '..', '..', 'user', 'assets')
+            extract_asset_longmessage(storage, asset_dir)
 
-def start_revvy(config: RobotConfig = None):
+
+if __name__ == "__main__":
     current_installation = os.path.dirname(os.path.realpath(__file__))
     os.chdir(current_installation)
+    print('Revvy run from {} ({})'.format(current_installation, __file__))
 
     # base directories
     writeable_data_dir = os.path.join(current_installation, '..', '..', '..', 'user')
@@ -87,74 +135,39 @@ def start_revvy(config: RobotConfig = None):
     ble_storage_dir = os.path.join(writeable_data_dir, 'ble')
     data_dir = os.path.join(writeable_data_dir, 'data')
 
-    def log_uncaught_exception(exctype, value, tb):
-        log_message = 'Uncaught exception: {}\n' \
-                      'Value: {}\n' \
-                      'Traceback: \n\t{}\n' \
-                      '\n'.format(exctype, value, "\t".join(traceback.format_tb(tb)))
-        print(log_message)
-        logfile = os.path.join(data_dir, 'revvy_crash.log')
-
-        with open(logfile, 'a') as logf:
-            logf.write(log_message)
-
-    sys.excepthook = log_uncaught_exception
-
     # self-test
     if not check_manifest(os.path.join(current_installation, 'manifest.json')):
         print('Revvy not started because manifest is invalid')
-        return RevvyStatusCode.INTEGRITY_ERROR
+        sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
 
-    print('Revvy run from {} ({})'.format(current_installation, __file__))
+    register_uncaught_exception_handler(logfile=os.path.join(data_dir, 'revvy_crash.log'))
 
     # prepare environment
 
-    serial = getserial()
+    serial = get_serial()
 
     manifest = read_json('manifest.json')
 
     device_storage = FileStorage(data_dir)
     ble_storage = FileStorage(ble_storage_dir)
 
-    sound_files = {
-        'alarm_clock':    'alarm_clock.mp3',
-        'bell':           'bell.mp3',
-        'buzzer':         'buzzer.mp3',
-        'car_horn':       'car-horn.mp3',
-        'cat':            'cat.mp3',
-        'dog':            'dog.mp3',
-        'duck':           'duck.mp3',
-        'engine_revving': 'engine-revving.mp3',
-        'lion':           'lion.mp3',
-        'oh_no':          'oh-no.mp3',
-        'robot':          'robot.mp3',
-        'robot2':         'robot2.mp3',
-        'siren':          'siren.mp3',
-        'ta_da':          'tada.mp3',
-        'uh_oh':          'uh-oh.mp3',
-        'yee_haw':        'yee-haw.mp3',
-    }
+    assets = Assets([
+        os.path.join(package_data_dir, 'assets'),
+        os.path.join(writeable_data_dir, 'assets')
+    ])
 
-    def sound_path(file):
-        return os.path.join(package_data_dir, 'assets', file)
+    try:
+        device_name = device_storage.read('device-name').decode("utf-8")
+    except StorageError:
+        device_name = 'Revvy_{}'.format(serial)
 
-    sound_paths = {key: sound_path(sound_files[key]) for key in sound_files}
+    print('Device name: {}'.format(device_name))
 
-    dnp = DeviceNameProvider(device_storage, lambda: 'Revvy_{}'.format(serial))
-    device_name = Observable(dnp.get_device_name())
-    device_name.subscribe(dnp.update_device_name)
+    device_name = Observable(device_name)
+    device_name.subscribe(lambda v: device_storage.write('device-name', v.encode("utf-8")))
 
     long_message_storage = LongMessageStorage(ble_storage, MemoryStorage())
-    long_message_handler = LongMessageHandler(long_message_storage)
-
-    ble = RevvyBLE(device_name, serial, long_message_handler)
-
-    # if the robot has never been configured, set the default configuration for the simple robot
-    initial_config = config
-    if config is None:
-        status = long_message_storage.read_status(LongMessageType.CONFIGURATION_DATA)
-        if status.status != LongMessageStatus.READY:
-            initial_config = default_robot_config
+    extract_asset_longmessage(long_message_storage, os.path.join(writeable_data_dir, 'assets'))
 
     with RevvyTransportI2C() as transport:
         robot_control = RevvyControl(transport.bind(0x2D))
@@ -164,9 +177,15 @@ def start_revvy(config: RobotConfig = None):
         update_manager = McuUpdateManager(os.path.join(package_data_dir, 'firmware'), updater)
         update_manager.update_if_necessary()
 
-        robot = RobotManager(robot_control, ble, sound_paths, manifest['version'], initial_config)
+        long_message_handler = LongMessageHandler(long_message_storage)
+        ble = RevvyBLE(device_name, serial, long_message_handler)
+        robot = RobotManager(
+            robot_control,
+            ble,
+            lambda sound: assets.get_asset_file('sounds', sound),
+            manifest['version'])
 
-        lmi = LongMessageImplementation(robot, config is not None)
+        lmi = LongMessageImplementation(robot, False)
         long_message_handler.on_upload_started(lmi.on_upload_started)
         long_message_handler.on_upload_finished(lmi.on_transmission_finished)
         long_message_handler.on_message_updated(lmi.on_message_updated)
@@ -195,8 +214,4 @@ def start_revvy(config: RobotConfig = None):
             robot.stop()
 
         print('terminated.')
-        return ret_val
-
-
-if __name__ == "__main__":
-    sys.exit(start_revvy())
+    sys.exit(ret_val)

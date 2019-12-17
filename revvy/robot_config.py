@@ -4,7 +4,7 @@ import json
 import traceback
 from json import JSONDecodeError
 
-from revvy.functions import b64_decode_str, dict_get_first
+from revvy.utils.functions import b64_decode_str, dict_get_first
 from revvy.scripting.builtin_scripts import builtin_scripts
 
 motor_types = [
@@ -25,7 +25,7 @@ motor_types = [
 
 motor_sides = ["left", "right"]
 
-sensor_types = ["NotConfigured", "HC_SR04", "BumperSwitch"]
+sensor_types = ["NotConfigured", "HC_SR04", "BumperSwitch", "EV3_Color"]
 
 
 class PortConfig:

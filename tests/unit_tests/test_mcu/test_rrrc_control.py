@@ -52,7 +52,7 @@ class TestControlCommands(unittest.TestCase):
         self.assertIs(ReadSensorPortTypesCommand, type(control.get_sensor_port_types))
         self.assertIs(SetSensorPortTypeCommand, type(control.set_sensor_port_type))
         self.assertIs(SetSensorPortConfigCommand, type(control.set_sensor_port_config))
-        self.assertIs(ReadSensorPortStatusCommand, type(control.get_sensor_port_value))
+        self.assertIs(ReadSensorPortInfoCommand, type(control.read_sensor_info))
 
         self.assertIs(ReadRingLedScenarioTypesCommand, type(control.ring_led_get_scenario_types))
         self.assertIs(GetRingLedAmountCommand, type(control.ring_led_get_led_amount))
@@ -92,7 +92,7 @@ class TestControlCommands(unittest.TestCase):
         self.assertEqual(0x21, control.get_sensor_port_types.command_id)
         self.assertEqual(0x22, control.set_sensor_port_type.command_id)
         self.assertEqual(0x23, control.set_sensor_port_config.command_id)
-        self.assertEqual(0x24, control.get_sensor_port_value.command_id)
+        self.assertEqual(0x24, control.read_sensor_info.command_id)
 
         self.assertEqual(0x30, control.ring_led_get_scenario_types.command_id)
         self.assertEqual(0x32, control.ring_led_get_led_amount.command_id)

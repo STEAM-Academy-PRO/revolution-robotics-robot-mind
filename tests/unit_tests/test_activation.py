@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import Mock
 
-from revvy.activation import EdgeTrigger, ToggleButton
+from revvy.utils.activation import EdgeTrigger, ToggleButton
 
 
 class TestEdgeTrigger(unittest.TestCase):

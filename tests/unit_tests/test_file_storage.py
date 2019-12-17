@@ -5,7 +5,7 @@ import os
 import unittest
 from mock.mock import patch, mock_open
 
-from revvy.file_storage import MemoryStorage, StorageElementNotFoundError, IntegrityError, FileStorage
+from revvy.utils.file_storage import MemoryStorage, StorageElementNotFoundError, IntegrityError, FileStorage
 
 
 class TestMemoryStorage(unittest.TestCase):
@@ -42,22 +42,22 @@ class TestMemoryStorage(unittest.TestCase):
 
 
 class TestFileStorage(unittest.TestCase):
-    @patch('revvy.file_storage.open', new_callable=mock_open)
+    @patch('revvy.utils.file_storage.open', new_callable=mock_open)
     def test_folder_access_is_checked_on_init(self, mock):
         FileStorage('.')  # no error raised
 
         mock.side_effect = IOError
         self.assertRaises(IOError, lambda: FileStorage('.'))
 
-    @patch('revvy.file_storage.read_json')
-    @patch('revvy.file_storage.open', new_callable=mock_open)
+    @patch('revvy.utils.file_storage.read_json')
+    @patch('revvy.utils.file_storage.open', new_callable=mock_open)
     def test_read_metadata_raises_if_not_found(self, mock, mock_read):
         storage = FileStorage('.')
         mock_read.side_effect = IOError
 
         self.assertRaises(StorageElementNotFoundError, lambda: storage.read_metadata('file'))
 
-    @patch('revvy.file_storage.open', new_callable=mock_open)
+    @patch('revvy.utils.file_storage.open', new_callable=mock_open)
     def test_read_raises_if_meta_or_data_file_not_found(self, mock):
         storage = FileStorage('.')
         mock.reset_mock()
@@ -67,7 +67,7 @@ class TestFileStorage(unittest.TestCase):
         mock.side_effect = [mock.return_value, IOError]
         self.assertRaises(StorageElementNotFoundError, lambda: storage.read('file'))
 
-    @patch('revvy.file_storage.open', new_callable=mock_open)
+    @patch('revvy.utils.file_storage.open', new_callable=mock_open)
     def test_both_metadata_and_data_is_written(self, mock):
         storage = FileStorage('.')
         mock.reset_mock()
@@ -87,8 +87,8 @@ class TestFileStorage(unittest.TestCase):
 
         self.assertListEqual(expected_files, called_files)
 
-    @patch('revvy.file_storage.read_json')
-    @patch('revvy.file_storage.open', new_callable=mock_open)
+    @patch('revvy.utils.file_storage.read_json')
+    @patch('revvy.utils.file_storage.open', new_callable=mock_open)
     def test_stored_metadata_can_be_read_back(self, mock, mock_read):
         storage = FileStorage('.')
         mock.reset_mock()

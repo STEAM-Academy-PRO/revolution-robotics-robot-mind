@@ -3,8 +3,9 @@
 import hashlib
 import unittest
 
-from revvy.bluetooth.longmessage import LongMessageStorage, LongMessageHandler, LongMessageProtocol, bytes2hexdigest
-from revvy.file_storage import MemoryStorage
+from revvy.bluetooth.longmessage import LongMessageStorage, LongMessageHandler, LongMessageProtocol, bytes2hexdigest, \
+    MessageType
+from revvy.utils.file_storage import MemoryStorage
 
 
 class TestLongMessageRead(unittest.TestCase):
@@ -39,3 +40,15 @@ class TestLongMessageRead(unittest.TestCase):
 
         # reading a valid message returns its status, md5 hash and length
         self.assertEqual("03" + md5_hash + "00000004", bytes2hexdigest(result))
+
+    def test_upload_message_with_one_byte_is_accepted(self):
+        persistent = MemoryStorage()
+        temp = MemoryStorage()
+
+        storage = LongMessageStorage(persistent, temp)
+        handler = LongMessageHandler(storage)
+        ble = LongMessageProtocol(handler)
+
+        ble.handle_write(0, [2])  # select long message 2
+        ble.handle_write(1, bytes([0]*16))  # init
+        self.assertEqual(LongMessageProtocol.RESULT_SUCCESS, ble.handle_write(MessageType.UPLOAD_MESSAGE, bytes([2])))

@@ -7,7 +7,7 @@ import json
 from datetime import datetime
 from os import path
 
-from revvy.functions import file_hash
+from revvy.utils.functions import file_hash
 from tools.common import find_files, get_version
 
 

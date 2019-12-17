@@ -7,9 +7,9 @@ import time
 import traceback
 from json import JSONDecodeError
 
-from revvy.file_storage import IntegrityError
-from revvy.version import Version
-from revvy.functions import split, bytestr_hash
+from revvy.utils.file_storage import IntegrityError
+from revvy.utils.version import Version
+from revvy.utils.functions import split, bytestr_hash
 from revvy.mcu.rrrc_control import BootloaderControl, RevvyControl
 
 op_mode_application = 0xAA

@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import unittest
+from threading import Event
+
 from mock import Mock
 
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import RobotInterface
-from revvy.scripting.runtime import ScriptManager, Event
+from revvy.scripting.runtime import ScriptManager
 
 
 class mockobj:
