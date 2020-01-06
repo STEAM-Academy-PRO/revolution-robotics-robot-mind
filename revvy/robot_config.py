@@ -73,15 +73,22 @@ class RobotConfig:
             i = 0
             for script in blockly_list:
                 try:
+                    script_name = dict_get_first(script, ['builtinScriptName', 'builtinscriptname'])
+
                     try:
-                        script_name = dict_get_first(script, ['builtinScriptName', 'builtinscriptname'])
                         runnable = builtin_scripts[script_name]
                     except KeyError:
+                        print('Builtin script "{}" does not exist'.format(script_name))
+                        raise
+
+                except KeyError:
+                    try:
                         source_b64_encoded = dict_get_first(script, ['pythonCode', 'pythoncode'])
                         runnable = b64_decode_str(source_b64_encoded)
-                except KeyError:
-                    print('Neither builtinScriptName, nor pythonCode is present for a script')
-                    raise
+
+                    except KeyError:
+                        print('Neither builtinScriptName, nor pythonCode is present for a script')
+                        raise
 
                 assignments = script['assignments']
                 if 'analog' in assignments:
