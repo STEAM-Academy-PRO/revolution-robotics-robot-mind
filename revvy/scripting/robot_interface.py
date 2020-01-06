@@ -180,7 +180,28 @@ class MotorPortWrapper(Wrapper):
                 if unit_amount == MotorConstants.UNIT_DEG:
                     # wait for movement to finish
                     self.sleep(0.2)
+
+                    start_pos = self._motor.position
+                    start_time = time.time()
                     while not resource.is_interrupted and self._motor.is_moving:
+
+                        # check if there was any movement
+                        if time.time() - start_time > 1:
+                            pos_diff = self._motor.position - start_pos
+
+                            if direction == MotorConstants.DIRECTION_BACK:
+                                pos_diff *= -1
+
+                            if pos_diff > 0:
+                                # there was a positive movement towards the goal, reset timeout
+                                start_time = time.time()
+
+                        # check movement timeout
+                        if time.time() - start_time > 10:
+                            # no need to force the motors, stop
+                            resource.run_uninterruptable(lambda: self._motor.set_speed(0))
+                            break
+
                         self.sleep(0.2)
 
                 elif unit_amount == MotorConstants.UNIT_SEC:
