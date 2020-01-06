@@ -136,6 +136,10 @@ class MotorPortWrapper(Wrapper):
         self._motor.configure(config_name)
 
     def move(self, direction, amount, unit_amount, limit, unit_limit):
+        if unit_amount == MotorConstants.UNIT_ROT:
+            unit_amount = MotorConstants.UNIT_DEG
+            amount *= 360
+
         set_fns = {
             MotorConstants.UNIT_DEG: {
                 MotorConstants.UNIT_SPEED_RPM: {
@@ -150,25 +154,6 @@ class MotorPortWrapper(Wrapper):
                     MotorConstants.DIRECTION_FWD: lambda: self._motor.set_position(amount, power_limit=limit,
                                                                                    pos_type='relative'),
                     MotorConstants.DIRECTION_BACK: lambda: self._motor.set_position(-amount, power_limit=limit,
-                                                                                    pos_type='relative')
-                }
-            },
-
-            MotorConstants.UNIT_ROT: {
-                MotorConstants.UNIT_SPEED_RPM: {
-                    MotorConstants.DIRECTION_FWD: lambda: self._motor.set_position(360 * amount,
-                                                                                   speed_limit=rpm2dps(limit),
-                                                                                   pos_type='relative'),
-                    MotorConstants.DIRECTION_BACK: lambda: self._motor.set_position(-360 * amount,
-                                                                                    speed_limit=rpm2dps(limit),
-                                                                                    pos_type='relative'),
-                },
-                MotorConstants.UNIT_SPEED_PWR: {
-                    MotorConstants.DIRECTION_FWD: lambda: self._motor.set_position(360 * amount,
-                                                                                   power_limit=limit,
-                                                                                   pos_type='relative'),
-                    MotorConstants.DIRECTION_BACK: lambda: self._motor.set_position(-360 * amount,
-                                                                                    power_limit=limit,
                                                                                     pos_type='relative')
                 }
             },
@@ -192,7 +177,7 @@ class MotorPortWrapper(Wrapper):
             try:
                 resource.run_uninterruptable(set_fns[unit_amount][unit_limit][direction])
 
-                if unit_amount in [MotorConstants.UNIT_ROT, MotorConstants.UNIT_DEG]:
+                if unit_amount == MotorConstants.UNIT_DEG:
                     # wait for movement to finish
                     self.sleep(0.2)
                     while not resource.is_interrupted and self._motor.is_moving:
