@@ -50,6 +50,7 @@ class TestDrivetrainWrapper(unittest.TestCase):
     def test_drive_for_rotation_calls_set_position_rpm(self):
         mock_drivetrain = Mock()
         mock_drivetrain.move = Mock()
+        mock_drivetrain.motors = []
 
         mock_drivetrain.is_moving = False
 
@@ -69,6 +70,7 @@ class TestDrivetrainWrapper(unittest.TestCase):
     def test_drive_for_rotation_calls_set_position_pwr(self):
         mock_drivetrain = Mock()
         mock_drivetrain.move = Mock()
+        mock_drivetrain.motors = []
 
         mock_drivetrain.is_moving = False
 

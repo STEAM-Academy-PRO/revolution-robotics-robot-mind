@@ -199,7 +199,7 @@ class MotorPortWrapper(Wrapper):
                         # check movement timeout
                         if time.time() - start_time > 10:
                             # no need to force the motors, stop
-                            resource.run_uninterruptable(lambda: self._motor.set_speed(0))
+                            resource.run_uninterruptable(lambda: self._motor.set_power(0))
                             break
 
                         self.sleep(0.2)
@@ -281,8 +281,35 @@ class DriveTrainWrapper(Wrapper):
 
                 if unit_rotation == MotorConstants.UNIT_ROT:
                     # wait for movement to finish
+
+                    start_positions = [motor.position for motor in self._drivetrain.motors]
+                    start_time = time.time()
+
+                    if direction == MotorConstants.DIRECTION_BACK:
+                        mult = -1
+                    else:
+                        mult = 1
+
                     self.sleep(0.2)
                     while not resource.is_interrupted and self._drivetrain.is_moving:
+
+                        # check if there was any movement
+                        if time.time() - start_time > 1:
+                            i = 0
+
+                            for motor in self._drivetrain.motors:
+                                pos_diff = motor.position - start_positions[i]
+
+                                if pos_diff * mult > 0:
+                                    # there was movement towards the goal, reset timeout
+                                    start_time = time.time()
+
+                                i += 1
+
+                        # check movement timeout
+                        if time.time() - start_time > 10:
+                            break
+
                         self.sleep(0.2)
 
                     if not resource.is_interrupted:
@@ -341,8 +368,14 @@ class DriveTrainWrapper(Wrapper):
 
                 if unit_rotation == MotorConstants.UNIT_TURN_ANGLE:
                     # wait for movement to finish
+
+                    start_time = time.time()
+
                     self.sleep(0.2)
                     while not resource.is_interrupted and self._drivetrain.is_moving:
+                        if start_time - time.time() > 10:
+                            # 10s timeout
+                            break
                         self.sleep(0.2)
 
                     if not resource.is_interrupted:
