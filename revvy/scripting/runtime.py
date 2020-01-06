@@ -19,6 +19,7 @@ class ScriptHandle:
         self._globals = dict(global_variables)
         self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(name))
         self._inputs = {}
+        self._logger = Logger('Script: {}'.format(name))
 
         self.stop = self._thread.stop
         self.cleanup = self._thread.exit
@@ -26,9 +27,16 @@ class ScriptHandle:
         self.sleep = lambda s: None
 
         if callable(script):
+            self.log('Created from callable')
             self._runnable = script
-        else:
+        elif type(script) is str:
+            self.log('Created from string')
             self._runnable = lambda x: exec(script, x)
+        else:
+            raise AssertionError
+
+    def log(self, message):
+        self._logger(message)
 
     @property
     def is_stop_requested(self):
