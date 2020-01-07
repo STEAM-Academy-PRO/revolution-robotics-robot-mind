@@ -127,15 +127,18 @@ def rpm2dps(rpm):
 class MotorPortWrapper(Wrapper):
     """Wrapper class to expose motor ports to user scripts"""
     max_rpm = 150
+    timeout = 5
 
     def __init__(self, script, motor: PortInstance, resource):
         super().__init__(script, resource)
+        self.log = lambda message: script.log("MotorPortWrapper[motor {}]: {}".format(motor.id, message))
         self._motor = motor
 
     def configure(self, config_name):
         self._motor.configure(config_name)
 
     def move(self, direction, amount, unit_amount, limit, unit_limit):
+        self.log("move")
         if unit_amount == MotorConstants.UNIT_ROT:
             unit_amount = MotorConstants.UNIT_DEG
             amount *= 360
@@ -175,6 +178,7 @@ class MotorPortWrapper(Wrapper):
         resource = self.try_take_resource()
         if resource:
             try:
+                self.log("start movement")
                 resource.run_uninterruptable(set_fns[unit_amount][unit_limit][direction])
 
                 if unit_amount == MotorConstants.UNIT_DEG:
@@ -187,19 +191,23 @@ class MotorPortWrapper(Wrapper):
 
                         # check if there was any movement
                         if time.time() - start_time > 1:
-                            pos_diff = self._motor.position - start_pos
+                            pos = self._motor.position
+                            pos_diff = pos - start_pos
+                            start_pos = pos
 
                             if direction == MotorConstants.DIRECTION_BACK:
                                 pos_diff *= -1
 
                             if pos_diff > 0:
                                 # there was a positive movement towards the goal, reset timeout
+                                self.log("movement detected, reset timeout: {}")
                                 start_time = time.time()
 
                         # check movement timeout
-                        if time.time() - start_time > 10:
+                        if time.time() - start_time > self.timeout:
                             # no need to force the motors, stop
                             resource.run_uninterruptable(lambda: self._motor.set_power(0))
+                            self.log("timeout")
                             break
 
                         self.sleep(0.2)
@@ -210,9 +218,11 @@ class MotorPortWrapper(Wrapper):
 
             finally:
                 resource.release()
+            self.log("movement finished")
 
     def spin(self, direction, rotation, unit_rotation):
         # start moving depending on limits
+        self.log("spin")
         set_speed_fns = {
             MotorConstants.UNIT_SPEED_RPM: {
                 MotorConstants.DIRECTION_FWD: lambda: self._motor.set_speed(rpm2dps(rotation)),
@@ -229,6 +239,7 @@ class MotorPortWrapper(Wrapper):
         self.using_resource(set_speed_fns[unit_rotation][direction])
 
     def stop(self, action):
+        self.log("stop")
         stop_fn = {
             MotorConstants.ACTION_STOP_AND_HOLD: lambda: self._motor.set_speed(0),
             MotorConstants.ACTION_RELEASE: lambda: self._motor.set_power(0),
@@ -238,12 +249,16 @@ class MotorPortWrapper(Wrapper):
 
 class DriveTrainWrapper(Wrapper):
     max_rpm = 150
+    timeout = 5
+    turn_timeout = 10
 
     def __init__(self, script, drivetrain, resource):
         super().__init__(script, resource)
+        self.log = lambda message: script.log("DriveTrain: {}".format(message))
         self._drivetrain = drivetrain
 
     def drive(self, direction, rotation, unit_rotation, speed, unit_speed):
+        self.log("drive")
         multipliers = {
             MotorConstants.DIRECTION_FWD:   1,
             MotorConstants.DIRECTION_BACK: -1,
@@ -277,6 +292,7 @@ class DriveTrainWrapper(Wrapper):
         resource = self.try_take_resource()
         if resource:
             try:
+                self.log("start movement")
                 resource.run_uninterruptable(set_fns[unit_rotation][unit_speed])
 
                 if unit_rotation == MotorConstants.UNIT_ROT:
@@ -298,16 +314,20 @@ class DriveTrainWrapper(Wrapper):
                             i = 0
 
                             for motor in self._drivetrain.motors:
-                                pos_diff = motor.position - start_positions[i]
+                                pos = motor.position
+                                pos_diff = pos - start_positions[i]
+                                start_positions[i] = pos
 
                                 if pos_diff * mult > 0:
                                     # there was movement towards the goal, reset timeout
+                                    self.log("movement detected, reset timeout")
                                     start_time = time.time()
 
                                 i += 1
 
                         # check movement timeout
-                        if time.time() - start_time > 10:
+                        if time.time() - start_time > self.timeout:
+                            self.log("timeout")
                             break
 
                         self.sleep(0.2)
@@ -322,9 +342,11 @@ class DriveTrainWrapper(Wrapper):
                     resource.run_uninterruptable(lambda: self._drivetrain.set_speeds(0, 0))
 
             finally:
+                self.log("movement finished")
                 resource.release()
 
     def turn(self, direction, rotation, unit_rotation, speed, unit_speed):
+        self.log("turn")
         left_multipliers = {
             MotorConstants.DIRECTION_LEFT: -1,
             MotorConstants.DIRECTION_RIGHT: 1,
@@ -364,6 +386,7 @@ class DriveTrainWrapper(Wrapper):
         resource = self.try_take_resource()
         if resource:
             try:
+                self.log("start movement")
                 resource.run_uninterruptable(set_fns[unit_rotation][unit_speed])
 
                 if unit_rotation == MotorConstants.UNIT_TURN_ANGLE:
@@ -373,8 +396,9 @@ class DriveTrainWrapper(Wrapper):
 
                     self.sleep(0.2)
                     while not resource.is_interrupted and self._drivetrain.is_moving:
-                        if start_time - time.time() > 10:
+                        if start_time - time.time() > self.turn_timeout:
                             # 10s timeout
+                            self.log("timeout")
                             break
                         self.sleep(0.2)
 
@@ -388,9 +412,11 @@ class DriveTrainWrapper(Wrapper):
                     resource.run_uninterruptable(lambda: self._drivetrain.set_speeds(0, 0))
 
             finally:
+                self.log("turn finished")
                 resource.release()
 
     def set_speeds(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM):
+        self.log("set_speeds")
         multipliers = {
             MotorConstants.DIRECTION_FWD:   1,
             MotorConstants.DIRECTION_BACK: -1,
@@ -420,6 +446,7 @@ class JoystickWrapper(Wrapper):
 
     def __init__(self, script, drivetrain, resource):
         super().__init__(script, resource)
+        self.log = lambda message: script.log("Joystick: {}".format(message))
         self._drivetrain = drivetrain
         self._res = None
 
@@ -435,15 +462,18 @@ class JoystickWrapper(Wrapper):
                 self._drivetrain.set_speeds(sl, sr)
                 if sl == sr == 0:
                     # manual stop: allow lower priority scripts to move
+                    self.log("resource released")
                     self._res.release()
                     self._res = None
         else:
             self._res = self.try_take_resource()
             if self._res:
                 try:
+                    self.log("resource taken")
                     self._drivetrain.set_speeds(sl, sr)
                 finally:
                     if sl == sr == 0:
+                        self.log("resource released immediately")
                         self._res.release()
                         self._res = None
 
