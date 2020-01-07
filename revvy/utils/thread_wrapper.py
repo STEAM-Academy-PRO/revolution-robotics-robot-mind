@@ -4,7 +4,7 @@ import time
 import traceback
 from threading import Event, Thread, Lock
 
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 
 
 def _call_callbacks(cb_list):
@@ -22,7 +22,7 @@ class ThreadWrapper:
     """
 
     def __init__(self, func, name="WorkerThread"):
-        self._log = Logger('ThreadWrapper [{}]'.format(name))
+        self._log = get_logger('ThreadWrapper [{}]'.format(name))
         self._log('created')
         self._exiting = False
         self._lock = Lock()

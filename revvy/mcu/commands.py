@@ -5,7 +5,7 @@ from abc import ABC
 from collections import namedtuple
 
 from revvy.utils.functions import split
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 from revvy.utils.version import Version, FormatError
 from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseHeader
 
@@ -20,7 +20,7 @@ class Command:
         self._transport = transport
         self._command_byte = self.command_id
 
-        self._log = Logger('Command {}'.format(self._command_byte))
+        self._log = get_logger('Command {}'.format(self._command_byte))
 
     @property
     def command_id(self): raise NotImplementedError

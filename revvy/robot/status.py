@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 from revvy.mcu.rrrc_control import RevvyControl
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 
 
 class RobotStatus:
@@ -56,7 +56,7 @@ class RobotStatusIndicator:
     def __init__(self, interface: RevvyControl):
         self._interface = interface
 
-        self._log = Logger('RobotStatusIndicator')
+        self._log = get_logger('RobotStatusIndicator')
 
         self._robot_status = RobotStatus.StartingUp
         self._controller_status = RemoteControllerStatus.NotConnected

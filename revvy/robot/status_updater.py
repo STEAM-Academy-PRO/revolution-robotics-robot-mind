@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 from revvy.mcu.rrrc_control import RevvyControl
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 
 
 class McuStatusUpdater:
@@ -32,7 +32,7 @@ class McuStatusUpdater:
         self._is_enabled = [False] * 32
         self._is_enabled[self.mcu_updater_slots["reset"]] = True
         self._handlers = [lambda x: None] * 32
-        self._log = Logger('McuStatusUpdater')
+        self._log = get_logger('McuStatusUpdater')
 
     def reset(self):
         self._log('reset all slots')

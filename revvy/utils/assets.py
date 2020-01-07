@@ -4,12 +4,12 @@ import os
 import traceback
 
 from revvy.utils.functions import read_json
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 
 
 class Assets:
     def __init__(self, paths: list):
-        self._log = Logger('Assets')
+        self._log = get_logger('Assets')
         self._files = {}
         for path in paths:
             self._load(path)

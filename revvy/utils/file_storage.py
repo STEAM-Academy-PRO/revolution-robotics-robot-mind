@@ -7,7 +7,7 @@ from collections import namedtuple
 from json import JSONDecodeError
 
 from revvy.utils.functions import bytestr_hash, read_json
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 
 
 class StorageError(Exception):
@@ -75,7 +75,7 @@ class FileStorage(StorageInterface):
 
     def __init__(self, storage_dir):
         self._storage_dir = storage_dir
-        self._log = Logger('FileStorage')
+        self._log = get_logger('FileStorage')
         try:
             os.makedirs(self._storage_dir, 0o755, True)
             with open(self._access_file(), "w") as fp:

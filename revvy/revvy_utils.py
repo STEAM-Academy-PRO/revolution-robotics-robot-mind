@@ -25,7 +25,7 @@ from revvy.robot_config import RobotConfig
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import MotorConstants
 from revvy.scripting.runtime import ScriptManager
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 from revvy.utils.thread_wrapper import periodic
 
 
@@ -102,7 +102,7 @@ RobotVersion = namedtuple("RobotVersion", ['hw', 'fw', 'sw'])
 
 class Robot:
     def __init__(self, interface: RevvyControl, sounds, sw_version):
-        self._log = Logger('Robot')
+        self._log = get_logger('Robot')
         self._interface = interface
 
         self._start_time = time.time()
@@ -232,7 +232,7 @@ class RobotManager:
 
     # FIXME: revvy intentionally doesn't have a type hint at this moment because it breaks tests right now
     def __init__(self, interface: RevvyControl, revvy, sounds, sw_version):
-        self._log = Logger('RobotManager')
+        self._log = get_logger('RobotManager')
         self._log('init')
         self.needs_interrupting = True
 

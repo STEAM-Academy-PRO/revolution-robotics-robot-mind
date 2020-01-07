@@ -4,7 +4,7 @@ import collections
 import hashlib
 from json import JSONDecodeError
 from revvy.utils.file_storage import StorageInterface, StorageError
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 
 
 def hexdigest2bytes(hexdigest):
@@ -76,7 +76,7 @@ class LongMessageStorage:
     def __init__(self, storage: StorageInterface, temp_storage: StorageInterface):
         self._storage = storage
         self._temp_storage = temp_storage
-        self._log = Logger('LongMessageStorage')
+        self._log = get_logger('LongMessageStorage')
 
     def _get_storage(self, message_type):
         return self._storage if message_type in LongMessageType.PermanentMessages else self._temp_storage
@@ -139,7 +139,7 @@ class LongMessageHandler:
         self._message_updated_callback = lambda x, y: None
         self._upload_started_callback = lambda mt: None
         self._upload_finished_callback = lambda mt: None
-        self._log = Logger('LongMessageHandler')
+        self._log = get_logger('LongMessageHandler')
 
     def on_message_updated(self, callback):
         self._message_updated_callback = callback

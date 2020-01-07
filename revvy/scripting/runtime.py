@@ -3,7 +3,7 @@
 from revvy.scripting.robot_interface import RobotInterface
 import time
 
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 from revvy.utils.thread_wrapper import ThreadContext, ThreadWrapper
 
 
@@ -43,7 +43,7 @@ class ScriptHandle:
         self._globals = dict(global_variables)
         self._inputs = {}
         self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(name))
-        self._logger = Logger('Script: {}'.format(name))
+        self._logger = get_logger('Script: {}'.format(name))
 
         self.stop = self._thread.stop
         self.cleanup = self._thread.exit
@@ -103,7 +103,7 @@ class ScriptManager:
         self._robot = robot
         self._globals = {}
         self._scripts = {}
-        self._log = Logger('ScriptManager')
+        self._log = get_logger('ScriptManager')
 
     def reset(self):
         self._log('stopping scripts')

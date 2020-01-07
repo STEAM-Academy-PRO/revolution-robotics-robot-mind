@@ -8,7 +8,7 @@ from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler, PortInstance
 import struct
 
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 
 DcMotorStatus = namedtuple("DcMotorStatus", ['position', 'speed', 'power'])
 
@@ -76,7 +76,7 @@ class DcMotorController:
         self._name = 'Motor {}'.format(port.id)
         self._port = port
         self._port_config = port_config
-        self._log = Logger(self._name)
+        self._log = get_logger(self._name)
 
         self._configure = lambda cfg: port.interface.set_motor_port_config(port.id, cfg)
         self._read = lambda: port.interface.get_motor_position(port.id)

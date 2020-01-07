@@ -4,7 +4,7 @@ import subprocess
 import threading
 
 from revvy.utils.functions import map_values, clip
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 
 
 class SoundControlBase:
@@ -14,7 +14,7 @@ class SoundControlBase:
         self._lock = threading.Lock()
         self._processes = []
         self._max_parallel_sounds = 4
-        self._log = Logger('SoundControl')
+        self._log = get_logger('SoundControl')
 
         self._run_command(self._commands['init_amp']).wait()
 

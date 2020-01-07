@@ -6,14 +6,14 @@ from threading import Lock, Event
 
 from revvy.utils.activation import EdgeTrigger
 from revvy.utils.thread_wrapper import ThreadWrapper, ThreadContext
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 
 RemoteControllerCommand = namedtuple('RemoteControllerCommand', ['analog', 'buttons'])
 
 
 class RemoteController:
     def __init__(self):
-        self._log = Logger('RemoteController')
+        self._log = get_logger('RemoteController')
         self._button_mutex = Lock()
 
         self._analogActions = []
@@ -117,7 +117,7 @@ class RemoteControllerScheduler:
         self._controller_lost_callback = lambda: None
         self._data_mutex = Lock()
         self._message = None
-        self._log = Logger('RemoteControllerScheduler')
+        self._log = get_logger('RemoteControllerScheduler')
 
     def data_ready(self, message: RemoteControllerCommand):
         with self._data_mutex:

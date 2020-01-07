@@ -8,7 +8,7 @@ import traceback
 from json import JSONDecodeError
 
 from revvy.utils.file_storage import IntegrityError
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 from revvy.utils.version import Version
 from revvy.utils.functions import split, bytestr_hash
 from revvy.mcu.rrrc_control import BootloaderControl, RevvyControl
@@ -22,7 +22,7 @@ class McuUpdater:
         self._robot = robot_control
         self._bootloader = bootloader_control
 
-        self._log = Logger('McuUpdater')
+        self._log = get_logger('McuUpdater')
 
     def _read_operation_mode(self):
         # TODO: implement timeout in case MCU has no bootloader and firmware
@@ -127,7 +127,7 @@ class McuUpdateManager:
         self._fw_dir = fw_dir
         self._updater = updater
 
-        self._log = Logger('McuUpdateManager')
+        self._log = get_logger('McuUpdateManager')
 
     def _read_catalog(self):
         try:

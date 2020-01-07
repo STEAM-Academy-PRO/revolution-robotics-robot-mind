@@ -2,7 +2,7 @@
 
 from threading import Lock
 
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 
 
 class ResourceHandle:
@@ -31,7 +31,7 @@ class ResourceHandle:
 class Resource:
     def __init__(self, name='Resource'):
         self._lock = Lock()
-        self._log = Logger('Resource [{}]'.format(name))
+        self._log = get_logger('Resource [{}]'.format(name))
         self._current_priority = -1
         self._active_handle = None
 

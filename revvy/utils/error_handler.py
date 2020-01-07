@@ -1,11 +1,11 @@
 import sys
 import traceback
 
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 
 
 def register_uncaught_exception_handler(logfile):
-    log = Logger('Exception logger')
+    log = get_logger('Exception logger')
 
     def log_uncaught_exception(exctype, value, tb):
         log_message = 'Uncaught exception: {}\n' \

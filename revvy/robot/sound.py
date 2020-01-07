@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 from revvy.hardware_dependent.sound import SoundControlBase
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 
 
 class Sound:
@@ -11,7 +11,7 @@ class Sound:
         self.set_volume = sound_interface.set_volume
         self.reset_volume = sound_interface.reset_volume
 
-        self._log = Logger('Sound')
+        self._log = get_logger('Sound')
 
     def play_tune(self, name, callback=None):
         try:
