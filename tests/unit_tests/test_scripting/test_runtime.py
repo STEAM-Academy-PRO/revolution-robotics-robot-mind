@@ -8,7 +8,8 @@ from mock import Mock
 from revvy.hardware_dependent.sound import SoundControlBase
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import RobotInterface
-from revvy.scripting.runtime import ScriptManager
+from revvy.scripting.runtime import ScriptManager, ScriptDescriptor
+from revvy.utils.functions import str_to_func
 
 
 class mockobj:
@@ -63,9 +64,9 @@ class TestRuntime(unittest.TestCase):
         sm.assign('mock', mock)
         sm.assign('test', self)
         sm.assign('RobotInterface', RobotInterface)
-        sm.add_script('test', '''
+        sm.add_script(ScriptDescriptor('test', str_to_func('''
 test.assertIsInstance(robot, RobotInterface)
-mock()''')
+mock()'''), 0))
 
         sm['test'].start()
         sm['test'].cleanup()
@@ -86,7 +87,7 @@ mock()''')
             args['test'].assertIsInstance(args['robot'], RobotInterface)
             args['mock']()
 
-        sm.add_script('test', _script)
+        sm.add_script(ScriptDescriptor('test', _script, 0))
 
         sm['test'].start()
         sm['test'].cleanup()
@@ -99,9 +100,9 @@ mock()''')
         mock = Mock()
 
         sm = ScriptManager(robot_mock)
-        sm.add_script('test', '''
+        sm.add_script(ScriptDescriptor('test', str_to_func('''
 test.assertIsInstance(robot, RobotInterface)
-mock()''')
+mock()'''), 0))
         sm.assign('mock', mock)
         sm.assign('test', self)
         sm.assign('RobotInterface', RobotInterface)
@@ -117,7 +118,7 @@ mock()''')
         mock = Mock()
 
         sm = ScriptManager(robot_mock)
-        sm.add_script('test', '''mock()''')
+        sm.add_script(ScriptDescriptor('test', str_to_func('mock()'), 0))
 
         script = sm['test']
 
@@ -139,10 +140,10 @@ mock()''')
         stopped_mock = Mock()
 
         sm = ScriptManager(robot_mock)
-        sm.add_script('test', '''
+        sm.add_script(ScriptDescriptor('test', str_to_func('''
 while not ctx.stop_requested:
     pass
-mock()''')
+mock()'''), 0))
         sm.assign('mock', mock)
 
         # first call, make sure the script runs
@@ -150,7 +151,7 @@ mock()''')
         sm['test'].start()
 
         # add second script
-        sm.add_script('test', 'mock()')  # stops the first script
+        sm.add_script(ScriptDescriptor('test', str_to_func('mock()'), 0))  # stops the first script
 
         # check that the first script ran and was stopped
         self.assertEqual(1, mock.call_count)
@@ -172,14 +173,14 @@ mock()''')
         stopped_mock = Mock()
 
         sm = ScriptManager(robot_mock)
-        sm.add_script('test', '''
+        sm.add_script(ScriptDescriptor('test', str_to_func('''
 while not ctx.stop_requested:
     pass
-''')
-        sm.add_script('test2', '''
+'''), 0))
+        sm.add_script(ScriptDescriptor('test2', str_to_func('''
 while not ctx.stop_requested:
     pass
-''')
+'''), 0))
 
         # first call, make sure the script runs
         sm['test'].on_stopped(stopped_mock)
@@ -198,12 +199,12 @@ while not ctx.stop_requested:
         mock = Mock()
 
         sm = ScriptManager(robot_mock)
-        sm.add_script('test', '''
+        sm.add_script(ScriptDescriptor('test', str_to_func('''
 while not ctx.stop_requested:
     mock()
     Control.terminate()
     mock()
-''')
+'''), 0))
         sm.assign('mock', mock)
         sm['test'].on_stopped(cont.set)
 
@@ -224,18 +225,18 @@ while not ctx.stop_requested:
         second_running_evt = Event()
 
         sm = ScriptManager(robot_mock)
-        sm.add_script('test1', '''
+        sm.add_script(ScriptDescriptor('test1', str_to_func('''
 mock()
 second_running.wait()
 while not ctx.stop_requested:
     Control.terminate_all()
-''')
-        sm.add_script('test2', '''
+'''), 0))
+        sm.add_script(ScriptDescriptor('test2', str_to_func('''
 second_running.set()
 mock()
 while not ctx.stop_requested:
     time.sleep(0.01)
-''')
+'''), 0))
         sm['test1'].assign('mock', mock1)
         sm['test1'].assign('second_running', second_running_evt)
         sm['test2'].assign('second_running', second_running_evt)
@@ -270,7 +271,7 @@ while not ctx.stop_requested:
         mock = Mock()
 
         sm = ScriptManager(robot_mock)
-        sm.add_script('test', '')
+        sm.add_script(ScriptDescriptor('test', str_to_func(''), 0))
         sm['test'].on_stopped(cont.set)
 
         # start and make sure script is stopped
@@ -288,7 +289,7 @@ while not ctx.stop_requested:
         cont = Event()
 
         sm = ScriptManager(robot_mock)
-        sm.add_script('test', '''raise Excepti''')
+        sm.add_script(ScriptDescriptor('test', str_to_func('''raise Excepti'''), 0))
         sm['test'].on_stopped(cont.set)
 
         # first call, make sure the script runs

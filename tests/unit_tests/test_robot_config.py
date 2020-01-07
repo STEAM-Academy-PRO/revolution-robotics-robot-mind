@@ -2,6 +2,7 @@
 
 import unittest
 
+from revvy.scripting.builtin_scripts import drive_2sticks
 from revvy.utils.functions import b64_encode_str
 from revvy.robot_config import RobotConfig, ConfigError
 
@@ -63,14 +64,14 @@ class TestRobotConfig(unittest.TestCase):
             '[script 1] button 2'
         ]
 
-        self.assertEqual(script_names[0], config.controller.buttons[0])
-        self.assertEqual(script_names[1], config.controller.buttons[2])
+        self.assertEqual(script_names[0], config.controller.buttons[0].name)
+        self.assertEqual(script_names[1], config.controller.buttons[2].name)
 
-        self.assertEqual('some code', config.scripts[script_names[0]].runnable)
-        self.assertEqual('some code', config.scripts[script_names[1]].runnable)
+        self.assertTrue(callable(config.controller.buttons[0].runnable))
+        self.assertTrue(callable(config.controller.buttons[2].runnable))
 
-        self.assertEqual(2, config.scripts[script_names[0]].priority)
-        self.assertEqual(0, config.scripts[script_names[1]].priority)
+        self.assertEqual(2, config.controller.buttons[0].priority)
+        self.assertEqual(0, config.controller.buttons[2].priority)
 
     def test_assigning_script_to_wrong_button_fails_parsing(self):
         self.assertRaises(ConfigError, lambda: RobotConfig.from_string('''
@@ -123,10 +124,12 @@ class TestRobotConfig(unittest.TestCase):
 
         script_name = '[script 0] analog channels 0, 1'
 
-        self.assertEqual(script_name, config.controller.analog[0]['script'])
+        script_descriptor = config.controller.analog[0]['script']
+
         self.assertListEqual([0, 1], config.controller.analog[0]['channels'])
-        self.assertEqual('some code', config.scripts[script_name].runnable)
-        self.assertEqual(1, config.scripts[script_name].priority)
+        self.assertEqual(script_name, script_descriptor.name)
+        self.assertTrue(callable(script_descriptor.runnable))
+        self.assertEqual(1, script_descriptor.priority)
 
     def test_scripts_can_be_configured_to_run_in_background(self):
         json = '''
@@ -147,9 +150,8 @@ class TestRobotConfig(unittest.TestCase):
 
         script_name = '[script 0] background'
 
-        self.assertEqual(script_name, config.background_scripts[0])
-        self.assertEqual('some code', config.scripts[script_name].runnable)
-        self.assertEqual(3, config.scripts[script_name].priority)
+        self.assertEqual(script_name, config.background_scripts[0].name)
+        self.assertEqual(3, config.background_scripts[0].priority)
 
     def test_lower_case_pythoncode_is_accepted(self):
         json = '''
@@ -170,9 +172,9 @@ class TestRobotConfig(unittest.TestCase):
 
         script_name = '[script 0] background'
 
-        self.assertEqual(script_name, config.background_scripts[0])
-        self.assertEqual('some code', config.scripts[script_name].runnable)
-        self.assertEqual(3, config.scripts[script_name].priority)
+        self.assertEqual(script_name, config.background_scripts[0].name)
+        self.assertTrue(callable(config.background_scripts[0].runnable))
+        self.assertEqual(3, config.background_scripts[0].priority)
 
     def test_builtin_scripts_can_be_referenced(self):
         json = '''
@@ -190,8 +192,9 @@ class TestRobotConfig(unittest.TestCase):
         config = RobotConfig.from_string(json)
 
         script_name = '[script 0] analog channels 0, 1'
-        self.assertEqual(script_name, config.controller.analog[0]['script'])
-        self.assertTrue(callable(config.scripts[script_name].runnable))
+        self.assertEqual(script_name, config.controller.analog[0]['script'].name)
+        self.assertTrue(callable(config.controller.analog[0]['script'].runnable))
+        self.assertEqual(drive_2sticks, config.controller.analog[0]['script'].runnable)
 
     def test_lower_case_script_name_is_accepted(self):
         json = '''
@@ -209,8 +212,9 @@ class TestRobotConfig(unittest.TestCase):
         config = RobotConfig.from_string(json)
 
         script_name = '[script 0] analog channels 0, 1'
-        self.assertEqual(script_name, config.controller.analog[0]['script'])
-        self.assertTrue(callable(config.scripts[script_name].runnable))
+        self.assertEqual(script_name, config.controller.analog[0]['script'].name)
+        self.assertTrue(callable(config.controller.analog[0]['script'].runnable))
+        self.assertEqual(drive_2sticks, config.controller.analog[0]['script'].runnable)
 
     def test_scripts_can_be_assigned_to_every_type_at_once(self):
         json = '''
@@ -237,15 +241,15 @@ class TestRobotConfig(unittest.TestCase):
             '[script 2] background'
         ]
 
-        self.assertEqual(script_names[0], config.controller.analog[0]['script'])
-        self.assertEqual(script_names[1], config.controller.buttons[1])
-        self.assertEqual(script_names[2], config.background_scripts[0])
-        self.assertEqual('some code', config.scripts[script_names[0]].runnable)
-        self.assertEqual('some code', config.scripts[script_names[1]].runnable)
-        self.assertEqual('some code', config.scripts[script_names[2]].runnable)
-        self.assertEqual(0, config.scripts[script_names[1]].priority)
-        self.assertEqual(1, config.scripts[script_names[0]].priority)
-        self.assertEqual(3, config.scripts[script_names[2]].priority)
+        self.assertEqual(script_names[0], config.controller.analog[0]['script'].name)
+        self.assertEqual(script_names[1], config.controller.buttons[1].name)
+        self.assertEqual(script_names[2], config.background_scripts[0].name)
+        self.assertTrue(callable(config.controller.analog[0]['script'].runnable))
+        self.assertTrue(callable(config.controller.buttons[1].runnable))
+        self.assertTrue(callable(config.background_scripts[0].runnable))
+        self.assertEqual(1, config.controller.analog[0]['script'].priority)
+        self.assertEqual(0, config.controller.buttons[1].priority)
+        self.assertEqual(3, config.background_scripts[0].priority)
 
     def test_motors_are_parsed_as_list_of_motors(self):
         json = '''

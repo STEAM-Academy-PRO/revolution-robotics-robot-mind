@@ -4,7 +4,8 @@ import json
 import traceback
 from json import JSONDecodeError
 
-from revvy.utils.functions import b64_decode_str, dict_get_first
+from revvy.scripting.runtime import ScriptDescriptor
+from revvy.utils.functions import b64_decode_str, dict_get_first, str_to_func
 from revvy.scripting.builtin_scripts import builtin_scripts
 
 motor_types = [
@@ -54,21 +55,26 @@ class ConfigError(Exception):
     pass
 
 
-class ScriptDescriptor:
-    def __init__(self, runnable, priority):
-        self._runnable = runnable
-        self._priority = priority
-
-    @property
-    def runnable(self):
-        return self._runnable
-
-    @property
-    def priority(self):
-        return self._priority
-
-
 class RobotConfig:
+    @staticmethod
+    def create_runnable(script):
+        try:
+            script_name = dict_get_first(script, ['builtinScriptName', 'builtinscriptname'])
+
+            try:
+                return builtin_scripts[script_name]
+            except KeyError as e:
+                raise KeyError('Builtin script "{}" does not exist'.format(script_name)) from e
+
+        except KeyError:
+            try:
+                source_b64_encoded = dict_get_first(script, ['pythonCode', 'pythoncode'])
+                code = b64_decode_str(source_b64_encoded)
+                return str_to_func(code)
+
+            except KeyError as e:
+                raise KeyError('Neither builtinScriptName, nor pythonCode is present for a script') from e
+
     @staticmethod
     def from_string(config_string):
         try:
@@ -86,21 +92,7 @@ class RobotConfig:
         try:
             i = 0
             for script in blockly_list:
-                try:
-                    script_name = dict_get_first(script, ['builtinScriptName', 'builtinscriptname'])
-
-                    try:
-                        runnable = builtin_scripts[script_name]
-                    except KeyError as e:
-                        raise KeyError('Builtin script "{}" does not exist'.format(script_name)) from e
-
-                except KeyError:
-                    try:
-                        source_b64_encoded = dict_get_first(script, ['pythonCode', 'pythoncode'])
-                        runnable = b64_decode_str(source_b64_encoded)
-
-                    except KeyError as e:
-                        raise KeyError('Neither builtinScriptName, nor pythonCode is present for a script') from e
+                runnable = RobotConfig.create_runnable(script)
 
                 assignments = script['assignments']
                 # script names are mostly relevant for logging
@@ -108,25 +100,22 @@ class RobotConfig:
                     for analog_assignment in assignments['analog']:
                         script_name = '[script {}] analog channels {}'.format(i, ', '.join(map(str, analog_assignment['channels'])))
                         priority = analog_assignment['priority']
-                        config.scripts[script_name] = ScriptDescriptor(runnable, priority)
                         config.controller.analog.append({
                             'channels': analog_assignment['channels'],
-                            'script': script_name})
+                            'script': ScriptDescriptor(script_name, runnable, priority)})
                         i += 1
 
                 if 'buttons' in assignments:
                     for button_assignment in assignments['buttons']:
                         script_name = '[script {}] button {}'.format(i, button_assignment['id'])
                         priority = button_assignment['priority']
-                        config.scripts[script_name] = ScriptDescriptor(runnable, priority)
-                        config.controller.buttons[button_assignment['id']] = script_name
+                        config.controller.buttons[button_assignment['id']] = ScriptDescriptor(script_name, runnable, priority)
                         i += 1
 
                 if 'background' in assignments:
                     script_name = '[script {}] background'.format(i)
                     priority = assignments['background']
-                    config.scripts[script_name] = ScriptDescriptor(runnable, priority)
-                    config.background_scripts.append(script_name)
+                    config.background_scripts.append(ScriptDescriptor(script_name, runnable, priority))
                     i += 1
         except (TypeError, IndexError, KeyError, ValueError) as e:
             raise ConfigError('Failed to decode received controller configuration') from e
@@ -183,7 +172,6 @@ class RobotConfig:
         self.drivetrain = {'left': [], 'right': []}
         self.sensors = PortConfig()
         self.controller = RemoteControlConfig()
-        self.scripts = {}
         self.background_scripts = []
 
 

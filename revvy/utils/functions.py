@@ -185,3 +185,7 @@ def file_hash(file):
 def read_json(filename):
     with open(filename, "r") as f:
         return json.load(f)
+
+
+def str_to_func(code):
+    return lambda variables: exec(code, variables)

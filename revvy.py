@@ -12,12 +12,13 @@ from revvy.mcu.rrrc_control import RevvyControl, BootloaderControl
 from revvy.revvy_utils import RobotManager, RevvyStatusCode
 from revvy.robot.led_ring import RingLed
 from revvy.robot.status import RobotStatus
+from revvy.scripting.runtime import ScriptDescriptor
 from revvy.utils.assets import Assets
 from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
 from revvy.utils.error_handler import register_uncaught_exception_handler
 from revvy.utils.file_storage import FileStorage, MemoryStorage, StorageError
 from revvy.firmware_updater import McuUpdater, McuUpdateManager
-from revvy.utils.functions import get_serial, read_json
+from revvy.utils.functions import get_serial, read_json, str_to_func
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType, LongMessageStatus
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
@@ -93,14 +94,16 @@ class LongMessageImplementation:
             test_script_source = storage.get_long_message(message_type).decode()
             print('Running test script: {}'.format(test_script_source))
 
+            script_descriptor = ScriptDescriptor("test_kit", str_to_func(test_script_source), 0)
+
             def start_script():
                 print("Starting new test script")
-                self._robot._scripts.add_script("test_kit", test_script_source, 0)
-                self._robot._scripts["test_kit"].on_stopped(lambda: self._robot.configure(None))
+                handle = self._robot._scripts.add_script(script_descriptor)
+                handle.on_stopped(lambda: self._robot.configure(None))
 
                 # start can't run in on_stopped handler because overwriting script causes deadlock
                 # need lambda to look up the current latest test kit script
-                self._robot.run_in_background(lambda: self._robot._scripts["test_kit"].start())
+                self._robot.run_in_background(lambda: handle.start())
 
             self._robot.configure(empty_robot_config, start_script)
 

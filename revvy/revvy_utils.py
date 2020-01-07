@@ -425,25 +425,25 @@ class RobotManager:
             sensor.configure(config.sensors[sensor.id])
             sensor.on_value_changed(lambda p: live_service.update_sensor(p.id, p.raw_value))
 
-        # set up scripts
-        for name, script in config.scripts.items():
-            self._scripts.add_script(name, script.runnable, script.priority)
-
         # set up remote controller
         for analog in config.controller.analog:
+            script = analog['script']
+            script_handle = self._scripts.add_script(script)
             self._remote_controller.on_analog_values(
                 analog['channels'],
-                lambda in_data, scr=self._scripts[analog['script']]: scr.start({'input': in_data})
+                lambda in_data, scr=script_handle: scr.start({'input': in_data})
             )
 
         for button in range(len(config.controller.buttons)):
             script = config.controller.buttons[button]
             if script:
-                self._remote_controller.on_button_pressed(button, self._scripts[script].start)
+                script_handle = self._scripts.add_script(script)
+                self._remote_controller.on_button_pressed(button, script_handle.start)
 
         # start background scripts
         for script in config.background_scripts:
-            self._scripts[script].start()
+            script_handle = self._scripts.add_script(script)
+            script_handle.start()
 
     def _configure(self, config):
 

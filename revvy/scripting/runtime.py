@@ -7,6 +7,25 @@ from revvy.utils.logger import Logger
 from revvy.utils.thread_wrapper import ThreadContext, ThreadWrapper
 
 
+class ScriptDescriptor:
+    def __init__(self, name, runnable, priority):
+        self._name = name
+        self._runnable = runnable
+        self._priority = priority
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def runnable(self):
+        return self._runnable
+
+    @property
+    def priority(self):
+        return self._priority
+
+
 class TimeWrapper:
     def __init__(self, ctx: ThreadContext):
         self.time = time.time
@@ -26,14 +45,10 @@ class ScriptHandle:
         self.on_stopped = self._thread.on_stopped
         self.sleep = lambda s: None
 
-        if callable(script):
-            self.log('Created from callable')
-            self._runnable = script
-        elif type(script) is str:
-            self.log('Created from string')
-            self._runnable = lambda x: exec(script, x)
-        else:
-            raise AssertionError
+        assert(callable(script))
+
+        self.log('Created')
+        self._runnable = script
 
     def log(self, message):
         self._logger(message)
@@ -99,17 +114,19 @@ class ScriptManager:
         for script in self._scripts:
             self._scripts[script].assign(name, value)
 
-    def add_script(self, name, script, priority=0):
-        if name in self._scripts:
-            self._log('Stopping {} before overriding'.format(name))
-            self._scripts[name].cleanup()
+    def add_script(self, script: ScriptDescriptor):
+        if script.name in self._scripts:
+            self._log('Stopping {} before overriding'.format(script.name))
+            self._scripts[script.name].cleanup()
 
-        self._log('New script: {}'.format(name))
-        script_handle = ScriptHandle(self, script, name, self._globals)
+        self._log('New script: {}'.format(script.name))
+        script_handle = ScriptHandle(self, script.runnable, script.name, self._globals)
         try:
             robot = self._robot
-            script_handle.assign('robot', RobotInterface(script_handle, robot.robot, robot.config, robot.resources, priority))
-            self._scripts[name] = script_handle
+            script_handle.assign('robot', RobotInterface(script_handle, robot.robot, robot.config, robot.resources, script.priority))
+            self._scripts[script.name] = script_handle
+
+            return script_handle
         except Exception:
             script_handle.cleanup()
             raise
