@@ -50,24 +50,24 @@ class RemoteControlConfig:
         self.buttons = [None] * 32
 
 
+class ConfigError(Exception):
+    pass
+
+
 class RobotConfig:
     @staticmethod
     def from_string(config_string):
         try:
             json_config = json.loads(config_string)
-        except JSONDecodeError:
-            print('Received configuration is not a valid json string')
-            print(traceback.format_exc())
-            return None
+        except JSONDecodeError as e:
+            raise ConfigError('Received configuration is not a valid json string') from e
 
         config = RobotConfig()
         try:
             robot_config = dict_get_first(json_config, ['robotConfig', 'robotconfig'])
             blockly_list = dict_get_first(json_config, ['blocklyList', 'blocklylist'])
-        except KeyError:
-            print('Received configuration is missing required parts')
-            print(traceback.format_exc())
-            return None
+        except KeyError as e:
+            raise ConfigError('Received configuration is missing required parts') from e
 
         try:
             i = 0
@@ -77,18 +77,16 @@ class RobotConfig:
 
                     try:
                         runnable = builtin_scripts[script_name]
-                    except KeyError:
-                        print('Builtin script "{}" does not exist'.format(script_name))
-                        raise
+                    except KeyError as e:
+                        raise KeyError('Builtin script "{}" does not exist'.format(script_name)) from e
 
                 except KeyError:
                     try:
                         source_b64_encoded = dict_get_first(script, ['pythonCode', 'pythoncode'])
                         runnable = b64_decode_str(source_b64_encoded)
 
-                    except KeyError:
-                        print('Neither builtinScriptName, nor pythonCode is present for a script')
-                        raise
+                    except KeyError as e:
+                        raise KeyError('Neither builtinScriptName, nor pythonCode is present for a script') from e
 
                 assignments = script['assignments']
                 if 'analog' in assignments:
@@ -116,10 +114,8 @@ class RobotConfig:
                     config.scripts[script_name] = {'script': runnable, 'priority': priority}
                     config.background_scripts.append(script_name)
                     i += 1
-        except (TypeError, IndexError, KeyError, ValueError):
-            print('Failed to decode received controller configuration')
-            print(traceback.format_exc())
-            return None
+        except (TypeError, IndexError, KeyError, ValueError) as e:
+            raise ConfigError('Failed to decode received controller configuration') from e
 
         try:
             i = 1
@@ -147,10 +143,8 @@ class RobotConfig:
 
                 config.motors[i] = motor_type
                 i += 1
-        except (TypeError, IndexError, KeyError, ValueError):
-            print('Failed to decode received motor configuration')
-            print(traceback.format_exc())
-            return None
+        except (TypeError, IndexError, KeyError, ValueError) as e:
+            raise ConfigError('Failed to decode received motor configuration') from e
 
         try:
             i = 1
@@ -165,11 +159,10 @@ class RobotConfig:
 
                 i += 1
 
-            return config
-        except (TypeError, IndexError, KeyError, ValueError):
-            print('Failed to decode received sensor configuration')
-            print(traceback.format_exc())
-            return None
+        except (TypeError, IndexError, KeyError, ValueError) as e:
+            raise ConfigError('Failed to decode received sensor configuration') from e
+
+        return config
 
     def __init__(self):
         self.motors = PortConfig()

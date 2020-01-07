@@ -20,7 +20,7 @@ from revvy.firmware_updater import McuUpdater, McuUpdateManager
 from revvy.utils.functions import get_serial, read_json
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType, LongMessageStatus
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-from revvy.robot_config import empty_robot_config, RobotConfig
+from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
 
 from tools.check_manifest import check_manifest
 
@@ -110,9 +110,11 @@ class LongMessageImplementation:
             if self._ignore_config:
                 print('New configuration ignored')
             else:
-                parsed_config = RobotConfig.from_string(message_data)
-                if parsed_config is not None:
+                try:
+                    parsed_config = RobotConfig.from_string(message_data)
                     self._robot.configure(parsed_config, self._robot.start_remote_controller)
+                except ConfigError as e:
+                    print(traceback.format_exc())
 
         elif message_type == LongMessageType.FRAMEWORK_DATA:
             self._robot.robot.status.robot_status = RobotStatus.Updating

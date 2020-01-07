@@ -3,33 +3,29 @@
 import unittest
 
 from revvy.utils.functions import b64_encode_str
-from revvy.robot_config import RobotConfig
+from revvy.robot_config import RobotConfig, ConfigError
 
 
 class TestRobotConfig(unittest.TestCase):
     def test_not_valid_config_is_ignored(self):
-        config = RobotConfig.from_string('not valid json')
-        self.assertIsNone(config)
+        self.assertRaises(ConfigError, lambda: RobotConfig.from_string('not valid json'))
 
     def test_valid_config_needs_robotConfig_and_blocklies_keys(self):
         with self.subTest("Blockly only"):
-            config = RobotConfig.from_string('{"blocklies": []}')
-            self.assertIsNone(config)
+            self.assertRaises(ConfigError, lambda: RobotConfig.from_string('{"blocklies": []}'))
 
         with self.subTest("Robot Config only"):
-            config = RobotConfig.from_string('{"robotConfig": []}')
-            self.assertIsNone(config)
+            self.assertRaises(ConfigError, lambda: RobotConfig.from_string('{"robotConfig": []}'))
 
+        # these should not raise ConfigError
         with self.subTest("Both"):
-            config = RobotConfig.from_string('{"robotConfig": [], "blocklyList": []}')
-            self.assertIsNotNone(config)
+            RobotConfig.from_string('{"robotConfig": [], "blocklyList": []}')
 
         with self.subTest("Both, lowercase"):
-            config = RobotConfig.from_string('{"robotconfig": [], "blocklylist": []}')
-            self.assertIsNotNone(config)
+            RobotConfig.from_string('{"robotconfig": [], "blocklylist": []}')
 
     def test_scripts_without_code_or_script_name_fail(self):
-        config = RobotConfig.from_string('''
+        self.assertRaises(ConfigError, lambda: RobotConfig.from_string('''
         {
             "robotConfig": [],
             "blocklyList": [
@@ -42,9 +38,7 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 }
             ]
-        }''')
-
-        self.assertIsNone(config)
+        }'''))
 
     def test_scripts_can_be_assigned_to_multiple_buttons(self):
         json = '''
@@ -74,7 +68,7 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual(0, config.scripts['user_script_1']['priority'])
 
     def test_assigning_script_to_wrong_button_fails_parsing(self):
-        config = RobotConfig.from_string('''
+        self.assertRaises(ConfigError, lambda: RobotConfig.from_string('''
         {
             "robotConfig": [],
             "blocklyList": [
@@ -87,10 +81,8 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 }
             ]
-        }''')
-        self.assertIsNone(config)
-
-        config = RobotConfig.from_string('''
+        }'''))
+        self.assertRaises(ConfigError, lambda: RobotConfig.from_string('''
         {
             "robotConfig": [],
             "blocklyList": [
@@ -103,8 +95,7 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 }
             ]
-        }''')
-        self.assertIsNone(config)
+        }'''))
 
     def test_scripts_can_be_assigned_to_multiple_analog_channels(self):
         json = '''
