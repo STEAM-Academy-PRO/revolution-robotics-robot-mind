@@ -73,18 +73,18 @@ class RemoteController:
             self._analogStates = message.analog
 
         # handle analog channels
-        for handler in self._analogActions:
+        for channels, action in self._analogActions:
             # check if all channels are present in the message
             try:
-                current = [message.analog[x] for x in handler['channels']]
+                current = [message.analog[x] for x in channels]
                 try:
-                    previous = [self._previousAnalogStates[x] for x in handler['channels']]
+                    previous = [self._previousAnalogStates[x] for x in channels]
                 except IndexError:
                     previous = []
                 if current != [127] * len(current) or current != previous:
-                    handler['action'](current)
+                    action(current)
             except IndexError:
-                self._log('Skip analog handler for channels {}'.format(", ".join(map(str, handler['channels']))))
+                self._log('Skip analog handler for channels {}'.format(", ".join(map(str, channels))))
 
         # handle button presses
         for idx in range(len(self._buttonHandlers)):
@@ -95,7 +95,7 @@ class RemoteController:
         self._buttonHandlers[button].on_rising_edge(action)
 
     def on_analog_values(self, channels, action):
-        self._analogActions.append({'channels': channels, 'action': action})
+        self._analogActions.append((channels, action))
 
     def _handle_button_pressed(self, btn):
         self._buttonStates[btn] = True
