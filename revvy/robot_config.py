@@ -54,6 +54,20 @@ class ConfigError(Exception):
     pass
 
 
+class ScriptDescriptor:
+    def __init__(self, runnable, priority):
+        self._runnable = runnable
+        self._priority = priority
+
+    @property
+    def runnable(self):
+        return self._runnable
+
+    @property
+    def priority(self):
+        return self._priority
+
+
 class RobotConfig:
     @staticmethod
     def from_string(config_string):
@@ -89,12 +103,12 @@ class RobotConfig:
                         raise KeyError('Neither builtinScriptName, nor pythonCode is present for a script') from e
 
                 assignments = script['assignments']
+                # script names are mostly relevant for logging
                 if 'analog' in assignments:
                     for analog_assignment in assignments['analog']:
-                        script_name = 'user_script_{}'.format(i)
+                        script_name = '[script {}] analog channels {}'.format(i, ', '.join(map(str, analog_assignment['channels'])))
                         priority = analog_assignment['priority']
-                        config.scripts[script_name] = {'script':   runnable,
-                                                       'priority': priority}
+                        config.scripts[script_name] = ScriptDescriptor(runnable, priority)
                         config.controller.analog.append({
                             'channels': analog_assignment['channels'],
                             'script': script_name})
@@ -102,16 +116,16 @@ class RobotConfig:
 
                 if 'buttons' in assignments:
                     for button_assignment in assignments['buttons']:
-                        script_name = 'user_script_{}'.format(i)
+                        script_name = '[script {}] button {}'.format(i, button_assignment['id'])
                         priority = button_assignment['priority']
-                        config.scripts[script_name] = {'script': runnable, 'priority': priority}
+                        config.scripts[script_name] = ScriptDescriptor(runnable, priority)
                         config.controller.buttons[button_assignment['id']] = script_name
                         i += 1
 
                 if 'background' in assignments:
-                    script_name = 'user_script_{}'.format(i)
+                    script_name = '[script {}] background'.format(i)
                     priority = assignments['background']
-                    config.scripts[script_name] = {'script': runnable, 'priority': priority}
+                    config.scripts[script_name] = ScriptDescriptor(runnable, priority)
                     config.background_scripts.append(script_name)
                     i += 1
         except (TypeError, IndexError, KeyError, ValueError) as e:

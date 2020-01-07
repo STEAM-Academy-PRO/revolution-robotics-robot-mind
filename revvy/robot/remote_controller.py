@@ -26,10 +26,19 @@ class RemoteController:
         self._controller_disappeared = lambda: None
 
         for i in range(len(self._buttonHandlers)):
-            handler = self._buttonHandlers[i]
-            handler.handle(1)
-            handler.on_rising_edge(lambda btn=i: self._handle_button_pressed(btn))
-            handler.on_falling_edge(lambda btn=i: self._handle_button_released(btn))
+            self.reset_button_handler(i)
+
+    def reset_button_handler(self, i):
+        handler = self._buttonHandlers[i]
+
+        # make sure we don't trigger anything
+        handler.on_rising_edge(lambda: None)
+        handler.on_falling_edge(lambda: None)
+
+        handler.handle(1)
+
+        handler.on_rising_edge(lambda btn=i: self._handle_button_pressed(btn))
+        handler.on_falling_edge(lambda btn=i: self._handle_button_released(btn))
 
     def is_button_pressed(self, button_idx):
         with self._button_mutex:
@@ -52,15 +61,7 @@ class RemoteController:
             self._buttonActions = [lambda: None] * 32
 
             for i in range(len(self._buttonHandlers)):
-                handler = self._buttonHandlers[i]
-                # make sure we don't trigger anything
-                handler.on_rising_edge(lambda: None)
-                handler.on_falling_edge(lambda: None)
-
-                handler.handle(1)
-
-                handler.on_rising_edge(lambda btn=i: self._handle_button_pressed(btn))
-                handler.on_falling_edge(lambda btn=i: self._handle_button_released(btn))
+                self.reset_button_handler(i)
 
             self._buttonStates = [False] * 32
 

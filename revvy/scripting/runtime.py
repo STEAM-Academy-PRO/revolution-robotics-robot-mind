@@ -17,8 +17,8 @@ class ScriptHandle:
     def __init__(self, owner, script, name, global_variables: dict):
         self._owner = owner
         self._globals = dict(global_variables)
-        self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(name))
         self._inputs = {}
+        self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(name))
         self._logger = Logger('Script: {}'.format(name))
 
         self.stop = self._thread.stop
@@ -72,10 +72,9 @@ class ScriptHandle:
             self.sleep = lambda s: None
 
     def start(self, variables=None):
-        if variables is not None:
-            self._inputs = variables
-        else:
-            self._inputs.clear()
+        if variables is None:
+            variables = {}
+        self._inputs = variables
         return self._thread.start()
 
 
@@ -106,13 +105,13 @@ class ScriptManager:
             self._scripts[name].cleanup()
 
         self._log('New script: {}'.format(name))
-        script = ScriptHandle(self, script, name, self._globals)
+        script_handle = ScriptHandle(self, script, name, self._globals)
         try:
             robot = self._robot
-            script.assign('robot', RobotInterface(script, robot.robot, robot.config, robot.resources, priority))
-            self._scripts[name] = script
+            script_handle.assign('robot', RobotInterface(script_handle, robot.robot, robot.config, robot.resources, priority))
+            self._scripts[name] = script_handle
         except Exception:
-            script.cleanup()
+            script_handle.cleanup()
             raise
 
     def __getitem__(self, name):

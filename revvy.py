@@ -63,9 +63,10 @@ def extract_asset_longmessage(storage, asset_dir):
 
 class LongMessageImplementation:
     # TODO: this, together with the other long message classes is probably a lasagna worth simplifying
-    def __init__(self, robot_manager: RobotManager, ignore_config):
+    def __init__(self, robot_manager: RobotManager, asset_dir, ignore_config):
         self._robot = robot_manager
         self._ignore_config = ignore_config
+        self._asset_dir = asset_dir
 
     def on_upload_started(self, message_type):
         """Visual indication that an upload has started
@@ -89,40 +90,40 @@ class LongMessageImplementation:
         print('Received message: {}'.format(message_type))
 
         if message_type == LongMessageType.TEST_KIT:
-            message_data = storage.get_long_message(message_type).decode()
-            print('Running test script: {}'.format(message_data))
-
-            robot_manager = self._robot
+            test_script_source = storage.get_long_message(message_type).decode()
+            print('Running test script: {}'.format(test_script_source))
 
             def start_script():
                 print("Starting new test script")
-                robot_manager._scripts.add_script("test_kit", message_data, 0)
-                robot_manager._scripts["test_kit"].on_stopped(lambda: robot_manager.configure(None))
+                self._robot._scripts.add_script("test_kit", test_script_source, 0)
+                self._robot._scripts["test_kit"].on_stopped(lambda: self._robot.configure(None))
 
                 # start can't run in on_stopped handler because overwriting script causes deadlock
-                robot_manager.run_in_background(lambda: robot_manager._scripts["test_kit"].start())
+                # need lambda to look up the current latest test kit script
+                self._robot.run_in_background(lambda: self._robot._scripts["test_kit"].start())
 
             self._robot.configure(empty_robot_config, start_script)
 
         elif message_type == LongMessageType.CONFIGURATION_DATA:
             message_data = storage.get_long_message(message_type).decode()
             print('New configuration: {}'.format(message_data))
-            if self._ignore_config:
-                print('New configuration ignored')
-            else:
-                try:
-                    parsed_config = RobotConfig.from_string(message_data)
+
+            try:
+                parsed_config = RobotConfig.from_string(message_data)
+
+                if self._ignore_config:
+                    print('New configuration ignored')
+                else:
                     self._robot.configure(parsed_config, self._robot.start_remote_controller)
-                except ConfigError as e:
-                    print(traceback.format_exc())
+            except ConfigError:
+                print(traceback.format_exc())
 
         elif message_type == LongMessageType.FRAMEWORK_DATA:
             self._robot.robot.status.robot_status = RobotStatus.Updating
             self._robot.request_update()
 
         elif message_type == LongMessageType.ASSET_DATA:
-            asset_dir = os.path.join('..', '..', '..', 'user', 'assets')
-            extract_asset_longmessage(storage, asset_dir)
+            extract_asset_longmessage(storage, self._asset_dir)
 
 
 if __name__ == "__main__":
@@ -153,9 +154,10 @@ if __name__ == "__main__":
     device_storage = FileStorage(data_dir)
     ble_storage = FileStorage(ble_storage_dir)
 
+    writeable_assets_dir = os.path.join(writeable_data_dir, 'assets')
     assets = Assets([
         os.path.join(package_data_dir, 'assets'),
-        os.path.join(writeable_data_dir, 'assets')
+        writeable_assets_dir
     ])
 
     try:
@@ -169,7 +171,7 @@ if __name__ == "__main__":
     device_name.subscribe(lambda v: device_storage.write('device-name', v.encode("utf-8")))
 
     long_message_storage = LongMessageStorage(ble_storage, MemoryStorage())
-    extract_asset_longmessage(long_message_storage, os.path.join(writeable_data_dir, 'assets'))
+    extract_asset_longmessage(long_message_storage, writeable_assets_dir)
 
     with RevvyTransportI2C() as transport:
         robot_control = RevvyControl(transport.bind(0x2D))
@@ -187,7 +189,7 @@ if __name__ == "__main__":
             lambda sound: assets.get_asset_file('sounds', sound),
             manifest['version'])
 
-        lmi = LongMessageImplementation(robot, False)
+        lmi = LongMessageImplementation(robot, writeable_assets_dir, False)
         long_message_handler.on_upload_started(lmi.on_upload_started)
         long_message_handler.on_upload_finished(lmi.on_transmission_finished)
         long_message_handler.on_message_updated(lmi.on_message_updated)

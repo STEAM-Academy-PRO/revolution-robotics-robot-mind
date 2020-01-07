@@ -58,14 +58,19 @@ class TestRobotConfig(unittest.TestCase):
         }'''.replace('{SOURCE}', b64_encode_str("some code"))
         config = RobotConfig.from_string(json)
 
-        self.assertEqual('user_script_0', config.controller.buttons[0])
-        self.assertEqual('user_script_1', config.controller.buttons[2])
+        script_names = [
+            '[script 0] button 0',
+            '[script 1] button 2'
+        ]
 
-        self.assertEqual('some code', config.scripts['user_script_0']['script'])
-        self.assertEqual('some code', config.scripts['user_script_1']['script'])
+        self.assertEqual(script_names[0], config.controller.buttons[0])
+        self.assertEqual(script_names[1], config.controller.buttons[2])
 
-        self.assertEqual(2, config.scripts['user_script_0']['priority'])
-        self.assertEqual(0, config.scripts['user_script_1']['priority'])
+        self.assertEqual('some code', config.scripts[script_names[0]].runnable)
+        self.assertEqual('some code', config.scripts[script_names[1]].runnable)
+
+        self.assertEqual(2, config.scripts[script_names[0]].priority)
+        self.assertEqual(0, config.scripts[script_names[1]].priority)
 
     def test_assigning_script_to_wrong_button_fails_parsing(self):
         self.assertRaises(ConfigError, lambda: RobotConfig.from_string('''
@@ -116,10 +121,12 @@ class TestRobotConfig(unittest.TestCase):
 
         self.assertEqual(1, len(config.controller.analog))
 
-        self.assertEqual('user_script_0', config.controller.analog[0]['script'])
+        script_name = '[script 0] analog channels 0, 1'
+
+        self.assertEqual(script_name, config.controller.analog[0]['script'])
         self.assertListEqual([0, 1], config.controller.analog[0]['channels'])
-        self.assertEqual('some code', config.scripts['user_script_0']['script'])
-        self.assertEqual(1, config.scripts['user_script_0']['priority'])
+        self.assertEqual('some code', config.scripts[script_name].runnable)
+        self.assertEqual(1, config.scripts[script_name].priority)
 
     def test_scripts_can_be_configured_to_run_in_background(self):
         json = '''
@@ -138,9 +145,11 @@ class TestRobotConfig(unittest.TestCase):
 
         self.assertEqual(1, len(config.background_scripts))
 
-        self.assertEqual('user_script_0', config.background_scripts[0])
-        self.assertEqual('some code', config.scripts['user_script_0']['script'])
-        self.assertEqual(3, config.scripts['user_script_0']['priority'])
+        script_name = '[script 0] background'
+
+        self.assertEqual(script_name, config.background_scripts[0])
+        self.assertEqual('some code', config.scripts[script_name].runnable)
+        self.assertEqual(3, config.scripts[script_name].priority)
 
     def test_lower_case_pythoncode_is_accepted(self):
         json = '''
@@ -159,9 +168,11 @@ class TestRobotConfig(unittest.TestCase):
 
         self.assertEqual(1, len(config.background_scripts))
 
-        self.assertEqual('user_script_0', config.background_scripts[0])
-        self.assertEqual('some code', config.scripts['user_script_0']['script'])
-        self.assertEqual(3, config.scripts['user_script_0']['priority'])
+        script_name = '[script 0] background'
+
+        self.assertEqual(script_name, config.background_scripts[0])
+        self.assertEqual('some code', config.scripts[script_name].runnable)
+        self.assertEqual(3, config.scripts[script_name].priority)
 
     def test_builtin_scripts_can_be_referenced(self):
         json = '''
@@ -178,8 +189,9 @@ class TestRobotConfig(unittest.TestCase):
         }'''
         config = RobotConfig.from_string(json)
 
-        self.assertEqual('user_script_0', config.controller.analog[0]['script'])
-        self.assertTrue(callable(config.scripts['user_script_0']['script']))
+        script_name = '[script 0] analog channels 0, 1'
+        self.assertEqual(script_name, config.controller.analog[0]['script'])
+        self.assertTrue(callable(config.scripts[script_name].runnable))
 
     def test_lower_case_script_name_is_accepted(self):
         json = '''
@@ -196,8 +208,9 @@ class TestRobotConfig(unittest.TestCase):
         }'''
         config = RobotConfig.from_string(json)
 
-        self.assertEqual('user_script_0', config.controller.analog[0]['script'])
-        self.assertTrue(callable(config.scripts['user_script_0']['script']))
+        script_name = '[script 0] analog channels 0, 1'
+        self.assertEqual(script_name, config.controller.analog[0]['script'])
+        self.assertTrue(callable(config.scripts[script_name].runnable))
 
     def test_scripts_can_be_assigned_to_every_type_at_once(self):
         json = '''
@@ -218,15 +231,21 @@ class TestRobotConfig(unittest.TestCase):
 
         self.assertEqual(1, len(config.background_scripts))
 
-        self.assertEqual('user_script_0', config.controller.analog[0]['script'])
-        self.assertEqual('user_script_1', config.controller.buttons[1])
-        self.assertEqual('user_script_2', config.background_scripts[0])
-        self.assertEqual('some code', config.scripts['user_script_0']['script'])
-        self.assertEqual('some code', config.scripts['user_script_1']['script'])
-        self.assertEqual('some code', config.scripts['user_script_2']['script'])
-        self.assertEqual(0, config.scripts['user_script_1']['priority'])
-        self.assertEqual(1, config.scripts['user_script_0']['priority'])
-        self.assertEqual(3, config.scripts['user_script_2']['priority'])
+        script_names = [
+            '[script 0] analog channels 0, 1',
+            '[script 1] button 1',
+            '[script 2] background'
+        ]
+
+        self.assertEqual(script_names[0], config.controller.analog[0]['script'])
+        self.assertEqual(script_names[1], config.controller.buttons[1])
+        self.assertEqual(script_names[2], config.background_scripts[0])
+        self.assertEqual('some code', config.scripts[script_names[0]].runnable)
+        self.assertEqual('some code', config.scripts[script_names[1]].runnable)
+        self.assertEqual('some code', config.scripts[script_names[2]].runnable)
+        self.assertEqual(0, config.scripts[script_names[1]].priority)
+        self.assertEqual(1, config.scripts[script_names[0]].priority)
+        self.assertEqual(3, config.scripts[script_names[2]].priority)
 
     def test_motors_are_parsed_as_list_of_motors(self):
         json = '''
