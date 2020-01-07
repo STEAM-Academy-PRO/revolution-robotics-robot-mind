@@ -216,10 +216,8 @@ class LiveMessageService(BlenoPrimaryService):
         self._message_handler = callback
 
     def simple_control_callback(self, data):
-        # print(repr(data))
-        # counter = data[0]
         analog_values = data[1:11]
-        button_values = self.extract_button_states(data[11:15])
+        button_values = bits_to_bool_list(data[11:15])
 
         self._message_handler(RemoteControllerCommand(analog=analog_values, buttons=button_values))
         return True
@@ -233,9 +231,6 @@ class LiveMessageService(BlenoPrimaryService):
             data = list(struct.pack(">flb", speed, position, power))
             self._motor_characteristics[motor - 1].update(data)
 
-    @staticmethod
-    def extract_button_states(data):
-        return bits_to_bool_list(data)
 # Device Information Service
 
 
