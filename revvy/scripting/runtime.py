@@ -123,7 +123,8 @@ class ScriptManager:
         script_handle = ScriptHandle(self, script.runnable, script.name, self._globals)
         try:
             robot = self._robot
-            script_handle.assign('robot', RobotInterface(script_handle, robot.robot, robot.config, robot.resources, script.priority))
+            interface = RobotInterface(script_handle, robot.robot, robot.config, robot.resources, script.priority)
+            script_handle.assign('robot', interface)
             self._scripts[script.name] = script_handle
 
             return script_handle

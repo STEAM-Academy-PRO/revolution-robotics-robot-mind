@@ -98,7 +98,8 @@ class RobotConfig:
                 # script names are mostly relevant for logging
                 if 'analog' in assignments:
                     for analog_assignment in assignments['analog']:
-                        script_name = '[script {}] analog channels {}'.format(i, ', '.join(map(str, analog_assignment['channels'])))
+                        channels = ', '.join(map(str, analog_assignment['channels']))
+                        script_name = '[script {}] analog channels {}'.format(i, channels)
                         priority = analog_assignment['priority']
                         config.controller.analog.append({
                             'channels': analog_assignment['channels'],
@@ -107,9 +108,10 @@ class RobotConfig:
 
                 if 'buttons' in assignments:
                     for button_assignment in assignments['buttons']:
-                        script_name = '[script {}] button {}'.format(i, button_assignment['id'])
+                        button_id = button_assignment['id']
+                        script_name = '[script {}] button {}'.format(i, button_id)
                         priority = button_assignment['priority']
-                        config.controller.buttons[button_assignment['id']] = ScriptDescriptor(script_name, runnable, priority)
+                        config.controller.buttons[button_id] = ScriptDescriptor(script_name, runnable, priority)
                         i += 1
 
                 if 'background' in assignments:
