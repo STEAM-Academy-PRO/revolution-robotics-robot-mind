@@ -115,20 +115,17 @@ class RemoteControllerScheduler:
         self._data_ready_event = Event()
         self._controller_detected_callback = lambda: None
         self._controller_lost_callback = lambda: None
-        self._data_mutex = Lock()
         self._message = None
         self._log = get_logger('RemoteControllerScheduler')
 
     def data_ready(self, message: RemoteControllerCommand):
-        with self._data_mutex:
-            self._message = message
+        self._message = message
         self._data_ready_event.set()
 
-    def _wait_for_message(self, is_first_message):
-        if is_first_message:
-            return self._data_ready_event.wait(self.first_message_timeout)
-        else:
-            return self._data_ready_event.wait(self.message_max_period)
+    def _wait_for_message(self, ctx, wait_time):
+        timeout = not self._data_ready_event.wait(wait_time)
+
+        return not (timeout or ctx.stop_requested)
 
     def handle_controller(self, ctx: ThreadContext):
         self._log('Waiting for controller')
@@ -138,20 +135,18 @@ class RemoteControllerScheduler:
         ctx.on_stopped(self._data_ready_event.set)
 
         # wait for first message
-        first = True
-
         start_time = time.time()
-        while self._wait_for_message(first):
-            if ctx.stop_requested:
-                break
+        if self._wait_for_message(ctx, self.first_message_timeout):
+            self._log("Time to first message: {}s".format(time.time() - start_time))
+            self._controller_detected_callback()
 
-            if first:
-                self._log("Time to first message: {}s".format(time.time() - start_time))
-                self._controller_detected_callback()
-                first = False
+            message = self._message
+            self._data_ready_event.clear()
+            self._controller.tick(message)
 
-            with self._data_mutex:
-                message = self._message
+        # wait for the other messages
+        while self._wait_for_message(ctx, self.message_max_period):
+            message = self._message
             self._data_ready_event.clear()
             self._controller.tick(message)
 
