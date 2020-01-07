@@ -3,11 +3,13 @@
 import os
 import struct
 import traceback
+from logging import Logger
 
 from pybleno import Bleno, BlenoPrimaryService, Characteristic, Descriptor
 from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
 from revvy.utils.functions import bits_to_bool_list
 from revvy.robot.remote_controller import RemoteControllerCommand
+from revvy.utils.logger import get_logger
 
 
 class BleService(BlenoPrimaryService):
@@ -382,8 +384,9 @@ class CustomBatteryService(BleService):
 class RevvyBLE:
     def __init__(self, device_name: Observable, serial, long_message_handler):
         self._deviceName = device_name.get()
+        self._log = get_logger('RevvyBLE')
         os.environ["BLENO_DEVICE_NAME"] = self._deviceName
-        print('Initializing BLE with device name {}'.format(self._deviceName))
+        self._log('Initializing BLE with device name {}'.format(self._deviceName))
 
         device_name.subscribe(self._device_name_changed)
 
@@ -416,7 +419,7 @@ class RevvyBLE:
         self._bleno.stopAdvertising(self._start_advertising)
 
     def _on_state_change(self, state):
-        print('on -> stateChange: ' + state)
+        self._log('on -> stateChange: {}'.format(state))
 
         if state == 'poweredOn':
             self._start_advertising()
@@ -424,18 +427,18 @@ class RevvyBLE:
             self._bleno.stopAdvertising()
 
     def _start_advertising(self):
-        print('Start advertising as {}'.format(self._deviceName))
+        self._log('Start advertising as {}'.format(self._deviceName))
         self._bleno.startAdvertising(self._deviceName, self._advertised_uuid_list)
 
     def _on_advertising_start(self, error):
-        print('on -> advertisingStart: {0}'.format(('error ' + str(error) if error else 'success')))
+        self._log('on -> advertisingStart: {0}'.format(('error ' + str(error) if error else 'success')))
 
         if not error:
-            print('setServices')
+            self._log('setServices')
 
             # noinspection PyShadowingNames
             def on_set_service_error(error):
-                print('setServices: {}'.format('error ' + str(error) if error else 'success'))
+                self._log('setServices: {}'.format('error ' + str(error) if error else 'success'))
 
             self._bleno.setServices(list(self._named_services.values()), on_set_service_error)
 
