@@ -1,6 +1,7 @@
-class Logger:
-    def __init__(self, tag):
-        self._tag = tag
+def Logger(tag):
+    pattern = '{}: {{}}'.format(tag)
 
-    def __call__(self, message):
-        print('{}: {}'.format(self._tag, message))
+    def logger_func(message):
+        print(pattern.format(message))
+
+    return logger_func

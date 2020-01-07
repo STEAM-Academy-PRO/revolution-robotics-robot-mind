@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 from revvy.hardware_dependent.sound import SoundControlBase
+from revvy.utils.logger import Logger
 
 
 class Sound:
@@ -10,8 +11,10 @@ class Sound:
         self.set_volume = sound_interface.set_volume
         self.reset_volume = sound_interface.reset_volume
 
+        self._log = Logger('Sound')
+
     def play_tune(self, name, callback=None):
         try:
             self._sound.play_sound(self._get_sound_path(name), callback)
         except KeyError:
-            print('Sound not found: {}'.format(name))
+            self._log('Sound not found: {}'.format(name))

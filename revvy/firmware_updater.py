@@ -8,6 +8,7 @@ import traceback
 from json import JSONDecodeError
 
 from revvy.utils.file_storage import IntegrityError
+from revvy.utils.logger import Logger
 from revvy.utils.version import Version
 from revvy.utils.functions import split, bytestr_hash
 from revvy.mcu.rrrc_control import BootloaderControl, RevvyControl
@@ -21,6 +22,8 @@ class McuUpdater:
         self._robot = robot_control
         self._bootloader = bootloader_control
 
+        self._log = Logger('McuUpdater')
+
     def _read_operation_mode(self):
         # TODO: implement timeout in case MCU has no bootloader and firmware
         while True:
@@ -30,7 +33,7 @@ class McuUpdater:
                 try:
                     return self._bootloader.read_operation_mode()
                 except OSError:
-                    print("Failed to read operation mode. Retrying")
+                    self._log("Failed to read operation mode. Retrying")
                     time.sleep(0.5)
 
     def _finalize_update(self):
@@ -42,16 +45,16 @@ class McuUpdater:
             self._bootloader.finalize_update()
             # at this point, the bootloader shall start the application
         except OSError:
-            print('MCU restarted before finishing communication')
+            self._log('MCU restarted before finishing communication')
         except Exception:
             traceback.print_exc()
 
     def _request_bootloader_mode(self):
         try:
-            print("Rebooting to bootloader")
+            self._log("Rebooting to bootloader")
             self._robot.reboot_bootloader()
         except OSError:
-            print('MCU restarted before finishing communication')
+            self._log('MCU restarted before finishing communication')
 
     def read_hardware_version(self):
         """
@@ -97,21 +100,21 @@ class McuUpdater:
             self.reboot_to_bootloader()
 
             checksum = binascii.crc32(data)
-            print("Image info: size: {} checksum: {}".format(len(data), checksum))
+            self._log("Image info: size: {} checksum: {}".format(len(data), checksum))
 
             # init update
-            print("Initializing update")
+            self._log("Initializing update")
             self._bootloader.send_init_update(len(data), checksum)
 
             # split data into chunks
             chunks = split(data, chunk_size=255)
 
             # send data
-            print('Sending data')
+            self._log('Sending data')
             start = time.time()
             for chunk in chunks:
                 self._bootloader.send_firmware(chunk)
-            print('Data transfer took {} seconds'.format(round(time.time() - start, 1)))
+            self._log('Data transfer took {} seconds'.format(round(time.time() - start, 1)))
 
             self._finalize_update()
 
@@ -123,6 +126,8 @@ class McuUpdateManager:
     def __init__(self, fw_dir, updater):
         self._fw_dir = fw_dir
         self._updater = updater
+
+        self._log = Logger('McuUpdateManager')
 
     def _read_catalog(self):
         try:
@@ -140,18 +145,17 @@ class McuUpdateManager:
         except (IOError, JSONDecodeError, KeyError):
             return {}
 
-    @staticmethod
-    def _read_firmware(fw_data):
+    def _read_firmware(self, fw_data):
         with open(fw_data['file'], "rb") as f:
             firmware_binary = f.read()
 
         if len(firmware_binary) != fw_data['length']:
-            print('Firmware file length check failed, aborting')
+            self._log('Firmware file length check failed, aborting')
             raise IntegrityError("Firmware file length does not match")
 
         checksum = bytestr_hash(firmware_binary)
         if checksum != fw_data['md5']:
-            print('Firmware file integrity check failed, aborting')
+            self._log('Firmware file integrity check failed, aborting')
             raise IntegrityError("Firmware file checksum does not match")
 
         return firmware_binary
@@ -168,12 +172,12 @@ class McuUpdateManager:
 
         except KeyError:
             traceback.format_exc()
-            print('No firmware for the hardware ({})'.format(hw_version))
+            self._log('No firmware for the hardware ({})'.format(hw_version))
 
         except IOError:
             traceback.format_exc()
-            print('Firmware file does not exist or is not readable')
+            self._log('Firmware file does not exist or is not readable')
 
         except IntegrityError:
             traceback.format_exc()
-            print('Firmware file corrupted')
+            self._log('Firmware file corrupted')

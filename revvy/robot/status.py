@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 from revvy.mcu.rrrc_control import RevvyControl
+from revvy.utils.logger import Logger
 
 
 class RobotStatus:
@@ -55,6 +56,8 @@ class RobotStatusIndicator:
     def __init__(self, interface: RevvyControl):
         self._interface = interface
 
+        self._log = Logger('RobotStatusIndicator')
+
         self._robot_status = RobotStatus.StartingUp
         self._controller_status = RemoteControllerStatus.NotConnected
 
@@ -108,9 +111,7 @@ class RobotStatusIndicator:
 
     @robot_status.setter
     def robot_status(self, value):
-        print(
-            'Robot status change: {} -> {}'.format(RobotStatus.name_of(self._robot_status),
-                                                   RobotStatus.name_of(value)))
+        self._log('Robot: {} -> {}'.format(RobotStatus.name_of(self._robot_status), RobotStatus.name_of(value)))
         if self._robot_status != RobotStatus.Stopped:
             self._robot_status = value
             self._update_leds()
@@ -121,7 +122,7 @@ class RobotStatusIndicator:
 
     @controller_status.setter
     def controller_status(self, value):
-        print('Controller status change: {} -> {}'.format(RemoteControllerStatus.name_of(self._controller_status),
-                                                          RemoteControllerStatus.name_of(value)))
+        self._log('Controller: {} -> {}'.format(RemoteControllerStatus.name_of(self._controller_status),
+                                                RemoteControllerStatus.name_of(value)))
         self._controller_status = value
         self._update_leds()

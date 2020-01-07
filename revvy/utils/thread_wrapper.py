@@ -54,7 +54,7 @@ class ThreadWrapper:
             except InterruptedError:
                 self._log('interrupted')
             except Exception:
-                print(traceback.format_exc())
+                self._log(traceback.format_exc())
             finally:
                 with self._lock:
                     self._log('stopped')

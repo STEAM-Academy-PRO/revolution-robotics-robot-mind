@@ -13,6 +13,7 @@ RemoteControllerCommand = namedtuple('RemoteControllerCommand', ['analog', 'butt
 
 class RemoteController:
     def __init__(self):
+        self._log = Logger('RemoteController')
         self._button_mutex = Lock()
 
         self._analogActions = []
@@ -52,7 +53,7 @@ class RemoteController:
             return 0
 
     def reset(self):
-        print('RemoteController: reset')
+        self._log('RemoteController: reset')
         with self._button_mutex:
             self._analogActions.clear()
             self._analogStates.clear()
@@ -83,7 +84,7 @@ class RemoteController:
                 if current != [127] * len(current) or current != previous:
                     handler['action'](current)
             except IndexError:
-                print('Skip analog handler for channels {}'.format(", ".join(map(str, handler['channels']))))
+                self._log('Skip analog handler for channels {}'.format(", ".join(map(str, handler['channels']))))
 
         # handle button presses
         for idx in range(len(self._buttonHandlers)):

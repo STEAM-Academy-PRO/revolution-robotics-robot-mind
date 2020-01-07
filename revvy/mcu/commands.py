@@ -5,6 +5,7 @@ from abc import ABC
 from collections import namedtuple
 
 from revvy.utils.functions import split
+from revvy.utils.logger import Logger
 from revvy.utils.version import Version, FormatError
 from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseHeader
 
@@ -18,6 +19,8 @@ class Command:
     def __init__(self, transport: RevvyTransport):
         self._transport = transport
         self._command_byte = self.command_id
+
+        self._log = Logger('Command {}'.format(self._command_byte))
 
     @property
     def command_id(self): raise NotImplementedError
@@ -44,7 +47,7 @@ class Command:
         try:
             return self._process(response)
         except (UnknownCommandError, ValueError) as e:
-            print('Error response for command: {0:X} with payload {1} (length {2})'
+            self._log('Error response for command: {0:X} with payload {1} (length {2})'
                   .format(self._command_byte, payload, len(payload)))
             raise e
 

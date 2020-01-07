@@ -33,7 +33,7 @@ class Assets:
                     self._files[category][asset_name] = os.path.join(path, asset_path)
         except Exception:
             self._log('Skip loading assets from {}'.format(path))
-            print(traceback.format_exc())
+            self._log(traceback.format_exc())
 
     def get_asset_file(self, category, name):
         return self._files[category][name]

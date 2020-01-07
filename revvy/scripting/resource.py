@@ -59,15 +59,18 @@ class Resource:
                 self._current_priority = with_priority
                 self._active_handle = ResourceHandle(self, on_taken_away)
                 return self._active_handle
+
             elif self._current_priority == with_priority:
                 self._log('taking from equal prio owner')
                 return self._active_handle
+
             elif self._current_priority > with_priority:
                 self._log('taking from lower prio owner')
                 self._active_handle.interrupt()
                 self._current_priority = with_priority
                 self._active_handle = ResourceHandle(self, on_taken_away)
                 return self._active_handle
+
             else:
                 self._log('failed to take')
                 return None

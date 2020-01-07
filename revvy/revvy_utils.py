@@ -112,7 +112,7 @@ class Robot:
         fw = interface.get_firmware_version()
         sw = sw_version
 
-        print('Hardware: {}\nFirmware: {}\nFramework: {}'.format(hw, fw, sw))
+        self._log('Hardware: {}\nFirmware: {}\nFramework: {}'.format(hw, fw, sw))
 
         self._version = RobotVersion(hw, fw, sw)
 
@@ -287,10 +287,10 @@ class RobotManager:
                 self._log('Running background function')
                 fn()
         except TransportException:
-            print(traceback.format_exc())
+            self._log(traceback.format_exc())
             self.exit(RevvyStatusCode.ERROR)
         except Exception:
-            print(traceback.format_exc())
+            self._log(traceback.format_exc())
 
     @property
     def resources(self):
