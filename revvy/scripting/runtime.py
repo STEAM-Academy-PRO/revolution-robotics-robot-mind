@@ -33,6 +33,11 @@ class TimeWrapper:
 
 
 class ScriptHandle:
+
+    @staticmethod
+    def _default_sleep(time):
+        raise Exception('Script not running')
+
     def __init__(self, owner, script, name, global_variables: dict):
         self._owner = owner
         self._globals = dict(global_variables)
@@ -43,7 +48,7 @@ class ScriptHandle:
         self.stop = self._thread.stop
         self.cleanup = self._thread.exit
         self.on_stopped = self._thread.on_stopped
-        self.sleep = lambda s: None
+        self.sleep = ScriptHandle._default_sleep
 
         assert(callable(script))
 
@@ -83,8 +88,8 @@ class ScriptHandle:
                 'time': TimeWrapper(ctx)
             })
         finally:
-            self._thread_ctx = None
-            self.sleep = lambda s: None
+            # restore to release reference on context
+            self.sleep = ScriptHandle._default_sleep
 
     def start(self, variables=None):
         if variables is None:

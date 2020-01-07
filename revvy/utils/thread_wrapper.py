@@ -132,11 +132,10 @@ class ThreadWrapper:
 
 class ThreadContext:
     def __init__(self, thread: ThreadWrapper):
-        self._thread = thread
         self._stop_event = Event()
 
-    def stop(self):
-        self._stop_event.set()
+        self.stop = self._stop_event.set
+        self.on_stopped = thread.on_stop_requested
 
     def sleep(self, s):
         if self._stop_event.wait(s):
@@ -145,9 +144,6 @@ class ThreadContext:
     @property
     def stop_requested(self):
         return self._stop_event.is_set()
-
-    def on_stopped(self, callback):
-        self._thread.on_stop_requested(callback)
 
 
 def periodic(fn, period, name="PeriodicThread"):
