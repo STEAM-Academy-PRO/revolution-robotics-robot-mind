@@ -1,15 +1,31 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-def empty_callback():
-    pass
+class EdgeDetector:
+    """
+    >>> ed = EdgeDetector()
+    >>> print(", ".join(map(str, [ed.handle(1), ed.handle(2), ed.handle(2), ed.handle(1)])))
+    1, 1, 0, -1
+    """
+    def __init__(self):
+        self._previous = 0
+
+    def handle(self, value):
+        previous, self._previous = self._previous, value
+
+        if value > previous:
+            return 1
+        elif value < previous:
+            return -1
+        else:
+            return 0
 
 
 class EdgeTrigger:
     def __init__(self):
-        self._rising_edge = empty_callback
-        self._falling_edge = empty_callback
-        self._previous = 0
+        self._rising_edge = None
+        self._falling_edge = None
+        self._detector = EdgeDetector()
 
     def on_rising_edge(self, l):
         self._rising_edge = l
@@ -18,17 +34,19 @@ class EdgeTrigger:
         self._falling_edge = l
 
     def handle(self, value):
-        if value > self._previous:
-            self._rising_edge()
-        elif value < self._previous:
-            self._falling_edge()
-        self._previous = value
+        detection = self._detector.handle(value)
+        if detection == 1:
+            if self._rising_edge:
+                self._rising_edge()
+        elif detection == -1:
+            if self._falling_edge:
+                self._falling_edge()
 
 
 class LevelTrigger:
     def __init__(self):
-        self._high = empty_callback
-        self._low = empty_callback
+        self._high = None
+        self._low = None
 
     def on_high(self, l):
         self._high = l
@@ -38,25 +56,28 @@ class LevelTrigger:
 
     def handle(self, value):
         if value > 0:
-            self._high()
+            if self._high:
+                self._high()
         else:
-            self._low()
+            if self._low:
+                self._low()
 
 
 class ToggleButton:
     def __init__(self):
-        self._on_enabled = empty_callback
-        self._on_disabled = empty_callback
-        self._edge_detector = EdgeTrigger()
-        self._edge_detector.on_rising_edge(self._toggle)
+        self._on_enabled = None
+        self._on_disabled = None
+        self._edge_detector = EdgeDetector()
         self._is_enabled = False
 
     def _toggle(self):
         self._is_enabled = not self._is_enabled
         if self._is_enabled:
-            self._on_enabled()
+            if self._on_enabled:
+                self._on_enabled()
         else:
-            self._on_disabled()
+            if self._on_disabled:
+                self._on_disabled()
 
     def on_enabled(self, l):
         self._on_enabled = l
@@ -65,4 +86,5 @@ class ToggleButton:
         self._on_disabled = l
 
     def handle(self, value):
-        self._edge_detector.handle(0 if value <= 0 else 1)
+        if self._edge_detector.handle(0 if value <= 0 else 1) == 1:
+            self._toggle()

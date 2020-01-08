@@ -391,7 +391,7 @@ class RobotManager:
         self._scripts.assign('Motor', MotorConstants)
         self._scripts.assign('RingLed', RingLed)
 
-        self._remote_controller_thread.stop()
+        self._remote_controller_thread.stop().wait()
 
         for res in self._resources:
             self._resources[res].reset()
