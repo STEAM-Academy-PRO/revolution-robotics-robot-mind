@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import binascii
-import json
 import os
 import time
 import traceback
@@ -10,7 +9,7 @@ from json import JSONDecodeError
 from revvy.utils.file_storage import IntegrityError
 from revvy.utils.logger import get_logger
 from revvy.utils.version import Version
-from revvy.utils.functions import split, bytestr_hash
+from revvy.utils.functions import split, bytestr_hash, read_json
 from revvy.mcu.rrrc_control import BootloaderControl, RevvyControl
 
 op_mode_application = 0xAA
@@ -133,8 +132,7 @@ class McuUpdateManager:
 
     def _read_catalog(self):
         try:
-            with open(os.path.join(self._fw_dir, 'catalog.json'), 'r') as cf:
-                fw_metadata = json.load(cf)
+            fw_metadata = read_json(os.path.join(self._fw_dir, 'catalog.json'))
 
             # hw version -> fw version mapping
             return {Version(version): {
@@ -173,13 +171,13 @@ class McuUpdateManager:
             self._updater.update_firmware(fw_data['version'], firmware_binary)
 
         except KeyError:
-            traceback.format_exc()
+            self._log(traceback.format_exc())
             self._log('No firmware for the hardware ({})'.format(hw_version))
 
         except IOError:
-            traceback.format_exc()
+            self._log(traceback.format_exc())
             self._log('Firmware file does not exist or is not readable')
 
         except IntegrityError:
-            traceback.format_exc()
+            self._log(traceback.format_exc())
             self._log('Firmware file corrupted')
