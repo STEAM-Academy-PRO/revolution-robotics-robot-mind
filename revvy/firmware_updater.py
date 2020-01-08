@@ -143,6 +143,7 @@ class McuUpdateManager:
             } for version in fw_metadata}
 
         except (IOError, JSONDecodeError, KeyError):
+            self._log(traceback.format_exc())
             return {}
 
     def _read_firmware(self, fw_data):
