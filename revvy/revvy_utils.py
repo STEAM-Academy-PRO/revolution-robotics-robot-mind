@@ -220,6 +220,9 @@ class Robot:
         self._status.robot_status = RobotStatus.NotConfigured
         self._status.update()
 
+    def ping(self):
+        self._interface.ping()
+
 
 class RevvyStatusCode(enum.IntEnum):
     OK = 0
@@ -230,16 +233,15 @@ class RevvyStatusCode(enum.IntEnum):
 
 class RobotManager:
 
-    # FIXME: revvy intentionally doesn't have a type hint at this moment because it breaks tests right now
-    def __init__(self, interface: RevvyControl, revvy, sounds, sw_version):
+    # FIXME: revvy_ble intentionally doesn't have a type hint at this moment because it breaks tests right now
+    def __init__(self, robot: Robot, revvy_ble):
         self._log = get_logger('RobotManager')
         self._log('init')
         self.needs_interrupting = True
 
         self._configuring = False
-        self._robot = Robot(interface, sounds, sw_version)
-        self._interface = interface
-        self._ble = revvy
+        self._robot = robot
+        self._ble = revvy_ble
 
         self._status_update_thread = periodic(self._update, 0.02, "RobotStatusUpdaterThread")
         self._background_fn_lock = Lock()
@@ -262,8 +264,8 @@ class RobotManager:
             **{'sensor_{}'.format(port.id): Resource('Sensor {}'.format(port.id)) for port in self._robot.sensors}
         }
 
-        revvy['live_message_service'].register_message_handler(rcs.data_ready)
-        revvy.on_connection_changed(self._on_connection_changed)
+        revvy_ble['live_message_service'].register_message_handler(rcs.data_ready)
+        revvy_ble.on_connection_changed(self._on_connection_changed)
 
         self._scripts = ScriptManager(self)
         self._config = RobotConfig()
@@ -483,7 +485,7 @@ class RobotManager:
         while retry_ping:
             retry_ping = False
             try:
-                self._interface.ping()
+                self._robot.ping()
             except (BrokenPipeError, IOError, OSError):
                 retry_ping = True
                 time.sleep(0.1)

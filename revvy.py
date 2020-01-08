@@ -9,7 +9,7 @@ import time
 import traceback
 
 from revvy.mcu.rrrc_control import RevvyControl, BootloaderControl
-from revvy.revvy_utils import RobotManager, RevvyStatusCode
+from revvy.revvy_utils import RobotManager, RevvyStatusCode, Robot
 from revvy.robot.led_ring import RingLed
 from revvy.robot.status import RobotStatus
 from revvy.scripting.runtime import ScriptDescriptor
@@ -188,12 +188,9 @@ if __name__ == "__main__":
             print('Failed to update firmware')
 
         long_message_handler = LongMessageHandler(long_message_storage)
-        ble = RevvyBLE(device_name, serial, long_message_handler)
         robot = RobotManager(
-            robot_control,
-            ble,
-            lambda sound: assets.get_asset_file('sounds', sound),
-            manifest['version'])
+            Robot(robot_control, lambda sound: assets.get_asset_file('sounds', sound), manifest['version']),
+            RevvyBLE(device_name, serial, long_message_handler))
 
         lmi = LongMessageImplementation(robot, writeable_assets_dir, False)
         long_message_handler.on_upload_started(lmi.on_upload_started)
