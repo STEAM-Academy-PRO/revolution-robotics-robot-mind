@@ -97,30 +97,33 @@ class McuUpdater:
         Compare firmware version and burn it in case the version differs
         """
 
-        if self.is_update_needed(new_version):
-            self.reboot_to_bootloader()
+        if not self.is_update_needed(new_version):
+            self._log('Skip update')
+            return
 
-            checksum = binascii.crc32(data)
-            self._log("Image info: size: {} checksum: {}".format(len(data), checksum))
+        self.reboot_to_bootloader()
 
-            # init update
-            self._log("Initializing update")
-            self._bootloader.send_init_update(len(data), checksum)
+        checksum = binascii.crc32(data)
+        self._log("Image info: size: {} checksum: {}".format(len(data), checksum))
 
-            # split data into chunks
-            chunks = split(data, chunk_size=255)
+        # init update
+        self._log("Initializing update")
+        self._bootloader.send_init_update(len(data), checksum)
 
-            # send data
-            self._log('Sending data')
-            start = time.time()
-            for chunk in chunks:
-                self._bootloader.send_firmware(chunk)
-            self._log('Data transfer took {} seconds'.format(round(time.time() - start, 1)))
+        # split data into chunks
+        chunks = split(data, chunk_size=255)
 
-            self._finalize_update()
+        # send data
+        self._log('Sending data')
+        start = time.time()
+        for chunk in chunks:
+            self._bootloader.send_firmware(chunk)
+        self._log('Data transfer took {} seconds'.format(round(time.time() - start, 1)))
 
-            # read operating mode - this should return only when application has started
-            assert self._read_operation_mode() == op_mode_application
+        self._finalize_update()
+
+        # read operating mode - this should return only when application has started
+        assert self._read_operation_mode() == op_mode_application
 
 
 class McuUpdateManager:
