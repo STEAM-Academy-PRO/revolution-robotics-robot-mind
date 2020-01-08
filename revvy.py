@@ -22,6 +22,7 @@ from revvy.utils.functions import get_serial, read_json, str_to_func
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType, LongMessageStatus
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
+from revvy.utils.logger import get_logger
 
 from tools.check_manifest import check_manifest
 
@@ -69,6 +70,8 @@ class LongMessageImplementation:
         self._ignore_config = ignore_config
         self._asset_dir = asset_dir
 
+        self._log = get_logger("LongMessageImplementation")
+
     def on_upload_started(self, message_type):
         """Visual indication that an upload has started
 
@@ -88,38 +91,37 @@ class LongMessageImplementation:
             self._robot.run_in_background(lambda: self._robot.robot.led_ring.set_scenario(RingLed.BreathingGreen))
 
     def on_message_updated(self, storage, message_type):
-        print('Received message: {}'.format(message_type))
+        self._log('Received message: {}'.format(message_type))
 
         if message_type == LongMessageType.TEST_KIT:
             test_script_source = storage.get_long_message(message_type).decode()
-            print('Running test script: {}'.format(test_script_source))
+            self._log('Running test script: {}'.format(test_script_source))
 
             script_descriptor = ScriptDescriptor("test_kit", str_to_func(test_script_source), 0)
 
             def start_script():
-                print("Starting new test script")
+                self._log("Starting new test script")
                 handle = self._robot._scripts.add_script(script_descriptor)
                 handle.on_stopped(lambda: self._robot.configure(None))
 
                 # start can't run in on_stopped handler because overwriting script causes deadlock
-                # need lambda to look up the current latest test kit script
-                self._robot.run_in_background(lambda: handle.start())
+                self._robot.run_in_background(handle.start)
 
             self._robot.configure(empty_robot_config, start_script)
 
         elif message_type == LongMessageType.CONFIGURATION_DATA:
             message_data = storage.get_long_message(message_type).decode()
-            print('New configuration: {}'.format(message_data))
+            self._log('New configuration: {}'.format(message_data))
 
             try:
                 parsed_config = RobotConfig.from_string(message_data)
 
                 if self._ignore_config:
-                    print('New configuration ignored')
+                    self._log('New configuration ignored')
                 else:
                     self._robot.configure(parsed_config, self._robot.start_remote_controller)
             except ConfigError:
-                print(traceback.format_exc())
+                self._log(traceback.format_exc())
 
         elif message_type == LongMessageType.FRAMEWORK_DATA:
             self._robot.robot.status.robot_status = RobotStatus.Updating
