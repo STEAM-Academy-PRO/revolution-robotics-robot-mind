@@ -5,6 +5,7 @@ from revvy.mcu.rrrc_transport import RevvyTransportInterface, RevvyTransport, Tr
 
 
 class RevvyTransportI2CImpl:
+    """Factory class to create transport objects directed at specific addresses"""
     def __init__(self, bus):
         self._bus = bus
 
@@ -13,6 +14,7 @@ class RevvyTransportI2CImpl:
 
 
 class RevvyTransportI2CDevice(RevvyTransportInterface):
+    """Low level communication class used to read/write a specific I2C device address"""
     def __init__(self, address, bus):
         self._address = address
         self._bus = bus
@@ -21,16 +23,16 @@ class RevvyTransportI2CDevice(RevvyTransportInterface):
         try:
             read_msg = i2c_msg.read(self._address, length)
             self._bus.i2c_rdwr(read_msg)
+            return list(read_msg)
         except TypeError as e:
-            raise TransportException() from e
-        return list(read_msg)
+            raise TransportException("Error during reading I2C address {}".format(self._address)) from e
 
     def write(self, data):
         try:
             write_msg = i2c_msg.write(self._address, data)
             self._bus.i2c_rdwr(write_msg)
         except TypeError as e:
-            raise TransportException() from e
+            raise TransportException("Error during writing I2C address {}".format(self._address)) from e
 
 
 class RevvyTransportI2C:

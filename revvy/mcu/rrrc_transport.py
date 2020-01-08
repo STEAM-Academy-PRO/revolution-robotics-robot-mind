@@ -63,20 +63,24 @@ class Command:
     OpCancel = 3
 
     def __init__(self, op, command, payload=bytes()):
-        self._op = op
-        self._command = command
-        self._payload = bytes(payload)
+        if len(payload) > 255:
+            raise ValueError('Payload is too long ({} bytes, 255 allowed)'.format(len(payload)))
 
-        if len(self._payload) > 255:
-            raise ValueError('Payload is too long ({} bytes, 255 allowed)'.format(len(self._payload)))
+        pl = bytearray(6 + len(payload))
+        pl[6:] = payload
+
+        payload_checksum = binascii.crc_hqx(pl[6:], 0xFFFF)
+
+        # fill header
+        pl[0:5] = op, command, len(payload), *payload_checksum.to_bytes(2, byteorder='little')
+
+        # calculate header checksum
+        pl[5] = crc7(pl[0:5], 0xFF)
+
+        self._payload = pl
 
     def get_bytes(self):
-        header = bytes([self._op, self._command, len(self._payload)])
-        payload_checksum = binascii.crc_hqx(self._payload, 0xFFFF)
-        header += bytes(payload_checksum.to_bytes(2, byteorder='little'))
-        header += bytes([crc7(header, 0xFF)])
-
-        return header + self._payload
+        return self._payload
 
     @classmethod
     def start(cls, command, payload=bytes()):
@@ -169,23 +173,27 @@ class Response:
 
 
 class RevvyTransport:
+    _mutex = Lock()  # we only have a single I2C interface
+    timeout = 5  # [seconds] how long the slave is allowed to respond with "busy"
 
     def __init__(self, transport: RevvyTransportInterface):
-        self.timeout = 5  # [seconds] how long the slave is allowed to respond with "busy"
         self._transport = transport
-        self._mutex = Lock()
 
     def send_command(self, command, payload=bytes()) -> Response:
         """Send a command and get the result."""
         with self._mutex:
+            # create commands in advance, they can be reused in case of an error
+            command_start = Command.start(command, payload)
+            command_get_result = Command.get_result(command)
+
             # once a command gets through and a valid response is read, this loop will exit
             while True:  # assume that integrity error is random and not caused by implementation differences
                 # send command and read back status
-                header = self._send_command(Command.start(command, payload))
+                header = self._send_command(command_start)
 
                 # wait for command execution to finish
                 while header.status == ResponseHeader.Status_Pending:
-                    header = self._send_command(Command.get_result(command))
+                    header = self._send_command(command_get_result)
 
                 # check result
                 # return a result even in case of an error, except when we know we have to resend
