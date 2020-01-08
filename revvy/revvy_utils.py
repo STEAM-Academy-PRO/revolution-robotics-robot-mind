@@ -21,7 +21,7 @@ from revvy.robot.ports.sensor import create_sensor_port_handler
 from revvy.robot.sound import Sound
 from revvy.robot.status import RobotStatus, RemoteControllerStatus, RobotStatusIndicator
 from revvy.robot.status_updater import McuStatusUpdater
-from revvy.robot_config import RobotConfig
+from revvy.robot_config import empty_robot_config
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import MotorConstants
 from revvy.scripting.runtime import ScriptManager
@@ -149,6 +149,9 @@ class Robot:
 
         self._drivetrain = DifferentialDrivetrain(interface, self._motor_ports.port_count)
 
+        self.update_status = self._status_updater.read
+        self.ping = self._interface.ping
+
     @property
     def start_time(self):
         return self._start_time
@@ -189,9 +192,6 @@ class Robot:
     def sound(self):
         return self._sound
 
-    def update_status(self):
-        self._status_updater.read()
-
     def reset(self):
         self._log('reset()')
         self._ring_led.set_scenario(RingLed.BreathingGreen)
@@ -219,9 +219,6 @@ class Robot:
 
         self._status.robot_status = RobotStatus.NotConfigured
         self._status.update()
-
-    def ping(self):
-        self._interface.ping()
 
 
 class RevvyStatusCode(enum.IntEnum):
@@ -268,10 +265,12 @@ class RobotManager:
         revvy_ble.on_connection_changed(self._on_connection_changed)
 
         self._scripts = ScriptManager(self)
-        self._config = RobotConfig()
+        self._config = empty_robot_config
 
         self._status_code = RevvyStatusCode.OK
         self.exited = False
+
+        self.start_remote_controller = self._remote_controller_thread.start
 
     def _update(self):
         # noinspection PyBroadException
@@ -450,11 +449,10 @@ class RobotManager:
 
     def _configure(self, config):
 
-        if not config and self._robot.status.robot_status != RobotStatus.Stopped:
-            config = RobotConfig()
-            is_default_config = True
-        else:
-            is_default_config = False
+        is_default_config = not config and self._robot.status.robot_status != RobotStatus.Stopped
+
+        if is_default_config:
+            config = empty_robot_config
 
         self._config = config
 
@@ -469,9 +467,6 @@ class RobotManager:
             self._robot.status.robot_status = RobotStatus.Configured
 
         self._configuring = False
-
-    def start_remote_controller(self):
-        self._remote_controller_thread.start()
 
     def stop(self):
         self._robot.status.controller_status = RemoteControllerStatus.NotConnected
