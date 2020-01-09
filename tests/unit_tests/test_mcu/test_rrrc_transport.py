@@ -10,7 +10,7 @@ from revvy.mcu.rrrc_transport import Command, crc7, RevvyTransport, RevvyTranspo
 
 class TestCommand(unittest.TestCase):
     def test_first_byte_is_opcode(self):
-        ch = Command.start(5)
+        ch = Command.start(5, bytes())
         self.assertEqual(0, ch.get_bytes()[0])
 
         ch = Command.get_result(5)
@@ -20,29 +20,29 @@ class TestCommand(unittest.TestCase):
         self.assertEqual(3, ch.get_bytes()[0])
 
     def test_max_payload_length_is_255(self):
-        ch = Command.start(5, [0]*25)
+        ch = Command.start(5, b'\x00'*25)
         self.assertEqual(6 + 25, len(ch.get_bytes()))
         self.assertEqual(25, ch.get_bytes()[2])
 
-        ch = Command.start(5, [0]*255)
+        ch = Command.start(5, b'\x00'*255)
         self.assertEqual(6 + 255, len(ch.get_bytes()))
         self.assertEqual(255, ch.get_bytes()[2])
 
-        self.assertRaises(ValueError, lambda: Command.start(5, [0] * 256))
+        self.assertRaises(ValueError, lambda: Command.start(5, b'\x00' * 256))
 
     def test_empty_payload_header_is_ffff(self):
-        ch = Command.start(5)
+        ch = Command.start(5, bytes())
 
         self.assertEqual(bytes([0xFF, 0xFF]), ch.get_bytes()[3:5])
 
     def test_header_checksum_is_calculated_using_crc7(self):
-        ch = Command.start(5)
+        ch = Command.start(5, bytes())
         expected_checksum = crc7([Command.OpStart, 5, 0, 0xFF, 0xFF], 0xFF)
 
         self.assertEqual(expected_checksum, ch.get_bytes()[5])
 
     def test_header_checksum_includes_payload(self):
-        ch = Command.start(5, [1, 2, 3])
+        ch = Command.start(5, b'\x01\x02\x03')
 
         payload_checksum = bytes(binascii.crc_hqx(bytes([1, 2, 3]), 0xFFFF).to_bytes(2, byteorder='little'))
 
@@ -84,7 +84,7 @@ class TestRevvyTransport(unittest.TestCase):
         self.assertEqual(1, len(mock_interface._reads))
         self.assertEqual(0, mock_interface._writes[0][0])  # write happened first
         self.assertEqual(1, mock_interface._reads[0][0])  # read happened second
-        self.assertEqual(Command.start(10, [8, 9]).get_bytes(), mock_interface._writes[0][1])
+        self.assertEqual(Command.start(10, b'\x08\x09').get_bytes(), mock_interface._writes[0][1])
         self.assertEqual(ResponseHeader.Status_Ok, response.status)
         self.assertEqual(0, len(response.payload))
 
@@ -240,7 +240,7 @@ class TestRevvyTransport(unittest.TestCase):
         ] * 10)
         rt = RevvyTransport(mock_interface)
         rt.timeout = 5
-        self.assertRaises(TimeoutError, lambda: rt.send_command(10))
+        self.assertEqual(ResponseHeader.Status_Error_Timeout, rt.send_command(10).status)
         self.assertLess(len(mock_interface._reads), 10)
 
 

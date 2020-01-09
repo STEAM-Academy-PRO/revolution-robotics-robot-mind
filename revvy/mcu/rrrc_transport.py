@@ -43,6 +43,10 @@ crc7_table = [
 
 
 def crc7(data, crc=0xFF):
+    """
+    >>> crc7(b'foobar')
+    16
+    """
     for b in data:
         crc = crc7_table[(b ^ (crc << 1) & 0xFF)]
     return crc
@@ -64,16 +68,17 @@ class Command:
     OpCancel = 3
 
     def __init__(self, op, command, payload=bytes()):
-        if len(payload) > 255:
-            raise ValueError('Payload is too long ({} bytes, 255 allowed)'.format(len(payload)))
+        payload_length = len(payload)
+        if payload_length > 255:
+            raise ValueError('Payload is too long ({} bytes, 255 allowed)'.format(payload_length))
 
-        pl = bytearray(6 + len(payload))
+        pl = bytearray(6 + payload_length)
         pl[6:] = payload
 
         payload_checksum = binascii.crc_hqx(pl[6:], 0xFFFF)
 
         # fill header
-        pl[0:5] = op, command, len(payload), *payload_checksum.to_bytes(2, byteorder='little')
+        pl[0:5] = op, command, payload_length, *payload_checksum.to_bytes(2, byteorder='little')
 
         # calculate header checksum
         pl[5] = crc7(pl[0:5], 0xFF)
@@ -84,15 +89,15 @@ class Command:
         return self._payload
 
     @classmethod
-    def start(cls, command, payload=bytes()):
+    def start(cls, command, payload: bytes) -> 'Command':
         return cls(cls.OpStart, command, payload)
 
     @classmethod
-    def get_result(cls, command):
+    def get_result(cls, command) -> 'Command':
         return cls(cls.OpGetResult, command)
 
     @classmethod
-    def cancel(cls, command):
+    def cancel(cls, command) -> 'Command':
         return cls(cls.OpCancel, command)
 
 
@@ -110,6 +115,9 @@ class ResponseHeader:
     Status_Error_CommandError = 9
     Status_Error_InternalError = 10
 
+    # errors not sent by MCU
+    Status_Error_Timeout = 11
+
     StatusStrings = [
             "Ok",
             "Busy",
@@ -121,12 +129,13 @@ class ResponseHeader:
             "Payload length error",
             "Unknown command",
             "Command error",
-            "Internal error"
+            "Internal error",
+            "Timeout error"
         ]
 
     length = 5
 
-    def __init__(self, data):
+    def __init__(self, data: bytes):
         if len(data) < ResponseHeader.length:
             raise ValueError('Header too short')
 
@@ -140,8 +149,8 @@ class ResponseHeader:
     def validate_payload(self, payload):
         return self._payload_checksum == binascii.crc_hqx(payload, 0xFFFF)
 
-    def is_same_header(self, header):
-        return header._raw == self._raw
+    def __eq__(self, o: 'ResponseHeader') -> bool:
+        return o._raw == self._raw
 
     @property
     def status(self):
@@ -153,7 +162,7 @@ class ResponseHeader:
 
 
 class Response:
-    def __init__(self, status, payload):
+    def __init__(self, status, payload: bytes):
         self._status = status
         self._payload = payload
 
@@ -162,7 +171,7 @@ class Response:
         return self._status
 
     @property
-    def payload(self):
+    def payload(self) -> bytes:
         return self._payload
 
 
@@ -174,36 +183,53 @@ class RevvyTransport:
         self._transport = transport
 
     def send_command(self, command, payload=bytes()) -> Response:
-        """Send a command and get the result."""
+        """
+        Send a command and get the result.
+
+        This function waits for commands to finish processing, so execution time depends on the MCU.
+        The function detects integrity errors and retries incorrect writes and reads.
+
+        @param command:
+        @param payload:
+        @return:
+        """
         with self._mutex:
             # create commands in advance, they can be reused in case of an error
             command_start = Command.start(command, payload)
             command_get_result = Command.get_result(command)
 
-            # once a command gets through and a valid response is read, this loop will exit
-            while True:  # assume that integrity error is random and not caused by implementation differences
-                # send command and read back status
-                header = self._send_command(command_start)
+            try:
+                # once a command gets through and a valid response is read, this loop will exit
+                while True:  # assume that integrity error is random and not caused by implementation differences
+                    # send command and read back status
+                    header = self._send_command(command_start)
 
-                # wait for command execution to finish
-                while header.status == ResponseHeader.Status_Pending:
-                    header = self._send_command(command_get_result)
+                    # wait for command execution to finish
+                    while header.status == ResponseHeader.Status_Pending:
+                        header = self._send_command(command_get_result)
 
-                # check result
-                # return a result even in case of an error, except when we know we have to resend
-                if header.status != ResponseHeader.Status_Error_CommandIntegrityError:
-                    response_payload = self._read_payload(header)
-                    return Response(header.status, response_payload)
+                    # check result
+                    # return a result even in case of an error, except when we know we have to resend
+                    if header.status != ResponseHeader.Status_Error_CommandIntegrityError:
+                        response_payload = self._read_payload(header)
+                        return Response(header.status, response_payload)
+            except TimeoutError:
+                return Response(ResponseHeader.Status_Error_Timeout, bytes())
 
-    def _read_response_header(self, retries=5):
+    def _read_response_header(self, retries=5) -> ResponseHeader:
+        """
+        Read header part of response message
+
+        Header is always 5 bytes long and it contains the length of the variable payload
+
+        @param retries: How many times the read can be retried in case an error happens
+        @return: The header data
+        """
 
         def _read_response_header_once():
             header_bytes = self._transport.read(ResponseHeader.length)
 
-            try:
-                return ResponseHeader(header_bytes)
-            except ValueError:
-                return False
+            return ResponseHeader(header_bytes)
 
         header = retry(_read_response_header_once, retries)
 
@@ -211,27 +237,35 @@ class RevvyTransport:
             raise BrokenPipeError('Read response header: Retry limit reached')
         return header
 
-    def _read_payload(self, header, retries=5):
+    def _read_payload(self, header, retries=5) -> bytes:
+        """
+        Read the rest of the response
+
+        Reading always starts with the header (nondestructive) so we need to read the header and verify that
+        we receive the same header as before
+
+        @param header: The expected header
+        @param retries: How many times the read can be retried in case an error happens
+        @return: The payload bytes
+        """
         if header.payload_length == 0:
-            return []
+            return bytes()
 
         def _read_payload_once():
+            # read header and payload
             response_bytes = self._transport.read(header.length + header.payload_length)
 
-            try:
-                response_header = ResponseHeader(response_bytes)
-            except ValueError:
-                return False
-
-            if not header.is_same_header(response_header):
+            # make sure we read the same response data we expect
+            response_header = ResponseHeader(response_bytes)
+            if not header == response_header:
                 raise ValueError('Read payload: Unexpected header received')
 
+            # make sure data is intact
             payload_bytes = response_bytes[ResponseHeader.length:]
-            has_valid_payload = header.validate_payload(payload_bytes)
-            if has_valid_payload:
-                return payload_bytes
+            if not header.validate_payload(payload_bytes):
+                raise ValueError('Read payload: payload contents invalid')
 
-            return False
+            return payload_bytes
 
         payload = retry(_read_payload_once, retries)
 
@@ -240,9 +274,15 @@ class RevvyTransport:
 
         return payload
 
-    def _send_command(self, command: Command):
+    def _send_command(self, command: Command) -> ResponseHeader:
         """
-        Send a command, wait for a proper response and return the response header
+        Send a command and return the response header
+
+        This function waits for the slave MCU to finish processing the command and returns if it is done or the
+        timeout defined in the class header elapses.
+
+        @param command: The command to send
+        @return: The response header
         """
         self._transport.write(command.get_bytes())
         start = time.time()
