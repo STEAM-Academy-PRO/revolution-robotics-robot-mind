@@ -48,7 +48,7 @@ class TestCommand(unittest.TestCase):
         self.assertEqual(0, mock_transport.command_count)
         c()
         self.assertEqual(1, mock_transport.command_count)
-        self.assertEqual((2, []), mock_transport.commands[0])
+        self.assertEqual((2, b''), mock_transport.commands[0])
 
     def test_default_command_raises_when_response_has_payload(self):
         mock_transport = MockTransport([Response(ResponseHeader.Status_Ok, [1])])
@@ -87,12 +87,12 @@ class TestCommandTypes(unittest.TestCase):
         mock_transport = MockTransport([Response(ResponseHeader.Status_Ok, [])])
         ping = PingCommand(mock_transport)
         self.assertIsNone(ping())
-        self.assertListEqual([], mock_transport.commands[0][1])
+        self.assertEqual(b'', mock_transport.commands[0][1])
 
     def test_hardware_version_returns_a_string(self):
         mock_transport = MockTransport([
-            Response(ResponseHeader.Status_Ok, list(b'0.1')),
-            Response(ResponseHeader.Status_Ok, list(b'v0.1'))
+            Response(ResponseHeader.Status_Ok, b'0.1'),
+            Response(ResponseHeader.Status_Ok, b'v0.1')
         ])
         hw = ReadHardwareVersionCommand(mock_transport)
         self.assertEqual(Version("0.1"), hw())
@@ -100,8 +100,8 @@ class TestCommandTypes(unittest.TestCase):
 
     def test_firmware_version_returns_a_string(self):
         mock_transport = MockTransport([
-            Response(ResponseHeader.Status_Ok, list(b'0.1-r5')),
-            Response(ResponseHeader.Status_Ok, list(b'v0.1-r5'))
+            Response(ResponseHeader.Status_Ok, b'0.1-r5'),
+            Response(ResponseHeader.Status_Ok, b'v0.1-r5')
         ])
         fw = ReadFirmwareVersionCommand(mock_transport)
         self.assertEqual(Version("0.1-r5"), fw())
@@ -115,7 +115,7 @@ class TestCommandTypes(unittest.TestCase):
         set_status = SetMasterStatusCommand(mock_transport)
 
         self.assertIsNone(set_status(3))
-        self.assertEqual([3], mock_transport.commands[0][1])
+        self.assertEqual(bytes([3]), mock_transport.commands[0][1])
 
         # unexpected payload byte
         self.assertRaises(NotImplementedError, lambda: set_status(3))
@@ -128,16 +128,16 @@ class TestCommandTypes(unittest.TestCase):
         set_status = SetBluetoothStatusCommand(mock_transport)
 
         self.assertIsNone(set_status(3))
-        self.assertEqual([3], mock_transport.commands[0][1])
+        self.assertEqual(bytes([3]), mock_transport.commands[0][1])
 
         # unexpected payload byte
         self.assertRaises(NotImplementedError, lambda: set_status(3))
 
     def test_read_motor_port_types_returns_a_dict(self):
         mock_transport = MockTransport([
-            Response(ResponseHeader.Status_Ok, list(b'')),  # no strings
-            Response(ResponseHeader.Status_Ok, list(b'\x01\x06foobar')),  # one string
-            Response(ResponseHeader.Status_Ok, list(b'\x01\x06foobar\x03\x04hola')),  # multiple strings
+            Response(ResponseHeader.Status_Ok, b''),  # no strings
+            Response(ResponseHeader.Status_Ok, b'\x01\x06foobar'),  # one string
+            Response(ResponseHeader.Status_Ok, b'\x01\x06foobar\x03\x04hola'),  # multiple strings
         ])
         read_types = ReadMotorPortTypesCommand(mock_transport)
 
@@ -147,9 +147,9 @@ class TestCommandTypes(unittest.TestCase):
 
     def test_read_sensor_port_types_returns_a_dict(self):
         mock_transport = MockTransport([
-            Response(ResponseHeader.Status_Ok, list(b'')),  # no strings
-            Response(ResponseHeader.Status_Ok, list(b'\x01\x06foobar')),  # one string
-            Response(ResponseHeader.Status_Ok, list(b'\x01\x06foobar\x03\x04hola')),  # multiple strings
+            Response(ResponseHeader.Status_Ok, b''),  # no strings
+            Response(ResponseHeader.Status_Ok, b'\x01\x06foobar'),  # one string
+            Response(ResponseHeader.Status_Ok, b'\x01\x06foobar\x03\x04hola'),  # multiple strings
         ])
         read_types = ReadSensorPortTypesCommand(mock_transport)
 
