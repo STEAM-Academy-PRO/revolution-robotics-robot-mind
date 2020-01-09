@@ -25,8 +25,8 @@ class McuUpdater:
         self._log = get_logger('McuUpdater')
 
     def _read_operation_mode(self):
-        # TODO: implement timeout in case MCU has no bootloader and firmware
-        while True:
+        start_time = time.time()
+        while (time.time() - start_time) < 10:
             try:
                 return self._robot.read_operation_mode()
             except OSError:
@@ -35,6 +35,8 @@ class McuUpdater:
                 except OSError:
                     self._log("Failed to read operation mode. Retrying")
                     time.sleep(0.5)
+
+        raise TimeoutError('Could not determine operation mode')
 
     def _finalize_update(self):
         """

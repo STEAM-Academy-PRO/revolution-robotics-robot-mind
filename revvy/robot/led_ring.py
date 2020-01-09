@@ -10,6 +10,8 @@ class RingLed:
     ColorFade = 3
     BusyIndicator = 4
     BreathingGreen = 5
+    Siren = 6
+    TrafficLight = 7
 
     def __init__(self, interface: RevvyControl):
         self._interface = interface

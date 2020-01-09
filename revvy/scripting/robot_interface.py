@@ -79,7 +79,7 @@ class RingLedWrapper(Wrapper):
     def scenario(self):
         return self._ring_led.scenario
 
-    def set_scenario(self, scenario):
+    def start_animation(self, scenario):
         self.using_resource(lambda: self._ring_led.set_scenario(scenario))
 
     def set(self, led_index, color):
