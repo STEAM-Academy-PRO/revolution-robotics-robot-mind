@@ -4,6 +4,7 @@ import binascii
 import os
 import time
 import traceback
+from enum import Enum
 from json import JSONDecodeError
 
 from revvy.utils.file_storage import IntegrityError
@@ -12,8 +13,10 @@ from revvy.utils.version import Version
 from revvy.utils.functions import split, bytestr_hash, read_json
 from revvy.mcu.rrrc_control import BootloaderControl, RevvyControl
 
-op_mode_application = 0xAA
-op_mode_bootloader = 0xBB
+
+class McuOperationMode(Enum):
+    application = 0xAA
+    bootloader = 0xBB
 
 
 class McuUpdater:
@@ -27,10 +30,10 @@ class McuUpdater:
         start_time = time.time()
         while (time.time() - start_time) < 10:
             try:
-                return self._robot.read_operation_mode()
+                return McuOperationMode(self._robot.read_operation_mode())
             except OSError:
                 try:
-                    return self._bootloader.read_operation_mode()
+                    return McuOperationMode(self._bootloader.read_operation_mode())
                 except OSError:
                     self._log("Failed to read operation mode. Retrying")
                     time.sleep(0.5)
@@ -62,7 +65,7 @@ class McuUpdater:
         Read the hardware version from the MCU
         """
         mode = self._read_operation_mode()
-        if mode == op_mode_application:
+        if mode == McuOperationMode.application:
             return self._robot.get_hardware_version()
         else:
             return self._bootloader.get_hardware_version()
@@ -72,7 +75,7 @@ class McuUpdater:
         Compare firmware version to the currently running one
         """
         mode = self._read_operation_mode()
-        if mode == op_mode_application:
+        if mode == McuOperationMode.application:
             fw = self._robot.get_firmware_version()
             return fw != fw_version  # allow downgrade as well
         else:
@@ -86,11 +89,11 @@ class McuUpdater:
         This function checks the operating mode. Reboot is only requested when in application mode
         """
         mode = self._read_operation_mode()
-        if mode == op_mode_application:
+        if mode == McuOperationMode.application:
             self._request_bootloader_mode()
             # wait for the reboot to complete
             mode = self._read_operation_mode()
-            assert mode == op_mode_bootloader
+            assert mode == McuOperationMode.bootloader
 
     def update_firmware(self, new_version: Version, data):
         """
@@ -123,7 +126,7 @@ class McuUpdater:
         self._finalize_update()
 
         # read operating mode - this should return only when application has started
-        assert self._read_operation_mode() == op_mode_application
+        assert self._read_operation_mode() == McuOperationMode.application
 
 
 class McuUpdateManager:
