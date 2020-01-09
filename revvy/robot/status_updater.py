@@ -71,7 +71,7 @@ class McuStatusUpdater:
             slot_length = data[idx + 1]
 
             data_start = idx + 2
-            data_end = idx + 2 + slot_length
+            data_end = data_start + slot_length
 
             if data_end <= len(data):
                 self._handlers[slot](data[data_start:data_end])

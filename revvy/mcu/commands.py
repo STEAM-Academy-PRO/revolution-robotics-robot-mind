@@ -262,7 +262,7 @@ class ReadSensorPortInfoCommand(Command):
         return self._send([port_idx, page])
 
     def parse_response(self, payload):
-        return payload
+        return bytes(payload)
 
 
 class SetMotorPortControlCommand(Command):

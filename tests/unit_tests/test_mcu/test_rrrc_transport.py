@@ -56,7 +56,7 @@ class TestCommand(unittest.TestCase):
 class MockInterface(RevvyTransportInterface):
 
     def __init__(self, read_responses):
-        self._responses = read_responses
+        self._responses = list(map(bytes, read_responses))
         self._writes = []
         self._reads = []
         self._counter = 0
@@ -131,7 +131,7 @@ class TestRevvyTransport(unittest.TestCase):
         response = rt.send_command(10)
         self.assertEqual(1, len(mock_interface._writes))
         self.assertEqual(5, len(mock_interface._reads))
-        self.assertListEqual([0x0a, 0x0b], response.payload)
+        self.assertEqual(b'\x0a\x0b', response.payload)
 
     def test_data_header_is_read_before_full_response(self):
         mock_interface = MockInterface([
@@ -144,7 +144,7 @@ class TestRevvyTransport(unittest.TestCase):
         self.assertEqual(2, len(mock_interface._reads))
         self.assertEqual(5, mock_interface._reads[0][1])
         self.assertEqual(7, mock_interface._reads[1][1])
-        self.assertListEqual([0x0a, 0x0b], response.payload)
+        self.assertEqual(b'\x0a\x0b', response.payload)
 
     def test_header_read_is_repeated_if_integrity_check_fails(self):
         mock_interface = MockInterface([
@@ -156,7 +156,7 @@ class TestRevvyTransport(unittest.TestCase):
         response = rt.send_command(10)  # some ping-type command
         self.assertEqual(3, len(mock_interface._reads))
         self.assertEqual(ResponseHeader.Status_Ok, response.status)
-        self.assertListEqual([0x0a, 0x0b], response.payload)
+        self.assertEqual(b'\x0a\x0b', response.payload)
 
     def test_data_read_is_repeated_if_header_integrity_check_fails(self):
         mock_interface = MockInterface([
@@ -168,7 +168,7 @@ class TestRevvyTransport(unittest.TestCase):
         response = rt.send_command(10)  # some ping-type command
         self.assertEqual(3, len(mock_interface._reads))
         self.assertEqual(ResponseHeader.Status_Ok, response.status)
-        self.assertListEqual([0x0a, 0x0b], response.payload)
+        self.assertEqual(b'\x0a\x0b', response.payload)
 
     def test_data_read_is_repeated_if_payload_integrity_check_fails(self):
         mock_interface = MockInterface([
@@ -180,7 +180,7 @@ class TestRevvyTransport(unittest.TestCase):
         response = rt.send_command(10)  # some ping-type command
         self.assertEqual(3, len(mock_interface._reads))
         self.assertEqual(ResponseHeader.Status_Ok, response.status)
-        self.assertListEqual([0x0a, 0x0b], response.payload)
+        self.assertEqual(b'\x0a\x0b', response.payload)
 
     def test_pending_is_retried_with_get_result(self):
         mock_interface = MockInterface([
@@ -208,7 +208,7 @@ class TestRevvyTransport(unittest.TestCase):
         self.assertEqual(Command.OpGetResult, mock_interface._writes[3][1][0])
 
         self.assertEqual(5, len(mock_interface._reads))
-        self.assertListEqual([0x0a, 0x0b], response.payload)
+        self.assertEqual(b'\x0a\x0b', response.payload)
 
     def test_multiple_header_errors_raises_error(self):
         mock_interface = MockInterface([
@@ -246,12 +246,12 @@ class TestRevvyTransport(unittest.TestCase):
 
 class TestResponse(unittest.TestCase):
     def test_response_shorter_than_header_size_is_invalid(self):
-        data = [ResponseHeader.Status_Ok, 0, 0xFF, 0xFF]  # one byte short
+        data = bytes([ResponseHeader.Status_Ok, 0, 0xFF, 0xFF])  # one byte short
 
-        self.assertFalse(ResponseHeader.is_valid_header(data))
-        self.assertTrue(ResponseHeader.is_valid_header(data + [117]))
+        self.assertRaises(ValueError, lambda: ResponseHeader(data))
+        ResponseHeader(bytes((*data, 117)))  # does not raise
 
     def test_response_header_with_wrong_checksum_is_invalid(self):
-        data = [ResponseHeader.Status_Ok, 0, 0xFF, 0xFF, 118]
+        data = bytes([ResponseHeader.Status_Ok, 0, 0xFF, 0xFF, 118])
 
-        self.assertFalse(ResponseHeader.is_valid_header(data))
+        self.assertRaises(ValueError, lambda: ResponseHeader(data))

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
-
+import struct
 import time
 import binascii
 from threading import Lock
@@ -125,29 +125,22 @@ class ResponseHeader:
 
     length = 5
 
-    @staticmethod
-    def is_valid_header(data):
-        if len(data) >= ResponseHeader.length:
-            checksum = crc7(data[0:ResponseHeader.length - 1])
-            return checksum == data[4]
-
-        return False
-
     def __init__(self, data):
-        self._status = data[0]
-        self._payload_length = data[1]
-        self._payload_checksum = int.from_bytes(data[2:4], byteorder='little')
-        self._header_checksum = data[4]
+        if len(data) < ResponseHeader.length:
+            raise ValueError('Header too short')
+
+        self._raw = data[0:self.length-1]
+        checksum = crc7(self._raw)
+        if checksum != data[self.length-1]:
+            raise ValueError('Header checksum mismatch')
+
+        (self._status, self._payload_length, self._payload_checksum) = struct.unpack('<bbH', self._raw)
 
     def validate_payload(self, payload):
-        return self._payload_checksum == binascii.crc_hqx(bytes(payload), 0xFFFF)
+        return self._payload_checksum == binascii.crc_hqx(payload, 0xFFFF)
 
     def is_same_header(self, header):
-        return len(header) >= self.length \
-               and self._status == header[0] \
-               and self._payload_length == header[1] \
-               and self._payload_checksum == int.from_bytes(header[2:4], byteorder='little') \
-               and self._header_checksum == header[4]
+        return header._raw == self._raw
 
     @property
     def status(self):
@@ -205,10 +198,11 @@ class RevvyTransport:
 
         def _read_response_header_once():
             header_bytes = self._transport.read(ResponseHeader.length)
-            has_valid_response = ResponseHeader.is_valid_header(header_bytes)
-            if not has_valid_response:
+
+            try:
+                return ResponseHeader(header_bytes)
+            except ValueError:
                 return False
-            return ResponseHeader(header_bytes)
 
         header = retry(_read_response_header_once, retries)
 
@@ -222,14 +216,19 @@ class RevvyTransport:
 
         def _read_payload_once():
             response_bytes = self._transport.read(header.length + header.payload_length)
-            if ResponseHeader.is_valid_header(response_bytes):
-                if not header.is_same_header(response_bytes):
-                    raise ValueError('Read payload: Unexpected header received')
 
-                payload_bytes = response_bytes[ResponseHeader.length:]
-                has_valid_payload = header.validate_payload(payload_bytes)
-                if has_valid_payload:
-                    return payload_bytes
+            try:
+                response_header = ResponseHeader(response_bytes)
+            except ValueError:
+                return False
+
+            if not header.is_same_header(response_header):
+                raise ValueError('Read payload: Unexpected header received')
+
+            payload_bytes = response_bytes[ResponseHeader.length:]
+            has_valid_payload = header.validate_payload(payload_bytes)
+            if has_valid_payload:
+                return payload_bytes
 
             return False
 
