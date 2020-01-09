@@ -3,6 +3,7 @@
 import struct
 from abc import ABC
 from collections import namedtuple
+from enum import Enum
 
 from revvy.utils.functions import split
 from revvy.utils.logger import get_logger
@@ -108,14 +109,18 @@ class SetBluetoothStatusCommand(Command):
         return self._send([status])
 
 
+class McuOperationMode(Enum):
+    APPLICATION = 0xAA
+    BOOTLOADER = 0xBB
+
+
 class ReadOperationModeCommand(Command):
     @property
     def command_id(self): return 0x06
 
     def parse_response(self, payload):
-        # TODO: make this return something meaningful
         assert len(payload) == 1
-        return int(payload[0])
+        return McuOperationMode(payload[0])
 
 
 class RebootToBootloaderCommand(Command):
