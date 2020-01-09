@@ -180,9 +180,12 @@ if __name__ == "__main__":
         robot_control = RevvyControl(transport.bind(0x2D))
         bootloader_control = BootloaderControl(transport.bind(0x2B))
 
-        updater = McuUpdater(robot_control, bootloader_control)
-        update_manager = McuUpdateManager(os.path.join(package_data_dir, 'firmware'), updater)
-        update_manager.update_if_necessary()
+        try:
+            updater = McuUpdater(robot_control, bootloader_control)
+            update_manager = McuUpdateManager(os.path.join(package_data_dir, 'firmware'), updater)
+            update_manager.update_if_necessary()
+        except TimeoutError:
+            print('Failed to update firmware')
 
         long_message_handler = LongMessageHandler(long_message_storage)
         ble = RevvyBLE(device_name, serial, long_message_handler)
