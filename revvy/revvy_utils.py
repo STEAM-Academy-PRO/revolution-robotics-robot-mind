@@ -25,6 +25,7 @@ from revvy.robot_config import empty_robot_config
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import MotorConstants
 from revvy.scripting.runtime import ScriptManager
+from revvy.utils.assets import Assets
 from revvy.utils.logger import get_logger
 from revvy.utils.thread_wrapper import periodic
 
@@ -101,11 +102,13 @@ class Robot:
     BOOTLOADER_I2C_ADDRESS = 0x2B
     ROBOT_I2C_ADDRESS = 0x2D
 
-    def __init__(self, sounds, i2c_bus=1):
+    def __init__(self, i2c_bus=1):
         self._i2c_bus = i2c_bus
 
+        self._assets = Assets()
+        self._assets.add_source(os.path.join('.', 'data', 'assets'))
+
         self._log = get_logger('Robot')
-        self._get_sound_file = sounds
 
     def __enter__(self):
         self._i2c = RevvyTransportI2C(self._i2c_bus)
@@ -128,7 +131,7 @@ class Robot:
         }
 
         self._ring_led = RingLed(self._robot_control)
-        self._sound = Sound(setup[self._hw_version](), self._get_sound_file)
+        self._sound = Sound(setup[self._hw_version](), self._assets.category_loader('sounds'))
 
         self._status = RobotStatusIndicator(self._robot_control)
         self._status_updater = McuStatusUpdater(self._robot_control)
@@ -161,6 +164,10 @@ class Robot:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._i2c.close()
+
+    @property
+    def assets(self):
+        return self._assets
 
     @property
     def robot_control(self):

@@ -160,10 +160,6 @@ if __name__ == "__main__":
 
     writeable_assets_dir = os.path.join(writeable_data_dir, 'assets')
 
-    assets = Assets()
-    assets.add_source(os.path.join(package_data_dir, 'assets'))
-    assets.add_source(writeable_assets_dir)
-
     try:
         device_name = device_storage.read('device-name').decode("utf-8")
     except StorageError:
@@ -177,7 +173,9 @@ if __name__ == "__main__":
     long_message_storage = LongMessageStorage(ble_storage, MemoryStorage())
     extract_asset_longmessage(long_message_storage, writeable_assets_dir)
 
-    with Robot(assets.category_loader('sounds')) as robot:
+    with Robot() as robot:
+        robot.assets.add_source(writeable_assets_dir)
+
         try:
             update_firmware(os.path.join(package_data_dir, 'firmware'), robot)
         except TimeoutError:
