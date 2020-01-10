@@ -31,11 +31,11 @@ class IMU:
 
     @staticmethod
     def _read_vector(data, lsb_value):
-        (x, y, z) = struct.unpack('<hhh', bytes(data))
+        (x, y, z) = struct.unpack('<hhh', data)
         return Vector3D(x * lsb_value, y * lsb_value, z * lsb_value)
 
     def update_yaw_angles(self, data):
-        (self._yaw_angle, self._relative_yaw_angle) = struct.unpack('<ll', bytes(data))
+        (self._yaw_angle, self._relative_yaw_angle) = struct.unpack('<ll', data)
 
     def update_axl_data(self, data):
         self._acceleration = self._read_vector(data, 0.061)

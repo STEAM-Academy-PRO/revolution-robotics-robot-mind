@@ -1,7 +1,13 @@
+from threading import Lock
+
+_log_lock = Lock()
+
+
 def get_logger(tag):
     pattern = '{}: {{}}'.format(tag)
 
     def logger_func(message):
-        print(pattern.format(message))
+        with _log_lock:
+            print(pattern.format(message))
 
     return logger_func

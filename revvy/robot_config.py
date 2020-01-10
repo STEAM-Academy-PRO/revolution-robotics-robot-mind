@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import json
-import traceback
 from json import JSONDecodeError
 
 from revvy.scripting.runtime import ScriptDescriptor

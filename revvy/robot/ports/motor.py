@@ -8,6 +8,7 @@ from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler, PortInstance
 import struct
 
+from revvy.utils.functions import clip
 from revvy.utils.logger import get_logger
 
 DcMotorStatus = namedtuple("DcMotorStatus", ['position', 'speed', 'power'])
@@ -86,7 +87,7 @@ class DcMotorController:
         self._power = 0
         self._pos_reached = None
 
-        self._status_changed_callback = lambda p: None
+        self._status_changed_callback = None
 
     def on_port_type_set(self):
         (posP, posI, posD, speedLowerLimit, speedUpperLimit) = self._port_config['position_controller']
@@ -109,16 +110,13 @@ class DcMotorController:
 
     def on_status_changed(self, cb):
         if not callable(cb):
-
-            def empty_fn(p):
-                pass
-
-            cb = empty_fn
+            cb = None
 
         self._status_changed_callback = cb
 
     def _raise_status_changed_callback(self):
-        self._status_changed_callback(self._port)
+        if self._status_changed_callback:
+            self._status_changed_callback(self._port)
 
     @property
     def speed(self):
@@ -142,9 +140,10 @@ class DcMotorController:
 
     def set_speed(self, speed, power_limit=None):
         self._log('set_speed')
-        control = list(struct.pack("<f", speed))
-        if power_limit is not None:
-            control += list(struct.pack("<f", power_limit))
+        if power_limit is None:
+            control = list(struct.pack("<f", speed))
+        else:
+            control = list(struct.pack("<ff", speed, power_limit))
 
         self._control(1, control)
 
@@ -156,28 +155,33 @@ class DcMotorController:
         @param pos_type: 'absolute': turn to this angle, counted from startup; 'relative': turn this many degrees
         """
         self._log('set_position')
-        control = list(struct.pack('<l', int(position)))
+        position = int(position)
 
         if speed_limit is not None and power_limit is not None:
-            control += list(struct.pack("<ff", speed_limit, power_limit))
+            control = list(struct.pack("<lff", position, speed_limit, power_limit))
         elif speed_limit is not None:
-            control += list(struct.pack("<bf", 1, speed_limit))
+            control = list(struct.pack("<lbf", position, 1, speed_limit))
         elif power_limit is not None:
-            control += list(struct.pack("<bf", 0, power_limit))
+            control = list(struct.pack("<lbf", position, 0, power_limit))
+        else:
+            control = list(struct.pack("<l", position))
 
         pos_request_types = {'absolute': 2, 'relative': 3}
         self._control(pos_request_types[pos_type], control, True)
 
     def set_power(self, power):
         self._log('set_power')
+        power = clip(power, -100, 100)
+        if power < 0:
+            power = 256 + power
         self._control(0, [power])
 
     def update_status(self, data):
         if len(data) == 9:
-            (power, pos, speed) = struct.unpack('<blf', bytearray(data))
+            (power, pos, speed) = struct.unpack('<blf', data)
             pos_reached = None
         elif len(data) == 10:
-            (power, pos, speed, pos_reached) = struct.unpack('<blfb', bytearray(data))
+            (power, pos, speed, pos_reached) = struct.unpack('<blfb', data)
         else:
             self._log('Received {} bytes of data instead of 9 or 10'.format(len(data)))
             return

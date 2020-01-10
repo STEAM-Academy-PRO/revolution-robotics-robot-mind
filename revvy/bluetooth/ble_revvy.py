@@ -174,8 +174,7 @@ class BrainToMobileFunctionCharacteristic(Characteristic):
 class SensorCharacteristic(BrainToMobileFunctionCharacteristic):
     def update(self, value):
         # FIXME: prefix with data length is probably unnecessary
-        value = [len(value)] + value
-        super().update(value)
+        super().update([len(value), *value])
 
 
 class MotorCharacteristic(BrainToMobileFunctionCharacteristic):

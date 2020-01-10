@@ -4,7 +4,7 @@ import time
 from collections import namedtuple
 from threading import Lock, Event
 
-from revvy.utils.activation import EdgeTrigger
+from revvy.utils.activation import EdgeDetector
 from revvy.utils.thread_wrapper import ThreadWrapper, ThreadContext
 from revvy.utils.logger import get_logger
 
@@ -14,95 +14,55 @@ RemoteControllerCommand = namedtuple('RemoteControllerCommand', ['analog', 'butt
 class RemoteController:
     def __init__(self):
         self._log = get_logger('RemoteController')
-        self._button_mutex = Lock()
 
-        self._analogActions = []
-        self._analogStates = []
-        self._previousAnalogStates = []
-        self._buttonHandlers = [EdgeTrigger() for _ in range(32)]
-        self._buttonActions = [lambda: None] * 32
-        self._buttonStates = [False] * 32
+        self._analogActions = []  # ([channel], callback) pairs
+        self._analogStates = []  # the last analog values, used to compare if a callback needs to be fired
+        self._buttonHandlers = [EdgeDetector() for _ in range(32)]
+        self._buttonActions = [None] * 32  # callbacks to be fired if a button gets pressed
 
-        self._controller_detected = lambda: None
-        self._controller_disappeared = lambda: None
-
-        for i in range(len(self._buttonHandlers)):
-            self.reset_button_handler(i)
-
-    def reset_button_handler(self, i):
-        handler = self._buttonHandlers[i]
-
-        # make sure we don't trigger anything
-        handler.on_rising_edge(lambda: None)
-        handler.on_falling_edge(lambda: None)
-
-        handler.handle(1)
-
-        handler.on_rising_edge(lambda btn=i: self._handle_button_pressed(btn))
-        handler.on_falling_edge(lambda btn=i: self._handle_button_released(btn))
-
-    def is_button_pressed(self, button_idx):
-        with self._button_mutex:
-            return self._buttonStates[button_idx]
-
-    def analog_value(self, analog_idx):
-        try:
-            with self._button_mutex:
-                return self._analogStates[analog_idx]
-        except IndexError:
-            return 0
+        for handler in self._buttonHandlers:
+            handler.handle(1)
 
     def reset(self):
         self._log('RemoteController: reset')
-        with self._button_mutex:
-            self._analogActions.clear()
-            self._analogStates.clear()
-            self._previousAnalogStates.clear()
+        self._analogActions.clear()
+        self._analogStates.clear()
 
-            self._buttonActions = [lambda: None] * 32
+        self._buttonActions = [None] * 32
 
-            for i in range(len(self._buttonHandlers)):
-                self.reset_button_handler(i)
-
-            self._buttonStates = [False] * 32
+        for handler in self._buttonHandlers:
+            handler.handle(1)
 
     def tick(self, message: RemoteControllerCommand):
-        # copy states
-        with self._button_mutex:
-            self._previousAnalogStates = self._analogStates
-            self._analogStates = message.analog
+        previous_analog_states, self._analogStates = self._analogStates, message.analog
 
         # handle analog channels
-        for handler in self._analogActions:
-            # check if all channels are present in the message
+        for channels, action in self._analogActions:
             try:
-                current = [message.analog[x] for x in handler['channels']]
                 try:
-                    previous = [self._previousAnalogStates[x] for x in handler['channels']]
+                    changed = any(previous_analog_states[x] != message.analog[x] for x in channels)
                 except IndexError:
-                    previous = []
-                if current != [127] * len(current) or current != previous:
-                    handler['action'](current)
+                    changed = True
+
+                if changed:
+                    action([message.analog[x] for x in channels])
             except IndexError:
-                self._log('Skip analog handler for channels {}'.format(", ".join(map(str, handler['channels']))))
+                # looks like an action was registered for an analog channel that we didn't receive
+                self._log('Skip analog handler for channels {}'.format(", ".join(map(str, channels))))
 
         # handle button presses
         for idx in range(len(self._buttonHandlers)):
-            with self._button_mutex:
-                self._buttonHandlers[idx].handle(message.buttons[idx])
+            pressed = self._buttonHandlers[idx].handle(message.buttons[idx])
+            if pressed == 1:
+                if self._buttonActions[idx]:
+                    # noinspection PyCallingNonCallable
+                    self._buttonActions[idx]()
 
-    def on_button_pressed(self, button, action):
-        self._buttonHandlers[button].on_rising_edge(action)
+    def on_button_pressed(self, button, action: callable):
+        self._buttonActions[button] = action
 
     def on_analog_values(self, channels, action):
-        self._analogActions.append({'channels': channels, 'action': action})
-
-    def _handle_button_pressed(self, btn):
-        self._buttonStates[btn] = True
-        self._buttonActions[btn]()
-
-    def _handle_button_released(self, btn):
-        self._buttonStates[btn] = False
+        self._analogActions.append((channels, action))
 
 
 class RemoteControllerScheduler:
@@ -113,22 +73,19 @@ class RemoteControllerScheduler:
     def __init__(self, rc: RemoteController):
         self._controller = rc
         self._data_ready_event = Event()
-        self._controller_detected_callback = lambda: None
-        self._controller_lost_callback = lambda: None
-        self._data_mutex = Lock()
+        self._controller_detected_callback = None
+        self._controller_lost_callback = None
         self._message = None
         self._log = get_logger('RemoteControllerScheduler')
 
     def data_ready(self, message: RemoteControllerCommand):
-        with self._data_mutex:
-            self._message = message
+        self._message = message
         self._data_ready_event.set()
 
-    def _wait_for_message(self, is_first_message):
-        if is_first_message:
-            return self._data_ready_event.wait(self.first_message_timeout)
-        else:
-            return self._data_ready_event.wait(self.message_max_period)
+    def _wait_for_message(self, ctx, wait_time):
+        timeout = not self._data_ready_event.wait(wait_time)
+
+        return not (timeout or ctx.stop_requested)
 
     def handle_controller(self, ctx: ThreadContext):
         self._log('Waiting for controller')
@@ -138,35 +95,35 @@ class RemoteControllerScheduler:
         ctx.on_stopped(self._data_ready_event.set)
 
         # wait for first message
-        first = True
-
         start_time = time.time()
-        while self._wait_for_message(first):
-            if ctx.stop_requested:
-                break
-
-            if first:
-                self._log("Time to first message: {}s".format(time.time() - start_time))
+        if self._wait_for_message(ctx, self.first_message_timeout):
+            self._log("Time to first message: {}s".format(time.time() - start_time))
+            if self._controller_detected_callback:
                 self._controller_detected_callback()
-                first = False
 
-            with self._data_mutex:
-                message = self._message
+            message = self._message
+            self._data_ready_event.clear()
+            self._controller.tick(message)
+
+        # wait for the other messages
+        while self._wait_for_message(ctx, self.message_max_period):
+            message = self._message
             self._data_ready_event.clear()
             self._controller.tick(message)
 
         if not ctx.stop_requested:
-            self._controller_lost_callback()
+            if self._controller_lost_callback:
+                self._controller_lost_callback()
 
         # reset here, controller was lost or stopped
         self._controller.reset()
         self._log('exited')
 
-    def on_controller_detected(self, callback):
+    def on_controller_detected(self, callback: callable):
         self._log('Register controller found handler')
         self._controller_detected_callback = callback
 
-    def on_controller_lost(self, callback):
+    def on_controller_lost(self, callback: callable):
         self._log('Register controller lost handler')
         self._controller_lost_callback = callback
 
