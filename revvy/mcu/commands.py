@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import struct
+import traceback
 from abc import ABC
 from collections import namedtuple
 from enum import Enum
@@ -22,7 +23,7 @@ class Command:
         self._transport = transport
         self._command_byte = self.command_id
 
-        self._log = get_logger('Command {}'.format(self._command_byte))
+        self._log = get_logger('{} [id={}]'.format(type(self).__name__, self._command_byte))
 
     @property
     def command_id(self):
@@ -52,8 +53,8 @@ class Command:
         try:
             return self._process(response)
         except (UnknownCommandError, ValueError) as e:
-            self._log('Error response for command: {0:X} with payload {1} (length {2})'
-                      .format(self._command_byte, payload, len(payload)))
+            self._log('Payload for error: {0} (length {1})'.format(payload, len(payload)))
+            self._log(traceback.format_exc())
             raise e
 
     def __call__(self, *args):
