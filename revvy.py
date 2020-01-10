@@ -178,7 +178,7 @@ if __name__ == "__main__":
     long_message_storage = LongMessageStorage(ble_storage, MemoryStorage())
     extract_asset_longmessage(long_message_storage, writeable_assets_dir)
 
-    with RevvyTransportI2C() as transport:
+    with RevvyTransportI2C(1) as transport:
         robot_control = RevvyControl(transport.bind(0x2D))
         bootloader_control = BootloaderControl(transport.bind(0x2B))
 

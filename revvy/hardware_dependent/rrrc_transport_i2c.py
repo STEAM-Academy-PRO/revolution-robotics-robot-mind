@@ -36,8 +36,11 @@ class RevvyTransportI2CDevice(RevvyTransportInterface):
 
 
 class RevvyTransportI2C:
+    def __init__(self, bus):
+        self._bus_number = bus
+
     def __enter__(self):
-        self._bus = SMBus(1)
+        self._bus = SMBus(self._bus_number)
         return RevvyTransportI2CImpl(self._bus)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
