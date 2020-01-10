@@ -209,8 +209,8 @@ class SendRingLedUserFrameCommand(Command):
     def command_id(self): return 0x33
 
     def __call__(self, colors):
-        rgb565_values = list(map(rgb_to_rgb565_bytes, colors))
-        led_bytes = struct.pack("<" + "H" * len(rgb565_values), *rgb565_values)
+        rgb565_values = map(rgb_to_rgb565_bytes, colors)
+        led_bytes = struct.pack("<" + "H" * len(colors), *rgb565_values)
         return self._send(led_bytes)
 
 
