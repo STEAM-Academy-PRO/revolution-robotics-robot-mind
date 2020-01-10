@@ -5,7 +5,8 @@ import os
 import unittest
 from mock.mock import patch, mock_open
 
-from revvy.utils.file_storage import MemoryStorage, StorageElementNotFoundError, IntegrityError, FileStorage
+from revvy.utils.file_storage import MemoryStorage, StorageElementNotFoundError, IntegrityError, FileStorage, \
+    StorageError
 
 
 class TestMemoryStorage(unittest.TestCase):
@@ -47,7 +48,7 @@ class TestFileStorage(unittest.TestCase):
         FileStorage('.')  # no error raised
 
         mock.side_effect = IOError
-        self.assertRaises(IOError, lambda: FileStorage('.'))
+        self.assertRaises(StorageError, lambda: FileStorage('.'))
 
     @patch('revvy.utils.file_storage.read_json')
     @patch('revvy.utils.file_storage.open', new_callable=mock_open)

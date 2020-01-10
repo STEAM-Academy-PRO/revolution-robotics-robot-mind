@@ -1,6 +1,13 @@
-class Logger:
-    def __init__(self, tag):
-        self._tag = tag
+from threading import Lock
 
-    def __call__(self, message):
-        print('{}: {}'.format(self._tag, message))
+_log_lock = Lock()
+
+
+def get_logger(tag):
+    pattern = '{}: {{}}'.format(tag)
+
+    def logger_func(message):
+        with _log_lock:
+            print(pattern.format(message))
+
+    return logger_func

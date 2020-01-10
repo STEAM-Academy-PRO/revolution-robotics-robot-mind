@@ -4,106 +4,96 @@ import subprocess
 import threading
 
 from revvy.utils.functions import map_values, clip
-
-max_parallel_sounds = 4
-default_volume = 90
-
-init_amp = [
-    [  # v1
-        'gpio -g mode 13 alt0',
-        'gpio -g mode 22 out'
-    ],
-    [  # v2
-        'gpio -g mode 13 alt0',
-        'gpio -g mode 22 out',
-        'gpio write 3 1'
-    ]
-]
-enable_amp = [
-    "gpio write 3 1",  # v1
-    "gpio write 3 0",  # v2
-]
-disable_amp = [
-    "gpio write 3 0",  # v1
-    "gpio write 3 1",  # v2
-]
-current_hw = 0
-lock = threading.Lock()
-processes = []
+from revvy.utils.logger import get_logger
 
 
-def _run_command(commands):
-    if type(commands) is str:
-        commands = [commands]
+class SoundControlBase:
+    def __init__(self, commands, default_volume):
+        self._default_volume = default_volume
+        self._commands = commands
+        self._lock = threading.Lock()
+        self._processes = []
+        self._max_parallel_sounds = 4
+        self._log = get_logger('SoundControl')
 
-    command = '; '.join(commands)
-    return subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+        self._run_command(self._commands['init_amp']).wait()
 
+    def _run_command(self, commands):
+        if type(commands) is str:
+            commands = [commands]
 
-def _run_command_with_callback(commands, callback):
-    def run_in_thread(args):
-        process = _run_command(args)
-        with lock:
-            processes.append(process)
+        command = '; '.join(commands)
+        return subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
 
-        process.wait()
+    def _run_command_with_callback(self, commands, callback):
+        def run_in_thread(args):
+            process = self._run_command(args)
+            with self._lock:
+                self._processes.append(process)
 
-        with lock:
-            processes.remove(process)
+            process.wait()
 
-        callback()
+            with self._lock:
+                self._processes.remove(process)
 
-    thread = threading.Thread(target=run_in_thread, args=(commands,))
-    thread.start()
+            callback()
 
+        thread = threading.Thread(target=run_in_thread, args=(commands,))
+        thread.start()
 
-def _disable_amp_callback():
-    print('Disable amp callback')
-    with lock:
-        print("Sounds playing: {}".format(len(processes)))
-        if not processes:
-            print('Turning amp off')
-            _run_command(disable_amp[current_hw])
+    def _disable_amp_callback(self):
+        self._log('Disable amp callback')
+        with self._lock:
+            self._log("Sounds playing: {}".format(len(self._processes)))
+            if not self._processes:
+                self._log('Turning amp off')
+                self._run_command(self._commands['disable_amp'])
 
+    def set_volume(self, volume):
+        scaled = map_values(clip(volume, 0, 100), 0, 100, -10239, 400)
+        self._run_command('amixer cset numid=1 -- {}'.format(scaled))
 
-def _init_sound(hw):
-    global current_hw
-    current_hw = hw
-    _run_command(init_amp[hw]).wait()
+    def reset_volume(self):
+        self.set_volume(self._default_volume)
 
+    def play_sound(self, sound, callback=None):
+        if len(self._processes) <= self._max_parallel_sounds:
+            self._log('Playing sound: {}'.format(sound))
 
-def _play_sound(hw, sound):
-    if len(processes) <= max_parallel_sounds:
-        print('Playing sound: {}'.format(sound))
+            def cb():
+                if callable(callback):
+                    callback()
 
-        _run_command_with_callback([
-            enable_amp[hw],
-            "mpg123 {}".format(sound)
-        ], _disable_amp_callback)
-    else:
-        print('Too many sounds are playing, skip')
+                self._disable_amp_callback()
 
-
-def setup_sound_v1():
-    _init_sound(0)
-
-
-def setup_sound_v2():
-    _init_sound(1)
-
-
-def play_sound_v1(sound):
-    _play_sound(0, sound)
-
-
-def play_sound_v2(sound):
-    _play_sound(1, sound)
-
-
-def set_volume(volume):
-    scaled = map_values(clip(volume, 0, 100), 0, 100, -10239, 400)
-    _run_command('amixer cset numid=1 -- {}'.format(scaled))
+            self._run_command_with_callback([
+                self._commands['enable_amp'],
+                "mpg123 {}".format(sound)
+            ], cb)
+        else:
+            self._log('Too many sounds are playing, skip')
 
 
-def reset_volume():
-    set_volume(default_volume)
+class SoundControlV1(SoundControlBase):
+    def __init__(self):
+        super().__init__(commands={
+            'init_amp': [
+                'gpio -g mode 13 alt0',
+                'gpio -g mode 22 out'
+            ],
+            'enable_amp': 'gpio write 3 1',
+            'disable_amp': 'gpio write 3 0'
+        }, default_volume=90)
+
+
+class SoundControlV2(SoundControlBase):
+    def __init__(self):
+        super().__init__(commands={
+            'init_amp': [
+                'gpio -g mode 13 alt0',
+                'gpio -g mode 22 out',
+                'gpio write 3 1'
+            ],
+            'enable_amp': 'gpio write 3 0',
+            'disable_amp': 'gpio write 3 1'
+        }, default_volume=90)

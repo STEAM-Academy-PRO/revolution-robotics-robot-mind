@@ -3,8 +3,27 @@
 from revvy.scripting.robot_interface import RobotInterface
 import time
 
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 from revvy.utils.thread_wrapper import ThreadContext, ThreadWrapper
+
+
+class ScriptDescriptor:
+    def __init__(self, name, runnable, priority):
+        self._name = name
+        self._runnable = runnable
+        self._priority = priority
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def runnable(self):
+        return self._runnable
+
+    @property
+    def priority(self):
+        return self._priority
 
 
 class TimeWrapper:
@@ -14,21 +33,30 @@ class TimeWrapper:
 
 
 class ScriptHandle:
+
+    @staticmethod
+    def _default_sleep(time):
+        raise Exception('Script not running')
+
     def __init__(self, owner, script, name, global_variables: dict):
         self._owner = owner
         self._globals = dict(global_variables)
-        self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(name))
         self._inputs = {}
+        self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(name))
+        self._logger = get_logger('Script: {}'.format(name))
 
         self.stop = self._thread.stop
         self.cleanup = self._thread.exit
         self.on_stopped = self._thread.on_stopped
-        self.sleep = lambda s: None
+        self.sleep = ScriptHandle._default_sleep
 
-        if callable(script):
-            self._runnable = script
-        else:
-            self._runnable = lambda x: exec(script, x)
+        assert(callable(script))
+
+        self.log('Created')
+        self._runnable = script
+
+    def log(self, message):
+        self._logger(message)
 
     @property
     def is_stop_requested(self):
@@ -60,14 +88,13 @@ class ScriptHandle:
                 'time': TimeWrapper(ctx)
             })
         finally:
-            self._thread_ctx = None
-            self.sleep = lambda s: None
+            # restore to release reference on context
+            self.sleep = ScriptHandle._default_sleep
 
     def start(self, variables=None):
-        if variables is not None:
-            self._inputs = variables
-        else:
-            self._inputs.clear()
+        if variables is None:
+            variables = {}
+        self._inputs = variables
         return self._thread.start()
 
 
@@ -76,7 +103,7 @@ class ScriptManager:
         self._robot = robot
         self._globals = {}
         self._scripts = {}
-        self._log = Logger('ScriptManager')
+        self._log = get_logger('ScriptManager')
 
     def reset(self):
         self._log('stopping scripts')
@@ -92,19 +119,22 @@ class ScriptManager:
         for script in self._scripts:
             self._scripts[script].assign(name, value)
 
-    def add_script(self, name, script, priority=0):
-        if name in self._scripts:
-            self._log('Stopping {} before overriding'.format(name))
-            self._scripts[name].cleanup()
+    def add_script(self, script: ScriptDescriptor):
+        if script.name in self._scripts:
+            self._log('Stopping {} before overriding'.format(script.name))
+            self._scripts[script.name].cleanup()
 
-        self._log('New script: {}'.format(name))
-        script = ScriptHandle(self, script, name, self._globals)
+        self._log('New script: {}'.format(script.name))
+        script_handle = ScriptHandle(self, script.runnable, script.name, self._globals)
         try:
             robot = self._robot
-            script.assign('robot', RobotInterface(script, robot.robot, robot.config, robot.resources, priority))
-            self._scripts[name] = script
+            interface = RobotInterface(script_handle, robot.robot, robot.config, robot.resources, script.priority)
+            script_handle.assign('robot', interface)
+            self._scripts[script.name] = script_handle
+
+            return script_handle
         except Exception:
-            script.cleanup()
+            script_handle.cleanup()
             raise
 
     def __getitem__(self, name):

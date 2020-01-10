@@ -4,12 +4,12 @@ import os
 import traceback
 
 from revvy.utils.functions import read_json
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 
 
 class Assets:
     def __init__(self, paths: list):
-        self._log = Logger('Assets')
+        self._log = get_logger('Assets')
         self._files = {}
         for path in paths:
             self._load(path)
@@ -33,7 +33,11 @@ class Assets:
                     self._files[category][asset_name] = os.path.join(path, asset_path)
         except Exception:
             self._log('Skip loading assets from {}'.format(path))
-            print(traceback.format_exc())
+            self._log(traceback.format_exc())
 
     def get_asset_file(self, category, name):
         return self._files[category][name]
+
+    def category_loader(self, category):
+        files = self._files[category]
+        return lambda file: files[file]

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 from revvy.mcu.rrrc_control import RevvyControl
+from revvy.utils.logger import get_logger
 
 
 class DrivetrainTypes:
@@ -28,6 +29,8 @@ class DifferentialDrivetrain:
         self.turn = interface.drivetrain_turn
         self.move = interface.set_drivetrain_position
 
+        self._log = get_logger('Drivetrain')
+
     @property
     def motors(self):
         return self._motors
@@ -40,12 +43,12 @@ class DifferentialDrivetrain:
         self.configure()
 
     def add_left_motor(self, motor):
-        print('Drivetrain: Add motor {} to left side'.format(motor.id))
+        self._log('Add motor {} to left side'.format(motor.id))
         self._motors.append(motor)
         self._left_motors.append(motor.id - 1)
 
     def add_right_motor(self, motor):
-        print('Drivetrain: Add motor {} to right side'.format(motor.id))
+        self._log('Add motor {} to right side'.format(motor.id))
         self._motors.append(motor)
         self._right_motors.append(motor.id - 1)
 

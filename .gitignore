@@ -1,5 +1,9 @@
 .idea/
 **/__pycache__/
 /venv/
+/install/*.tar.gz
+/install/*.data
+/install/*.meta
 
 .coverage
+manifest.json

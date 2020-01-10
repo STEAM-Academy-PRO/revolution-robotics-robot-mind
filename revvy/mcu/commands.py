@@ -1,10 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import struct
+import traceback
 from abc import ABC
 from collections import namedtuple
+from enum import Enum
 
 from revvy.utils.functions import split
+from revvy.utils.logger import get_logger
 from revvy.utils.version import Version, FormatError
 from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseHeader
 
@@ -15,12 +18,16 @@ class UnknownCommandError(Exception):
 
 class Command:
     """A generic command towards the MCU"""
+
     def __init__(self, transport: RevvyTransport):
         self._transport = transport
         self._command_byte = self.command_id
 
+        self._log = get_logger('{} [id={}]'.format(type(self).__name__, self._command_byte))
+
     @property
-    def command_id(self): raise NotImplementedError
+    def command_id(self):
+        raise NotImplementedError
 
     def _process(self, response: Response):
         if response.status == ResponseHeader.Status_Ok:
@@ -35,17 +42,19 @@ class Command:
 
             raise ValueError('Command status: "{}" with payload: {}'.format(status, repr(response.payload)))
 
-    def _send(self, payload=None):
-        """Send the command with the given payload and process the response"""
-        if payload is None:
-            payload = []
+    def _send(self, payload=bytes()):
+        """
+        Send the command with the given payload and process the response
+
+        @type payload: bytes|list
+        """
         response = self._transport.send_command(self._command_byte, payload)
 
         try:
             return self._process(response)
         except (UnknownCommandError, ValueError) as e:
-            print('Error response for command: {0:X} with payload {1} (length {2})'
-                  .format(self._command_byte, payload, len(payload)))
+            self._log('Payload for error: {0} (length {1})'.format(payload, len(payload)))
+            self._log(traceback.format_exc())
             raise e
 
     def __call__(self, *args):
@@ -105,14 +114,18 @@ class SetBluetoothStatusCommand(Command):
         return self._send([status])
 
 
+class McuOperationMode(Enum):
+    APPLICATION = 0xAA
+    BOOTLOADER = 0xBB
+
+
 class ReadOperationModeCommand(Command):
     @property
     def command_id(self): return 0x06
 
     def parse_response(self, payload):
-        # TODO: make this return something meaningful
         assert len(payload) == 1
-        return int(payload[0])
+        return McuOperationMode(payload[0])
 
 
 class RebootToBootloaderCommand(Command):
@@ -196,8 +209,8 @@ class SendRingLedUserFrameCommand(Command):
     def command_id(self): return 0x33
 
     def __call__(self, colors):
-        rgb565_values = list(map(rgb_to_rgb565_bytes, colors))
-        led_bytes = list(struct.pack("<" + "H" * len(rgb565_values), *rgb565_values))
+        rgb565_values = map(rgb_to_rgb565_bytes, colors)
+        led_bytes = struct.pack("<" + "H" * len(colors), *rgb565_values)
         return self._send(led_bytes)
 
 
@@ -214,7 +227,7 @@ class RequestDifferentialDriveTrainSpeedCommand(Command):
     def command_id(self): return 0x1B
 
     def __call__(self, left, right, power_limit=0):
-        speed_cmd = list(struct.pack('<bffb', 1, left, right, power_limit))
+        speed_cmd = struct.pack('<bffb', 1, left, right, power_limit)
         return self._send(speed_cmd)
 
 
@@ -223,7 +236,7 @@ class RequestDifferentialDriveTrainPositionCommand(Command):
     def command_id(self): return 0x1B
 
     def __call__(self, left, right, left_speed=0, right_speed=0, power_limit=0):
-        pos_cmd = list(struct.pack('<bllffb', 0, int(left), int(right), left_speed, right_speed, power_limit))
+        pos_cmd = struct.pack('<bllffb', 0, int(left), int(right), left_speed, right_speed, power_limit)
         return self._send(pos_cmd)
 
 
@@ -232,13 +245,13 @@ class RequestDifferentialDriveTrainTurnCommand(Command):
     def command_id(self): return 0x1B
 
     def __call__(self, turn_angle, wheel_speed=0, power_limit=0):
-        turn_cmd = list(struct.pack('<blfb', 3, int(turn_angle), wheel_speed, power_limit))
+        turn_cmd = struct.pack('<blfb', 3, int(turn_angle), wheel_speed, power_limit)
         return self._send(turn_cmd)
 
 
 class SetPortConfigCommand(Command, ABC):
     def __call__(self, port_idx, config):
-        return self._send([port_idx] + config)
+        return self._send([port_idx, *config])
 
 
 class SetMotorPortConfigCommand(SetPortConfigCommand):
@@ -267,7 +280,7 @@ class SetMotorPortControlCommand(Command):
     def command_id(self): return 0x14
 
     def __call__(self, port_idx, control):
-        return self._send([port_idx] + control)
+        return self._send([port_idx, *control])
 
 
 class ReadPortStatusCommand(Command, ABC):
@@ -342,7 +355,7 @@ class InitializeUpdateCommand(Command):
     def command_id(self): return 0x08
 
     def __call__(self, crc, length):
-        return self._send(list(struct.pack("<LL", crc, length)))
+        return self._send(struct.pack("<LL", crc, length))
 
 
 class SendFirmwareCommand(Command):
@@ -362,28 +375,28 @@ def parse_string(data, ignore_errors=False):
     """
     >>> parse_string(b'foobar')
     'foobar'
-    >>> parse_string([ord('f'), ord('o'), ord('o'), ord('b'), ord('a'), ord('r')])
-    'foobar'
     >>> parse_string(b'foo\\xffbar', ignore_errors=True)
     'foobar'
     """
-    return bytes(data).decode('utf-8', errors='ignore' if ignore_errors else 'strict')
+    return data.decode('utf-8', errors='ignore' if ignore_errors else 'strict')
 
 
 def parse_string_list(data):
     """
     >>> parse_string_list(b'\x01\x06foobar')
     {'foobar': 1}
+    >>> parse_string_list(b'\x01\x06foobar\x02\x03baz')
+    {'foobar': 1, 'baz': 2}
     """
     val = {}
     idx = 0
     while idx < len(data):
-        key = data[idx]
-        idx += 1
-        sz = data[idx]
-        idx += 1
-        name = parse_string(data[idx:(idx + sz)])
-        idx += sz
+        data_start = idx + 2
+        key, length = data[idx:data_start]
+        idx = data_start + length
+
+        name = parse_string(data[data_start:data_start + length])
+
         val[name] = key
     return val
 

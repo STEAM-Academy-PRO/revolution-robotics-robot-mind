@@ -143,10 +143,7 @@ def bits_to_bool_list(byte_list):
     [False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, True]
     """
 
-    def expand_byte(byte):
-        return [is_bit_set(byte, x) for x in range(8)]
-
-    return [j for i in [expand_byte(byte) for byte in byte_list] for j in i]
+    return [is_bit_set(b, bit) for b in byte_list for bit in range(8)]
 
 
 def dict_get_first(dictionary: dict, keys: list):
@@ -185,3 +182,7 @@ def file_hash(file):
 def read_json(filename):
     with open(filename, "r") as f:
         return json.load(f)
+
+
+def str_to_func(code):
+    return lambda variables: exec(code, variables)

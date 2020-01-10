@@ -2,7 +2,7 @@
 
 from threading import Lock
 
-from revvy.utils.logger import Logger
+from revvy.utils.logger import get_logger
 
 
 class ResourceHandle:
@@ -31,9 +31,13 @@ class ResourceHandle:
 class Resource:
     def __init__(self, name='Resource'):
         self._lock = Lock()
-        self._log = Logger('Resource [{}]'.format(name))
+        self._log = get_logger('Resource [{}]'.format(name))
         self._current_priority = -1
         self._active_handle = None
+
+    @property
+    def lock(self):
+        return self._lock
 
     def reset(self):
         self._log('Reset')
@@ -55,15 +59,18 @@ class Resource:
                 self._current_priority = with_priority
                 self._active_handle = ResourceHandle(self, on_taken_away)
                 return self._active_handle
+
             elif self._current_priority == with_priority:
                 self._log('taking from equal prio owner')
                 return self._active_handle
+
             elif self._current_priority > with_priority:
                 self._log('taking from lower prio owner')
                 self._active_handle.interrupt()
                 self._current_priority = with_priority
                 self._active_handle = ResourceHandle(self, on_taken_away)
                 return self._active_handle
+
             else:
                 self._log('failed to take')
                 return None

@@ -5,22 +5,22 @@ import os
 import shutil
 import sys
 import tarfile
-import time
 import traceback
 
-from revvy.mcu.rrrc_control import RevvyControl, BootloaderControl
-from revvy.revvy_utils import RobotManager, RevvyStatusCode
+from revvy.revvy_utils import RobotBLEController, RevvyStatusCode, Robot
 from revvy.robot.led_ring import RingLed
 from revvy.robot.status import RobotStatus
+from revvy.scripting.runtime import ScriptDescriptor
 from revvy.utils.assets import Assets
 from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
 from revvy.utils.error_handler import register_uncaught_exception_handler
 from revvy.utils.file_storage import FileStorage, MemoryStorage, StorageError
-from revvy.firmware_updater import McuUpdater, McuUpdateManager
-from revvy.utils.functions import get_serial, read_json
+from revvy.firmware_updater import McuUpdater, FirmwareLoader, update_firmware
+from revvy.utils.functions import get_serial, read_json, str_to_func
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType, LongMessageStatus
-from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-from revvy.robot_config import empty_robot_config, RobotConfig
+from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
+from revvy.utils.logger import get_logger
+from revvy.utils.version import Version
 
 from tools.check_manifest import check_manifest
 
@@ -63,9 +63,12 @@ def extract_asset_longmessage(storage, asset_dir):
 
 class LongMessageImplementation:
     # TODO: this, together with the other long message classes is probably a lasagna worth simplifying
-    def __init__(self, robot_manager: RobotManager, ignore_config):
+    def __init__(self, robot_manager: RobotBLEController, asset_dir, ignore_config):
         self._robot = robot_manager
         self._ignore_config = ignore_config
+        self._asset_dir = asset_dir
+
+        self._log = get_logger("LongMessageImplementation")
 
     def on_upload_started(self, message_type):
         """Visual indication that an upload has started
@@ -86,41 +89,44 @@ class LongMessageImplementation:
             self._robot.run_in_background(lambda: self._robot.robot.led_ring.set_scenario(RingLed.BreathingGreen))
 
     def on_message_updated(self, storage, message_type):
-        print('Received message: {}'.format(message_type))
+        self._log('Received message: {}'.format(message_type))
 
         if message_type == LongMessageType.TEST_KIT:
-            message_data = storage.get_long_message(message_type).decode()
-            print('Running test script: {}'.format(message_data))
+            test_script_source = storage.get_long_message(message_type).decode()
+            self._log('Running test script: {}'.format(test_script_source))
 
-            robot_manager = self._robot
+            script_descriptor = ScriptDescriptor("test_kit", str_to_func(test_script_source), 0)
 
             def start_script():
-                print("Starting new test script")
-                robot_manager._scripts.add_script("test_kit", message_data, 0)
-                robot_manager._scripts["test_kit"].on_stopped(lambda: robot_manager.configure(None))
+                self._log("Starting new test script")
+                handle = self._robot._scripts.add_script(script_descriptor)
+                handle.on_stopped(lambda: self._robot.configure(None))
 
                 # start can't run in on_stopped handler because overwriting script causes deadlock
-                robot_manager.run_in_background(lambda: robot_manager._scripts["test_kit"].start())
+                self._robot.run_in_background(handle.start)
 
             self._robot.configure(empty_robot_config, start_script)
 
         elif message_type == LongMessageType.CONFIGURATION_DATA:
             message_data = storage.get_long_message(message_type).decode()
-            print('New configuration: {}'.format(message_data))
-            if self._ignore_config:
-                print('New configuration ignored')
-            else:
+            self._log('New configuration: {}'.format(message_data))
+
+            try:
                 parsed_config = RobotConfig.from_string(message_data)
-                if parsed_config is not None:
+
+                if self._ignore_config:
+                    self._log('New configuration ignored')
+                else:
                     self._robot.configure(parsed_config, self._robot.start_remote_controller)
+            except ConfigError:
+                self._log(traceback.format_exc())
 
         elif message_type == LongMessageType.FRAMEWORK_DATA:
             self._robot.robot.status.robot_status = RobotStatus.Updating
             self._robot.request_update()
 
         elif message_type == LongMessageType.ASSET_DATA:
-            asset_dir = os.path.join('..', '..', '..', 'user', 'assets')
-            extract_asset_longmessage(storage, asset_dir)
+            extract_asset_longmessage(storage, self._asset_dir)
 
 
 if __name__ == "__main__":
@@ -147,13 +153,15 @@ if __name__ == "__main__":
     serial = get_serial()
 
     manifest = read_json('manifest.json')
+    sw_version = Version(manifest['version'])
 
     device_storage = FileStorage(data_dir)
     ble_storage = FileStorage(ble_storage_dir)
 
+    writeable_assets_dir = os.path.join(writeable_data_dir, 'assets')
     assets = Assets([
         os.path.join(package_data_dir, 'assets'),
-        os.path.join(writeable_data_dir, 'assets')
+        writeable_assets_dir
     ])
 
     try:
@@ -167,51 +175,42 @@ if __name__ == "__main__":
     device_name.subscribe(lambda v: device_storage.write('device-name', v.encode("utf-8")))
 
     long_message_storage = LongMessageStorage(ble_storage, MemoryStorage())
-    extract_asset_longmessage(long_message_storage, os.path.join(writeable_data_dir, 'assets'))
+    extract_asset_longmessage(long_message_storage, writeable_assets_dir)
 
-    with RevvyTransportI2C() as transport:
-        robot_control = RevvyControl(transport.bind(0x2D))
-        bootloader_control = BootloaderControl(transport.bind(0x2B))
-
-        updater = McuUpdater(robot_control, bootloader_control)
-        update_manager = McuUpdateManager(os.path.join(package_data_dir, 'firmware'), updater)
-        update_manager.update_if_necessary()
+    with Robot(assets.category_loader('sounds')) as robot:
+        try:
+            update_firmware(os.path.join(package_data_dir, 'firmware'), robot)
+        except TimeoutError:
+            print('Failed to update firmware')
 
         long_message_handler = LongMessageHandler(long_message_storage)
-        ble = RevvyBLE(device_name, serial, long_message_handler)
-        robot = RobotManager(
-            robot_control,
-            ble,
-            lambda sound: assets.get_asset_file('sounds', sound),
-            manifest['version'])
+        robot_manager = RobotBLEController(robot, sw_version, RevvyBLE(device_name, serial, long_message_handler))
 
-        lmi = LongMessageImplementation(robot, False)
+        lmi = LongMessageImplementation(robot_manager, writeable_assets_dir, False)
         long_message_handler.on_upload_started(lmi.on_upload_started)
         long_message_handler.on_upload_finished(lmi.on_transmission_finished)
         long_message_handler.on_message_updated(lmi.on_message_updated)
 
         # noinspection PyBroadException
         try:
-            robot.start()
+            robot_manager.start()
 
             print("Press Enter to exit")
             input()
             # manual exit
             ret_val = RevvyStatusCode.OK
         except EOFError:
-            robot.needs_interrupting = False
-            while not robot.exited:
-                time.sleep(1)
-            ret_val = robot.status_code
+            robot_manager.needs_interrupting = False
+            ret_val = robot_manager.wait_for_exit()
         except KeyboardInterrupt:
             # manual exit or update request
-            ret_val = robot.status_code
+            ret_val = robot_manager.status_code
         except Exception:
             print(traceback.format_exc())
             ret_val = RevvyStatusCode.ERROR
         finally:
             print('stopping')
-            robot.stop()
+            robot_manager.stop()
 
-        print('terminated.')
+    print('terminated.')
     sys.exit(ret_val)
