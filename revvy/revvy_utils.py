@@ -5,11 +5,11 @@ import os
 import signal
 import traceback
 import time
-from collections import namedtuple
-from threading import Lock
+from threading import Lock, Event
 
+from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.hardware_dependent.sound import SoundControlV1, SoundControlV2
-from revvy.mcu.rrrc_control import RevvyControl, BatteryStatus, Version
+from revvy.mcu.rrrc_control import RevvyControl, BatteryStatus, Version, BootloaderControl
 from revvy.mcu.rrrc_transport import TransportException
 from revvy.robot.drivetrain import DifferentialDrivetrain
 from revvy.robot.imu import IMU
@@ -97,24 +97,29 @@ Sensors = {
 }
 
 
-RobotVersion = namedtuple("RobotVersion", ['hw', 'fw', 'sw'])
-
-
 class Robot:
-    def __init__(self, interface: RevvyControl, sounds, sw_version):
+    BOOTLOADER_I2C_ADDRESS = 0x2B
+    ROBOT_I2C_ADDRESS = 0x2D
+
+    def __init__(self, sounds, i2c_bus=1):
+        self._i2c_bus = i2c_bus
+
         self._log = get_logger('Robot')
-        self._interface = interface
+        self._get_sound_file = sounds
+
+    def __enter__(self):
+        self._i2c = RevvyTransportI2C(self._i2c_bus)
+
+        self._robot_control = RevvyControl(self._i2c.bind(self.ROBOT_I2C_ADDRESS))
+        self._bootloader_control = BootloaderControl(self._i2c.bind(self.BOOTLOADER_I2C_ADDRESS))
 
         self._start_time = time.time()
 
         # read versions
-        hw = interface.get_hardware_version()
-        fw = interface.get_firmware_version()
-        sw = sw_version
+        self._hw_version = self._robot_control.get_hardware_version()
+        self._fw_version = self._robot_control.get_firmware_version()
 
-        self._log('Hardware: {}\nFirmware: {}\nFramework: {}'.format(hw, fw, sw))
-
-        self._version = RobotVersion(hw, fw, sw)
+        self._log('Hardware: {}\nFirmware: {}'.format(self._hw_version, self._fw_version))
 
         setup = {
             Version('1.0'): SoundControlV1,
@@ -122,11 +127,11 @@ class Robot:
             Version('2.0'): SoundControlV2,
         }
 
-        self._ring_led = RingLed(interface)
-        self._sound = Sound(setup[hw](), sounds)
+        self._ring_led = RingLed(self._robot_control)
+        self._sound = Sound(setup[self._hw_version](), self._get_sound_file)
 
-        self._status = RobotStatusIndicator(interface)
-        self._status_updater = McuStatusUpdater(interface)
+        self._status = RobotStatusIndicator(self._robot_control)
+        self._status_updater = McuStatusUpdater(self._robot_control)
         self._battery = BatteryStatus(0, 0, 0)
 
         self._imu = IMU()
@@ -139,26 +144,43 @@ class Robot:
             callback = None if config_name == 'NotConfigured' else sensor.update_status
             self._status_updater.set_slot('sensor_{}'.format(sensor.id), callback)
 
-        self._motor_ports = create_motor_port_handler(interface, Motors)
+        self._motor_ports = create_motor_port_handler(self._robot_control, Motors)
         for port in self._motor_ports:
             port.on_config_changed(_motor_config_changed)
 
-        self._sensor_ports = create_sensor_port_handler(interface, Sensors)
+        self._sensor_ports = create_sensor_port_handler(self._robot_control, Sensors)
         for port in self._sensor_ports:
             port.on_config_changed(_sensor_config_changed)
 
-        self._drivetrain = DifferentialDrivetrain(interface, self._motor_ports.port_count)
+        self._drivetrain = DifferentialDrivetrain(self._robot_control, self._motor_ports.port_count)
 
         self.update_status = self._status_updater.read
-        self.ping = self._interface.ping
+        self.ping = self._robot_control.ping
+
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._i2c.close()
+
+    @property
+    def robot_control(self):
+        return self._robot_control
+
+    @property
+    def bootloader_control(self):
+        return self._bootloader_control
 
     @property
     def start_time(self):
         return self._start_time
 
     @property
-    def version(self):
-        return self._version
+    def hw_version(self) -> Version:
+        return self._hw_version
+
+    @property
+    def fw_version(self) -> Version:
+        return self._fw_version
 
     @property
     def battery(self):
@@ -228,10 +250,10 @@ class RevvyStatusCode(enum.IntEnum):
     UPDATE_REQUEST = 3
 
 
-class RobotManager:
+class RobotBLEController:
 
     # FIXME: revvy_ble intentionally doesn't have a type hint at this moment because it breaks tests right now
-    def __init__(self, robot: Robot, revvy_ble):
+    def __init__(self, robot: Robot, sw_version, revvy_ble):
         self._log = get_logger('RobotManager')
         self._log('init')
         self.needs_interrupting = True
@@ -239,6 +261,7 @@ class RobotManager:
         self._configuring = False
         self._robot = robot
         self._ble = revvy_ble
+        self._sw_version = sw_version
 
         self._status_update_thread = periodic(self._update, 0.02, "RobotStatusUpdaterThread")
         self._background_fn_lock = Lock()
@@ -268,7 +291,7 @@ class RobotManager:
         self._config = empty_robot_config
 
         self._status_code = RevvyStatusCode.OK
-        self.exited = False
+        self.exited = Event()
 
         self.start_remote_controller = self._remote_controller_thread.start
 
@@ -321,7 +344,11 @@ class RobotManager:
         self._status_code = status_code
         if self.needs_interrupting:
             os.kill(os.getpid(), signal.SIGINT)
-        self.exited = True
+        self.exited.set()
+
+    def wait_for_exit(self):
+        self.exited.wait()
+        return self._status_code
 
     def request_update(self):
         def update():
@@ -335,12 +362,15 @@ class RobotManager:
         self._log('start')
         if self._robot.status.robot_status == RobotStatus.StartingUp:
             self._log('Waiting for MCU')
-            # TODO if we are getting stuck here (> ~3s), firmware is probably not valid
-            self._ping_robot()
 
-            self._ble['device_information_service'].characteristic('hw_version').update(str(self._robot.version.hw))
-            self._ble['device_information_service'].characteristic('fw_version').update(str(self._robot.version.fw))
-            self._ble['device_information_service'].characteristic('sw_version').update(self._robot.version.sw)
+            try:
+                self._ping_robot()
+            except TimeoutError:
+                pass  # FIXME somehow handle a dead MCU
+
+            self._ble['device_information_service'].characteristic('hw_version').update(str(self._robot.hw_version))
+            self._ble['device_information_service'].characteristic('fw_version').update(str(self._robot.fw_version))
+            self._ble['device_information_service'].characteristic('sw_version').update(str(self._sw_version))
 
             # start reader thread
             self._status_update_thread.start()
@@ -476,7 +506,8 @@ class RobotManager:
         self._scripts.reset()
         self._status_update_thread.exit()
 
-    def _ping_robot(self):
+    def _ping_robot(self, timeout=0):
+        start_time = time.time()
         retry_ping = True
         while retry_ping:
             retry_ping = False
@@ -485,3 +516,6 @@ class RobotManager:
             except (BrokenPipeError, IOError, OSError):
                 retry_ping = True
                 time.sleep(0.1)
+                if timeout != 0:
+                    if time.time() - start_time > timeout:
+                        raise TimeoutError

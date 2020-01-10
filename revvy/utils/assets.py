@@ -37,3 +37,7 @@ class Assets:
 
     def get_asset_file(self, category, name):
         return self._files[category][name]
+
+    def category_loader(self, category):
+        files = self._files[category]
+        return lambda file: files[file]

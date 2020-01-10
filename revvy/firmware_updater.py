@@ -6,17 +6,18 @@ import time
 import traceback
 from json import JSONDecodeError
 
+from revvy.revvy_utils import Robot
 from revvy.utils.file_storage import IntegrityError
 from revvy.utils.logger import get_logger
 from revvy.utils.version import Version
 from revvy.utils.functions import split, bytestr_hash, read_json
-from revvy.mcu.rrrc_control import BootloaderControl, RevvyControl, McuOperationMode
+from revvy.mcu.rrrc_control import McuOperationMode
 
 
 class McuUpdater:
-    def __init__(self, robot_control: RevvyControl, bootloader_control: BootloaderControl):
-        self._robot = robot_control
-        self._bootloader = bootloader_control
+    def __init__(self, robot: Robot):
+        self._robot = robot.robot_control
+        self._bootloader = robot.bootloader_control
 
         self._log = get_logger('McuUpdater')
 
@@ -54,16 +55,6 @@ class McuUpdater:
         except OSError:
             self._log('MCU restarted before finishing communication')
 
-    def read_hardware_version(self):
-        """
-        Read the hardware version from the MCU
-        """
-        mode = self._read_operation_mode()
-        if mode == McuOperationMode.APPLICATION:
-            return self._robot.get_hardware_version()
-        else:
-            return self._bootloader.get_hardware_version()
-
     def is_update_needed(self, fw_version: Version):
         """
         Compare firmware version to the currently running one
@@ -89,15 +80,7 @@ class McuUpdater:
             mode = self._read_operation_mode()
             assert mode == McuOperationMode.BOOTLOADER
 
-    def update_firmware(self, new_version: Version, data):
-        """
-        Compare firmware version and burn it in case the version differs
-        """
-
-        if not self.is_update_needed(new_version):
-            self._log('Skip update')
-            return
-
+    def upload_binary(self, data):
         self.reboot_to_bootloader()
 
         checksum = binascii.crc32(data)
@@ -123,62 +106,62 @@ class McuUpdater:
         assert self._read_operation_mode() == McuOperationMode.APPLICATION
 
 
-class McuUpdateManager:
-    def __init__(self, fw_dir, updater):
+class FirmwareLoader:
+    def __init__(self, fw_dir):
         self._fw_dir = fw_dir
-        self._updater = updater
 
-        self._log = get_logger('McuUpdateManager')
+        self.log = get_logger('FirmwareLoader')
 
-    def _read_catalog(self):
+    def get_firmware(self, hw_version):
         try:
             fw_metadata = read_json(os.path.join(self._fw_dir, 'catalog.json'))
+            version = str(hw_version)
 
-            # hw version -> fw version mapping
-            return {Version(version): {
-                'version': Version(fw_metadata[version]['version']),
+            data = {
                 'file': os.path.join(self._fw_dir, fw_metadata[version]['filename']),
                 'md5': fw_metadata[version]['md5'],
                 'length': fw_metadata[version]['length'],
-            } for version in fw_metadata}
+            }
+            return Version(fw_metadata[version]['version']), self._read_firmware(data)
 
-        except (IOError, JSONDecodeError, KeyError):
-            self._log(traceback.format_exc())
-            return {}
+        except (IOError, JSONDecodeError, KeyError) as e:
+            self.log(traceback.format_exc())
+            raise KeyError from e
 
     def _read_firmware(self, fw_data):
         with open(fw_data['file'], "rb") as f:
             firmware_binary = f.read()
 
         if len(firmware_binary) != fw_data['length']:
-            self._log('Firmware file length check failed, aborting')
+            self.log('Firmware file length check failed, aborting')
             raise IntegrityError("Firmware file length does not match")
 
         checksum = bytestr_hash(firmware_binary)
         if checksum != fw_data['md5']:
-            self._log('Firmware file integrity check failed, aborting')
+            self.log('Firmware file integrity check failed, aborting')
             raise IntegrityError("Firmware file checksum does not match")
 
         return firmware_binary
 
-    def update_if_necessary(self):
-        hw_version = self._updater.read_hardware_version()
 
-        firmware_collection = self._read_catalog()
+def update_firmware(fw_dir, robot: Robot):
+    loader = FirmwareLoader(fw_dir)
 
-        try:
-            fw_data = firmware_collection[hw_version]
-            firmware_binary = self._read_firmware(fw_data)
-            self._updater.update_firmware(fw_data['version'], firmware_binary)
+    try:
+        fw_version, fw_binary = loader.get_firmware(robot.hw_version)
 
-        except KeyError:
-            self._log(traceback.format_exc())
-            self._log('No firmware for the hardware ({})'.format(hw_version))
+        updater = McuUpdater(robot)
+        if updater.is_update_needed(fw_version):
+            updater.upload_binary(fw_binary)
 
-        except IOError:
-            self._log(traceback.format_exc())
-            self._log('Firmware file does not exist or is not readable')
+    except KeyError:
+        loader.log(traceback.format_exc())
+        loader.log('No firmware for the hardware ({})'.format(robot.hw_version))
 
-        except IntegrityError:
-            self._log(traceback.format_exc())
-            self._log('Firmware file corrupted')
+    except IOError:
+        loader.log(traceback.format_exc())
+        loader.log('Firmware file does not exist or is not readable')
+
+    except IntegrityError:
+        loader.log(traceback.format_exc())
+        loader.log('Firmware file corrupted')
