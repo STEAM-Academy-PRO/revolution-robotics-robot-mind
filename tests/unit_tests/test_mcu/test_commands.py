@@ -115,7 +115,7 @@ class TestCommandTypes(unittest.TestCase):
         set_status = SetMasterStatusCommand(mock_transport)
 
         self.assertIsNone(set_status(3))
-        self.assertEqual(bytes([3]), mock_transport.commands[0][1])
+        self.assertEqual([3], mock_transport.commands[0][1])
 
         # unexpected payload byte
         self.assertRaises(NotImplementedError, lambda: set_status(3))
@@ -128,7 +128,7 @@ class TestCommandTypes(unittest.TestCase):
         set_status = SetBluetoothStatusCommand(mock_transport)
 
         self.assertIsNone(set_status(3))
-        self.assertEqual(bytes([3]), mock_transport.commands[0][1])
+        self.assertEqual([3], mock_transport.commands[0][1])
 
         # unexpected payload byte
         self.assertRaises(NotImplementedError, lambda: set_status(3))
