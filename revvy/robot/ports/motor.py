@@ -8,6 +8,7 @@ from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler, PortInstance
 import struct
 
+from revvy.utils.functions import clip
 from revvy.utils.logger import get_logger
 
 DcMotorStatus = namedtuple("DcMotorStatus", ['position', 'speed', 'power'])
@@ -170,6 +171,9 @@ class DcMotorController:
 
     def set_power(self, power):
         self._log('set_power')
+        power = clip(power, -100, 100)
+        if power < 0:
+            power = 256 + power
         self._control(0, [power])
 
     def update_status(self, data):
