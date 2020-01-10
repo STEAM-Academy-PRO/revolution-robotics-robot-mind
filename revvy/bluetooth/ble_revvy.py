@@ -3,7 +3,6 @@
 import os
 import struct
 import traceback
-from logging import Logger
 
 from pybleno import Bleno, BlenoPrimaryService, Characteristic, Descriptor
 from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol

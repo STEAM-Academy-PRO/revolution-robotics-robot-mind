@@ -11,11 +11,10 @@ from revvy.revvy_utils import RobotBLEController, RevvyStatusCode, Robot
 from revvy.robot.led_ring import RingLed
 from revvy.robot.status import RobotStatus
 from revvy.scripting.runtime import ScriptDescriptor
-from revvy.utils.assets import Assets
 from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
 from revvy.utils.error_handler import register_uncaught_exception_handler
 from revvy.utils.file_storage import FileStorage, MemoryStorage, StorageError
-from revvy.firmware_updater import McuUpdater, FirmwareLoader, update_firmware
+from revvy.firmware_updater import update_firmware
 from revvy.utils.functions import get_serial, read_json, str_to_func
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType, LongMessageStatus
 from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
