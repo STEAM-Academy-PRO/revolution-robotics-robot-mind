@@ -8,13 +8,16 @@ from revvy.utils.logger import get_logger
 
 
 class Assets:
-    def __init__(self, paths: list):
+    def __init__(self):
         self._log = get_logger('Assets')
         self._files = {}
-        for path in paths:
-            self._load(path)
 
-    def _load(self, path):
+    def add_source(self, path):
+        """
+        Add a new folder to the asset sources
+
+        @param path: the asset folder with an assets.json file inside
+        """
         assets_json = os.path.join(path, 'assets.json')
         # noinspection PyBroadException
         try:

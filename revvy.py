@@ -159,10 +159,10 @@ if __name__ == "__main__":
     ble_storage = FileStorage(ble_storage_dir)
 
     writeable_assets_dir = os.path.join(writeable_data_dir, 'assets')
-    assets = Assets([
-        os.path.join(package_data_dir, 'assets'),
-        writeable_assets_dir
-    ])
+
+    assets = Assets()
+    assets.add_source(os.path.join(package_data_dir, 'assets'))
+    assets.add_source(writeable_assets_dir)
 
     try:
         device_name = device_storage.read('device-name').decode("utf-8")
