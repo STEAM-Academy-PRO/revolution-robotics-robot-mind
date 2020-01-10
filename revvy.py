@@ -135,14 +135,13 @@ if __name__ == "__main__":
     print('Revvy run from {} ({})'.format(current_installation, __file__))
 
     # base directories
-    writeable_data_dir = os.path.join(current_installation, '..', '..', '..', 'user')
-    package_data_dir = os.path.join(current_installation, 'data')
+    writeable_data_dir = os.path.join('..', '..', '..', 'user')
 
     ble_storage_dir = os.path.join(writeable_data_dir, 'ble')
     data_dir = os.path.join(writeable_data_dir, 'data')
 
     # self-test
-    if not check_manifest(os.path.join(current_installation, 'manifest.json')):
+    if not check_manifest('manifest.json'):
         print('Revvy not started because manifest is invalid')
         sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
 
@@ -177,7 +176,7 @@ if __name__ == "__main__":
         robot.assets.add_source(writeable_assets_dir)
 
         try:
-            update_firmware(os.path.join(package_data_dir, 'firmware'), robot)
+            update_firmware(os.path.join('data', 'firmware'), robot)
         except TimeoutError:
             print('Failed to update firmware')
 

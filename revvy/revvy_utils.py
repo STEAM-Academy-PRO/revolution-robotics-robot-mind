@@ -106,7 +106,7 @@ class Robot:
         self._i2c_bus = i2c_bus
 
         self._assets = Assets()
-        self._assets.add_source(os.path.join('.', 'data', 'assets'))
+        self._assets.add_source(os.path.join('data', 'assets'))
 
         self._log = get_logger('Robot')
 
