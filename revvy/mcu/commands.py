@@ -9,7 +9,7 @@ from enum import Enum
 from revvy.utils.functions import split
 from revvy.utils.logger import get_logger
 from revvy.utils.version import Version, FormatError
-from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseHeader
+from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseStatus
 
 
 class UnknownCommandError(Exception):
@@ -30,19 +30,15 @@ class Command:
         raise NotImplementedError
 
     def _process(self, response: Response):
-        if response.status == ResponseHeader.Status_Ok:
+        if response.status == ResponseStatus.Ok:
             return self.parse_response(response.payload)
-        elif response.status == ResponseHeader.Status_Error_UnknownCommand:
+        elif response.status == ResponseStatus.Error_UnknownCommand:
             raise UnknownCommandError("Command not implemented: {}".format(self._command_byte))
         else:
-            try:
-                status = ResponseHeader.StatusStrings[response.status]
-            except KeyError:
-                status = 'Unknown status (code {})'.format(response.status)
+            raise ValueError('Command status: "{}" with payload: {}'
+                             .format(response.status, repr(response.payload)))
 
-            raise ValueError('Command status: "{}" with payload: {}'.format(status, repr(response.payload)))
-
-    def _send(self, payload=bytes()):
+    def _send(self, payload=b''):
         """
         Send the command with the given payload and process the response
 
