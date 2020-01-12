@@ -14,7 +14,7 @@ class RevvyTransportI2CDevice(RevvyTransportInterface):
         try:
             read_msg = i2c_msg.read(self._address, length)
             self._bus.i2c_rdwr(read_msg)
-            return bytes(list(read_msg))
+            return bytes(read_msg.__iter__())
         except TypeError as e:
             raise TransportException("Error during reading I2C address {}".format(self._address)) from e
 
