@@ -134,22 +134,16 @@ class RobotConfig:
                 if not motor:
                     motor = {'type': 0}
 
-                if motor['type'] == 0:
-                    motor_type = motor_types[motor['type']]
-
-                elif motor['type'] == 1:
-                    # motor
-                    motor_type = motor_types[1]
-                    config.motors.names[motor['name']] = i
-
-                elif motor['type'] == 2:
+                if motor['type'] == 2:
                     # drivetrain
                     motor_type = motor_types[2][motor['side']][motor['reversed']]
-                    config.motors.names[motor['name']] = i
                     config.drivetrain[motor_sides[motor['side']]].append(i)
 
                 else:
-                    raise ValueError('Unknown motor type: {}'.format(motor['type']))
+                    motor_type = motor_types[motor['type']]
+
+                if motor_type is not None:
+                    config.motors.names[motor['name']] = i
 
                 config.motors[i] = motor_type
                 i += 1
@@ -163,13 +157,12 @@ class RobotConfig:
                 if not sensor:
                     sensor = {'type': 0}
 
-                if sensor['type'] == 0:
-                    sensor_type = sensor_types[sensor['type']]
-                else:
-                    sensor_type = sensor_types[sensor['type']]
-                    config.sensors.names[sensor['name']] = i
-                config.sensors[i] = sensor_type
+                sensor_type = sensor_types[sensor['type']]
 
+                if sensor_type is not None:
+                    config.sensors.names[sensor['name']] = i
+
+                config.sensors[i] = sensor_type
                 i += 1
 
         except (TypeError, IndexError, KeyError, ValueError) as e:
