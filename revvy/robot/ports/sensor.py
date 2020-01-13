@@ -7,25 +7,24 @@ from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler, PortInstance
 
 
-def create_sensor_port_handler(interface: RevvyControl, configs: dict):
+def create_sensor_port_handler(interface: RevvyControl):
     port_amount = interface.get_sensor_port_amount()
     port_types = interface.get_sensor_port_types()
 
     drivers = {
-        'NotConfigured': NullSensor,
         'BumperSwitch': bumper_switch,
         'HC_SR04': hcsr04,
         'EV3': lambda port, cfg: Ev3UARTSensor(port),
         'EV3_Color': ev3_color
     }
-    handler = PortHandler(interface, configs, drivers, port_amount, port_types)
+    handler = PortHandler(interface, drivers, NullSensor(), port_amount, port_types)
     handler._set_port_type = interface.set_sensor_port_type
 
     return handler
 
 
 class NullSensor:
-    def __init__(self, port: PortInstance, port_config):
+    def __init__(self):
         self.driver = 'NotConfigured'
 
     def on_port_type_set(self):

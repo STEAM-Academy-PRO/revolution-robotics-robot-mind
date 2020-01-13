@@ -14,22 +14,21 @@ from revvy.utils.logger import get_logger
 DcMotorStatus = namedtuple("DcMotorStatus", ['position', 'speed', 'power'])
 
 
-def create_motor_port_handler(interface: RevvyControl, configs: dict):
+def create_motor_port_handler(interface: RevvyControl):
     port_amount = interface.get_motor_port_amount()
     port_types = interface.get_motor_port_types()
 
     drivers = {
-        'NotConfigured': NullMotor,
         'DcMotor': DcMotorController
     }
-    handler = PortHandler(interface, configs, drivers, port_amount, port_types)
+    handler = PortHandler(interface, drivers, NullMotor(), port_amount, port_types)
     handler._set_port_type = interface.set_motor_port_type
 
     return handler
 
 
 class NullMotor:
-    def __init__(self, port: PortInstance, port_config):
+    def __init__(self):
         self.driver = 'NotConfigured'
 
     def on_port_type_set(self):

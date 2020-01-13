@@ -64,18 +64,18 @@ class Robot:
         self._imu = IMU()
 
         def _motor_config_changed(motor: PortInstance, config_name):
-            callback = None if config_name == 'NotConfigured' else motor.update_status
+            callback = None if config_name is None else motor.update_status
             self._status_updater.set_slot('motor_{}'.format(motor.id), callback)
 
         def _sensor_config_changed(sensor: PortInstance, config_name):
-            callback = None if config_name == 'NotConfigured' else sensor.update_status
+            callback = None if config_name is None else sensor.update_status
             self._status_updater.set_slot('sensor_{}'.format(sensor.id), callback)
 
-        self._motor_ports = create_motor_port_handler(self._robot_control, Motors)
+        self._motor_ports = create_motor_port_handler(self._robot_control)
         for port in self._motor_ports:
             port.on_config_changed(_motor_config_changed)
 
-        self._sensor_ports = create_sensor_port_handler(self._robot_control, Sensors)
+        self._sensor_ports = create_sensor_port_handler(self._robot_control)
         for port in self._sensor_ports:
             port.on_config_changed(_sensor_config_changed)
 

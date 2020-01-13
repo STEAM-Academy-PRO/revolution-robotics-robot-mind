@@ -3,29 +3,35 @@
 import json
 from json import JSONDecodeError
 
+from revvy.robot.configurations import Motors, Sensors
 from revvy.scripting.runtime import ScriptDescriptor
 from revvy.utils.functions import b64_decode_str, dict_get_first, str_to_func
 from revvy.scripting.builtin_scripts import builtin_scripts
 
 motor_types = [
-    "NotConfigured",
-    "RevvyMotor",
+    None,
+    Motors.RevvyMotor,
     # motor
     [
         [  # left
-            "RevvyMotor_CCW",
-            "RevvyMotor"
+            Motors.RevvyMotor_CCW,
+            Motors.RevvyMotor
         ],
         [  # right
-            "RevvyMotor",
-            "RevvyMotor_CCW"
+            Motors.RevvyMotor,
+            Motors.RevvyMotor_CCW
         ]
     ]
 ]
 
 motor_sides = ["left", "right"]
 
-sensor_types = ["NotConfigured", "HC_SR04", "BumperSwitch", "EV3_Color"]
+sensor_types = [
+    None,
+    Sensors.HC_SR04,
+    Sensors.BumperSwitch,
+    Sensors.EV3_Color
+]
 
 
 class PortConfig:
@@ -38,7 +44,7 @@ class PortConfig:
         return self._port_names
 
     def __getitem__(self, item):
-        return self._ports.get(item, "NotConfigured")
+        return self._ports.get(item)
 
     def __setitem__(self, item, value):
         self._ports[item] = value
@@ -154,8 +160,11 @@ class RobotConfig:
             i = 1
             sensors = robot_config.get('sensors', []) if type(robot_config) is dict else []
             for sensor in sensors:
-                if not sensor or sensor['type'] == 0:
-                    sensor_type = "NotConfigured"
+                if not sensor:
+                    sensor = {'type': 0}
+
+                if sensor['type'] == 0:
+                    sensor_type = sensor_types[sensor['type']]
                 else:
                     sensor_type = sensor_types[sensor['type']]
                     config.sensors.names[sensor['name']] = i
@@ -170,8 +179,8 @@ class RobotConfig:
 
     def __init__(self):
         self.motors = PortConfig()
-        self.drivetrain = {'left': [], 'right': []}
         self.sensors = PortConfig()
+        self.drivetrain = {'left': [], 'right': []}
         self.controller = RemoteControlConfig()
         self.background_scripts = []
 

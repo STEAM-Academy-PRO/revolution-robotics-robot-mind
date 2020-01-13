@@ -2,6 +2,7 @@
 
 import unittest
 
+from revvy.robot.configurations import Sensors, Motors
 from revvy.scripting.builtin_scripts import drive_2sticks
 from revvy.utils.functions import b64_encode_str
 from revvy.robot_config import RobotConfig, ConfigError
@@ -298,17 +299,17 @@ class TestRobotConfig(unittest.TestCase):
 
         config = RobotConfig.from_string(json)
 
-        self.assertEqual("NotConfigured", config.motors[1])
+        self.assertEqual(None, config.motors[1])
 
         # drivetrain left
-        self.assertEqual("RevvyMotor_CCW", config.motors[2])  # normal left
-        self.assertEqual("RevvyMotor", config.motors[3])      # reversed left
+        self.assertEqual(Motors.RevvyMotor_CCW, config.motors[2])  # normal left
+        self.assertEqual(Motors.RevvyMotor, config.motors[3])      # reversed left
 
         # drivetrain right
-        self.assertEqual("RevvyMotor", config.motors[5])      # normal right
-        self.assertEqual("RevvyMotor_CCW", config.motors[6])  # reversed right
+        self.assertEqual(Motors.RevvyMotor, config.motors[5])      # normal right
+        self.assertEqual(Motors.RevvyMotor_CCW, config.motors[6])  # reversed right
 
-        self.assertEqual("RevvyMotor", config.motors[4])  # motor, no 'side', no 'reversed'
+        self.assertEqual(Motors.RevvyMotor, config.motors[4])  # motor, no 'side', no 'reversed'
 
         self.assertListEqual([2, 3], config.drivetrain['left'])
         self.assertListEqual([5, 6], config.drivetrain['right'])
@@ -356,10 +357,10 @@ class TestRobotConfig(unittest.TestCase):
 
         config = RobotConfig.from_string(json)
 
-        self.assertEqual("RevvyMotor", config.motors[1])
-        self.assertEqual("RevvyMotor", config.motors[2])
-        self.assertEqual("RevvyMotor", config.motors[3])
-        self.assertEqual("RevvyMotor", config.motors[4])
+        self.assertEqual(Motors.RevvyMotor, config.motors[1])
+        self.assertEqual(Motors.RevvyMotor, config.motors[2])
+        self.assertEqual(Motors.RevvyMotor, config.motors[3])
+        self.assertEqual(Motors.RevvyMotor, config.motors[4])
 
     def test_empty_or_null_motors_are_not_configured(self):
         json = '''
@@ -385,10 +386,10 @@ class TestRobotConfig(unittest.TestCase):
 
         config = RobotConfig.from_string(json)
 
-        self.assertEqual("RevvyMotor", config.motors[1])
-        self.assertEqual("NotConfigured", config.motors[2])
-        self.assertEqual("NotConfigured", config.motors[3])
-        self.assertEqual("RevvyMotor", config.motors[4])
+        self.assertEqual(Motors.RevvyMotor, config.motors[1])
+        self.assertEqual(None, config.motors[2])
+        self.assertEqual(None, config.motors[3])
+        self.assertEqual(Motors.RevvyMotor, config.motors[4])
 
     def test_sensors_are_parsed_as_list_of_sensors(self):
         json = '''
@@ -418,10 +419,10 @@ class TestRobotConfig(unittest.TestCase):
 
         config = RobotConfig.from_string(json)
 
-        self.assertEqual("HC_SR04", config.sensors[1])
-        self.assertEqual("BumperSwitch", config.sensors[2])
-        self.assertEqual("NotConfigured", config.sensors[3])
-        self.assertEqual("NotConfigured", config.sensors[4])
+        self.assertEqual(Sensors.HC_SR04, config.sensors[1])
+        self.assertEqual(Sensors.BumperSwitch, config.sensors[2])
+        self.assertEqual(None, config.sensors[3])
+        self.assertEqual(None, config.sensors[4])
 
         self.assertEqual(1, config.sensors.names["S1"])
         self.assertEqual(2, config.sensors.names["S2"])
@@ -451,10 +452,10 @@ class TestRobotConfig(unittest.TestCase):
 
         config = RobotConfig.from_string(json)
 
-        self.assertEqual("HC_SR04", config.sensors[1])
-        self.assertEqual("NotConfigured", config.sensors[2])
-        self.assertEqual("NotConfigured", config.sensors[3])
-        self.assertEqual("BumperSwitch", config.sensors[4])
+        self.assertEqual(Sensors.HC_SR04, config.sensors[1])
+        self.assertEqual(None, config.sensors[2])
+        self.assertEqual(None, config.sensors[3])
+        self.assertEqual(Sensors.BumperSwitch, config.sensors[4])
 
     def test_type0_objects_dont_require_additional_keys(self):
         json = '''
