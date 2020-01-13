@@ -7,7 +7,8 @@ import sys
 import tarfile
 import traceback
 
-from revvy.revvy_utils import RobotBLEController, RevvyStatusCode, Robot
+from revvy.revvy_utils import RobotBLEController, RevvyStatusCode
+from revvy.robot.robot import Robot
 from revvy.robot.led_ring import RingLed
 from revvy.robot.status import RobotStatus
 from revvy.scripting.runtime import ScriptDescriptor

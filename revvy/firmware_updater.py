@@ -6,7 +6,7 @@ import time
 import traceback
 from json import JSONDecodeError
 
-from revvy.revvy_utils import Robot
+from revvy.robot.robot import Robot
 from revvy.utils.file_storage import IntegrityError
 from revvy.utils.logger import get_logger
 from revvy.utils.version import Version
