@@ -101,8 +101,8 @@ class Robot:
         return self._bootloader_control
 
     @property
-    def start_time(self):
-        return self._start_time
+    def time(self):
+        return time.time() - self._start_time
 
     @property
     def hw_version(self) -> Version:

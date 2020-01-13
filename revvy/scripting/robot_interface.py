@@ -497,8 +497,6 @@ class RobotInterface:
     """Wrapper class that exposes API to user-written scripts"""
 
     def __init__(self, script, robot, config, res: dict, priority=0):
-        self._start_time = robot.start_time
-
         self._resources = {name: ResourceWrapper(res[name], priority) for name in res}
 
         def motor_name(port):
@@ -529,6 +527,7 @@ class RobotInterface:
         self.set_volume = self._sound.set_volume
 
         self.imu = robot.imu
+        self.time = robot.time
 
     def stop_all_motors(self, action):
         """
@@ -559,9 +558,6 @@ class RobotInterface:
         return self._joystick
 
     def play_note(self): pass  # TODO
-
-    def time(self):
-        return time.time() - self._start_time
 
     def release_resources(self):
         for res in self._resources.values():
