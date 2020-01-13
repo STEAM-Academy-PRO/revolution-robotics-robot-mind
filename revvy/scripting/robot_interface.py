@@ -2,12 +2,15 @@
 
 import time
 
+from revvy.robot.led_ring import RingLed
+from revvy.robot.sound import Sound
+from revvy.scripting.resource import Resource
 from revvy.utils.functions import hex2rgb
 from revvy.robot.ports.common import PortInstance, PortCollection
 
 
 class ResourceWrapper:
-    def __init__(self, resource, priority=0):
+    def __init__(self, resource: Resource, priority=0):
         self._resource = resource
         self._priority = priority
 
@@ -20,20 +23,13 @@ class Wrapper:
         self._resource = resource
         self._script = script
 
-    @property
-    def is_stop_requested(self):
-        return self._script.is_stop_requested
+        self.sleep = script.sleep
 
     def try_take_resource(self):
-        self.check_terminated()
-        return self._resource.request()
-
-    def sleep(self, s):
-        self._script.sleep(s)
-
-    def check_terminated(self):
-        if self.is_stop_requested:
+        if self._script.is_stop_requested:
             raise InterruptedError
+
+        return self._resource.request()
 
     def using_resource(self, callback):
         self.if_resource_available(lambda res: res.run_uninterruptable(callback))
@@ -50,7 +46,7 @@ class Wrapper:
 class SensorPortWrapper(Wrapper):
     """Wrapper class to expose sensor ports to user scripts"""
 
-    def __init__(self, script, sensor: PortInstance, resource):
+    def __init__(self, script, sensor: PortInstance, resource: ResourceWrapper):
         super().__init__(script, resource)
         self._sensor = sensor
 
@@ -60,17 +56,15 @@ class SensorPortWrapper(Wrapper):
     def read(self):
         """Return the last converted value"""
         while not self._sensor.has_data:
-            self.check_terminated()
             self.sleep(0.1)
 
-        self.check_terminated()
         return self._sensor.value
 
 
 class RingLedWrapper(Wrapper):
     """Wrapper class to expose LED ring to user scripts"""
 
-    def __init__(self, script, ring_led, resource):
+    def __init__(self, script, ring_led: RingLed, resource: ResourceWrapper):
         super().__init__(script, resource)
         self._ring_led = ring_led
         self._user_leds = [0] * ring_led.count
@@ -80,7 +74,7 @@ class RingLedWrapper(Wrapper):
         return self._ring_led.scenario
 
     def start_animation(self, scenario):
-        self.using_resource(lambda: self._ring_led.set_scenario(scenario))
+        self.using_resource(lambda: self._ring_led.start_animation(scenario))
 
     def set(self, led_index, color):
         if type(led_index) is not list:
@@ -129,7 +123,7 @@ class MotorPortWrapper(Wrapper):
     max_rpm = 150
     timeout = 5
 
-    def __init__(self, script, motor: PortInstance, resource):
+    def __init__(self, script, motor: PortInstance, resource: ResourceWrapper):
         super().__init__(script, resource)
         self.log = lambda message: script.log("MotorPortWrapper[motor {}]: {}".format(motor.id, message))
         self._motor = motor
@@ -250,7 +244,7 @@ class DriveTrainWrapper(Wrapper):
     timeout = 5
     turn_timeout = 10
 
-    def __init__(self, script, drivetrain, resource):
+    def __init__(self, script, drivetrain, resource: ResourceWrapper):
         super().__init__(script, resource)
         self.log = lambda message: script.log("DriveTrain: {}".format(message))
         self._drivetrain = drivetrain
@@ -442,7 +436,7 @@ class DriveTrainWrapper(Wrapper):
 class JoystickWrapper(Wrapper):
     max_rpm = 150
 
-    def __init__(self, script, drivetrain, resource):
+    def __init__(self, script, drivetrain, resource: ResourceWrapper):
         super().__init__(script, resource)
         self.log = lambda message: script.log("Joystick: {}".format(message))
         self._drivetrain = drivetrain
@@ -477,7 +471,7 @@ class JoystickWrapper(Wrapper):
 
 
 class SoundWrapper(Wrapper):
-    def __init__(self, script, sound, resource):
+    def __init__(self, script, sound: Sound, resource: ResourceWrapper):
         super().__init__(script, resource)
         self._sound = sound
 
@@ -485,14 +479,16 @@ class SoundWrapper(Wrapper):
         self._is_playing = False
 
     def _sound_finished(self):
+        # this runs on a different thread independent of the script
         self._is_playing = False
 
     def _play(self, name):
         if not self._is_playing:
-            self._is_playing = True
+            self._is_playing = True  # one sound per thread at the same time
             self._sound.play_tune(name, self._sound_finished)
 
     def play_tune(self, name):
+        # immediately releases resource after starting the playback
         self.if_resource_available(lambda resource: self._play(name))
 
 
@@ -500,7 +496,7 @@ class SoundWrapper(Wrapper):
 class RobotInterface:
     """Wrapper class that exposes API to user-written scripts"""
 
-    def __init__(self, script, robot, config, res, priority=0):
+    def __init__(self, script, robot, config, res: dict, priority=0):
         self._start_time = robot.start_time
 
         self._resources = {name: ResourceWrapper(res[name], priority) for name in res}

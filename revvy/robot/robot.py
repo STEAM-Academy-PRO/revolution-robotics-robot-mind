@@ -146,7 +146,7 @@ class Robot:
 
     def reset(self):
         self._log('reset()')
-        self._ring_led.set_scenario(RingLed.BreathingGreen)
+        self._ring_led.start_animation(RingLed.BreathingGreen)
         self._status_updater.reset()
 
         def _process_battery_slot(data):

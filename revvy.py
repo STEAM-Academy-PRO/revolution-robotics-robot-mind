@@ -76,7 +76,7 @@ class LongMessageImplementation:
         Requests LED ring change in the background"""
 
         if message_type == LongMessageType.FRAMEWORK_DATA:
-            self._robot.run_in_background(lambda: self._robot.robot.led_ring.set_scenario(RingLed.ColorWheel))
+            self._robot.run_in_background(lambda: self._robot.robot.led_ring.start_animation(RingLed.ColorWheel))
         else:
             self._robot.robot.status.robot_status = RobotStatus.Configuring
 
@@ -86,7 +86,7 @@ class LongMessageImplementation:
         Requests LED ring change in the background"""
 
         if message_type != LongMessageType.FRAMEWORK_DATA:
-            self._robot.run_in_background(lambda: self._robot.robot.led_ring.set_scenario(RingLed.BreathingGreen))
+            self._robot.run_in_background(lambda: self._robot.robot.led_ring.start_animation(RingLed.BreathingGreen))
 
     def on_message_updated(self, storage, message_type):
         self._log('Received message: {}'.format(message_type))
