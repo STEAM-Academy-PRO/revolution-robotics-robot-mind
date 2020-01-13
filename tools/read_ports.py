@@ -48,10 +48,8 @@ if __name__ == "__main__":
     sensor_data_changed = False
     sensor_data = [0, None, None, None, None, None]
 
-    with RevvyTransportI2C() as transport:
-        robot_control = RevvyControl(transport.bind(0x2D))
+    with Robot() as robot:
         manifest = read_json('manifest.json')
-        robot = Robot(robot_control, None, manifest['version'])
 
         def update():
             global sensor_data_changed
