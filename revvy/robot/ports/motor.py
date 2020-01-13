@@ -5,7 +5,7 @@ from collections import namedtuple
 import math
 
 from revvy.mcu.rrrc_control import RevvyControl
-from revvy.robot.ports.common import PortHandler, PortInstance
+from revvy.robot.ports.common import PortHandler, PortInstance, PortDriver
 import struct
 
 from revvy.utils.functions import clip
@@ -21,15 +21,15 @@ def create_motor_port_handler(interface: RevvyControl):
     drivers = {
         'DcMotor': DcMotorController
     }
-    handler = PortHandler(interface, drivers, NullMotor(), port_amount, port_types)
+    handler = PortHandler("Motor", interface, drivers, NullMotor(), port_amount, port_types)
     handler._set_port_type = interface.set_motor_port_type
 
     return handler
 
 
-class NullMotor:
+class NullMotor(PortDriver):
     def __init__(self):
-        self.driver = 'NotConfigured'
+        super().__init__('NotConfigured')
 
     def on_port_type_set(self):
         pass
@@ -69,10 +69,10 @@ class NullMotor:
         return DcMotorStatus(position=0, speed=0, power=0)
 
 
-class DcMotorController:
+class DcMotorController(PortDriver):
     """Generic driver for dc motors"""
     def __init__(self, port: PortInstance, port_config):
-        self.driver = 'DcMotor'
+        super().__init__('DcMotor')
         self._name = 'Motor {}'.format(port.id)
         self._port = port
         self._port_config = port_config

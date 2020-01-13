@@ -4,7 +4,7 @@ import struct
 
 from revvy.utils.functions import map_values, split
 from revvy.mcu.rrrc_control import RevvyControl
-from revvy.robot.ports.common import PortHandler, PortInstance
+from revvy.robot.ports.common import PortHandler, PortInstance, PortDriver
 
 
 def create_sensor_port_handler(interface: RevvyControl):
@@ -17,15 +17,15 @@ def create_sensor_port_handler(interface: RevvyControl):
         'EV3': lambda port, cfg: Ev3UARTSensor(port),
         'EV3_Color': ev3_color
     }
-    handler = PortHandler(interface, drivers, NullSensor(), port_amount, port_types)
+    handler = PortHandler("Sensor", interface, drivers, NullSensor(), port_amount, port_types)
     handler._set_port_type = interface.set_sensor_port_type
 
     return handler
 
 
-class NullSensor:
+class NullSensor(PortDriver):
     def __init__(self):
-        self.driver = 'NotConfigured'
+        super().__init__('NotConfigured')
 
     def on_port_type_set(self):
         pass
@@ -45,8 +45,9 @@ class NullSensor:
         return 0
 
 
-class BaseSensorPortDriver:
-    def __init__(self, port: PortInstance):
+class BaseSensorPortDriver(PortDriver):
+    def __init__(self, driver, port: PortInstance):
+        super().__init__(driver)
         self._port = port
         self._interface = port.interface
         self._value = None
@@ -100,8 +101,7 @@ class BaseSensorPortDriver:
 
 # noinspection PyUnusedLocal
 def bumper_switch(port: PortInstance, cfg):
-    sensor = BaseSensorPortDriver(port)
-    sensor.driver = 'BumperSwitch'
+    sensor = BaseSensorPortDriver('BumperSwitch', port)
 
     def process_bumper(raw):
         assert len(raw) == 2
@@ -113,8 +113,7 @@ def bumper_switch(port: PortInstance, cfg):
 
 # noinspection PyUnusedLocal
 def hcsr04(port: PortInstance, cfg):
-    sensor = BaseSensorPortDriver(port)
-    sensor.driver = 'HC_SR04'
+    sensor = BaseSensorPortDriver('HC_SR04', port)
 
     def process_ultrasonic(raw):
         assert len(raw) == 4
@@ -191,8 +190,7 @@ class Ev3UARTSensor(BaseSensorPortDriver):
     }
 
     def __init__(self, port: PortInstance, modes=None):
-        super().__init__(port)
-        self.driver = 'EV3'
+        super().__init__('EV3', port)
         self._state = self.STATE_RESET
         self._modes = modes
         self._current_mode = 0

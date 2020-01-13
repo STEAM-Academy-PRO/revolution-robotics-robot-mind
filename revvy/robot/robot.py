@@ -7,7 +7,6 @@ from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.hardware_dependent.sound import SoundControlV1, SoundControlV2
 from revvy.mcu.commands import BatteryStatus
 from revvy.mcu.rrrc_control import RevvyControl, BootloaderControl
-from revvy.robot.configurations import Motors, Sensors
 from revvy.robot.drivetrain import DifferentialDrivetrain
 from revvy.robot.imu import IMU
 from revvy.robot.led_ring import RingLed

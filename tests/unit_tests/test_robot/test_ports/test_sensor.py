@@ -79,7 +79,7 @@ class TestBaseSensorPortDriver(unittest.TestCase):
     def test_port_has_no_data_before_first_read(self):
         port = create_port()
 
-        sensor = BaseSensorPortDriver(port)
+        sensor = BaseSensorPortDriver("driver_name", port)
         port.interface.get_sensor_port_value.return_value = [1, 2, 3, 4]
         sensor.convert_sensor_value = Mock(return_value=5)
 
