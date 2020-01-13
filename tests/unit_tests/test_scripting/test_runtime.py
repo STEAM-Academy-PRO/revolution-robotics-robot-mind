@@ -31,7 +31,7 @@ def create_robot_mock():
         'sound': Resource()
     }
     robot_mock.robot = mockobj()
-    robot_mock.robot.start_time = 0
+    robot_mock.robot.time = lambda: 0
     robot_mock.robot.motors = []
     robot_mock.robot.sensors = []
 

@@ -101,10 +101,6 @@ class Robot:
         return self._bootloader_control
 
     @property
-    def time(self):
-        return time.time() - self._start_time
-
-    @property
     def hw_version(self) -> Version:
         return self._hw_version
 
@@ -143,6 +139,9 @@ class Robot:
     @property
     def sound(self):
         return self._sound
+
+    def time(self):
+        return time.time() - self._start_time
 
     def reset(self):
         self._log('reset()')
