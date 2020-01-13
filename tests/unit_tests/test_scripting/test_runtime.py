@@ -46,8 +46,8 @@ def create_robot_mock():
 
     robot_mock.robot.drivetrain = mockobj()
     robot_mock.robot.sound = MockSound()
-    robot_mock.robot.led_ring = mockobj()
-    robot_mock.robot.led_ring.count = 0
+    robot_mock.robot.led = mockobj()
+    robot_mock.robot.led.count = 0
 
     robot_mock.robot.imu = mockobj()
 

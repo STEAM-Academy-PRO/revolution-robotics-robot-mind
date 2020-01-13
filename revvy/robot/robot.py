@@ -137,7 +137,7 @@ class Robot:
         return self._drivetrain
 
     @property
-    def led_ring(self):
+    def led(self):
         return self._ring_led
 
     @property

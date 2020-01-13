@@ -516,7 +516,7 @@ class RobotInterface:
         self._motors.aliases.update(config.motors.names)
         self._sensors.aliases.update(config.sensors.names)
         self._sound = SoundWrapper(script, robot.sound, self._resources['sound'])
-        self._ring_led = RingLedWrapper(script, robot.led_ring, self._resources['led_ring'])
+        self._ring_led = RingLedWrapper(script, robot.led, self._resources['led_ring'])
         self._drivetrain = DriveTrainWrapper(script, robot.drivetrain, self._resources['drivetrain'])
         self._joystick = JoystickWrapper(script, robot.drivetrain, self._resources['drivetrain'])
 
@@ -531,6 +531,10 @@ class RobotInterface:
         self.imu = robot.imu
 
     def stop_all_motors(self, action):
+        """
+        @deprecated
+        @param action: MotorConstants.ACTION_STOP_AND_HOLD or MotorConstants.ACTION_RELEASE
+        """
         for motor in self._motors:
             motor.stop(action)
 
@@ -558,9 +562,6 @@ class RobotInterface:
 
     def time(self):
         return time.time() - self._start_time
-
-    # property alias
-    led_ring = led
 
     def release_resources(self):
         for res in self._resources.values():
