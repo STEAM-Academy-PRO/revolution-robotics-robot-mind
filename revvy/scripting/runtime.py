@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
-from revvy.scripting.robot_interface import RobotInterface
 import time
 
+from revvy.scripting.robot_interface import RobotInterface
 from revvy.utils.logger import get_logger
 from revvy.utils.thread_wrapper import ThreadContext, ThreadWrapper
 
@@ -38,12 +38,12 @@ class ScriptHandle:
     def _default_sleep(time):
         raise Exception('Script not running')
 
-    def __init__(self, owner, script, name, global_variables: dict):
+    def __init__(self, owner: 'ScriptManager', script, name, global_variables: dict):
         self._owner = owner
         self._globals = dict(global_variables)
         self._inputs = {}
         self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(name))
-        self._logger = get_logger('Script: {}'.format(name))
+        self.log = get_logger('Script: {}'.format(name))
 
         self.stop = self._thread.stop
         self.cleanup = self._thread.exit
@@ -54,9 +54,6 @@ class ScriptHandle:
 
         self.log('Created')
         self._runnable = script
-
-    def log(self, message):
-        self._logger(message)
 
     @property
     def is_stop_requested(self):
