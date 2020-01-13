@@ -2,7 +2,7 @@
 
 import time
 
-from revvy.scripting.robot_interface import RobotInterface
+from revvy.scripting.robot_interface import RobotWrapper
 from revvy.utils.logger import get_logger
 from revvy.utils.thread_wrapper import ThreadContext, ThreadWrapper
 
@@ -125,7 +125,7 @@ class ScriptManager:
         script_handle = ScriptHandle(self, script.runnable, script.name, self._globals)
         try:
             robot = self._robot
-            interface = RobotInterface(script_handle, robot.robot, robot.config, robot.resources, script.priority)
+            interface = RobotWrapper(script_handle, robot.robot, robot.config, robot.resources, script.priority)
             script_handle.assign('robot', interface)
             self._scripts[script.name] = script_handle
 

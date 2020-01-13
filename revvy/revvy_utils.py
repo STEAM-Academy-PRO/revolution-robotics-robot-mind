@@ -101,10 +101,6 @@ class RobotBLEController:
         return self._config
 
     @property
-    def sound(self):
-        return self._robot.sound
-
-    @property
     def status_code(self):
         return self._status_code
 
@@ -154,7 +150,7 @@ class RobotBLEController:
 
             self._ble.start()
             self._robot.status.robot_status = RobotStatus.NotConfigured
-            self.configure(None, lambda: self.sound.play_tune('robot2'))
+            self.configure(None, lambda: self._robot.play_tune('robot2'))
 
     def run_in_background(self, callback):
         if callable(callback):
@@ -168,11 +164,11 @@ class RobotBLEController:
         self._log('Phone connected' if is_connected else 'Phone disconnected')
         if not is_connected:
             self._robot.status.controller_status = RemoteControllerStatus.NotConnected
-            self._robot.sound.play_tune('disconnect')
+            self._robot.play_tune('disconnect')
             self.configure(None)
         else:
             self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
-            self._robot.sound.play_tune('bell')
+            self._robot.play_tune('bell')
 
     def _on_controller_detected(self):
         self._log('Remote controller detected')
@@ -194,16 +190,14 @@ class RobotBLEController:
                 self.run_in_background(after)
 
     def _reset_configuration(self):
-        self.sound.reset_volume()
-
         self._scripts.reset()
         self._scripts.assign('Motor', MotorConstants)
         self._scripts.assign('RingLed', RingLed)
 
         self._remote_controller_thread.stop().wait()
 
-        for res in self._resources:
-            self._resources[res].reset()
+        for res in self._resources.values():
+            res.reset()
 
         # ping robot, because robot may reset after stopping scripts
         self._ping_robot()

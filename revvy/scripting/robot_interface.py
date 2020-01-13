@@ -492,12 +492,45 @@ class SoundWrapper(Wrapper):
         self.if_resource_available(lambda resource: self._play(name))
 
 
-# FIXME: type hints missing because of circular reference that causes ImportError
 class RobotInterface:
+    def time(self):
+        raise NotImplementedError
+
+    @property
+    def motors(self) -> PortCollection:
+        raise NotImplementedError
+
+    @property
+    def sensors(self) -> PortCollection:
+        raise NotImplementedError
+
+    @property
+    def led(self):
+        raise NotImplementedError
+
+    @property
+    def sound(self):
+        raise NotImplementedError
+
+    @property
+    def drivetrain(self):
+        raise NotImplementedError
+
+    @property
+    def imu(self):
+        raise NotImplementedError
+
+    def play_tune(self, name):
+        raise NotImplementedError
+
+
+class RobotWrapper(RobotInterface):
     """Wrapper class that exposes API to user-written scripts"""
 
-    def __init__(self, script, robot, config, res: dict, priority=0):
+    # FIXME: type hints missing because of circular reference that causes ImportError
+    def __init__(self, script, robot: RobotInterface, config, res: dict, priority=0):
         self._resources = {name: ResourceWrapper(res[name], priority) for name in res}
+        self._robot = robot
 
         def motor_name(port):
             return 'motor_{}'.format(port.id)
@@ -523,10 +556,7 @@ class RobotInterface:
         # shorthand functions
         self.drive = self._drivetrain.drive
         self.turn = self._drivetrain.turn
-        self.play_tune = self._sound.play_tune
-        self.set_volume = self._sound.set_volume
 
-        self.imu = robot.imu
         self.time = robot.time
 
     def stop_all_motors(self, action):
@@ -536,6 +566,9 @@ class RobotInterface:
         """
         for motor in self._motors:
             motor.stop(action)
+
+    def time(self):
+        return self._robot.time
 
     @property
     def motors(self):
@@ -556,6 +589,17 @@ class RobotInterface:
     @property
     def joystick(self):
         return self._joystick
+
+    @property
+    def imu(self):
+        return self._robot.imu
+
+    @property
+    def sound(self):
+        raise self._sound
+
+    def play_tune(self, name):
+        self._sound.play_tune(name)
 
     def play_note(self): pass  # TODO
 

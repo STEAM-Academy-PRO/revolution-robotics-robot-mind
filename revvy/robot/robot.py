@@ -16,12 +16,13 @@ from revvy.robot.ports.sensor import create_sensor_port_handler
 from revvy.robot.sound import Sound
 from revvy.robot.status import RobotStatusIndicator, RobotStatus
 from revvy.robot.status_updater import McuStatusUpdater
+from revvy.scripting.robot_interface import RobotInterface
 from revvy.utils.assets import Assets
 from revvy.utils.logger import get_logger
 from revvy.utils.version import Version
 
 
-class Robot:
+class Robot(RobotInterface):
     BOOTLOADER_I2C_ADDRESS = 0x2B
     ROBOT_I2C_ADDRESS = 0x2D
 
@@ -140,6 +141,9 @@ class Robot:
     def sound(self):
         return self._sound
 
+    def play_tune(self, name):
+        self._sound.play_tune(name)
+
     def time(self):
         return time.time() - self._start_time
 
@@ -167,6 +171,7 @@ class Robot:
         self._drivetrain.reset()
         self._motor_ports.reset()
         self._sensor_ports.reset()
+        self._sound.reset_volume()
 
         self._status.robot_status = RobotStatus.NotConfigured
         self._status.update()
