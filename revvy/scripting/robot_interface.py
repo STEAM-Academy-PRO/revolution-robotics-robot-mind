@@ -2,6 +2,7 @@
 
 import time
 
+from revvy.robot.configurations import Motors, Sensors
 from revvy.robot.led_ring import RingLed
 from revvy.robot.sound import Sound
 from revvy.scripting.resource import Resource
@@ -46,12 +47,20 @@ class Wrapper:
 class SensorPortWrapper(Wrapper):
     """Wrapper class to expose sensor ports to user scripts"""
 
+    _named_configurations = {
+        'BumperSwitch': Sensors.BumperSwitch,
+        'HC_SR04': Sensors.HC_SR04
+    }
+
     def __init__(self, script, sensor: PortInstance, resource: ResourceWrapper):
         super().__init__(script, resource)
         self._sensor = sensor
 
-    def configure(self, config_name):
-        self.using_resource(lambda: self._sensor.configure(config_name))
+    def configure(self, config):
+        if type(config) is str:
+            self._script.log("Warning: Using deprecated named sensor configuration")
+            config = self._named_configurations[config]
+        self.using_resource(lambda: self._sensor.configure(config))
 
     def read(self):
         """Return the last converted value"""
@@ -123,13 +132,21 @@ class MotorPortWrapper(Wrapper):
     max_rpm = 150
     timeout = 5
 
+    _named_configurations = {
+        'RevvyMotor': Motors.RevvyMotor,
+        'RevvyMotor_CCW': Motors.RevvyMotor_CCW
+    }
+
     def __init__(self, script, motor: PortInstance, resource: ResourceWrapper):
         super().__init__(script, resource)
         self.log = lambda message: script.log("MotorPortWrapper[motor {}]: {}".format(motor.id, message))
         self._motor = motor
 
-    def configure(self, config_name):
-        self._motor.configure(config_name)
+    def configure(self, config):
+        if type(config) is str:
+            self._script.log("Warning: Using deprecated named motor configuration")
+            config = self._named_configurations[config]
+        self._motor.configure(config)
 
     def move(self, direction, amount, unit_amount, limit, unit_limit):
         self.log("move")
