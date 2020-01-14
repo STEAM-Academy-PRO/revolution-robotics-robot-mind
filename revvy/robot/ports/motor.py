@@ -8,6 +8,7 @@ from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler, PortInstance, PortDriver
 import struct
 
+from revvy.utils.awaiter import Awaiter, AwaiterSignal, AwaiterImpl
 from revvy.utils.functions import clip
 from revvy.utils.logger import get_logger
 
@@ -56,8 +57,8 @@ class NullMotor(PortDriver):
     def set_speed(self, speed, power_limit=None):
         pass
 
-    def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute'):
-        pass
+    def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute') -> Awaiter:
+        return AwaiterImpl.from_state(AwaiterSignal.FINISHED)
 
     def set_power(self, power):
         pass
@@ -87,6 +88,7 @@ class DcMotorController(PortDriver):
         self._pos_reached = None
 
         self._status_changed_callback = None
+        self._awaiter = None
 
     def on_port_type_set(self):
         (posP, posI, posD, speedLowerLimit, speedUpperLimit) = self._port_config['position_controller']
@@ -117,6 +119,12 @@ class DcMotorController(PortDriver):
         if self._status_changed_callback:
             self._status_changed_callback(self._port)
 
+    def _cancel_awaiter(self):
+        awaiter, self._awaiter = self._awaiter, None
+        if awaiter:
+            self._log('Cancelling previous request')
+            awaiter.cancel()
+
     @property
     def speed(self):
         return self._speed
@@ -138,6 +146,7 @@ class DcMotorController(PortDriver):
             return not (self._pos_reached and stopped)
 
     def set_speed(self, speed, power_limit=None):
+        self._cancel_awaiter()
         self._log('set_speed')
         if power_limit is None:
             control = list(struct.pack("<f", speed))
@@ -146,13 +155,14 @@ class DcMotorController(PortDriver):
 
         self._control(1, control)
 
-    def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute'):
+    def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute') -> Awaiter:
         """
         @param position: measured in degrees, depending on pos_type
         @param speed_limit: maximum speed in degrees per seconds
         @param power_limit: maximum power in percent
         @param pos_type: 'absolute': turn to this angle, counted from startup; 'relative': turn this many degrees
         """
+        self._cancel_awaiter()
         self._log('set_position')
         position = int(position)
 
@@ -166,9 +176,27 @@ class DcMotorController(PortDriver):
             control = list(struct.pack("<l", position))
 
         pos_request_types = {'absolute': 2, 'relative': 3}
+
+        def _finished():
+            self._awaiter = None
+
+        def _canceled():
+            self.set_power(0)
+
+        awaiter = AwaiterImpl()
+        awaiter.on_result(_finished)
+        awaiter.on_cancelled(_canceled)
+
+        self._awaiter = awaiter
+
+        self._pos_reached = False
         self._control(pos_request_types[pos_type], control, True)
 
+        return awaiter
+
     def set_power(self, power):
+        self._cancel_awaiter()
+
         self._log('set_power')
         power = clip(power, -100, 100)
         if power < 0:
@@ -181,6 +209,11 @@ class DcMotorController(PortDriver):
             pos_reached = None
         elif len(data) == 10:
             (power, pos, speed, pos_reached) = struct.unpack('<blfb', data)
+
+            if pos_reached:
+                awaiter = self._awaiter
+                if awaiter:
+                    awaiter.finish()
         else:
             self._log('Received {} bytes of data instead of 9 or 10'.format(len(data)))
             return
