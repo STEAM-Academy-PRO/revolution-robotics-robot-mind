@@ -33,27 +33,26 @@ class TimeWrapper:
 
 
 class ScriptHandle:
-
-    @staticmethod
-    def _default_sleep(time):
+    def _default_sleep(self, time):
+        self.log('Error: default sleep called')
         raise Exception('Script not running')
 
     def __init__(self, owner: 'ScriptManager', script, name, global_variables: dict):
         self._owner = owner
         self._globals = dict(global_variables)
         self._inputs = {}
+        self._runnable = script
+        self.sleep = self._default_sleep
         self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(name))
         self.log = get_logger('Script: {}'.format(name))
 
         self.stop = self._thread.stop
         self.cleanup = self._thread.exit
         self.on_stopped = self._thread.on_stopped
-        self.sleep = ScriptHandle._default_sleep
 
         assert(callable(script))
 
         self.log('Created')
-        self._runnable = script
 
     @property
     def is_stop_requested(self):
@@ -77,6 +76,7 @@ class ScriptHandle:
             ctx.terminate_all = self._owner.stop_all_scripts
 
             self.sleep = ctx.sleep
+            self.log("Starting script")
             self._runnable({
                 **self._globals,
                 **self._inputs,
@@ -86,7 +86,8 @@ class ScriptHandle:
             })
         finally:
             # restore to release reference on context
-            self.sleep = ScriptHandle._default_sleep
+            self.log("Script finished")
+            self.sleep = self._default_sleep
 
     def start(self, variables=None):
         if variables is None:
