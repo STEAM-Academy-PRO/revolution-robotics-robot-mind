@@ -24,7 +24,8 @@ class Wrapper:
         self._resource = resource
         self._script = script
 
-        self.sleep = script.sleep
+    def sleep(self, s):
+        self._script.sleep(s)
 
     def try_take_resource(self):
         if self._script.is_stop_requested:
