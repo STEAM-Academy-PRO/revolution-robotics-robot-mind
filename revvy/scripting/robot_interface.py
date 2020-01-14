@@ -189,38 +189,27 @@ class MotorPortWrapper(Wrapper):
         if resource:
             try:
                 self.log("start movement")
-                resource.run_uninterruptable(set_fns[unit_amount][unit_limit][direction])
+                awaiter = resource.run_uninterruptable(set_fns[unit_amount][unit_limit][direction])
 
                 if unit_amount == MotorConstants.UNIT_DEG:
                     # wait for movement to finish
                     self.sleep(0.2)
 
+                    warn = False
                     start_pos = self._motor.position
-                    start_time = time.time()
-                    while not resource.is_interrupted and self._motor.is_moving:
+                    while not awaiter.wait(2):
+                        pos = self._motor.position
+                        pos_diff, start_pos = pos - start_pos, pos
 
-                        # check if there was any movement
-                        if time.time() - start_time > 1:
-                            pos = self._motor.position
-                            pos_diff = pos - start_pos
-                            start_pos = pos
-
-                            if direction == MotorConstants.DIRECTION_BACK:
-                                pos_diff *= -1
-
-                            if pos_diff > 0:
-                                # there was a positive movement towards the goal, reset timeout
-                                self.log("movement detected, reset timeout: {}")
-                                start_time = time.time()
-
-                        # check movement timeout
-                        if time.time() - start_time > self.timeout:
-                            # no need to force the motors, stop
-                            resource.run_uninterruptable(lambda: self._motor.set_power(0))
-                            self.log("timeout")
-                            break
-
-                        self.sleep(0.2)
+                        if pos_diff <= 0:
+                            if warn:
+                                self.log("timeout")
+                                awaiter.cancel()
+                                break
+                            else:
+                                warn = True
+                        else:
+                            self.log("movement detected, reset timeout")
 
                 elif unit_amount == MotorConstants.UNIT_SEC:
                     self.sleep(amount)

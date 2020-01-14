@@ -2,8 +2,6 @@
 
 from collections import namedtuple
 
-import math
-
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler, PortInstance, PortDriver
 import struct
@@ -90,6 +88,8 @@ class DcMotorController(PortDriver):
         self._status_changed_callback = None
         self._awaiter = None
 
+        self._timeout = 0
+
     def on_port_type_set(self):
         (posP, posI, posD, speedLowerLimit, speedUpperLimit) = self._port_config['position_controller']
         (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = self._port_config['speed_controller']
@@ -139,11 +139,10 @@ class DcMotorController(PortDriver):
 
     @property
     def is_moving(self):
-        stopped = math.fabs(round(self._speed, 2)) == 0 and math.fabs(self._power) < 80
-        if self._pos_reached is None:
-            return not stopped
+        if self._pos_reached is not None:
+            return self._pos_reached
         else:
-            return not (self._pos_reached and stopped)
+            return not (int(self._speed) == 0)
 
     def set_speed(self, speed, power_limit=None):
         self._cancel_awaiter()

@@ -112,9 +112,10 @@ class AwaiterImpl(Awaiter):
 
     def wait(self, timeout=None):
         if self._signal.get() != AwaiterSignal.NONE:
-            return
+            return True
 
         try:
             self._signal.wait(timeout)
+            return True
         except TimeoutError:
-            self.cancel()
+            return False
