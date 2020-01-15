@@ -176,6 +176,12 @@ class DcMotorController(PortDriver):
         else:
             return not (int(self._speed) == 0)
 
+    def set_power(self, power):
+        self._cancel_awaiter()
+        self._log('set_power')
+
+        self._port.interface.set_motor_port_control_value(DcMotorPowerRequest(self._port.id, power))
+
     def set_speed(self, speed, power_limit=None):
         self._cancel_awaiter()
         self._log('set_speed')
@@ -211,12 +217,6 @@ class DcMotorController(PortDriver):
         self._port.interface.set_motor_port_control_value(command)
 
         return awaiter
-
-    def set_power(self, power):
-        self._cancel_awaiter()
-
-        self._log('set_power')
-        self._port.interface.set_motor_port_control_value(DcMotorPowerRequest(self._port.id, power))
 
     def update_status(self, data):
         if len(data) == 9:
