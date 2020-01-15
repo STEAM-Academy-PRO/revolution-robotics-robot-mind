@@ -2,6 +2,7 @@
 
 from collections import namedtuple
 
+from revvy.mcu.commands import MotorPortControlCommand
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler, PortInstance, PortDriver
 import struct
@@ -68,6 +69,44 @@ class NullMotor(PortDriver):
         return DcMotorStatus(position=0, speed=0, power=0)
 
 
+class DcMotorPowerRequest(MotorPortControlCommand):
+    def __init__(self, port_idx, power):
+        power = clip(power, -100, 100)
+        if power < 0:
+            power = 256 + power
+
+        super().__init__(port_idx, [0, power])
+
+
+class DcMotorSpeedRequest(MotorPortControlCommand):
+    def __init__(self, port_idx, speed, power_limit=None):
+        if power_limit is None:
+            control = struct.pack("<bf", 1, speed)
+        else:
+            control = struct.pack("<bff", 1, speed, power_limit)
+
+        super().__init__(port_idx, control)
+
+
+class DcMotorPositionRequest(MotorPortControlCommand):
+    REQUEST_ABSOLUTE = 2
+    REQUEST_RELATIVE = 3
+
+    def __init__(self, port_idx, position, request_type, speed_limit=None, power_limit=None):
+        position = int(position)
+
+        if speed_limit is not None and power_limit is not None:
+            control = struct.pack("<blff", request_type, position, speed_limit, power_limit)
+        elif speed_limit is not None:
+            control = struct.pack("<blbf", request_type, position, 1, speed_limit)
+        elif power_limit is not None:
+            control = struct.pack("<blbf", request_type, position, 0, power_limit)
+        else:
+            control = struct.pack("<bl", request_type, position)
+
+        super().__init__(port_idx, control)
+
+
 class DcMotorController(PortDriver):
     """Generic driver for dc motors"""
     def __init__(self, port: PortInstance, port_config):
@@ -105,14 +144,7 @@ class DcMotorController(PortDriver):
 
         self._configure(config)
 
-    def _control(self, ctrl, value, pos_ctrl=False):
-        self._pos_reached = False if pos_ctrl else None
-        self._port.interface.set_motor_port_control_value(self._port.id, [ctrl] + value)
-
     def on_status_changed(self, cb):
-        if not callable(cb):
-            cb = None
-
         self._status_changed_callback = cb
 
     def _raise_status_changed_callback(self):
@@ -147,12 +179,8 @@ class DcMotorController(PortDriver):
     def set_speed(self, speed, power_limit=None):
         self._cancel_awaiter()
         self._log('set_speed')
-        if power_limit is None:
-            control = list(struct.pack("<f", speed))
-        else:
-            control = list(struct.pack("<ff", speed, power_limit))
 
-        self._control(1, control)
+        self._port.interface.set_motor_port_control_value(DcMotorSpeedRequest(self._port.id, speed, power_limit))
 
     def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute') -> Awaiter:
         """
@@ -163,18 +191,6 @@ class DcMotorController(PortDriver):
         """
         self._cancel_awaiter()
         self._log('set_position')
-        position = int(position)
-
-        if speed_limit is not None and power_limit is not None:
-            control = list(struct.pack("<lff", position, speed_limit, power_limit))
-        elif speed_limit is not None:
-            control = list(struct.pack("<lbf", position, 1, speed_limit))
-        elif power_limit is not None:
-            control = list(struct.pack("<lbf", position, 0, power_limit))
-        else:
-            control = list(struct.pack("<l", position))
-
-        pos_request_types = {'absolute': 2, 'relative': 3}
 
         def _finished():
             self._awaiter = None
@@ -187,9 +203,12 @@ class DcMotorController(PortDriver):
         awaiter.on_cancelled(_canceled)
 
         self._awaiter = awaiter
-
         self._pos_reached = False
-        self._control(pos_request_types[pos_type], control, True)
+
+        req_type = {'absolute': DcMotorPositionRequest.REQUEST_ABSOLUTE,
+                    'relative': DcMotorPositionRequest.REQUEST_RELATIVE}[pos_type]
+        command = DcMotorPositionRequest(self._port.id, position, req_type, speed_limit, power_limit)
+        self._port.interface.set_motor_port_control_value(command)
 
         return awaiter
 
@@ -197,10 +216,7 @@ class DcMotorController(PortDriver):
         self._cancel_awaiter()
 
         self._log('set_power')
-        power = clip(power, -100, 100)
-        if power < 0:
-            power = 256 + power
-        self._control(0, [power])
+        self._port.interface.set_motor_port_control_value(DcMotorPowerRequest(self._port.id, power))
 
     def update_status(self, data):
         if len(data) == 9:

@@ -5,6 +5,7 @@ import traceback
 from abc import ABC
 from collections import namedtuple
 from enum import Enum
+from typing import List, Union
 
 from revvy.utils.functions import split
 from revvy.utils.logger import get_logger
@@ -271,12 +272,28 @@ class ReadSensorPortInfoCommand(Command):
         return payload
 
 
+class MotorPortControlCommand:
+    def __init__(self, port_idx, command_data):
+        self._port_idx = port_idx
+        self._command_data = command_data
+
+    def get_bytes(self):
+        header = (self._port_idx & 0x0F) | ((len(self._command_data) << 4) & 0xF0)
+        return [header, *self._command_data]
+
+
 class SetMotorPortControlCommand(Command):
     @property
     def command_id(self): return 0x14
 
-    def __call__(self, port_idx, control):
-        return self._send([port_idx, *control])
+    def __call__(self, commands: Union[List[MotorPortControlCommand], MotorPortControlCommand]):
+        if type(commands) is MotorPortControlCommand:
+            command_bytes = commands.get_bytes()
+        else:
+            command_bytes = []
+            for command in commands:
+                command_bytes.append(command.get_bytes())
+        return self._send(command_bytes)
 
 
 class ReadPortStatusCommand(Command, ABC):
