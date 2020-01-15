@@ -176,17 +176,31 @@ class DcMotorController(PortDriver):
         else:
             return not (int(self._speed) == 0)
 
+    def create_set_power_command(self, power):
+        return DcMotorPowerRequest(self._port.id, power)
+
+    def create_set_speed_command(self, speed, power_limit=None):
+        return DcMotorSpeedRequest(self._port.id, speed, power_limit)
+
+    def create_absolute_position_command(self, position, speed_limit=None, power_limit=None):
+        return DcMotorPositionRequest(self._port.id, position,
+                                      DcMotorPositionRequest.REQUEST_ABSOLUTE, speed_limit, power_limit)
+
+    def create_relative_position_command(self, position, speed_limit=None, power_limit=None):
+        return DcMotorPositionRequest(self._port.id, position,
+                                      DcMotorPositionRequest.REQUEST_RELATIVE, speed_limit, power_limit)
+
     def set_power(self, power):
         self._cancel_awaiter()
         self._log('set_power')
 
-        self._port.interface.set_motor_port_control_value(DcMotorPowerRequest(self._port.id, power))
+        self._port.interface.set_motor_port_control_value(self.create_set_power_command(power))
 
     def set_speed(self, speed, power_limit=None):
         self._cancel_awaiter()
         self._log('set_speed')
 
-        self._port.interface.set_motor_port_control_value(DcMotorSpeedRequest(self._port.id, speed, power_limit))
+        self._port.interface.set_motor_port_control_value(self.create_set_speed_command(speed, power_limit))
 
     def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute') -> Awaiter:
         """
@@ -211,9 +225,9 @@ class DcMotorController(PortDriver):
         self._awaiter = awaiter
         self._pos_reached = False
 
-        req_type = {'absolute': DcMotorPositionRequest.REQUEST_ABSOLUTE,
-                    'relative': DcMotorPositionRequest.REQUEST_RELATIVE}[pos_type]
-        command = DcMotorPositionRequest(self._port.id, position, req_type, speed_limit, power_limit)
+        req_type = {'absolute': self.create_absolute_position_command,
+                    'relative': self.create_relative_position_command}
+        command = req_type[pos_type](position, speed_limit, power_limit)
         self._port.interface.set_motor_port_control_value(command)
 
         return awaiter
