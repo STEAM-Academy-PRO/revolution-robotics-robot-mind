@@ -7,11 +7,6 @@ from revvy.utils.awaiter import AwaiterImpl
 from revvy.utils.logger import get_logger
 
 
-class DrivetrainTypes:
-    NONE = 0
-    DIFFERENTIAL = 1
-
-
 class DifferentialDrivetrain:
 
     def __init__(self, interface: RevvyControl, motor_port_count, imu: IMU):
@@ -67,23 +62,22 @@ class DifferentialDrivetrain:
         self._left_motors.clear()
         self._right_motors.clear()
 
-    def add_left_motor(self, motor: PortInstance):
-        self._log('Add motor {} to left side'.format(motor.id))
+    def _add_motor(self, motor: PortInstance):
         self._motors.append(motor)
         self._motors_moving.append(False)
-        self._left_motors.append(motor)
 
         motor.on_status_changed.add(self._on_motor_status_changed)
         motor.on_config_changed.add(self._on_motor_config_changed)
+
+    def add_left_motor(self, motor: PortInstance):
+        self._log('Add motor {} to left side'.format(motor.id))
+        self._left_motors.append(motor)
+        self._add_motor(motor)
 
     def add_right_motor(self, motor: PortInstance):
         self._log('Add motor {} to right side'.format(motor.id))
-        self._motors.append(motor)
-        self._motors_moving.append(False)
         self._right_motors.append(motor)
-
-        motor.on_status_changed.add(self._on_motor_status_changed)
-        motor.on_config_changed.add(self._on_motor_config_changed)
+        self._add_motor(motor)
 
     def stop_release(self):
         commands = []
