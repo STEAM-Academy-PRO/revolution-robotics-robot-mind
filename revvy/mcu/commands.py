@@ -257,7 +257,7 @@ class SetMotorPortControlCommand(Command):
         else:
             command_bytes = []
             for command in commands:
-                command_bytes.append(command.get_bytes())
+                command_bytes += command.get_bytes()
         return self._send(command_bytes)
 
 

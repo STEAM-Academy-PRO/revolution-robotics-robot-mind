@@ -39,12 +39,12 @@ class DifferentialDrivetrain:
     def add_left_motor(self, motor):
         self._log('Add motor {} to left side'.format(motor.id))
         self._motors.append(motor)
-        self._left_motors.append(motor.id - 1)
+        self._left_motors.append(motor)
 
     def add_right_motor(self, motor):
         self._log('Add motor {} to right side'.format(motor.id))
         self._motors.append(motor)
-        self._right_motors.append(motor.id - 1)
+        self._right_motors.append(motor)
 
     def set_speeds(self, left, right, power_limit=None):
         commands = []
