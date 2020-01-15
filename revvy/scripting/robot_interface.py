@@ -49,6 +49,7 @@ class SensorPortWrapper(Wrapper):
     """Wrapper class to expose sensor ports to user scripts"""
 
     _named_configurations = {
+        'NotConfigured': None,
         'BumperSwitch': Sensors.BumperSwitch,
         'HC_SR04': Sensors.HC_SR04
     }
@@ -134,6 +135,7 @@ class MotorPortWrapper(Wrapper):
     timeout = 5
 
     _named_configurations = {
+        'NotConfigured': None,
         'RevvyMotor': Motors.RevvyMotor,
         'RevvyMotor_CCW': Motors.RevvyMotor_CCW
     }
