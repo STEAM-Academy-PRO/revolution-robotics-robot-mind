@@ -25,10 +25,6 @@ class DifferentialDrivetrain:
         self._left_motors = []
         self._right_motors = []
 
-        self.set_speeds = interface.set_drivetrain_speed
-        self.turn = interface.drivetrain_turn
-        self.move = interface.set_drivetrain_position
-
         self._log = get_logger('Drivetrain')
 
     @property
@@ -49,6 +45,29 @@ class DifferentialDrivetrain:
         self._log('Add motor {} to right side'.format(motor.id))
         self._motors.append(motor)
         self._right_motors.append(motor.id - 1)
+
+    def set_speeds(self, left, right, power_limit=None):
+        commands = []
+        for motor in self._left_motors:
+            commands.append(motor.create_set_speed_command(left, power_limit))
+
+        for motor in self._right_motors:
+            commands.append(motor.create_set_speed_command(right, power_limit))
+
+        self._interface.set_motor_port_control_value(commands)
+
+    def turn(self, turn_angle, wheel_speed=0, power_limit=0):
+        pass
+
+    def move(self, left, right, left_speed=None, right_speed=None, power_limit=None):
+        commands = []
+        for motor in self._left_motors:
+            commands.append(motor.create_set_position_command(left, left_speed, power_limit))
+
+        for motor in self._right_motors:
+            commands.append(motor.create_set_position_command(right, right_speed, power_limit))
+
+        self._interface.set_motor_port_control_value(commands)
 
     @property
     def is_moving(self):

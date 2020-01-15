@@ -211,41 +211,6 @@ class SendRingLedUserFrameCommand(Command):
         return self._send(led_bytes)
 
 
-class ConfigureDrivetrain(Command):
-    @property
-    def command_id(self): return 0x1A
-
-    def __call__(self, drivetrain_type, config):
-        return self._send([drivetrain_type, *config])
-
-
-class RequestDifferentialDriveTrainSpeedCommand(Command):
-    @property
-    def command_id(self): return 0x1B
-
-    def __call__(self, left, right, power_limit=0):
-        speed_cmd = struct.pack('<bffb', 1, left, right, power_limit)
-        return self._send(speed_cmd)
-
-
-class RequestDifferentialDriveTrainPositionCommand(Command):
-    @property
-    def command_id(self): return 0x1B
-
-    def __call__(self, left, right, left_speed=0, right_speed=0, power_limit=0):
-        pos_cmd = struct.pack('<bllffb', 0, int(left), int(right), left_speed, right_speed, power_limit)
-        return self._send(pos_cmd)
-
-
-class RequestDifferentialDriveTrainTurnCommand(Command):
-    @property
-    def command_id(self): return 0x1B
-
-    def __call__(self, turn_angle, wheel_speed=0, power_limit=0):
-        turn_cmd = struct.pack('<blfb', 3, int(turn_angle), wheel_speed, power_limit)
-        return self._send(turn_cmd)
-
-
 class SetPortConfigCommand(Command, ABC):
     def __call__(self, port_idx, config):
         return self._send([port_idx, *config])

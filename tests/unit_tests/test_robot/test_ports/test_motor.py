@@ -84,19 +84,3 @@ class TestDcMotorDriver(unittest.TestCase):
 
         self.assertEqual(3, passed_port_id)
         self.assertEqual(50, len(passed_config))
-
-    def test_set_power_sends_port_idx_and_command_and_data(self):
-        port = self.create_port()
-
-        dc = DcMotorController(port, self.config)
-
-        dc.set_power(20)
-
-        method = port.interface.set_motor_port_control_value
-        (passed_port_id, passed_control) = method.call_args[0]
-
-        self.assertEqual(1, method.call_count)
-        self.assertEqual(3, passed_port_id)
-        self.assertEqual(2, len(passed_control))
-        self.assertEqual(0, passed_control[0])  # command id
-        self.assertEqual(20, passed_control[1])  # power
