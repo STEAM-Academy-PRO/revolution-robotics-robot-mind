@@ -287,7 +287,7 @@ class SetMotorPortControlCommand(Command):
     def command_id(self): return 0x14
 
     def __call__(self, commands: Union[List[MotorPortControlCommand], MotorPortControlCommand]):
-        if type(commands) is MotorPortControlCommand:
+        if isinstance(commands, MotorPortControlCommand):
             command_bytes = commands.get_bytes()
         else:
             command_bytes = []
