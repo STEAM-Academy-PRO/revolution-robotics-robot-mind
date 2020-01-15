@@ -230,10 +230,8 @@ class MotorPortWrapper(Wrapper):
                 MotorConstants.DIRECTION_BACK: lambda: self._motor.set_speed(rpm2dps(-rotation))
             },
             MotorConstants.UNIT_SPEED_PWR: {
-                MotorConstants.DIRECTION_FWD: lambda: self._motor.set_speed(rpm2dps(self.max_rpm),
-                                                                            power_limit=rotation),
-                MotorConstants.DIRECTION_BACK: lambda: self._motor.set_speed(rpm2dps(-self.max_rpm),
-                                                                             power_limit=rotation)
+                MotorConstants.DIRECTION_FWD: lambda: self._motor.set_power(rotation),
+                MotorConstants.DIRECTION_BACK: lambda: self._motor.set_power(-rotation)
             }
         }
 
