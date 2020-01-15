@@ -34,9 +34,6 @@ class NullMotor(PortDriver):
     def on_port_type_set(self):
         pass
 
-    def on_status_changed(self, cb):
-        pass
-
     @property
     def speed(self):
         return 0
@@ -124,7 +121,6 @@ class DcMotorController(PortDriver):
         self._power = 0
         self._pos_reached = None
 
-        self._status_changed_callback = None
         self._awaiter = None
 
         self._timeout = 0
@@ -143,13 +139,6 @@ class DcMotorController(PortDriver):
         self._log('Sending configuration: {}'.format(config))
 
         self._configure(config)
-
-    def on_status_changed(self, cb):
-        self._status_changed_callback = cb
-
-    def _raise_status_changed_callback(self):
-        if self._status_changed_callback:
-            self._status_changed_callback(self._port)
 
     def _cancel_awaiter(self):
         awaiter, self._awaiter = self._awaiter, None
@@ -252,7 +241,7 @@ class DcMotorController(PortDriver):
         self._power = power
         self._pos_reached = pos_reached
 
-        self._raise_status_changed_callback()
+        self.on_status_changed(self._port)
 
     def get_status(self):
         data = self._read()

@@ -4,16 +4,42 @@ from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.logger import get_logger
 
 
+class FunctionAggregator:
+    def __init__(self):
+        self._callbacks = []
+
+        self.add = self._callbacks.append
+        self.clear = self._callbacks.clear
+
+    def remove(self, callback):
+        try:
+            self._callbacks.remove(callback)
+        except ValueError:
+            pass
+
+    def __call__(self, *args, **kwargs):
+        for func in self._callbacks:
+            func(*args, **kwargs)
+
+
 class PortDriver:
     def __init__(self, driver):
         self._driver = driver
+        self._on_status_changed = FunctionAggregator()
 
     @property
     def driver(self):
         return self._driver
 
+    @property
+    def on_status_changed(self):
+        return self._on_status_changed
+
     def on_port_type_set(self):
         raise NotImplementedError
+
+    def uninitialize(self):
+        self._on_status_changed.clear()
 
 
 class PortCollection:
@@ -91,7 +117,7 @@ class PortInstance:
         self._configurator = configurator
         self._interface = interface
         self._driver = None
-        self._config_changed_callback = None
+        self._config_changed_callbacks = FunctionAggregator()
 
     @property
     def id(self):
@@ -101,17 +127,17 @@ class PortInstance:
     def interface(self):
         return self._interface
 
-    def on_config_changed(self, callback: callable):
-        self._config_changed_callback = callback
-
-    def _notify_config_changed(self, config):
-        if self._config_changed_callback:
-            self._config_changed_callback(self, config)
+    @property
+    def on_config_changed(self):
+        return self._config_changed_callbacks
 
     def configure(self, config) -> PortDriver:
-        self._notify_config_changed(None)  # temporarily disable reading port
+        # temporarily disable reading port
+        self._config_changed_callbacks(self, None)
+        if self._driver:
+            self._driver.uninitialize()
         self._driver = self._configurator(self, config)
-        self._notify_config_changed(config)
+        self._config_changed_callbacks(self, config)
 
         return self._driver
 

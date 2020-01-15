@@ -6,7 +6,7 @@ from revvy.utils.logger import get_logger
 
 
 class ResourceHandle:
-    def __init__(self, resource, callback=lambda: None):
+    def __init__(self, resource, callback=None):
         self._resource = resource
         self._callback = callback
         self._is_interrupted = False
@@ -16,7 +16,8 @@ class ResourceHandle:
 
     def interrupt(self):
         self._is_interrupted = True
-        self._callback()
+        if self._callback:
+            self._callback()
 
     def run_uninterruptable(self, callback):
         with self._resource._lock:
@@ -51,7 +52,7 @@ class Resource:
 
             self._current_priority = -1
 
-    def request(self, with_priority=0, on_taken_away=lambda: None):
+    def request(self, with_priority=0, on_taken_away=None):
         self._log('enter request ({})'.format(with_priority))
         with self._lock:
             if self._active_handle is None:

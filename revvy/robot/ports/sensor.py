@@ -30,9 +30,6 @@ class NullSensor(PortDriver):
     def on_port_type_set(self):
         pass
 
-    def on_value_changed(self, cb):
-        pass
-
     def update_status(self, data):
         pass
 
@@ -76,7 +73,7 @@ class BaseSensorPortDriver(PortDriver):
         if converted is not None:
             self._value = converted
 
-        self._raise_value_changed_callback()
+        self.on_status_changed()
 
     @property
     def value(self):
@@ -85,16 +82,6 @@ class BaseSensorPortDriver(PortDriver):
     @property
     def raw_value(self):
         return self._raw_value
-
-    def on_value_changed(self, cb):
-        if not callable(cb):
-            cb = None
-
-        self._value_changed_callback = cb
-
-    def _raise_value_changed_callback(self):
-        if self._value_changed_callback:
-            self._value_changed_callback(self._port)
 
     def convert_sensor_value(self, raw): raise NotImplementedError
 

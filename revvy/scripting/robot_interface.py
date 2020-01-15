@@ -15,8 +15,8 @@ class ResourceWrapper:
         self._resource = resource
         self._priority = priority
 
-    def request(self):
-        return self._resource.request(self._priority)
+    def request(self, callback=None):
+        return self._resource.request(self._priority, callback)
 
 
 class Wrapper:
@@ -27,11 +27,11 @@ class Wrapper:
     def sleep(self, s):
         self._script.sleep(s)
 
-    def try_take_resource(self):
+    def try_take_resource(self, callback=None):
         if self._script.is_stop_requested:
             raise InterruptedError
 
-        return self._resource.request()
+        return self._resource.request(callback)
 
     def using_resource(self, callback):
         self.if_resource_available(lambda res: res.run_uninterruptable(callback))
@@ -187,7 +187,13 @@ class MotorPortWrapper(Wrapper):
             }
         }
 
-        resource = self.try_take_resource()
+        awaiter = None
+
+        def _interrupted():
+            if awaiter:
+                awaiter.cancel()
+
+        resource = self.try_take_resource(_interrupted)
         if resource:
             try:
                 self.log("start movement")
@@ -288,57 +294,54 @@ class DriveTrainWrapper(Wrapper):
             }
         }
 
-        resource = self.try_take_resource()
+        awaiter = None
+
+        def _interrupted():
+            if awaiter:
+                awaiter.cancel()
+
+        resource = self.try_take_resource(_interrupted)
         if resource:
             try:
                 self.log("start movement")
-                resource.run_uninterruptable(set_fns[unit_rotation][unit_speed])
+                awaiter = resource.run_uninterruptable(set_fns[unit_rotation][unit_speed])
 
                 if unit_rotation == MotorConstants.UNIT_ROT:
                     # wait for movement to finish
 
                     start_positions = [motor.position for motor in self._drivetrain.motors]
-                    start_time = time.time()
 
                     if direction == MotorConstants.DIRECTION_BACK:
                         mult = -1
                     else:
                         mult = 1
 
-                    self.sleep(0.2)
-                    while not resource.is_interrupted and self._drivetrain.is_moving:
-
+                    warn = False
+                    finished = False
+                    while not finished and not awaiter.wait(2):
                         # check if there was any movement
-                        if time.time() - start_time > 1:
-                            i = 0
+                        i = 0
+                        for motor in self._drivetrain.motors:
+                            start_positions[i], pos_diff = motor.position, motor.position - start_positions[i]
 
-                            for motor in self._drivetrain.motors:
-                                pos = motor.position
-                                pos_diff = pos - start_positions[i]
-                                start_positions[i] = pos
+                            if pos_diff * mult <= 0:
+                                if warn:
+                                    self.log("timeout")
+                                    finished = True
+                                warn = True
+                            else:
+                                # there was movement towards the goal, reset timeout
+                                self.log("movement detected, reset timeout")
+                                warn = False
 
-                                if pos_diff * mult > 0:
-                                    # there was movement towards the goal, reset timeout
-                                    self.log("movement detected, reset timeout")
-                                    start_time = time.time()
-
-                                i += 1
-
-                        # check movement timeout
-                        if time.time() - start_time > self.timeout:
-                            self.log("timeout")
-                            break
-
-                        self.sleep(0.2)
+                            i += 1
 
                     if not resource.is_interrupted:
-                        resource.run_uninterruptable(lambda: self._drivetrain.set_speeds(0, 0))
-                        self.sleep(0.2)
+                        resource.run_uninterruptable(self._drivetrain.stop_release)
 
                 elif unit_rotation == MotorConstants.UNIT_SEC:
                     self.sleep(rotation)
-
-                    resource.run_uninterruptable(lambda: self._drivetrain.set_speeds(0, 0))
+                    resource.run_uninterruptable(self._drivetrain.stop_release)
 
             finally:
                 self.log("movement finished")
