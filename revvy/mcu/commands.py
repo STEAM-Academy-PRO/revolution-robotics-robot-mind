@@ -278,7 +278,7 @@ class MotorPortControlCommand:
         self._command_data = command_data
 
     def get_bytes(self):
-        header = (self._port_idx & 0x0F) | ((len(self._command_data) << 4) & 0xF0)
+        header = ((self._port_idx - 1) & 0x07) | ((len(self._command_data) << 3) & 0xF8)
         return [header, *self._command_data]
 
 
