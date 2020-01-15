@@ -40,8 +40,6 @@ class DifferentialDrivetrain:
         self._left_motors.clear()
         self._right_motors.clear()
 
-        self.configure()
-
     def add_left_motor(self, motor):
         self._log('Add motor {} to left side'.format(motor.id))
         self._motors.append(motor)
@@ -51,15 +49,6 @@ class DifferentialDrivetrain:
         self._log('Add motor {} to right side'.format(motor.id))
         self._motors.append(motor)
         self._right_motors.append(motor.id - 1)
-
-    def configure(self):
-        motors = [DifferentialDrivetrain.NOT_ASSIGNED] * self._motor_count
-        for motor in self._left_motors:
-            motors[motor] = DifferentialDrivetrain.LEFT
-        for motor in self._right_motors:
-            motors[motor] = DifferentialDrivetrain.RIGHT
-
-        self._interface.configure_drivetrain(DrivetrainTypes.DIFFERENTIAL, motors)
 
     @property
     def is_moving(self):

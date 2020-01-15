@@ -221,8 +221,6 @@ class RobotBLEController:
         for motor_id in config.drivetrain['right']:
             self._robot.drivetrain.add_right_motor(self._robot.motors[motor_id])
 
-        self._robot.drivetrain.configure()
-
         # set up sensors
         for sensor in self._robot.sensors:
             sensor.configure(config.sensors[sensor.id])
