@@ -254,8 +254,6 @@ class MotorPortWrapper(Wrapper):
 
 class DriveTrainWrapper(Wrapper):
     max_rpm = 150
-    timeout = 5
-    turn_timeout = 10
 
     def __init__(self, script, drivetrain, resource: ResourceWrapper):
         super().__init__(script, resource)
@@ -385,28 +383,22 @@ class DriveTrainWrapper(Wrapper):
             }
         }
 
-        resource = self.try_take_resource()
+        awaiter = None
+
+        def _interrupted():
+            if awaiter:
+                awaiter.cancel()
+
+        resource = self.try_take_resource(_interrupted)
         if resource:
             try:
                 self.log("start movement")
-                resource.run_uninterruptable(set_fns[unit_rotation][unit_speed])
+                awaiter = resource.run_uninterruptable(set_fns[unit_rotation][unit_speed])
 
                 if unit_rotation == MotorConstants.UNIT_TURN_ANGLE:
-                    # wait for movement to finish
-
-                    start_time = time.time()
-
-                    self.sleep(0.2)
-                    while not resource.is_interrupted and self._drivetrain.is_moving:
-                        if start_time - time.time() > self.turn_timeout:
-                            # 10s timeout
-                            self.log("timeout")
-                            break
-                        self.sleep(0.2)
-
-                    if not resource.is_interrupted:
-                        resource.run_uninterruptable(lambda: self._drivetrain.set_speeds(0, 0))
-                        self.sleep(0.2)
+                    # wait for movement to finish, currently only assume 10s timeout
+                    if not awaiter.wait(10):
+                        self._drivetrain.stop_release()
 
                 elif unit_rotation == MotorConstants.UNIT_SEC:
                     self.sleep(rotation)
