@@ -2,22 +2,32 @@
 
 from threading import Lock
 
+from revvy.robot.ports.common import FunctionAggregator
 from revvy.utils.logger import get_logger
 
 
 class ResourceHandle:
-    def __init__(self, resource, callback=None):
+    def __init__(self, resource):
         self._resource = resource
-        self._callback = callback
+        self._on_interrupted = FunctionAggregator()
+        self._on_released = FunctionAggregator()
         self._is_interrupted = False
 
+    @property
+    def on_interrupted(self):
+        return self._on_interrupted
+
+    @property
+    def on_released(self):
+        return self._on_released
+
     def release(self):
+        self.on_released()
         self._resource.release(self)
 
     def interrupt(self):
         self._is_interrupted = True
-        if self._callback:
-            self._callback()
+        self.on_interrupted()
 
     def run_uninterruptable(self, callback):
         with self._resource._lock:
@@ -58,7 +68,8 @@ class Resource:
             if self._active_handle is None:
                 self._log('no current owner')
                 self._current_priority = with_priority
-                self._active_handle = ResourceHandle(self, on_taken_away)
+                self._active_handle = ResourceHandle(self)
+                self._active_handle.on_interrupted.add(on_taken_away)
                 return self._active_handle
 
             elif self._current_priority == with_priority:
@@ -69,7 +80,8 @@ class Resource:
                 self._log('taking from lower prio owner')
                 self._active_handle.interrupt()
                 self._current_priority = with_priority
-                self._active_handle = ResourceHandle(self, on_taken_away)
+                self._active_handle = ResourceHandle(self)
+                self._active_handle.on_interrupted.add(on_taken_away)
                 return self._active_handle
 
             else:

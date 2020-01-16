@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-only
+import time
 
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.imu import IMU
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motor import MotorStatus
 from revvy.utils.awaiter import AwaiterImpl
+from revvy.utils.functions import clip
 from revvy.utils.logger import get_logger
 
 
@@ -25,6 +27,8 @@ class DifferentialDrivetrain:
         self._target_angle = 0
         self._max_turn_wheel_speed = 0
         self._max_turn_power = None
+        self._last_yaw_change_time = time.time()
+        self._last_yaw_angle = 0
 
     def _on_motor_config_changed(self, motor, config):
         # if a motor config changes, remove the motor from the drivetrain
@@ -50,6 +54,9 @@ class DifferentialDrivetrain:
         return self._motors
 
     def reset(self):
+        self._log('reset')
+        self._cancel_awaiter()
+
         for motor in self._motors:
             motor.on_status_changed.remove(self._on_motor_status_changed)
             motor.on_config_changed.remove(self._on_motor_config_changed)
@@ -125,7 +132,7 @@ class DifferentialDrivetrain:
 
     def _update_turn_speed(self):
         error = self._target_angle - self._imu.yaw_angle
-        p = min(error * 10, self._max_turn_wheel_speed)
+        p = clip(error * 10, -self._max_turn_wheel_speed, self._max_turn_wheel_speed)
         self._apply_speeds(-p, p, self._max_turn_power)
 
     def _update_turn(self, changed_motor):
@@ -137,15 +144,25 @@ class DifferentialDrivetrain:
             else:
                 self.stop_release()
         else:
-            if abs(self._target_angle - self._imu.yaw_angle) < 1:
+            if self._last_yaw_angle != self._imu.yaw_angle:
+                self._last_yaw_change_time = time.time()
+                self._last_yaw_angle = self._imu.yaw_angle
+                if abs(self._target_angle - self._imu.yaw_angle) < 1:
+                    self._update_callback = None
+                    if awaiter:
+                        awaiter.finish()
+                        self._log('turn finished')
+                    else:
+                        self.stop_release()
+                else:
+                    self._update_turn_speed()
+            elif time.time() - self._last_yaw_change_time > 3:
                 self._update_callback = None
                 if awaiter:
-                    awaiter.finish()
-                    self._log('turn finished')
+                    awaiter.cancel()
+                    self._log('turn blocked')
                 else:
                     self.stop_release()
-            else:
-                self._update_turn_speed()
 
     def turn(self, turn_angle, wheel_speed=0, power_limit=None):
         self._log('turn')
@@ -155,6 +172,8 @@ class DifferentialDrivetrain:
         self._max_turn_power = power_limit
 
         self._target_angle = turn_angle + self._imu.yaw_angle
+        self._last_yaw_change_time = time.time()
+        self._last_yaw_angle = self._imu.yaw_angle
 
         awaiter = AwaiterImpl()
         awaiter.on_cancelled(self._apply_release)

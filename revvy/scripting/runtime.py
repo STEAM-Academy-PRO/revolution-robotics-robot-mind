@@ -49,6 +49,7 @@ class ScriptHandle:
         self.stop = self._thread.stop
         self.cleanup = self._thread.exit
         self.on_stopped = self._thread.on_stopped
+        self.on_stopping = self._thread.on_stop_requested
 
         assert(callable(script))
 
@@ -105,6 +106,7 @@ class ScriptManager:
 
     def reset(self):
         self._log('stopping scripts')
+        self.stop_all_scripts()
         for script in self._scripts:
             self._scripts[script].cleanup()
 
@@ -127,6 +129,7 @@ class ScriptManager:
         try:
             robot = self._robot
             interface = RobotWrapper(script_handle, robot.robot, robot.config, robot.resources, script.priority)
+            script_handle.on_stopping(interface.release_resources)
             script_handle.assign('robot', interface)
             self._scripts[script.name] = script_handle
 

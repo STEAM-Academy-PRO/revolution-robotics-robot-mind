@@ -12,9 +12,33 @@ class ResourceWrapper:
     def __init__(self, resource: Resource, priority=0):
         self._resource = resource
         self._priority = priority
+        self._current_handle = None
+        self._cleanup_called = False
+
+    def _release_handle(self):
+        self._current_handle = None
 
     def request(self, callback=None):
-        return self._resource.request(self._priority, callback)
+        if self._cleanup_called:
+            return None
+
+        if self._current_handle:
+            return self._current_handle
+
+        handle = self._resource.request(self._priority, callback)
+
+        if handle:
+            handle.on_interrupted.add(self._release_handle)
+            handle.on_released.add(self._release_handle)
+
+            self._current_handle = handle
+        return handle
+
+    def cleanup(self):
+        self._cleanup_called = True
+        handle = self._current_handle
+        if handle:
+            handle.interrupt()
 
 
 class Wrapper:
@@ -188,6 +212,7 @@ class MotorPortWrapper(Wrapper):
         awaiter = None
 
         def _interrupted():
+            self.log('interrupted')
             if awaiter:
                 awaiter.cancel()
 
@@ -277,6 +302,7 @@ class DriveTrainWrapper(Wrapper):
         awaiter = None
 
         def _interrupted():
+            self.log('interrupted')
             if awaiter:
                 awaiter.cancel()
 
@@ -339,6 +365,7 @@ class DriveTrainWrapper(Wrapper):
         awaiter = None
 
         def _interrupted():
+            self.log('interrupted')
             if awaiter:
                 awaiter.cancel()
 
@@ -349,7 +376,7 @@ class DriveTrainWrapper(Wrapper):
                 awaiter = resource.run_uninterruptable(set_fns[unit_rotation][unit_speed])
 
                 if unit_rotation == MotorConstants.UNIT_TURN_ANGLE:
-                    # wait for movement to finish, currently only assume 10s timeout
+                    # wait for movement to finish
                     if awaiter.wait():
                         self._drivetrain.stop_release()
 
@@ -514,6 +541,10 @@ class RobotWrapper(RobotInterface):
 
         self.time = robot.time
 
+    def release_resources(self):
+        for res in self._resources.values():
+            res.cleanup()
+
     def stop_all_motors(self, action):
         """
         @deprecated
@@ -558,6 +589,5 @@ class RobotWrapper(RobotInterface):
 
     def play_note(self): pass  # TODO
 
-    def release_resources(self):
-        for res in self._resources.values():
-            res.interrupt()
+    def stop(self):
+        pass
