@@ -83,9 +83,13 @@ class RobotBLEController:
             with self._background_fn_lock:
                 fns, self._background_fns = self._background_fns, []
 
-            for fn in fns:
-                self._log('Running background function')
-                fn()
+            if len(fns) > 0:
+                i = 1
+                for fn in fns:
+                    self._log('Running {}/{} background functions'.format(i, len(fns)))
+                    fn()
+                    i += 1
+                self._log('Background functions finished')
         except TransportException:
             self._log(traceback.format_exc())
             self.exit(RevvyStatusCode.ERROR)
