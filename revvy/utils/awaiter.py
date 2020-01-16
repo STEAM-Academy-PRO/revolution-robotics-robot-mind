@@ -18,6 +18,7 @@ class WaitableValue:
         with self._condition:
             if self._value == expected:
                 old, self._value = self._value, new
+                self._condition.notify_all()
                 return old
             else:
                 return self._value
@@ -102,7 +103,7 @@ class AwaiterImpl(Awaiter):
 
     def finish(self):
         """Mark the pending awaiter as finished."""
-        if self._signal.exchange_if(AwaiterSignal.NONE, AwaiterSignal.FINISHED) == AwaiterSignal.FINISHED:
+        if self._signal.exchange_if(AwaiterSignal.NONE, AwaiterSignal.FINISHED) == AwaiterSignal.NONE:
             for callback in self._completion_callbacks:
                 callback()
 
