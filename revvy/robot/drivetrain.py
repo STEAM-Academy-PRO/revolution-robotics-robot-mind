@@ -74,80 +74,103 @@ class DifferentialDrivetrain:
         self._right_motors.append(motor)
         self._add_motor(motor)
 
+    def _cancel_awaiter(self):
+        awaiter, self._awaiter = self._awaiter, None
+        if awaiter:
+            awaiter.cancel()
+
     def stop_release(self):
-        commands = []
-        for motor in self._left_motors:
-            commands.append(motor.create_set_power_command(0))
+        self._log('stop and release')
+        self._cancel_awaiter()
 
-        for motor in self._right_motors:
-            commands.append(motor.create_set_power_command(0))
-
-        self._awaiter = None
-        self._interface.set_motor_port_control_value(commands)
+        self._apply_release()
 
     def _update_move(self, changed_motor):
         awaiter = self._awaiter
 
         if awaiter:
             if changed_motor.status == MotorStatus.BLOCKED:
+                self._log('motor blocked, stop')
                 awaiter.cancel()
             elif all(map(lambda m: m.status == MotorStatus.GOAL_REACHED, self._motors)):
+                self._log('goal reached')
                 awaiter.finish()
         else:
             if changed_motor.status == MotorStatus.BLOCKED:
+                self._log('motor blocked, stop')
                 self.stop_release()
 
     def set_speeds(self, left, right, power_limit=None):
+        self._log('set speeds')
+        self._cancel_awaiter()
+
+        self._update_callback = self._update_move
+        self._apply_speeds(left, right, power_limit)
+
+    def _apply_release(self):
+        commands = []
+        for motor in self._left_motors:
+            commands.append(motor.create_set_power_command(0))
+        for motor in self._right_motors:
+            commands.append(motor.create_set_power_command(0))
+        self._interface.set_motor_port_control_value(commands)
+
+    def _apply_speeds(self, left, right, power_limit):
         commands = []
         for motor in self._left_motors:
             commands.append(motor.create_set_speed_command(left, power_limit))
-
         for motor in self._right_motors:
             commands.append(motor.create_set_speed_command(right, power_limit))
-
-        self._awaiter = None
-        self._update_callback = self._update_move
         self._interface.set_motor_port_control_value(commands)
 
     def _update_turn_speed(self):
         error = self._target_angle - self._imu.yaw_angle
         p = min(error * 10, self._max_turn_wheel_speed)
-        self.set_speeds(-p, p, self._max_turn_power)
+        self._apply_speeds(-p, p, self._max_turn_power)
 
     def _update_turn(self, changed_motor):
         awaiter = self._awaiter
         if changed_motor.status == MotorStatus.BLOCKED:
             if awaiter:
                 awaiter.cancel()
+                self._log('motor blocked, cancel turn')
+            else:
+                self.stop_release()
         else:
             if abs(self._target_angle - self._imu.yaw_angle) < 1:
                 self._update_callback = None
-                self.stop_release()
-                awaiter = self._awaiter
-                if self._awaiter:
+                if awaiter:
                     awaiter.finish()
+                    self._log('turn finished')
+                else:
+                    self.stop_release()
             else:
                 self._update_turn_speed()
 
     def turn(self, turn_angle, wheel_speed=0, power_limit=None):
+        self._log('turn')
+        self._cancel_awaiter()
+
         self._max_turn_wheel_speed = wheel_speed
         self._max_turn_power = power_limit
 
         self._target_angle = turn_angle + self._imu.yaw_angle
 
         awaiter = AwaiterImpl()
-        awaiter.on_cancelled(self.stop_release)
-        awaiter.on_result(self.stop_release)
+        awaiter.on_cancelled(self._apply_release)
+        awaiter.on_result(self._apply_release)
 
         self._awaiter = awaiter
+        self._update_callback = self._update_turn
 
         self._update_turn_speed()
-
-        self._update_callback = self._update_turn
 
         return awaiter
 
     def move(self, left, right, left_speed=None, right_speed=None, power_limit=None):
+        self._log('move')
+        self._cancel_awaiter()
+
         commands = []
         for motor in self._left_motors:
             commands.append(motor.create_relative_position_command(left, left_speed, power_limit))
@@ -156,9 +179,8 @@ class DifferentialDrivetrain:
             commands.append(motor.create_relative_position_command(right, right_speed, power_limit))
 
         awaiter = AwaiterImpl()
-
-        awaiter.on_cancelled(self.stop_release)
-        awaiter.on_result(self.stop_release)
+        awaiter.on_cancelled(self._apply_release)
+        awaiter.on_result(self._apply_release)
 
         self._awaiter = awaiter
         self._update_callback = self._update_move
