@@ -234,7 +234,7 @@ class DcMotorController(PortDriver):
 
     def update_status(self, data):
         if len(data) == 10:
-            (status, power, pos, speed) = struct.unpack('<blfb', data)
+            (status, power, pos, speed) = struct.unpack('<bblf', data)
 
             self._pos = pos
             self._speed = speed
