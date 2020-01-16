@@ -4,8 +4,6 @@ import argparse
 import enum
 import traceback
 
-from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.robot import Robot
 from revvy.utils.version import Version
 from tools.utils import parse_cfsr

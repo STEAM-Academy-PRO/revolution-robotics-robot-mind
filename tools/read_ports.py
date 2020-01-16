@@ -63,7 +63,7 @@ if __name__ == "__main__":
                     sensor_data_changed = True
 
             if sensor_data_changed:
-                sensor_data[0] = round(time.time() - robot.start_time, 2)
+                sensor_data[0] = round(robot.time(), 2)
                 print(pattern.format(*sensor_data))
 
         def sensor_value_changed(idx, value):
