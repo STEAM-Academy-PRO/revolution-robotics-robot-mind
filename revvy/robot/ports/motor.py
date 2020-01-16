@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
-from collections import namedtuple
+from enum import Enum
 
 from revvy.mcu.commands import MotorPortControlCommand
 from revvy.mcu.rrrc_control import RevvyControl
@@ -10,8 +10,6 @@ import struct
 from revvy.utils.awaiter import Awaiter, AwaiterSignal, AwaiterImpl
 from revvy.utils.functions import clip
 from revvy.utils.logger import get_logger
-
-DcMotorStatus = namedtuple("DcMotorStatus", ['position', 'speed', 'power'])
 
 
 def create_motor_port_handler(interface: RevvyControl):
@@ -62,9 +60,6 @@ class NullMotor(PortDriver):
     def update_status(self, data):
         pass
 
-    def get_status(self):
-        return DcMotorStatus(position=0, speed=0, power=0)
-
 
 class DcMotorPowerRequest(MotorPortControlCommand):
     def __init__(self, port_idx, power):
@@ -104,6 +99,12 @@ class DcMotorPositionRequest(MotorPortControlCommand):
         super().__init__(port_idx, control)
 
 
+class MotorStatus(Enum):
+    NORMAL = 0,
+    GOAL_REACHED = 1,
+    BLOCKED = 2
+
+
 class DcMotorController(PortDriver):
     """Generic driver for dc motors"""
     def __init__(self, port: PortInstance, port_config):
@@ -114,7 +115,6 @@ class DcMotorController(PortDriver):
         self._log = get_logger(self._name)
 
         self._configure = lambda cfg: port.interface.set_motor_port_config(port.id, cfg)
-        self._read = lambda: port.interface.get_motor_position(port.id)
 
         self._pos = 0
         self._speed = 0
@@ -122,6 +122,7 @@ class DcMotorController(PortDriver):
         self._pos_reached = None
 
         self._awaiter = None
+        self._status = MotorStatus.NORMAL
 
         self._timeout = 0
 
@@ -157,13 +158,6 @@ class DcMotorController(PortDriver):
     @property
     def power(self):
         return self._power
-
-    @property
-    def is_moving(self):
-        if self._pos_reached is not None:
-            return self._pos_reached
-        else:
-            return not (int(self._speed) == 0)
 
     def create_set_power_command(self, power):
         return DcMotorPowerRequest(self._port.id, power)
@@ -221,30 +215,32 @@ class DcMotorController(PortDriver):
 
         return awaiter
 
-    def update_status(self, data):
-        if len(data) == 9:
-            (power, pos, speed) = struct.unpack('<blf', data)
-            pos_reached = None
-        elif len(data) == 10:
-            (power, pos, speed, pos_reached) = struct.unpack('<blfb', data)
+    @property
+    def status(self):
+        return self._status
 
-            if pos_reached:
-                awaiter = self._awaiter
-                if awaiter:
-                    awaiter.finish()
+    def _update_motor_status(self, status: MotorStatus):
+        self._status = status
+        if status == MotorStatus.NORMAL:
+            pass
+        elif status == MotorStatus.GOAL_REACHED:
+            awaiter = self._awaiter
+            if awaiter:
+                awaiter.finish()
+        elif status == MotorStatus.BLOCKED:
+            awaiter = self._awaiter
+            if awaiter:
+                awaiter.cancel()
+
+    def update_status(self, data):
+        if len(data) == 10:
+            (status, power, pos, speed) = struct.unpack('<blfb', data)
+
+            self._pos = pos
+            self._speed = speed
+            self._power = power
+
+            self._update_motor_status(MotorStatus(status))
+            self.on_status_changed(self._port)
         else:
             self._log('Received {} bytes of data instead of 9 or 10'.format(len(data)))
-            return
-
-        self._pos = pos
-        self._speed = speed
-        self._power = power
-        self._pos_reached = pos_reached
-
-        self.on_status_changed(self._port)
-
-    def get_status(self):
-        data = self._read()
-
-        self.update_status(data)
-        return DcMotorStatus(position=self._pos, speed=self._speed, power=self._power)

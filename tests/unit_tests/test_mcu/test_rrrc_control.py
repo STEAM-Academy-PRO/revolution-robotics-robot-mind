@@ -41,7 +41,6 @@ class TestControlCommands(unittest.TestCase):
         self.assertIs(SetMotorPortTypeCommand, type(control.set_motor_port_type))
         self.assertIs(SetMotorPortConfigCommand, type(control.set_motor_port_config))
         self.assertIs(SetMotorPortControlCommand, type(control.set_motor_port_control_value))
-        self.assertIs(ReadMotorPortStatusCommand, type(control.get_motor_position))
 
         self.assertIs(ReadSensorPortAmountCommand, type(control.get_sensor_port_amount))
         self.assertIs(ReadSensorPortTypesCommand, type(control.get_sensor_port_types))
@@ -76,7 +75,6 @@ class TestControlCommands(unittest.TestCase):
         self.assertEqual(0x12, control.set_motor_port_type.command_id)
         self.assertEqual(0x13, control.set_motor_port_config.command_id)
         self.assertEqual(0x14, control.set_motor_port_control_value.command_id)
-        self.assertEqual(0x15, control.get_motor_position.command_id)
 
         self.assertEqual(0x20, control.get_sensor_port_amount.command_id)
         self.assertEqual(0x21, control.get_sensor_port_types.command_id)

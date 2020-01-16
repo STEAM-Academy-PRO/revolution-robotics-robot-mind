@@ -1,7 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
-import time
-
 from revvy.robot.configurations import Motors, Sensors
 from revvy.robot.led_ring import RingLed
 from revvy.robot.sound import Sound
@@ -201,23 +199,7 @@ class MotorPortWrapper(Wrapper):
 
                 if unit_amount == MotorConstants.UNIT_DEG:
                     # wait for movement to finish
-                    self.sleep(0.2)
-
-                    warn = False
-                    start_pos = self._motor.position
-                    while not awaiter.wait(2):
-                        pos = self._motor.position
-                        pos_diff, start_pos = pos - start_pos, pos
-
-                        if pos_diff <= 0:
-                            if warn:
-                                self.log("timeout")
-                                awaiter.cancel()
-                                break
-                            else:
-                                warn = True
-                        else:
-                            self.log("movement detected, reset timeout")
+                    awaiter.wait()
 
                 elif unit_amount == MotorConstants.UNIT_SEC:
                     self.sleep(amount)
@@ -305,36 +287,7 @@ class DriveTrainWrapper(Wrapper):
                 awaiter = resource.run_uninterruptable(set_fns[unit_rotation][unit_speed])
 
                 if unit_rotation == MotorConstants.UNIT_ROT:
-                    # wait for movement to finish
-
-                    start_positions = [motor.position for motor in self._drivetrain.motors]
-
-                    if direction == MotorConstants.DIRECTION_BACK:
-                        mult = -1
-                    else:
-                        mult = 1
-
-                    warn = False
-                    finished = False
-                    while not finished and not awaiter.wait(2):
-                        # check if there was any movement
-                        i = 0
-                        for motor in self._drivetrain.motors:
-                            start_positions[i], pos_diff = motor.position, motor.position - start_positions[i]
-
-                            if pos_diff * mult <= 0:
-                                if warn:
-                                    self.log("timeout")
-                                    finished = True
-                                warn = True
-                            else:
-                                # there was movement towards the goal, reset timeout
-                                self.log("movement detected, reset timeout")
-                                warn = False
-
-                            i += 1
-
-                    if not resource.is_interrupted:
+                    if awaiter.wait():
                         resource.run_uninterruptable(self._drivetrain.stop_release)
 
                 elif unit_rotation == MotorConstants.UNIT_SEC:
@@ -397,7 +350,7 @@ class DriveTrainWrapper(Wrapper):
 
                 if unit_rotation == MotorConstants.UNIT_TURN_ANGLE:
                     # wait for movement to finish, currently only assume 10s timeout
-                    if not awaiter.wait(10):
+                    if awaiter.wait():
                         self._drivetrain.stop_release()
 
                 elif unit_rotation == MotorConstants.UNIT_SEC:

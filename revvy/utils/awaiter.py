@@ -111,11 +111,17 @@ class AwaiterImpl(Awaiter):
         return self._signal.get()
 
     def wait(self, timeout=None):
+        """
+        Wait for the operation to finish
+
+        @param timeout:
+        @return: True if the operation was finished by calling finish(), False if cancelled or timed out
+        """
         if self._signal.get() != AwaiterSignal.NONE:
             return True
 
         try:
             self._signal.wait(timeout)
-            return True
+            return self._signal.get() == AwaiterSignal.FINISHED
         except TimeoutError:
             return False

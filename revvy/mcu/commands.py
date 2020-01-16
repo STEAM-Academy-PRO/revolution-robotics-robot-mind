@@ -270,11 +270,6 @@ class ReadPortStatusCommand(Command, ABC):
         return payload
 
 
-class ReadMotorPortStatusCommand(ReadPortStatusCommand):
-    @property
-    def command_id(self): return 0x15
-
-
 class McuStatusUpdater_ResetCommand(Command):
     @property
     def command_id(self): return 0x3A
