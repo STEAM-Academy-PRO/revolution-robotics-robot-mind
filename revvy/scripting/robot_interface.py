@@ -13,15 +13,11 @@ class ResourceWrapper:
         self._resource = resource
         self._priority = priority
         self._current_handle = None
-        self._cleanup_called = False
 
     def _release_handle(self):
         self._current_handle = None
 
     def request(self, callback=None):
-        if self._cleanup_called:
-            return None
-
         if self._current_handle:
             return self._current_handle
 
@@ -34,8 +30,7 @@ class ResourceWrapper:
             self._current_handle = handle
         return handle
 
-    def cleanup(self):
-        self._cleanup_called = True
+    def release(self):
         handle = self._current_handle
         if handle:
             handle.interrupt()
@@ -433,7 +428,7 @@ class RobotWrapper(RobotInterface):
 
     def release_resources(self):
         for res in self._resources.values():
-            res.cleanup()
+            res.release()
 
     def stop_all_motors(self, action):
         """
