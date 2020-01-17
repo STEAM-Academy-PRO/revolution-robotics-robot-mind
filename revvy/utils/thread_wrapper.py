@@ -30,6 +30,7 @@ class ThreadWrapper:
         self._stopped_callbacks = []
         self._stop_requested_callbacks = []
         self._control = Event()
+        self._thread_stopped_event = Event()
         self._thread_running_event = Event()
         self._ctx = None
         self._was_started = False
@@ -76,6 +77,7 @@ class ThreadWrapper:
         assert not self._exiting
 
         self._log('starting')
+        self._thread_stopped_event.clear()
         self._control.set()
 
         return self._thread_running_event
@@ -83,23 +85,31 @@ class ThreadWrapper:
     def stop(self):
         self._log('stopping')
 
-        evt = Event()
         if self._control.is_set():
+            self._log('startup is in progress, wait for thread to start running')
             self._thread_running_event.wait()
 
-        with self._lock:
-            if self._thread_running_event.is_set():
-                # register callback that sets event when thread stops
-                self._stopped_callbacks.append(evt.set)
+        if not self.stopping:
+            with self._lock:
+                if self._thread_running_event.is_set():
+                    self._log('register stopped callback in stop')
+                    # register callback that sets event when thread stops
+                    self._stopped_callbacks.append(self._thread_stopped_event.set)
 
-                # request thread to stop
-                self._ctx.stop()
+                    # request thread to stop
+                    self._log('request stop')
+                    self._ctx.stop()
 
+                    call_callbacks = True
+                else:
+                    call_callbacks = False
+                    self._thread_stopped_event.set()
+
+            if call_callbacks:
+                self._log('call stop requested callbacks')
                 _call_callbacks(self._stop_requested_callbacks)
-            else:
-                evt.set()
 
-        return evt
+        return self._thread_stopped_event
 
     def exit(self):
         self._log('exiting')
