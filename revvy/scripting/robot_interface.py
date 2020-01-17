@@ -304,7 +304,7 @@ class JoystickWrapper(Wrapper):
         self._drivetrain = drivetrain
         self._res = None
 
-    def set_speeds(self, sl, sr):
+    def set_speeds_independent(self, sl, sr):
         if self._res:
             # we already have the resource - check if it was taken away
             if self._res.is_interrupted:
