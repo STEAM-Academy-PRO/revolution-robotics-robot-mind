@@ -266,25 +266,6 @@ while not ctx.stop_requested:
         finally:
             sm.reset()
 
-    def test_new_stop_callback_is_called_even_after_script_is_stopped(self):
-        robot_mock = create_robot_mock()
-
-        cont = Event()
-        mock = Mock()
-
-        sm = ScriptManager(robot_mock)
-        sm.add_script(ScriptDescriptor('test', str_to_func(''), 0))
-        sm['test'].on_stopped(cont.set)
-
-        # start and make sure script is stopped
-        sm['test'].start()
-        sm['test'].stop().wait()
-
-        sm['test'].on_stopped(mock)
-
-        sm.reset()
-        self.assertEqual(1, mock.call_count)
-
     def test_crashing_script_calls_stopped_handler(self):
         robot_mock = create_robot_mock()
 

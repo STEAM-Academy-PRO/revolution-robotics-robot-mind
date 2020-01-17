@@ -69,7 +69,7 @@ class ThreadWrapper:
     @property
     def stopping(self):
         if self._ctx is None:
-            return self._thread_stopped_event.is_set()
+            return False
         return self._ctx.stop_requested
 
     @property
@@ -132,21 +132,10 @@ class ThreadWrapper:
         self._log('exited')
 
     def on_stopped(self, callback):
-        with self._lock:
-            call = self._was_started and not self._ctx
-            if not call:
-                self._stopped_callbacks.append(callback)
-
-        if call:
-            callback()
+        self._stopped_callbacks.append(callback)
 
     def on_stop_requested(self, callback):
-        with self._lock:
-            call = self._ctx and self._ctx.stop_requested
-            if not call:
-                self._stop_requested_callbacks.append(callback)
-        if call:
-            callback()
+        self._stop_requested_callbacks.append(callback)
 
 
 class ThreadContext:

@@ -39,11 +39,6 @@ class TestThreadWrapper(unittest.TestCase):
         tw.stop()
         self.assertTrue(tw.stopping)
 
-        # test that registering a callback while the thread is stopping triggers this callback immediately
-        mock = Mock()
-        tw.on_stop_requested(mock)
-        self.assertEqual(1, mock.call_count)
-
         # allow exiting
         evt.set()
 
@@ -97,22 +92,17 @@ class TestThreadWrapper(unittest.TestCase):
             tw.exit()
 
     def test_stop_callbacks_called_when_thread_fn_exits(self):
-
         evt = Event()
-
-        def stopped():
-            evt.set()
-            return True
 
         def test_fn(context):
             pass
 
         tw = ThreadWrapper(test_fn)
-        tw.on_stopped(stopped)
 
         try:
             for i in range(1, 3):
                 with self.subTest('Run #{}'.format(i)):
+                    tw.on_stopped(evt.set)
                     evt.clear()
                     tw.start()
                     if not evt.wait(2):
@@ -195,19 +185,15 @@ class TestThreadWrapper(unittest.TestCase):
     def test_exception_stops_properly(self):
         evt = Event()
 
-        def stopped():
-            evt.set()
-            return True  # keep callback
-
         def _dummy_thread_fn():  # wrong signature, results in TypeError
             pass
 
         tw = ThreadWrapper(_dummy_thread_fn)
-        tw.on_stopped(stopped)
 
         try:
             for i in range(1, 3):
                 with self.subTest('Run #{}'.format(i)):
+                    tw.on_stopped(evt.set)  # set callback first to verify it will be called after clear
                     evt.clear()
                     if not tw.start().wait(2):
                         self.fail('Thread was not started properly')
