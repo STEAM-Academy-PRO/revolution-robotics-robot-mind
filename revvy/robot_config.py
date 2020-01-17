@@ -7,6 +7,9 @@ from revvy.robot.configurations import Motors, Sensors
 from revvy.scripting.runtime import ScriptDescriptor
 from revvy.utils.functions import b64_decode_str, dict_get_first, str_to_func
 from revvy.scripting.builtin_scripts import builtin_scripts
+from revvy.utils.logger import get_logger
+
+_log = get_logger('RobotConfig')
 
 motor_types = [
     None,
@@ -65,6 +68,7 @@ class RobotConfig:
     def create_runnable(script):
         try:
             script_name = dict_get_first(script, ['builtinScriptName', 'builtinscriptname'])
+            _log('Use builtin script: {}'.format(script_name))
 
             try:
                 return builtin_scripts[script_name]
@@ -75,6 +79,7 @@ class RobotConfig:
             try:
                 source_b64_encoded = dict_get_first(script, ['pythonCode', 'pythoncode'])
                 code = b64_decode_str(source_b64_encoded)
+                _log('Use python code as script: {}'.format(code))
                 return str_to_func(code)
 
             except KeyError as e:
@@ -97,6 +102,7 @@ class RobotConfig:
         try:
             i = 0
             for script in blockly_list:
+                _log('Processing script #{}'.format(i))
                 runnable = RobotConfig.create_runnable(script)
 
                 assignments = script['assignments']
