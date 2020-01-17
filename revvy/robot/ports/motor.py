@@ -222,15 +222,13 @@ class DcMotorController(PortDriver):
 
     def _update_motor_status(self, status: MotorStatus):
         self._status = status
-        if status == MotorStatus.NORMAL:
-            pass
-        elif status == MotorStatus.GOAL_REACHED:
-            awaiter = self._awaiter
-            if awaiter:
+        awaiter = self._awaiter
+        if awaiter:
+            if status == MotorStatus.NORMAL:
+                pass
+            elif status == MotorStatus.GOAL_REACHED:
                 awaiter.finish()
-        elif status == MotorStatus.BLOCKED:
-            awaiter = self._awaiter
-            if awaiter:
+            elif status == MotorStatus.BLOCKED:
                 awaiter.cancel()
 
     def update_status(self, data):
