@@ -102,8 +102,8 @@ class DcMotorPositionRequest(MotorPortControlCommand):
 
 class MotorStatus(Enum):
     NORMAL = 0
-    GOAL_REACHED = 1
-    BLOCKED = 2
+    BLOCKED = 1
+    GOAL_REACHED = 2
 
 
 class DcMotorController(PortDriver):

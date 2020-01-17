@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 from revvy.robot.configurations import Motors, Sensors
-from revvy.robot.drivetrain import DifferentialDrivetrain
 from revvy.robot.led_ring import RingLed
 from revvy.robot.sound import Sound
 from revvy.scripting.resource import Resource
@@ -266,7 +265,7 @@ def wrap_method(owner, method):
 class DriveTrainWrapper(Wrapper):
     max_rpm = 150
 
-    def __init__(self, script, drivetrain: DifferentialDrivetrain, resource: ResourceWrapper):
+    def __init__(self, script, drivetrain, resource: ResourceWrapper):
         super().__init__(script, resource)
         self.log = lambda message: script.log("DriveTrain: {}".format(message))
         self._drivetrain = drivetrain
