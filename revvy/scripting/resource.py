@@ -67,9 +67,7 @@ class Resource:
         with self._lock:
             if self._active_handle is None:
                 self._log('no current owner')
-                self._current_priority = with_priority
-                self._active_handle = ResourceHandle(self)
-                self._active_handle.on_interrupted.add(on_taken_away)
+                self._create_new_handle(with_priority, on_taken_away)
                 return self._active_handle
 
             elif self._current_priority == with_priority:
@@ -79,14 +77,18 @@ class Resource:
             elif self._current_priority > with_priority:
                 self._log('taking from lower prio owner')
                 self._active_handle.interrupt()
-                self._current_priority = with_priority
-                self._active_handle = ResourceHandle(self)
-                self._active_handle.on_interrupted.add(on_taken_away)
+                self._create_new_handle(with_priority, on_taken_away)
                 return self._active_handle
 
             else:
                 self._log('failed to take')
                 return None
+
+    def _create_new_handle(self, with_priority, on_taken_away):
+        self._current_priority = with_priority
+        self._active_handle = ResourceHandle(self)
+        if on_taken_away:
+            self._active_handle.on_interrupted.add(on_taken_away)
 
     def release(self, resource_handle):
         self._log('enter release')
