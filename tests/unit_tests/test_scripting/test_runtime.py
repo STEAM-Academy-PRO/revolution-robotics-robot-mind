@@ -45,6 +45,8 @@ def create_robot_mock():
     robot_mock.config.sensors.names = {}
 
     robot_mock.robot.drivetrain = mockobj()
+    robot_mock.robot.drivetrain.turn = lambda *args, **kwargs: None
+    robot_mock.robot.drivetrain.drive = lambda *args, **kwargs: None
     robot_mock.robot.sound = MockSound()
     robot_mock.robot.led = mockobj()
     robot_mock.robot.led.count = 0
