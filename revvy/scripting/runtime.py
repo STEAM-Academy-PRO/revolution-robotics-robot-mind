@@ -130,6 +130,7 @@ class ScriptManager:
             robot = self._robot
             interface = RobotWrapper(script_handle, robot.robot, robot.config, robot.resources, script.priority)
             script_handle.on_stopping(interface.release_resources)
+            script_handle.on_stopped(interface.release_resources)
             script_handle.assign('robot', interface)
             self._scripts[script.name] = script_handle
 
