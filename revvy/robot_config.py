@@ -80,6 +80,9 @@ class RobotConfig:
                 source_b64_encoded = dict_get_first(script, ['pythonCode', 'pythoncode'])
                 code = b64_decode_str(source_b64_encoded)
                 _log('Use python code as script: {}'.format(code))
+
+                code = code.replace('import time\n', '')
+
                 return str_to_func(code)
 
             except KeyError as e:
