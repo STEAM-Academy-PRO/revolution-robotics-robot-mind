@@ -7,6 +7,7 @@ from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler, PortInstance, PortDriver
 import struct
 
+from revvy.scripting.robot_interface import MotorConstants
 from revvy.utils.awaiter import Awaiter, AwaiterSignal, AwaiterImpl
 from revvy.utils.functions import clip
 from revvy.utils.logger import get_logger
@@ -244,3 +245,10 @@ class DcMotorController(PortDriver):
             self.on_status_changed(self._port)
         else:
             self._log('Received {} bytes of data instead of 9 or 10'.format(len(data)))
+
+    def stop(self, action=MotorConstants.ACTION_RELEASE):
+        self._log("stop")
+        if action == MotorConstants.ACTION_STOP_AND_HOLD:
+            self.set_speed(0)
+        else:
+            self.set_power(0)

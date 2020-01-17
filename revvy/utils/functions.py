@@ -186,3 +186,13 @@ def read_json(filename):
 
 def str_to_func(code):
     return lambda variables: exec(code, variables)
+
+
+def rpm2dps(rpm):
+    """
+    >>> rpm2dps(1)
+    6
+    >>> rpm2dps(60)
+    360
+    """
+    return rpm * 6

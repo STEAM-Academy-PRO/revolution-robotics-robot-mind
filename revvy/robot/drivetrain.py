@@ -1,16 +1,19 @@
 # SPDX-License-Identifier: GPL-3.0-only
 import time
+from threading import Timer
 
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.imu import IMU
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motor import MotorStatus
+from revvy.scripting.robot_interface import MotorConstants
 from revvy.utils.awaiter import AwaiterImpl
-from revvy.utils.functions import clip
+from revvy.utils.functions import clip, rpm2dps
 from revvy.utils.logger import get_logger
 
 
 class DifferentialDrivetrain:
+    max_rpm = 150
 
     def __init__(self, interface: RevvyControl, motor_port_count, imu: IMU):
         self._interface = interface
@@ -164,7 +167,7 @@ class DifferentialDrivetrain:
                 else:
                     self.stop_release()
 
-    def turn(self, turn_angle, wheel_speed=0, power_limit=None):
+    def turn_impl(self, turn_angle, wheel_speed=0, power_limit=None):
         self._log('turn')
         self._cancel_awaiter()
 
@@ -183,6 +186,67 @@ class DifferentialDrivetrain:
         self._update_callback = self._update_turn
 
         self._update_turn_speed()
+
+        return awaiter
+
+    def turn(self, direction, rotation, unit_rotation, speed, unit_speed):
+        self._log("turn")
+        left_multipliers = {
+            MotorConstants.DIRECTION_LEFT: -1,
+            MotorConstants.DIRECTION_RIGHT: 1,
+        }
+        right_multipliers = {
+            MotorConstants.DIRECTION_LEFT:  1,
+            MotorConstants.DIRECTION_RIGHT: -1,
+        }
+        turn_multipliers = {
+            MotorConstants.DIRECTION_LEFT:  1,  # +ve number -> CCW turn
+            MotorConstants.DIRECTION_RIGHT: -1,  # -ve number -> CW turn
+        }
+
+        if unit_rotation == MotorConstants.UNIT_SEC:
+            if unit_speed == MotorConstants.UNIT_SPEED_RPM:
+                self.set_speeds(
+                    rpm2dps(speed) * left_multipliers[direction],
+                    rpm2dps(speed) * right_multipliers[direction])
+
+            elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
+                self.set_speeds(
+                    rpm2dps(self.max_rpm) * left_multipliers[direction],
+                    rpm2dps(self.max_rpm) * right_multipliers[direction],
+                    power_limit=speed)
+
+            else:
+                raise ValueError
+
+            awaiter = AwaiterImpl()
+
+            t = Timer(rotation, awaiter.finish)
+
+            awaiter.on_cancelled(t.cancel)
+            awaiter.on_cancelled(self._apply_release)
+            awaiter.on_result(self._apply_release)
+
+            t.start()
+
+            self._awaiter = awaiter
+
+        elif unit_rotation == MotorConstants.UNIT_TURN_ANGLE:
+            if unit_speed == MotorConstants.UNIT_SPEED_RPM:
+                awaiter = self.turn_impl(
+                    rotation * turn_multipliers[direction],
+                    rpm2dps(speed))
+
+            elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
+                awaiter = self.turn_impl(
+                    rotation * turn_multipliers[direction],
+                    rpm2dps(self.max_rpm),
+                    power_limit=speed)
+
+            else:
+                raise ValueError
+        else:
+            raise ValueError
 
         return awaiter
 

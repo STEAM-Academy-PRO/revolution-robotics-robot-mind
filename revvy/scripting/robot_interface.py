@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 from revvy.robot.configurations import Motors, Sensors
+from revvy.robot.drivetrain import DifferentialDrivetrain
 from revvy.robot.led_ring import RingLed
 from revvy.robot.sound import Sound
 from revvy.scripting.resource import Resource
-from revvy.utils.functions import hex2rgb
+from revvy.utils.functions import hex2rgb, rpm2dps
 from revvy.robot.ports.common import PortInstance, PortCollection
 
 
@@ -141,16 +142,6 @@ class MotorConstants:
     ACTION_RELEASE = 1
 
 
-def rpm2dps(rpm):
-    """
-    >>> rpm2dps(1)
-    6
-    >>> rpm2dps(60)
-    360
-    """
-    return rpm * 6
-
-
 class MotorPortWrapper(Wrapper):
     """Wrapper class to expose motor ports to user scripts"""
     max_rpm = 150
@@ -251,18 +242,13 @@ class MotorPortWrapper(Wrapper):
         self.using_resource(set_speed_fns[unit_rotation][direction])
 
     def stop(self, action):
-        self.log("stop")
-        stop_fn = {
-            MotorConstants.ACTION_STOP_AND_HOLD: lambda: self._motor.set_speed(0),
-            MotorConstants.ACTION_RELEASE: lambda: self._motor.set_power(0),
-        }
-        self.using_resource(stop_fn[action])
+        self.using_resource(lambda: self._motor.stop(action))
 
 
 class DriveTrainWrapper(Wrapper):
     max_rpm = 150
 
-    def __init__(self, script, drivetrain, resource: ResourceWrapper):
+    def __init__(self, script, drivetrain: DifferentialDrivetrain, resource: ResourceWrapper):
         super().__init__(script, resource)
         self.log = lambda message: script.log("DriveTrain: {}".format(message))
         self._drivetrain = drivetrain
@@ -326,42 +312,6 @@ class DriveTrainWrapper(Wrapper):
 
     def turn(self, direction, rotation, unit_rotation, speed, unit_speed):
         self.log("turn")
-        left_multipliers = {
-            MotorConstants.DIRECTION_LEFT: -1,
-            MotorConstants.DIRECTION_RIGHT: 1,
-        }
-        right_multipliers = {
-            MotorConstants.DIRECTION_LEFT:  1,
-            MotorConstants.DIRECTION_RIGHT: -1,
-        }
-        turn_multipliers = {
-            MotorConstants.DIRECTION_LEFT:  1,  # +ve number -> CCW turn
-            MotorConstants.DIRECTION_RIGHT: -1,  # -ve number -> CW turn
-        }
-
-        set_fns = {
-            MotorConstants.UNIT_SEC: {
-                MotorConstants.UNIT_SPEED_RPM: lambda: self._drivetrain.set_speeds(
-                    rpm2dps(speed) * left_multipliers[direction],
-                    rpm2dps(speed) * right_multipliers[direction]),
-
-                MotorConstants.UNIT_SPEED_PWR: lambda: self._drivetrain.set_speeds(
-                    rpm2dps(self.max_rpm) * left_multipliers[direction],
-                    rpm2dps(self.max_rpm) * right_multipliers[direction],
-                    power_limit=speed)
-            },
-            MotorConstants.UNIT_TURN_ANGLE: {
-                MotorConstants.UNIT_SPEED_RPM: lambda: self._drivetrain.turn(
-                    rotation * turn_multipliers[direction],
-                    rpm2dps(speed)),
-
-                MotorConstants.UNIT_SPEED_PWR: lambda: self._drivetrain.turn(
-                    rotation * turn_multipliers[direction],
-                    rpm2dps(self.max_rpm),
-                    power_limit=speed)
-            }
-        }
-
         awaiter = None
 
         def _interrupted():
@@ -373,17 +323,9 @@ class DriveTrainWrapper(Wrapper):
         if resource:
             try:
                 self.log("start movement")
-                awaiter = resource.run_uninterruptable(set_fns[unit_rotation][unit_speed])
+                awaiter = self._drivetrain.turn(direction, rotation, unit_rotation, speed, unit_speed)
 
-                if unit_rotation == MotorConstants.UNIT_TURN_ANGLE:
-                    # wait for movement to finish
-                    if awaiter.wait():
-                        self._drivetrain.stop_release()
-
-                elif unit_rotation == MotorConstants.UNIT_SEC:
-                    self.sleep(rotation)
-
-                    resource.run_uninterruptable(lambda: self._drivetrain.set_speeds(0, 0))
+                awaiter.wait()
 
             finally:
                 self.log("turn finished")
