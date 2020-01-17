@@ -85,6 +85,9 @@ class ScriptHandle:
                 'ctx': ctx,
                 'time': TimeWrapper(ctx)
             })
+        except InterruptedError:
+            self.log('Interrupted')
+            raise
         finally:
             # restore to release reference on context
             self.log("Script finished")
