@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import os
-import time
 
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.hardware_dependent.sound import SoundControlV1, SoundControlV2
@@ -19,6 +18,7 @@ from revvy.robot.status_updater import McuStatusUpdater
 from revvy.scripting.robot_interface import RobotInterface
 from revvy.utils.assets import Assets
 from revvy.utils.logger import get_logger
+from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.version import Version
 
 
@@ -40,7 +40,7 @@ class Robot(RobotInterface):
         self._robot_control = RevvyControl(self._i2c.bind(self.ROBOT_I2C_ADDRESS))
         self._bootloader_control = BootloaderControl(self._i2c.bind(self.BOOTLOADER_I2C_ADDRESS))
 
-        self._start_time = time.time()
+        self._stopwatch = Stopwatch()
 
         # read versions
         self._hw_version = self._robot_control.get_hardware_version()
@@ -145,7 +145,7 @@ class Robot(RobotInterface):
         self._sound.play_tune(name)
 
     def time(self):
-        return time.time() - self._start_time
+        return self._stopwatch.elapsed
 
     def reset(self):
         self._log('reset()')

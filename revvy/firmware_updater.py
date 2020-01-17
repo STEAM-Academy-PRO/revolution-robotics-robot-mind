@@ -9,6 +9,7 @@ from json import JSONDecodeError
 from revvy.robot.robot import Robot
 from revvy.utils.file_storage import IntegrityError
 from revvy.utils.logger import get_logger
+from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.version import Version
 from revvy.utils.functions import split, bytestr_hash, read_json
 from revvy.mcu.rrrc_control import McuOperationMode
@@ -18,12 +19,13 @@ class McuUpdater:
     def __init__(self, robot: Robot):
         self._robot = robot.robot_control
         self._bootloader = robot.bootloader_control
+        self._stopwatch = Stopwatch()
 
         self._log = get_logger('McuUpdater')
 
     def _read_operation_mode(self):
-        start_time = time.time()
-        while (time.time() - start_time) < 10:
+        self._stopwatch.reset()
+        while self._stopwatch.elapsed < 10:
             try:
                 return self._robot.read_operation_mode()
             except OSError:
@@ -95,10 +97,10 @@ class McuUpdater:
 
         # send data
         self._log('Sending data')
-        start = time.time()
+        self._stopwatch.reset()
         for chunk in chunks:
             self._bootloader.send_firmware(chunk)
-        self._log('Data transfer took {} seconds'.format(round(time.time() - start, 1)))
+        self._log('Data transfer took {} seconds'.format(round(self._stopwatch.elapsed, 1)))
 
         self._finalize_update()
 

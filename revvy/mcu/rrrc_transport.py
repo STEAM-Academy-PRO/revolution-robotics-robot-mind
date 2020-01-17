@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-only
+
 import struct
-import time
 import binascii
 from enum import Enum
 from threading import Lock
 
 from revvy.utils.functions import retry
-
+from revvy.utils.stopwatch import Stopwatch
 
 crc7_table = [
     0x00, 0x09, 0x12, 0x1b, 0x24, 0x2d, 0x36, 0x3f,
@@ -170,6 +170,7 @@ class RevvyTransport:
 
     def __init__(self, transport: RevvyTransportInterface):
         self._transport = transport
+        self._stopwatch = Stopwatch()
 
     def send_command(self, command, payload=b'') -> Response:
         """
@@ -274,8 +275,8 @@ class RevvyTransport:
         @return: The response header
         """
         self._transport.write(command.get_bytes())
-        start = time.time()
-        while self.timeout == 0 or time.time() - start < self.timeout:
+        self._stopwatch.reset()
+        while self.timeout == 0 or self._stopwatch.elapsed < self.timeout:
             response = self._read_response_header()
             if response.status != ResponseStatus.Busy:
                 return response

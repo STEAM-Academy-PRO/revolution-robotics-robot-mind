@@ -17,6 +17,7 @@ from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import MotorConstants
 from revvy.scripting.runtime import ScriptManager
 from revvy.utils.logger import get_logger
+from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.thread_wrapper import periodic
 
 
@@ -280,7 +281,7 @@ class RobotBLEController:
         self._status_update_thread.exit()
 
     def _ping_robot(self, timeout=0):
-        start_time = time.time()
+        stopwatch = Stopwatch()
         retry_ping = True
         while retry_ping:
             retry_ping = False
@@ -290,5 +291,5 @@ class RobotBLEController:
                 retry_ping = True
                 time.sleep(0.1)
                 if timeout != 0:
-                    if time.time() - start_time > timeout:
+                    if stopwatch.elapsed > timeout:
                         raise TimeoutError
