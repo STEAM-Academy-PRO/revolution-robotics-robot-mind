@@ -88,6 +88,9 @@ class SensorPortWrapper(Wrapper):
 
     def read(self):
         """Return the last converted value"""
+        if self._script.is_stop_requested:
+            raise InterruptedError
+
         while not self._sensor.has_data:
             self.sleep(0.1)
 
@@ -161,6 +164,10 @@ class MotorPortWrapper(Wrapper):
         if type(config) is str:
             self._script.log("Warning: Using deprecated named motor configuration")
             config = self._named_configurations[config]
+
+        if self._script.is_stop_requested:
+            raise InterruptedError
+
         self._motor.configure(config)
 
     def move(self, direction, amount, unit_amount, limit, unit_limit):
@@ -306,6 +313,9 @@ class JoystickWrapper(Wrapper):
 
     def set_speeds_independent(self, sl, sr):
         if self._res:
+            if self._script.is_stop_requested:
+                raise InterruptedError
+
             # we already have the resource - check if it was taken away
             if self._res.is_interrupted:
                 # need to release the stick before re-taking
