@@ -245,6 +245,24 @@ class MotorPortWrapper(Wrapper):
         self.using_resource(lambda: self._motor.stop(action))
 
 
+def wrap_method(owner, method):
+    def _wrapper(*args, **kwargs):
+        def _interrupted():
+            if awaiter:
+                awaiter.cancel()
+
+        resource = owner.try_take_resource(_interrupted)
+        if resource:
+            try:
+                awaiter = method(*args, **kwargs)
+                awaiter.wait()
+
+            finally:
+                resource.release()
+
+    return _wrapper
+
+
 class DriveTrainWrapper(Wrapper):
     max_rpm = 150
 
@@ -253,83 +271,8 @@ class DriveTrainWrapper(Wrapper):
         self.log = lambda message: script.log("DriveTrain: {}".format(message))
         self._drivetrain = drivetrain
 
-    def drive(self, direction, rotation, unit_rotation, speed, unit_speed):
-        self.log("drive")
-        multipliers = {
-            MotorConstants.DIRECTION_FWD:   1,
-            MotorConstants.DIRECTION_BACK: -1,
-        }
-
-        set_fns = {
-            MotorConstants.UNIT_ROT: {
-                MotorConstants.UNIT_SPEED_RPM: lambda: self._drivetrain.move(
-                    360 * rotation * multipliers[direction],
-                    360 * rotation * multipliers[direction],
-                    left_speed=rpm2dps(speed),
-                    right_speed=rpm2dps(speed)),
-
-                MotorConstants.UNIT_SPEED_PWR: lambda: self._drivetrain.move(
-                    360 * rotation * multipliers[direction],
-                    360 * rotation * multipliers[direction],
-                    power_limit=speed)
-            },
-            MotorConstants.UNIT_SEC: {
-                MotorConstants.UNIT_SPEED_RPM: lambda: self._drivetrain.set_speeds(
-                    rpm2dps(speed) * multipliers[direction],
-                    rpm2dps(speed) * multipliers[direction]),
-
-                MotorConstants.UNIT_SPEED_PWR: lambda: self._drivetrain.set_speeds(
-                    rpm2dps(self.max_rpm) * multipliers[direction],
-                    rpm2dps(self.max_rpm) * multipliers[direction],
-                    power_limit=speed)
-            }
-        }
-
-        awaiter = None
-
-        def _interrupted():
-            self.log('interrupted')
-            if awaiter:
-                awaiter.cancel()
-
-        resource = self.try_take_resource(_interrupted)
-        if resource:
-            try:
-                self.log("start movement")
-                awaiter = resource.run_uninterruptable(set_fns[unit_rotation][unit_speed])
-
-                if unit_rotation == MotorConstants.UNIT_ROT:
-                    if awaiter.wait():
-                        resource.run_uninterruptable(self._drivetrain.stop_release)
-
-                elif unit_rotation == MotorConstants.UNIT_SEC:
-                    self.sleep(rotation)
-                    resource.run_uninterruptable(self._drivetrain.stop_release)
-
-            finally:
-                self.log("movement finished")
-                resource.release()
-
-    def turn(self, direction, rotation, unit_rotation, speed, unit_speed):
-        self.log("turn")
-        awaiter = None
-
-        def _interrupted():
-            self.log('interrupted')
-            if awaiter:
-                awaiter.cancel()
-
-        resource = self.try_take_resource(_interrupted)
-        if resource:
-            try:
-                self.log("start movement")
-                awaiter = self._drivetrain.turn(direction, rotation, unit_rotation, speed, unit_speed)
-
-                awaiter.wait()
-
-            finally:
-                self.log("turn finished")
-                resource.release()
+        self.turn = wrap_method(self, drivetrain.turn)
+        self.drive = wrap_method(self, drivetrain.drive)
 
     def set_speeds(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM):
         self.log("set_speeds")

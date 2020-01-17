@@ -189,8 +189,66 @@ class DifferentialDrivetrain:
 
         return awaiter
 
+    def drive(self, direction, rotation, unit_rotation, speed, unit_speed):
+        self._log("drive")
+        self._cancel_awaiter()
+        multipliers = {
+            MotorConstants.DIRECTION_FWD:   1,
+            MotorConstants.DIRECTION_BACK: -1,
+        }
+
+        if unit_rotation == MotorConstants.UNIT_ROT:
+            if unit_speed == MotorConstants.UNIT_SPEED_RPM:
+                awaiter = self.move(
+                    360 * rotation * multipliers[direction],
+                    360 * rotation * multipliers[direction],
+                    left_speed=rpm2dps(speed),
+                    right_speed=rpm2dps(speed))
+
+            elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
+                awaiter = self.move(
+                    360 * rotation * multipliers[direction],
+                    360 * rotation * multipliers[direction],
+                    power_limit=speed)
+
+            else:
+                raise ValueError
+
+        elif unit_rotation == MotorConstants.UNIT_SEC:
+            if unit_speed == MotorConstants.UNIT_SPEED_RPM:
+                self.set_speeds(
+                    rpm2dps(speed) * multipliers[direction],
+                    rpm2dps(speed) * multipliers[direction])
+
+            elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
+                self.set_speeds(
+                    rpm2dps(self.max_rpm) * multipliers[direction],
+                    rpm2dps(self.max_rpm) * multipliers[direction],
+                    power_limit=speed)
+
+            else:
+                raise ValueError
+
+            awaiter = AwaiterImpl()
+
+            t = Timer(rotation, awaiter.finish)
+
+            awaiter.on_cancelled(t.cancel)
+            awaiter.on_cancelled(self._apply_release)
+            awaiter.on_result(self._apply_release)
+
+            t.start()
+
+            self._awaiter = awaiter
+
+        else:
+            raise ValueError
+
+        return awaiter
+
     def turn(self, direction, rotation, unit_rotation, speed, unit_speed):
         self._log("turn")
+        self._cancel_awaiter()
         left_multipliers = {
             MotorConstants.DIRECTION_LEFT: -1,
             MotorConstants.DIRECTION_RIGHT: 1,
