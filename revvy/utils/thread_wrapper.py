@@ -7,11 +7,10 @@ from threading import Event, Thread, Lock
 from revvy.utils.logger import get_logger
 
 
-def _call_callbacks(cb_list):
-    for cb in list(cb_list):
-        keep_callback = cb()
-        if not keep_callback:
-            cb_list.remove(cb)
+def _call_callbacks(cb_list: list):
+    while len(cb_list) != 0:
+        cb = cb_list.pop()
+        cb()
 
 
 class ThreadWrapper:
