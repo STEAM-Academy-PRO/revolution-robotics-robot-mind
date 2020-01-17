@@ -110,12 +110,33 @@ class DifferentialDrivetrain:
                 self._log('motor blocked, stop')
                 self.stop_release()
 
-    def set_speeds(self, left, right, power_limit=None):
-        self._log('set speeds')
+    def set_speeds_independent(self, left, right, power_limit=None):
+        self._log('set speeds independent')
         self._cancel_awaiter()
 
         self._update_callback = self._update_move
         self._apply_speeds(left, right, power_limit)
+
+    def set_speeds(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM):
+        self._log("set_speeds")
+        multipliers = {
+            MotorConstants.DIRECTION_FWD: 1,
+            MotorConstants.DIRECTION_BACK: -1,
+        }
+
+        if unit_speed == MotorConstants.UNIT_SPEED_RPM:
+            self.set_speeds_independent(
+                multipliers[direction] * rpm2dps(speed),
+                multipliers[direction] * rpm2dps(speed)
+            )
+        elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
+            self.set_speeds_independent(
+                multipliers[direction] * rpm2dps(self.max_rpm),
+                multipliers[direction] * rpm2dps(self.max_rpm),
+                power_limit=speed
+            )
+        else:
+            raise ValueError('Invalid unit_speed: {}'.format(unit_speed))
 
     def _apply_release(self):
         commands = []
@@ -212,22 +233,22 @@ class DifferentialDrivetrain:
                     power_limit=speed)
 
             else:
-                raise ValueError
+                raise ValueError('Invalid unit_speed: {}'.format(unit_speed))
 
         elif unit_rotation == MotorConstants.UNIT_SEC:
             if unit_speed == MotorConstants.UNIT_SPEED_RPM:
-                self.set_speeds(
+                self.set_speeds_independent(
                     rpm2dps(speed) * multipliers[direction],
                     rpm2dps(speed) * multipliers[direction])
 
             elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
-                self.set_speeds(
+                self.set_speeds_independent(
                     rpm2dps(self.max_rpm) * multipliers[direction],
                     rpm2dps(self.max_rpm) * multipliers[direction],
                     power_limit=speed)
 
             else:
-                raise ValueError
+                raise ValueError('Invalid unit_speed: {}'.format(unit_speed))
 
             awaiter = AwaiterImpl()
 
@@ -242,7 +263,7 @@ class DifferentialDrivetrain:
             self._awaiter = awaiter
 
         else:
-            raise ValueError
+            raise ValueError('Invalid unit_rotation: {}'.format(unit_rotation))
 
         return awaiter
 
@@ -264,18 +285,18 @@ class DifferentialDrivetrain:
 
         if unit_rotation == MotorConstants.UNIT_SEC:
             if unit_speed == MotorConstants.UNIT_SPEED_RPM:
-                self.set_speeds(
+                self.set_speeds_independent(
                     rpm2dps(speed) * left_multipliers[direction],
                     rpm2dps(speed) * right_multipliers[direction])
 
             elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
-                self.set_speeds(
+                self.set_speeds_independent(
                     rpm2dps(self.max_rpm) * left_multipliers[direction],
                     rpm2dps(self.max_rpm) * right_multipliers[direction],
                     power_limit=speed)
 
             else:
-                raise ValueError
+                raise ValueError('Invalid unit_speed: {}'.format(unit_speed))
 
             awaiter = AwaiterImpl()
 
@@ -302,9 +323,10 @@ class DifferentialDrivetrain:
                     power_limit=speed)
 
             else:
-                raise ValueError
+                raise ValueError('Invalid unit_speed: {}'.format(unit_speed))
+
         else:
-            raise ValueError
+            raise ValueError('Invalid unit_rotation: {}'.format(unit_rotation))
 
         return awaiter
 

@@ -244,7 +244,7 @@ class MotorPortWrapper(Wrapper):
         self.using_resource(lambda: self._motor.stop(action))
 
 
-def wrap_method(owner, method):
+def wrap_async_method(owner, method):
     def _wrapper(*args, **kwargs):
         def _interrupted():
             if awaiter:
@@ -262,38 +262,34 @@ def wrap_method(owner, method):
     return _wrapper
 
 
-class DriveTrainWrapper(Wrapper):
-    max_rpm = 150
+def wrap_sync_method(owner, method):
+    def _wrapper(*args, **kwargs):
+        resource = owner.try_take_resource()
+        if resource:
+            try:
+                method(*args, **kwargs)
 
+            finally:
+                resource.release()
+
+    return _wrapper
+
+
+class DriveTrainWrapper(Wrapper):
     def __init__(self, script, drivetrain, resource: ResourceWrapper):
         super().__init__(script, resource)
         self.log = lambda message: script.log("DriveTrain: {}".format(message))
         self._drivetrain = drivetrain
 
-        self.turn = wrap_method(self, drivetrain.turn)
-        self.drive = wrap_method(self, drivetrain.drive)
+        self.turn = wrap_async_method(self, drivetrain.turn)
+        self.drive = wrap_async_method(self, drivetrain.drive)
 
     def set_speeds(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM):
         self.log("set_speeds")
-        multipliers = {
-            MotorConstants.DIRECTION_FWD:   1,
-            MotorConstants.DIRECTION_BACK: -1,
-        }
-
         resource = self.try_take_resource()
         if resource:
             try:
-                if unit_speed == MotorConstants.UNIT_SPEED_RPM:
-                    self._drivetrain.set_speeds(
-                        multipliers[direction] * rpm2dps(speed),
-                        multipliers[direction] * rpm2dps(speed)
-                    )
-                elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
-                    self._drivetrain.set_speeds(
-                        multipliers[direction] * rpm2dps(self.max_rpm),
-                        multipliers[direction] * rpm2dps(self.max_rpm),
-                        power_limit=speed
-                    )
+                self._drivetrain.set_speeds(direction, speed, unit_speed)
             finally:
                 if speed == 0:
                     resource.release()
@@ -317,7 +313,7 @@ class JoystickWrapper(Wrapper):
                     self._res = None
             else:
                 # the resource is ours, use it
-                self._drivetrain.set_speeds(sl, sr)
+                self._drivetrain.set_speeds_independent(sl, sr)
                 if sl == sr == 0:
                     # manual stop: allow lower priority scripts to move
                     self.log("resource released")
@@ -328,7 +324,7 @@ class JoystickWrapper(Wrapper):
             if self._res:
                 try:
                     self.log("resource taken")
-                    self._drivetrain.set_speeds(sl, sr)
+                    self._drivetrain.set_speeds_independent(sl, sr)
                 finally:
                     if sl == sr == 0:
                         self.log("resource released immediately")

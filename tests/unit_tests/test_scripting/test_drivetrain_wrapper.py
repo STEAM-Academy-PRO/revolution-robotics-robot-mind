@@ -9,7 +9,7 @@ from revvy.scripting.robot_interface import DriveTrainWrapper, MotorConstants, R
 class TestDrivetrainWrapper(unittest.TestCase):
     def test_drive_for_time_calls_set_speeds_rpm(self):
         mock_drivetrain = Mock()
-        mock_drivetrain.set_speeds = Mock()
+        mock_drivetrain.set_speeds_independent = Mock()
 
         mock_drivetrain.is_moving = False
 
@@ -22,14 +22,14 @@ class TestDrivetrainWrapper(unittest.TestCase):
 
         dtw.drive(MotorConstants.DIRECTION_FWD, 3, MotorConstants.UNIT_SEC, 150, MotorConstants.UNIT_SPEED_RPM)
 
-        self.assertEqual(1, mock_drivetrain.set_speeds.call_count)
+        self.assertEqual(1, mock_drivetrain.set_speeds_independent.call_count)
         self.assertEqual(1, mock_drivetrain.stop_release.call_count)
 
-        self.assertEqual(call(900, 900), mock_drivetrain.set_speeds.call_args_list[0])
+        self.assertEqual(call(900, 900), mock_drivetrain.set_speeds_independent.call_args_list[0])
 
     def test_drive_for_time_calls_set_speeds_pwr(self):
         mock_drivetrain = Mock()
-        mock_drivetrain.set_speeds = Mock()
+        mock_drivetrain.set_speeds_independent = Mock()
 
         mock_drivetrain.is_moving = False
 
@@ -42,10 +42,10 @@ class TestDrivetrainWrapper(unittest.TestCase):
 
         dtw.drive(MotorConstants.DIRECTION_FWD, 3, MotorConstants.UNIT_SEC, 75, MotorConstants.UNIT_SPEED_PWR)
 
-        self.assertEqual(1, mock_drivetrain.set_speeds.call_count)
+        self.assertEqual(1, mock_drivetrain.set_speeds_independent.call_count)
         self.assertEqual(1, mock_drivetrain.stop_release.call_count)
 
-        self.assertEqual(call(900, 900, power_limit=75), mock_drivetrain.set_speeds.call_args_list[0])
+        self.assertEqual(call(900, 900, power_limit=75), mock_drivetrain.set_speeds_independent.call_args_list[0])
 
     def test_drive_for_rotation_calls_set_position_rpm(self):
         mock_drivetrain = Mock()
