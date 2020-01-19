@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 from enum import Enum
+from functools import partial
 
 from revvy.mcu.commands import MotorPortControlCommand
 from revvy.mcu.rrrc_control import RevvyControl
@@ -115,7 +116,7 @@ class DcMotorController(PortDriver):
         self._port_config = port_config
         self._log = get_logger(self._name)
 
-        self._configure = lambda cfg: port.interface.set_motor_port_config(port.id, cfg)
+        self._configure = partial(port.interface.set_motor_port_config, port.id)
 
         self._pos = 0
         self._speed = 0
@@ -132,12 +133,12 @@ class DcMotorController(PortDriver):
         (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = self._port_config['speed_controller']
         (decMax, accMax) = self._port_config['acceleration_limits']
 
-        config = []
-        config += list(struct.pack("<h", self._port_config['encoder_resolution']))
-        config += list(struct.pack("<{}".format("f" * 5), posP, posI, posD, speedLowerLimit, speedUpperLimit))
-        config += list(struct.pack("<{}".format("f" * 5), speedP, speedI, speedD, powerLowerLimit, powerUpperLimit))
-        config += list(struct.pack("<ff", decMax, accMax))
-
+        config = [
+            *struct.pack("<h", self._port_config['encoder_resolution']),
+            *struct.pack("<{}".format("f" * 5), posP, posI, posD, speedLowerLimit, speedUpperLimit),
+            *struct.pack("<{}".format("f" * 5), speedP, speedI, speedD, powerLowerLimit, powerUpperLimit),
+            *struct.pack("<ff", decMax, accMax)
+        ]
         self._log('Sending configuration: {}'.format(config))
 
         self._configure(config)
@@ -233,11 +234,7 @@ class DcMotorController(PortDriver):
 
     def update_status(self, data):
         if len(data) == 10:
-            (status, power, pos, speed) = struct.unpack('<bblf', data)
-
-            self._pos = pos
-            self._speed = speed
-            self._power = power
+            status, self._power, self._pos, self._speed = struct.unpack('<bblf', data)
 
             self._update_motor_status(MotorStatus(status))
             self.on_status_changed(self._port)

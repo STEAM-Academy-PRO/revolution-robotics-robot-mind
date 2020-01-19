@@ -7,7 +7,7 @@ from revvy.utils.logger import get_logger
 
 
 class ResourceHandle:
-    def __init__(self, resource):
+    def __init__(self, resource: 'Resource'):
         self._resource = resource
         self._on_interrupted = FunctionAggregator()
         self._on_released = FunctionAggregator()
@@ -30,7 +30,7 @@ class ResourceHandle:
         self.on_interrupted()
 
     def run_uninterruptable(self, callback):
-        with self._resource._lock:
+        with self._resource:
             if not self._is_interrupted:
                 return callback()
 
@@ -46,9 +46,11 @@ class Resource:
         self._current_priority = -1
         self._active_handle = None
 
-    @property
-    def lock(self):
-        return self._lock
+    def __enter__(self):
+        self._lock.__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._lock.__exit__(exc_type, exc_val, exc_tb)
 
     def reset(self):
         self._log('Reset')

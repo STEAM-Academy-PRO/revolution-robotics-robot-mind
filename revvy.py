@@ -6,6 +6,8 @@ import shutil
 import sys
 import tarfile
 import traceback
+from contextlib import suppress
+from functools import partial
 
 from revvy.revvy_utils import RobotBLEController, RevvyStatusCode
 from revvy.robot.robot import Robot
@@ -40,15 +42,12 @@ def extract_asset_longmessage(storage, asset_dir):
     asset_status = storage.read_status(LongMessageType.ASSET_DATA)
 
     if asset_status.status == LongMessageStatus.READY:
-        # noinspection PyBroadException
-        try:
+        with suppress(Exception):
             with open(os.path.join(asset_dir, '.hash'), 'r') as asset_hash_file:
                 stored_hash = asset_hash_file.read()
 
             if stored_hash == asset_status.md5:
                 return
-        except Exception:
-            pass
 
         if os.path.isdir(asset_dir):
             shutil.rmtree(asset_dir)
@@ -76,7 +75,7 @@ class LongMessageImplementation:
         Requests LED ring change in the background"""
 
         if message_type == LongMessageType.FRAMEWORK_DATA:
-            self._robot.run_in_background(lambda: self._robot.robot.led.start_animation(RingLed.ColorWheel))
+            self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.ColorWheel))
         else:
             self._robot.robot.status.robot_status = RobotStatus.Configuring
 
@@ -86,7 +85,7 @@ class LongMessageImplementation:
         Requests LED ring change in the background"""
 
         if message_type != LongMessageType.FRAMEWORK_DATA:
-            self._robot.run_in_background(lambda: self._robot.robot.led.start_animation(RingLed.BreathingGreen))
+            self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.BreathingGreen))
 
     def on_message_updated(self, storage, message_type):
         self._log('Received message: {}'.format(message_type))
@@ -100,7 +99,7 @@ class LongMessageImplementation:
             def start_script():
                 self._log("Starting new test script")
                 handle = self._robot._scripts.add_script(script_descriptor)
-                handle.on_stopped(lambda: self._robot.configure(None))
+                handle.on_stopped(partial(self._robot.configure, None))
 
                 # start can't run in on_stopped handler because overwriting script causes deadlock
                 self._robot.run_in_background(handle.start)

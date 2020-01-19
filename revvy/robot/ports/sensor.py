@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 import collections
 import struct
+from functools import partial
 
 from revvy.utils.functions import map_values, split
 from revvy.mcu.rrrc_control import RevvyControl
@@ -117,6 +118,18 @@ Ev3DataType = collections.namedtuple("Ev3DataType", ['data_size', 'read_pattern'
 
 
 class Ev3Mode:
+    mode_info_pattern = '<' + 'b' * 4 + 'f' * 6
+
+    @staticmethod
+    def parse(mode_info):
+        (nSamples, dataType, figures, decimals,
+         raw_min, raw_max,
+         pct_min, pct_max,
+         si_min, si_max) = struct.unpack(Ev3Mode.mode_info_pattern, mode_info)
+
+        return Ev3Mode(nSamples, dataType, figures, decimals, raw_min, raw_max, pct_min, pct_max, si_min,
+                       si_max)
+
     _type_info = [
         Ev3DataType(data_size=1, read_pattern='B', name='u8'),
         Ev3DataType(data_size=1, read_pattern='b', name='s8'),
@@ -151,12 +164,11 @@ class Ev3Mode:
         return map_values(value, self._raw_min, self._raw_max, self._si_min, self._si_max)
 
     def convert(self, data):
-        data_size = self._type_info[self._dataType].data_size
-        pattern = self._type_info[self._dataType].read_pattern
+        type_info = self._type_info[self._dataType]
 
         values = []
-        for chunk in split(data, data_size):
-            (value, ) = struct.unpack(pattern, chunk)
+        for chunk in split(data, type_info.data_size):
+            (value,) = struct.unpack(type_info.read_pattern, chunk)
 
             values.append(self._convert_single(value))
 
@@ -227,17 +239,9 @@ class Ev3UARTSensor(BaseSensorPortDriver):
             modes = []
             for i in range(1, nModes+1):
                 mode_info = self._interface.read_sensor_info(self._port.id, i)
-                (nSamples, dataType, figures, decimals,
-                 raw_min, raw_max,
-                 pct_min, pct_max,
-                 si_min, si_max) = struct.unpack('<' + 'b'*4 + 'f'*6, mode_info)
-
                 print('New mode: {}/{}'.format(i, nModes))
                 print('===============')
-                modes.append(Ev3Mode(nSamples, dataType, figures, decimals,
-                                     raw_min, raw_max,
-                                     pct_min, pct_max,
-                                     si_min, si_max))
+                modes.append(Ev3Mode.parse(mode_info))
                 print('')
 
             return modes
@@ -287,13 +291,12 @@ def ev3_color(port: PortInstance, cfg):
 
     def convert(raw):
         value = ev3_convert(raw)
-        if value is None:
-            return None
-
-        color_id = int(value[0])
-        return Color(color_id=color_id, name=color_map[color_id]['name'], rgb=color_map[color_id]['rgb'])
+        if value:
+            color_id = int(value[0])
+            color_data = color_map[color_id]
+            return Color(color_id=color_id, name=color_data['name'], rgb=color_data['rgb'])
 
     sensor.convert_sensor_value = convert
-    sensor.on_configured = lambda: sensor.select_mode(2)
+    sensor.on_configured = partial(sensor.select_mode, 2)
 
     return sensor

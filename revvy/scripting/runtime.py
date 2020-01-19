@@ -110,8 +110,8 @@ class ScriptManager:
     def reset(self):
         self._log('stopping scripts')
         self.stop_all_scripts()
-        for script in self._scripts:
-            self._scripts[script].cleanup()
+        for script in self._scripts.values():
+            script.cleanup()
 
         self._log('resetting state')
         self._globals.clear()
@@ -119,8 +119,8 @@ class ScriptManager:
 
     def assign(self, name, value):
         self._globals[name] = value
-        for script in self._scripts:
-            self._scripts[script].assign(name, value)
+        for script in self._scripts.values():
+            script.assign(name, value)
 
     def add_script(self, script: ScriptDescriptor):
         if script.name in self._scripts:
@@ -146,5 +146,5 @@ class ScriptManager:
         return self._scripts[name]
 
     def stop_all_scripts(self):
-        for script in self._scripts:
-            self._scripts[script].stop()
+        for script in self._scripts.values():
+            script.stop()

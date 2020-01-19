@@ -5,7 +5,8 @@ import os
 import signal
 import traceback
 import time
-from threading import Lock, Event
+from functools import partial
+from threading import Event
 
 from revvy.mcu.rrrc_transport import TransportException
 from revvy.robot.robot import Robot
@@ -42,7 +43,6 @@ class RobotBLEController:
         self._sw_version = sw_version
 
         self._status_update_thread = periodic(self._update, 0.02, "RobotStatusUpdaterThread")
-        self._background_fn_lock = Lock()
         self._background_fns = []
 
         rc = RemoteController()
@@ -81,15 +81,13 @@ class RobotBLEController:
             self._ble['battery_service'].characteristic('main_battery').update_value(self._robot.battery.main)
             self._ble['battery_service'].characteristic('motor_battery').update_value(self._robot.battery.motor)
 
-            with self._background_fn_lock:
-                fns, self._background_fns = self._background_fns, []
+            fns, self._background_fns = self._background_fns, []
 
-            if len(fns) > 0:
-                i = 1
-                for fn in fns:
+            if fns:
+                for i, fn in enumerate(fns):
                     self._log('Running {}/{} background functions'.format(i, len(fns)))
                     fn()
-                    i += 1
+
                 self._log('Background functions finished')
         except TransportException:
             self._log(traceback.format_exc())
@@ -155,13 +153,12 @@ class RobotBLEController:
 
             self._ble.start()
             self._robot.status.robot_status = RobotStatus.NotConfigured
-            self.configure(None, lambda: self._robot.play_tune('robot2'))
+            self.configure(None, partial(self._robot.play_tune, 'robot2'))
 
     def run_in_background(self, callback):
         if callable(callback):
             self._log('Registering new background function')
-            with self._background_fn_lock:
-                self._background_fns.append(callback)
+            self._background_fns.append(callback)
         else:
             raise ValueError('callback is not callable')
 
@@ -190,7 +187,7 @@ class RobotBLEController:
         if self._robot.status.robot_status != RobotStatus.Stopped:
             if not self._configuring:
                 self._configuring = True
-                self.run_in_background(lambda: self._configure(config))
+                self.run_in_background(partial(self._configure, config))
             if callable(after):
                 self.run_in_background(after)
 
@@ -240,8 +237,7 @@ class RobotBLEController:
                 lambda in_data, scr=script_handle: scr.start({'input': in_data})
             )
 
-        for button in range(len(config.controller.buttons)):
-            script = config.controller.buttons[button]
+        for button, script in enumerate(config.controller.buttons):
             if script:
                 script_handle = self._scripts.add_script(script)
                 self._remote_controller.on_button_pressed(button, script_handle.start)
@@ -290,6 +286,5 @@ class RobotBLEController:
             except (BrokenPipeError, IOError, OSError):
                 retry_ping = True
                 time.sleep(0.1)
-                if timeout != 0:
-                    if stopwatch.elapsed > timeout:
-                        raise TimeoutError
+                if timeout != 0 and stopwatch.elapsed > timeout:
+                    raise TimeoutError

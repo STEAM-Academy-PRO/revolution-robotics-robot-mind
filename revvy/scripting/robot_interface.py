@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
+from functools import partial
 
 from revvy.robot.configurations import Motors, Sensors
 from revvy.robot.led_ring import RingLed
@@ -79,7 +80,7 @@ class SensorPortWrapper(Wrapper):
         if type(config) is str:
             self._script.log("Warning: Using deprecated named sensor configuration")
             config = self._named_configurations[config]
-        self.using_resource(lambda: self._sensor.configure(config))
+        self.using_resource(partial(self._sensor.configure, config))
 
     def read(self):
         """Return the last converted value"""
@@ -105,7 +106,7 @@ class RingLedWrapper(Wrapper):
         return self._ring_led.scenario
 
     def start_animation(self, scenario):
-        self.using_resource(lambda: self._ring_led.start_animation(scenario))
+        self.using_resource(partial(self._ring_led.start_animation, scenario))
 
     def set(self, led_index, color):
         if type(led_index) is not list:
@@ -118,7 +119,7 @@ class RingLedWrapper(Wrapper):
                 raise IndexError('Led index invalid: {}'.format(idx))
             self._user_leds[idx - 1] = rgb
 
-        self.using_resource(lambda: self._ring_led.display_user_frame(self._user_leds))
+        self.using_resource(partial(self._ring_led.display_user_frame, self._user_leds))
 
 
 class MotorConstants:
@@ -220,7 +221,7 @@ class MotorPortWrapper(Wrapper):
 
                 elif unit_amount == MotorConstants.UNIT_SEC:
                     self.sleep(amount)
-                    resource.run_uninterruptable(lambda: self._motor.set_speed(0))
+                    resource.run_uninterruptable(partial(self._motor.set_speed, 0))
 
             finally:
                 resource.release()
@@ -243,7 +244,7 @@ class MotorPortWrapper(Wrapper):
         self.using_resource(set_speed_fns[unit_rotation][direction])
 
     def stop(self, action):
-        self.using_resource(lambda: self._motor.stop(action))
+        self.using_resource(partial(self._motor.stop, action))
 
 
 def wrap_async_method(owner, method):
@@ -356,7 +357,7 @@ class SoundWrapper(Wrapper):
 
     def play_tune(self, name):
         # immediately releases resource after starting the playback
-        self.if_resource_available(lambda resource: self._play(name))
+        self.if_resource_available(lambda _: self._play(name))
 
 
 class RobotInterface:

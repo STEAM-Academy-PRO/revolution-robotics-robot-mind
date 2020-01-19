@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
+from contextlib import suppress
 
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.logger import get_logger
@@ -12,10 +13,8 @@ class FunctionAggregator:
         self.clear = self._callbacks.clear
 
     def remove(self, callback):
-        try:
+        with suppress(ValueError):
             self._callbacks.remove(callback)
-        except ValueError:
-            pass
 
     def __call__(self, *args, **kwargs):
         for func in self._callbacks:

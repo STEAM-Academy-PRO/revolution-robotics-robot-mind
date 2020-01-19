@@ -132,14 +132,14 @@ class ResponseHeader:
         if checksum != data[self.length-1]:
             raise ValueError('Header checksum mismatch')
 
-        (status, self._payload_length, self._payload_checksum) = struct.unpack('<bbH', self._raw)
+        status, self._payload_length, self._payload_checksum = struct.unpack('<bbH', self._raw)
         self._status = ResponseStatus(status)
 
     def validate_payload(self, payload):
         return self._payload_checksum == binascii.crc_hqx(payload, 0xFFFF)
 
-    def __eq__(self, o: 'ResponseHeader') -> bool:
-        return o._raw == self._raw
+    def __ne__(self, o: 'ResponseHeader') -> bool:
+        return o._raw != self._raw
 
     @property
     def status(self) -> ResponseStatus:
@@ -247,7 +247,7 @@ class RevvyTransport:
 
             # make sure we read the same response data we expect
             response_header = ResponseHeader(response_bytes)
-            if not header == response_header:
+            if header != response_header:
                 raise ValueError('Read payload: Unexpected header received')
 
             # make sure data is intact

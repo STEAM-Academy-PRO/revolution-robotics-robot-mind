@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
-
+from contextlib import suppress
 from threading import Timer
 
 from revvy.mcu.rrrc_control import RevvyControl
@@ -38,15 +38,11 @@ class DifferentialDrivetrain:
         # if a motor config changes, remove the motor from the drivetrain
         self._motors.remove(motor)
 
-        try:
+        with suppress(ValueError):
             self._left_motors.remove(motor)
-        except ValueError:
-            pass
 
-        try:
+        with suppress(ValueError):
             self._right_motors.remove(motor)
-        except ValueError:
-            pass
 
     def _on_motor_status_changed(self, motor):
         callback = self._update_callback
@@ -140,19 +136,17 @@ class DifferentialDrivetrain:
             raise ValueError('Invalid unit_speed: {}'.format(unit_speed))
 
     def _apply_release(self):
-        commands = []
-        for motor in self._left_motors:
-            commands.append(motor.create_set_power_command(0))
-        for motor in self._right_motors:
-            commands.append(motor.create_set_power_command(0))
+        commands = [
+            *(motor.create_set_power_command(0) for motor in self._left_motors),
+            *(motor.create_set_power_command(0) for motor in self._right_motors)
+        ]
         self._interface.set_motor_port_control_value(commands)
 
     def _apply_speeds(self, left, right, power_limit):
-        commands = []
-        for motor in self._left_motors:
-            commands.append(motor.create_set_speed_command(left, power_limit))
-        for motor in self._right_motors:
-            commands.append(motor.create_set_speed_command(right, power_limit))
+        commands = [
+            *(motor.create_set_speed_command(left, power_limit) for motor in self._left_motors),
+            *(motor.create_set_speed_command(right, power_limit) for motor in self._right_motors)
+        ]
         self._interface.set_motor_port_control_value(commands)
 
     def _update_turn_speed(self):

@@ -6,6 +6,8 @@ import traceback
 from binascii import b2a_base64, a2b_base64
 
 import math
+from contextlib import suppress
+from functools import partial
 
 
 def clip(x, min_x, max_x):
@@ -160,10 +162,8 @@ def dict_get_first(dictionary: dict, keys: list):
     KeyError: 'e, f'
     """
     for key in keys:
-        try:
+        with suppress(KeyError):
             return dictionary[key]
-        except KeyError:
-            pass
     raise KeyError(', '.join(keys))
 
 
@@ -185,7 +185,7 @@ def read_json(filename):
 
 
 def str_to_func(code):
-    return lambda variables: exec(code, variables)
+    return partial(exec, code)
 
 
 def rpm2dps(rpm):

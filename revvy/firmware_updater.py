@@ -4,6 +4,7 @@ import binascii
 import os
 import time
 import traceback
+from contextlib import suppress
 from json import JSONDecodeError
 
 from revvy.robot.robot import Robot
@@ -26,14 +27,14 @@ class McuUpdater:
     def _read_operation_mode(self):
         self._stopwatch.reset()
         while self._stopwatch.elapsed < 10:
-            try:
+            with suppress(OSError):
                 return self._robot.read_operation_mode()
-            except OSError:
-                try:
-                    return self._bootloader.read_operation_mode()
-                except OSError:
-                    self._log("Failed to read operation mode. Retrying")
-                    time.sleep(0.5)
+
+            with suppress(OSError):
+                return self._bootloader.read_operation_mode()
+
+            self._log("Failed to read operation mode. Retrying")
+            time.sleep(0.5)
 
         raise TimeoutError('Could not determine operation mode')
 
@@ -48,7 +49,7 @@ class McuUpdater:
         except OSError:
             self._log('MCU restarted before finishing communication')
         except Exception:
-            traceback.print_exc()
+            self._log(traceback.format_exc())
 
     def _request_bootloader_mode(self):
         try:
@@ -150,20 +151,21 @@ def update_firmware(fw_dir, robot: Robot):
     loader = FirmwareLoader(fw_dir)
 
     try:
-        fw_version, fw_binary = loader.get_firmware(robot.hw_version)
+        try:
+            fw_version, fw_binary = loader.get_firmware(robot.hw_version)
 
-        updater = McuUpdater(robot)
-        if updater.is_update_needed(fw_version):
-            updater.upload_binary(fw_binary)
+            updater = McuUpdater(robot)
+            if updater.is_update_needed(fw_version):
+                updater.upload_binary(fw_binary)
+        except Exception:
+            loader.log(traceback.format_exc())
+            raise
 
     except KeyError:
-        loader.log(traceback.format_exc())
         loader.log('No firmware for the hardware ({})'.format(robot.hw_version))
 
     except IOError:
-        loader.log(traceback.format_exc())
         loader.log('Firmware file does not exist or is not readable')
 
     except IntegrityError:
-        loader.log(traceback.format_exc())
         loader.log('Firmware file corrupted')

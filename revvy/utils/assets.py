@@ -2,6 +2,7 @@
 
 import os
 import traceback
+from collections import defaultdict
 
 from revvy.utils.functions import read_json
 from revvy.utils.logger import get_logger
@@ -10,7 +11,7 @@ from revvy.utils.logger import get_logger
 class Assets:
     def __init__(self):
         self._log = get_logger('Assets')
-        self._files = {}
+        self._files = defaultdict(dict)
 
     def add_source(self, path):
         """
@@ -25,9 +26,6 @@ class Assets:
             self._log('Loading assets from {}'.format(path))
             files = manifest['files']
             for category, assets in files.items():
-                if category not in self._files:
-                    self._files[category] = {}
-
                 for asset_name, asset_path in assets.items():
                     if asset_name in self._files[category]:
                         self._log('{} shadows asset {}'.format(path, asset_name))

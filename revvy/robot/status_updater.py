@@ -31,14 +31,14 @@ class McuStatusUpdater:
         self._robot = robot
         self._is_enabled = [False] * 32
         self._is_enabled[self.mcu_updater_slots["reset"]] = True
-        self._handlers = [lambda x: None] * 32
+        self._handlers = [None] * 32
         self._log = get_logger('McuStatusUpdater')
 
     def reset(self):
         self._log('reset all slots')
-        self._handlers = [lambda x: None] * 32
         self._is_enabled = [False] * 32
         self._is_enabled[self.mcu_updater_slots["reset"]] = True
+        self._handlers = [None] * 32
         self._robot.status_updater_reset()
 
     def _enable_slot(self, slot):
@@ -60,21 +60,23 @@ class McuStatusUpdater:
             if self._is_enabled[slot_idx]:
                 self._is_enabled[slot_idx] = False
                 self._disable_slot(slot_idx)
-            self._handlers[slot_idx] = lambda x: None
+            self._handlers[slot_idx] = None
 
     def read(self):
         data = self._robot.status_updater_read()
 
         idx = 0
         while idx < len(data):
-            slot = data[idx]
-            slot_length = data[idx + 1]
+            slot, slot_length = data[idx:idx+2]
 
             data_start = idx + 2
             data_end = data_start + slot_length
 
             if data_end <= len(data):
-                self._handlers[slot](data[data_start:data_end])
+                handler = self._handlers[slot]
+                if handler:
+                    # noinspection PyCallingNonCallable
+                    handler(data[data_start:data_end])
             else:
                 self._log('invalid slot length')
 

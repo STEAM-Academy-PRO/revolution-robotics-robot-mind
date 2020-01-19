@@ -2,9 +2,10 @@
 
 import time
 from collections import namedtuple
-from threading import Lock, Event
+from threading import Event
 
 from revvy.utils.activation import EdgeDetector
+from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.thread_wrapper import ThreadWrapper, ThreadContext
 from revvy.utils.logger import get_logger
 
@@ -51,12 +52,11 @@ class RemoteController:
                 self._log('Skip analog handler for channels {}'.format(", ".join(map(str, channels))))
 
         # handle button presses
-        for idx in range(len(self._buttonHandlers)):
-            pressed = self._buttonHandlers[idx].handle(message.buttons[idx])
-            if pressed == 1:
-                if self._buttonActions[idx]:
-                    # noinspection PyCallingNonCallable
-                    self._buttonActions[idx]()
+        for handler, button, action in zip(self._buttonHandlers, message.buttons, self._buttonActions):
+            pressed = handler.handle(button)
+            if pressed == 1 and action:
+                # noinspection PyCallingNonCallable
+                action()
 
     def on_button_pressed(self, button, action: callable):
         self._buttonActions[button] = action
@@ -87,6 +87,10 @@ class RemoteControllerScheduler:
 
         return not (timeout or ctx.stop_requested)
 
+    def _dispatch_message(self, message):
+        self._data_ready_event.clear()
+        self._controller.tick(message)
+
     def handle_controller(self, ctx: ThreadContext):
         self._log('Waiting for controller')
 
@@ -95,21 +99,17 @@ class RemoteControllerScheduler:
         ctx.on_stopped(self._data_ready_event.set)
 
         # wait for first message
-        start_time = time.time()
+        stopwatch = Stopwatch()
         if self._wait_for_message(ctx, self.first_message_timeout):
-            self._log("Time to first message: {}s".format(time.time() - start_time))
+            self._log("Time to first message: {}s".format(stopwatch.elapsed))
             if self._controller_detected_callback:
                 self._controller_detected_callback()
 
-            message = self._message
-            self._data_ready_event.clear()
-            self._controller.tick(message)
+            self._dispatch_message(self._message)
 
         # wait for the other messages
         while self._wait_for_message(ctx, self.message_max_period):
-            message = self._message
-            self._data_ready_event.clear()
-            self._controller.tick(message)
+            self._dispatch_message(self._message)
 
         if not ctx.stop_requested:
             if self._controller_lost_callback:

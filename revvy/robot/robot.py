@@ -154,10 +154,7 @@ class Robot(RobotInterface):
 
         def _process_battery_slot(data):
             assert len(data) == 4
-            main_status = data[0]
-            main_percentage = data[1]
-            # motor_status = data[2]
-            motor_percentage = data[3]
+            main_status, main_percentage, _, motor_percentage = data
 
             self._battery = BatteryStatus(chargerStatus=main_status, main=main_percentage, motor=motor_percentage)
 
