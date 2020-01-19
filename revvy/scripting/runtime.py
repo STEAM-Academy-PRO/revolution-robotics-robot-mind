@@ -57,7 +57,7 @@ class ScriptHandle:
 
     @property
     def is_stop_requested(self):
-        return self._thread.stopping
+        return self._thread.state in [ThreadWrapper.STOPPING, ThreadWrapper.STOPPED]
 
     @property
     def is_running(self):
