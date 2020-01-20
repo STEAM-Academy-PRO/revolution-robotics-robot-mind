@@ -27,20 +27,23 @@ class EdgeTrigger:
         self._falling_edge = None
         self._detector = EdgeDetector()
 
-    def on_rising_edge(self, l):
-        self._rising_edge = l
+    def on_rising_edge(self, callback):
+        self._rising_edge = callback
 
-    def on_falling_edge(self, l):
-        self._falling_edge = l
+    def on_falling_edge(self, callback):
+        self._falling_edge = callback
 
     def handle(self, value):
         detection = self._detector.handle(value)
         if detection == 1:
-            if self._rising_edge:
-                self._rising_edge()
+            rising_edge_cb = self._rising_edge
+            if rising_edge_cb:
+                rising_edge_cb()
+
         elif detection == -1:
-            if self._falling_edge:
-                self._falling_edge()
+            falling_edge_cb = self._falling_edge
+            if falling_edge_cb:
+                falling_edge_cb()
 
 
 class LevelTrigger:
@@ -48,19 +51,21 @@ class LevelTrigger:
         self._high = None
         self._low = None
 
-    def on_high(self, l):
-        self._high = l
+    def on_high(self, callback):
+        self._high = callback
 
-    def on_low(self, l):
-        self._low = l
+    def on_low(self, callback):
+        self._low = callback
 
     def handle(self, value):
         if value > 0:
-            if self._high:
-                self._high()
+            high_cb = self._high
+            if high_cb:
+                high_cb()
         else:
-            if self._low:
-                self._low()
+            low_cb = self._low
+            if low_cb:
+                low_cb()
 
 
 class ToggleButton:
@@ -73,17 +78,19 @@ class ToggleButton:
     def _toggle(self):
         self._is_enabled = not self._is_enabled
         if self._is_enabled:
-            if self._on_enabled:
-                self._on_enabled()
+            on_enabled_cb = self._on_enabled
+            if on_enabled_cb:
+                on_enabled_cb()
         else:
-            if self._on_disabled:
-                self._on_disabled()
+            on_disabled_cb = self._on_disabled
+            if on_disabled_cb:
+                on_disabled_cb()
 
-    def on_enabled(self, l):
-        self._on_enabled = l
+    def on_enabled(self, callback):
+        self._on_enabled = callback
 
-    def on_disabled(self, l):
-        self._on_disabled = l
+    def on_disabled(self, callback):
+        self._on_disabled = callback
 
     def handle(self, value):
         if self._edge_detector.handle(0 if value <= 0 else 1) == 1:

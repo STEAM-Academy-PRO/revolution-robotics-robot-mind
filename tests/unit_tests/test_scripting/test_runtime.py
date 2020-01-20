@@ -31,7 +31,7 @@ def create_robot_mock():
         'sound': Resource()
     }
     robot_mock.robot = mockobj()
-    robot_mock.robot.start_time = 0
+    robot_mock.robot.time = lambda: 0
     robot_mock.robot.motors = []
     robot_mock.robot.sensors = []
 
@@ -45,9 +45,11 @@ def create_robot_mock():
     robot_mock.config.sensors.names = {}
 
     robot_mock.robot.drivetrain = mockobj()
+    robot_mock.robot.drivetrain.turn = lambda *args, **kwargs: None
+    robot_mock.robot.drivetrain.drive = lambda *args, **kwargs: None
     robot_mock.robot.sound = MockSound()
-    robot_mock.robot.led_ring = mockobj()
-    robot_mock.robot.led_ring.count = 0
+    robot_mock.robot.led = mockobj()
+    robot_mock.robot.led.count = 0
 
     robot_mock.robot.imu = mockobj()
 
@@ -263,25 +265,6 @@ while not ctx.stop_requested:
             self.assertFalse(sm['test2'].is_running)
         finally:
             sm.reset()
-
-    def test_new_stop_callback_is_called_even_after_script_is_stopped(self):
-        robot_mock = create_robot_mock()
-
-        cont = Event()
-        mock = Mock()
-
-        sm = ScriptManager(robot_mock)
-        sm.add_script(ScriptDescriptor('test', str_to_func(''), 0))
-        sm['test'].on_stopped(cont.set)
-
-        # start and make sure script is stopped
-        sm['test'].start()
-        sm['test'].stop().wait()
-
-        sm['test'].on_stopped(mock)
-
-        sm.reset()
-        self.assertEqual(1, mock.call_count)
 
     def test_crashing_script_calls_stopped_handler(self):
         robot_mock = create_robot_mock()

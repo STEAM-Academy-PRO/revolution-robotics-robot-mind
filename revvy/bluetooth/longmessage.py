@@ -4,7 +4,16 @@ import collections
 import hashlib
 from json import JSONDecodeError
 from revvy.utils.file_storage import StorageInterface, StorageError
+from revvy.utils.functions import split
 from revvy.utils.logger import get_logger
+
+
+def hex2byte(hex):
+    """
+    >>> hex2byte('AA')
+    b'\\xaa'
+    """
+    return bytes((int(hex, 16), ))
 
 
 def hexdigest2bytes(hexdigest):
@@ -16,7 +25,7 @@ def hexdigest2bytes(hexdigest):
     >>> hexdigest2bytes("ABCD0F")
     b'\\xab\\xcd\\x0f'
     """
-    return b"".join([int(hexdigest[i:i + 2], 16).to_bytes(1, byteorder="big") for i in range(0, len(hexdigest), 2)])
+    return b"".join(map(hex2byte, split(hexdigest, 2)))
 
 
 def bytes2hexdigest(hash_bytes):
@@ -28,7 +37,7 @@ def bytes2hexdigest(hash_bytes):
     >>> bytes2hexdigest(b'\\xAB\\xCD\\x0F')
     'abcd0f'
     """
-    return "".join(['{0:0>2x}'.format(byte) for byte in hash_bytes])
+    return "".join('{0:0>2x}'.format(byte) for byte in hash_bytes)
 
 
 LongMessageStatusInfo = collections.namedtuple('LongMessageStatusInfo', ['status', 'md5', 'length'])
@@ -66,8 +75,7 @@ class MessageType:
 
 
 class LongMessageError(Exception):
-    def __init__(self, message):
-        self.message = message
+    pass
 
 
 class LongMessageStorage:
@@ -136,9 +144,9 @@ class LongMessageHandler:
         self._long_message_type = None
         self._status = LongMessageHandler.STATUS_IDLE
         self._aggregator = None
-        self._message_updated_callback = lambda x, y: None
-        self._upload_started_callback = lambda mt: None
-        self._upload_finished_callback = lambda mt: None
+        self._message_updated_callback = None
+        self._upload_started_callback = None
+        self._upload_finished_callback = None
         self._log = get_logger('LongMessageHandler')
 
     def on_message_updated(self, callback):
@@ -167,7 +175,9 @@ class LongMessageHandler:
 
     def select_long_message_type(self, long_message_type):
         if self._status == LongMessageHandler.STATUS_WRITE:
-            self._upload_finished_callback(long_message_type)
+            upload_finished_callback = self._upload_finished_callback
+            if upload_finished_callback:
+                upload_finished_callback(long_message_type)
 
         self._log("select_long_message_type: {}".format(long_message_type))
         LongMessageType.validate(long_message_type)
@@ -178,14 +188,19 @@ class LongMessageHandler:
         self._log("init_transfer")
 
         if self._status == LongMessageHandler.STATUS_WRITE:
-            self._upload_finished_callback(self._long_message_type)
+            upload_finished_callback = self._upload_finished_callback
+            if upload_finished_callback:
+                upload_finished_callback(self._long_message_type)
 
         if self._status == LongMessageHandler.STATUS_IDLE:
             raise LongMessageError("init-transfer needs to be called after select_long_message_type")
 
         self._status = LongMessageHandler.STATUS_WRITE
         self._aggregator = LongMessageAggregator(md5)
-        self._upload_started_callback(self._long_message_type)
+
+        upload_started_callback = self._upload_started_callback
+        if upload_started_callback:
+            upload_started_callback(self._long_message_type)
 
     def upload_message(self, data):
         self._log("upload_message ({} bytes)".format(len(data)))
@@ -201,18 +216,24 @@ class LongMessageHandler:
         if self._status == LongMessageHandler.STATUS_IDLE:
             raise LongMessageError("init-transfer needs to be called before finalize_message")
 
+        updated_callback = self._message_updated_callback
+        upload_finished_callback = self._upload_finished_callback
+
         if self._status == LongMessageHandler.STATUS_READ:
             # shortcut that activates a message which is already on the robot
 
             # observer must take care of verifying that there is actually a message
-            self._message_updated_callback(self._long_message_storage, self._long_message_type)
+            if updated_callback:
+                updated_callback(self._long_message_storage, self._long_message_type)
 
         elif self._status == LongMessageHandler.STATUS_WRITE:
-            self._upload_finished_callback(self._long_message_type)
+            if upload_finished_callback:
+                upload_finished_callback(self._long_message_type)
             if self._aggregator.finalize():
                 self._long_message_storage.set_long_message(self._long_message_type, self._aggregator.data,
                                                             self._aggregator.md5)
-                self._message_updated_callback(self._long_message_storage, self._long_message_type)
+                if updated_callback:
+                    updated_callback(self._long_message_storage, self._long_message_type)
                 self._status = LongMessageHandler.STATUS_READ
             else:
                 self._status = LongMessageHandler.STATUS_INVALID

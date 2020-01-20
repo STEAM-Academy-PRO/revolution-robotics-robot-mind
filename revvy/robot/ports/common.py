@@ -1,6 +1,44 @@
 # SPDX-License-Identifier: GPL-3.0-only
+from contextlib import suppress
 
 from revvy.mcu.rrrc_control import RevvyControl
+from revvy.utils.logger import get_logger
+
+
+class FunctionAggregator:
+    def __init__(self):
+        self._callbacks = []
+
+        self.add = self._callbacks.append
+        self.clear = self._callbacks.clear
+
+    def remove(self, callback):
+        with suppress(ValueError):
+            self._callbacks.remove(callback)
+
+    def __call__(self, *args, **kwargs):
+        for func in self._callbacks:
+            func(*args, **kwargs)
+
+
+class PortDriver:
+    def __init__(self, driver):
+        self._driver = driver
+        self._on_status_changed = FunctionAggregator()
+
+    @property
+    def driver(self):
+        return self._driver
+
+    @property
+    def on_status_changed(self):
+        return self._on_status_changed
+
+    def on_port_type_set(self):
+        raise NotImplementedError
+
+    def uninitialize(self):
+        self._on_status_changed.clear()
 
 
 class PortCollection:
@@ -23,12 +61,17 @@ class PortCollection:
 
 
 class PortHandler:
-    def __init__(self, interface: RevvyControl, configs: dict, drivers: dict, amount: int, supported: dict):
+    def __init__(self, name, interface: RevvyControl, drivers: dict,
+                 default_driver: PortDriver, amount: int, supported: dict):
+        self._log = get_logger("PortHandler[{}]".format(name))
         self._drivers = drivers
-        self._configurations = configs
         self._types = supported
         self._port_count = amount
-        self._ports = {i: PortInstance(i, interface, self) for i in range(1, self.port_count + 1)}
+        self._default_driver = default_driver
+        self._ports = {i: PortInstance(i, interface, self.configure_port) for i in range(1, amount + 1)}
+
+        self._log('Created handler for {} ports'.format(amount))
+        self._log('Supported types:\n  {}'.format("\n  ".join(self.available_types)))
 
     def __getitem__(self, port_idx):
         return self._ports[port_idx]
@@ -39,7 +82,7 @@ class PortHandler:
     @property
     def available_types(self):
         """List of names of the supported drivers"""
-        return self._types.values()
+        return self._types.keys()
 
     @property
     def port_count(self):
@@ -51,52 +94,54 @@ class PortHandler:
 
     def _set_port_type(self, port, port_type): raise NotImplementedError
 
-    def configure_port(self, port, config_name):
-        config = self._configurations[config_name]
-        new_driver_name = config['driver']
-        print('PortInstance: Configuring port {} to {} ({})'.format(port.id, config_name, new_driver_name))
-        driver = self._drivers[new_driver_name](port, config['config'])
-        self._set_port_type(port.id, self._types[driver.driver])
+    def configure_port(self, port, config) -> PortDriver:
+        if config is None:
+            self._log('set port {} to not configured'.format(port.id))
+            driver = self._default_driver
 
+        else:
+            new_driver_name = config['driver']
+            self._log('Configuring port {} to {}'.format(port.id, new_driver_name))
+            driver = self._drivers[new_driver_name](port, config['config'])
+
+        self._set_port_type(port.id, self._types[driver.driver])
         driver.on_port_type_set()
 
         return driver
 
 
 class PortInstance:
-    def __init__(self, port_idx, interface: RevvyControl, owner: PortHandler):
+    def __init__(self, port_idx, interface: RevvyControl, configurator):
         self._port_idx = port_idx
-        self._owner = owner
+        self._configurator = configurator
         self._interface = interface
-        self._driver = owner._drivers["NotConfigured"](self, None)
-        self._config_changed_callback = lambda port, cfg_name: None
-        self._configuration = "NotConfigured"
+        self._driver = None
+        self._config_changed_callbacks = FunctionAggregator()
 
-    def on_config_changed(self, callback):
-        self._config_changed_callback = callback
-
-    def _notify_config_changed(self, config_name):
-        self._config_changed_callback(self, config_name)
-
-    def configure(self, config_name):
-        if not (self._configuration == "NotConfigured" and config_name == "NotConfigured"):
-            self._configuration = config_name
-            self._notify_config_changed("NotConfigured")  # temporarily disable reading port
-            self._driver = self._owner.configure_port(self, config_name)
-            self._notify_config_changed(config_name)
-
-        return self._driver
-
-    def uninitialize(self):
-        self.configure("NotConfigured")
+    @property
+    def id(self):
+        return self._port_idx
 
     @property
     def interface(self):
         return self._interface
 
     @property
-    def id(self):
-        return self._port_idx
+    def on_config_changed(self):
+        return self._config_changed_callbacks
+
+    def configure(self, config) -> PortDriver:
+        # temporarily disable reading port
+        self._config_changed_callbacks(self, None)
+        if self._driver:
+            self._driver.uninitialize()
+        self._driver = self._configurator(self, config)
+        self._config_changed_callbacks(self, config)
+
+        return self._driver
+
+    def uninitialize(self):
+        self.configure(None)
 
     def __getattr__(self, name):
         return self._driver.__getattribute__(name)

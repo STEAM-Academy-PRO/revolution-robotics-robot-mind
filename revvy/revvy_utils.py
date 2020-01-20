@@ -5,242 +5,21 @@ import os
 import signal
 import traceback
 import time
-from threading import Lock, Event
+from functools import partial
+from threading import Event
 
-from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-from revvy.hardware_dependent.sound import SoundControlV1, SoundControlV2
-from revvy.mcu.rrrc_control import RevvyControl, BatteryStatus, Version, BootloaderControl
 from revvy.mcu.rrrc_transport import TransportException
-from revvy.robot.drivetrain import DifferentialDrivetrain
-from revvy.robot.imu import IMU
+from revvy.robot.robot import Robot
 from revvy.robot.remote_controller import RemoteController, RemoteControllerScheduler, create_remote_controller_thread
 from revvy.robot.led_ring import RingLed
-from revvy.robot.ports.common import PortInstance
-from revvy.robot.ports.motor import create_motor_port_handler
-from revvy.robot.ports.sensor import create_sensor_port_handler
-from revvy.robot.sound import Sound
-from revvy.robot.status import RobotStatus, RemoteControllerStatus, RobotStatusIndicator
-from revvy.robot.status_updater import McuStatusUpdater
+from revvy.robot.status import RobotStatus, RemoteControllerStatus
 from revvy.robot_config import empty_robot_config
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import MotorConstants
 from revvy.scripting.runtime import ScriptManager
 from revvy.utils.logger import get_logger
+from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.thread_wrapper import periodic
-
-
-Motors = {
-    'NotConfigured': {'driver': 'NotConfigured', 'config': {}},
-    'RevvyMotor':    {
-        'driver': 'DcMotor',
-        'config': {
-            'speed_controller':    [1 / 35, 0.25, 0, -100, 100],
-            'position_controller': [4, 0, 0, -600, 600],
-            'acceleration_limits': [14400, 3600],
-            'encoder_resolution':  1536
-        }
-    },
-    'RevvyMotor_CCW': {
-        'driver': 'DcMotor',
-        'config': {
-            'speed_controller':    [1 / 35, 0.25, 0, -100, 100],
-            'position_controller': [4, 0, 0, -600, 600],
-            'acceleration_limits': [14400, 3600],
-            'encoder_resolution': -1536
-        }
-    },
-    'RevvyMotor_Old':    {
-        'driver': 'DcMotor',
-        'config': {
-            'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
-            'position_controller': [10, 0, 0, -900, 900],
-            'acceleration_limits': [14400, 3600],
-            'encoder_resolution':  1168
-        }
-    },
-    'RevvyMotor_Old_CCW': {
-        'driver': 'DcMotor',
-        'config': {
-            'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
-            'position_controller': [10, 0, 0, -900, 900],
-            'acceleration_limits': [14400, 3600],
-            'encoder_resolution': -1168
-        }
-    },
-    'RevvyMotor_Dexter': {
-        'driver': 'DcMotor',
-        'config': {
-            'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
-            'position_controller': [10, 0, 0, -900, 900],
-            'acceleration_limits': [14400, 3600],
-            'encoder_resolution':  292
-        }
-    },
-    'RevvyMotor_Dexter_CCW': {
-        'driver': 'DcMotor',
-        'config': {
-            'speed_controller':    [1 / 8, 0.3, 0, -100, 100],
-            'position_controller': [10, 0, 0, -900, 900],
-            'acceleration_limits': [14400, 3600],
-            'encoder_resolution': -292
-        }
-    }
-}
-
-
-Sensors = {
-    'NotConfigured': {'driver': 'NotConfigured', 'config': {}},
-    'HC_SR04':       {'driver': 'HC_SR04', 'config': {}},
-    'BumperSwitch':  {'driver': 'BumperSwitch', 'config': {}},
-    'EV3':           {'driver': 'EV3', 'config': {}},
-    'EV3_Color':     {'driver': 'EV3_Color', 'config': {}},
-}
-
-
-class Robot:
-    BOOTLOADER_I2C_ADDRESS = 0x2B
-    ROBOT_I2C_ADDRESS = 0x2D
-
-    def __init__(self, sounds, i2c_bus=1):
-        self._i2c_bus = i2c_bus
-
-        self._log = get_logger('Robot')
-        self._get_sound_file = sounds
-
-    def __enter__(self):
-        self._i2c = RevvyTransportI2C(self._i2c_bus)
-
-        self._robot_control = RevvyControl(self._i2c.bind(self.ROBOT_I2C_ADDRESS))
-        self._bootloader_control = BootloaderControl(self._i2c.bind(self.BOOTLOADER_I2C_ADDRESS))
-
-        self._start_time = time.time()
-
-        # read versions
-        self._hw_version = self._robot_control.get_hardware_version()
-        self._fw_version = self._robot_control.get_firmware_version()
-
-        self._log('Hardware: {}\nFirmware: {}'.format(self._hw_version, self._fw_version))
-
-        setup = {
-            Version('1.0'): SoundControlV1,
-            Version('1.1'): SoundControlV1,
-            Version('2.0'): SoundControlV2,
-        }
-
-        self._ring_led = RingLed(self._robot_control)
-        self._sound = Sound(setup[self._hw_version](), self._get_sound_file)
-
-        self._status = RobotStatusIndicator(self._robot_control)
-        self._status_updater = McuStatusUpdater(self._robot_control)
-        self._battery = BatteryStatus(0, 0, 0)
-
-        self._imu = IMU()
-
-        def _motor_config_changed(motor: PortInstance, config_name):
-            callback = None if config_name == 'NotConfigured' else motor.update_status
-            self._status_updater.set_slot('motor_{}'.format(motor.id), callback)
-
-        def _sensor_config_changed(sensor: PortInstance, config_name):
-            callback = None if config_name == 'NotConfigured' else sensor.update_status
-            self._status_updater.set_slot('sensor_{}'.format(sensor.id), callback)
-
-        self._motor_ports = create_motor_port_handler(self._robot_control, Motors)
-        for port in self._motor_ports:
-            port.on_config_changed(_motor_config_changed)
-
-        self._sensor_ports = create_sensor_port_handler(self._robot_control, Sensors)
-        for port in self._sensor_ports:
-            port.on_config_changed(_sensor_config_changed)
-
-        self._drivetrain = DifferentialDrivetrain(self._robot_control, self._motor_ports.port_count)
-
-        self.update_status = self._status_updater.read
-        self.ping = self._robot_control.ping
-
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._i2c.close()
-
-    @property
-    def robot_control(self):
-        return self._robot_control
-
-    @property
-    def bootloader_control(self):
-        return self._bootloader_control
-
-    @property
-    def start_time(self):
-        return self._start_time
-
-    @property
-    def hw_version(self) -> Version:
-        return self._hw_version
-
-    @property
-    def fw_version(self) -> Version:
-        return self._fw_version
-
-    @property
-    def battery(self):
-        return self._battery
-
-    @property
-    def imu(self):
-        return self._imu
-
-    @property
-    def status(self):
-        return self._status
-
-    @property
-    def motors(self):
-        return self._motor_ports
-
-    @property
-    def sensors(self):
-        return self._sensor_ports
-
-    @property
-    def drivetrain(self):
-        return self._drivetrain
-
-    @property
-    def led_ring(self):
-        return self._ring_led
-
-    @property
-    def sound(self):
-        return self._sound
-
-    def reset(self):
-        self._log('reset()')
-        self._ring_led.set_scenario(RingLed.BreathingGreen)
-        self._status_updater.reset()
-
-        def _process_battery_slot(data):
-            assert len(data) == 4
-            main_status = data[0]
-            main_percentage = data[1]
-            # motor_status = data[2]
-            motor_percentage = data[3]
-
-            self._battery = BatteryStatus(chargerStatus=main_status, main=main_percentage, motor=motor_percentage)
-
-        self._status_updater.set_slot("battery", _process_battery_slot)
-        self._status_updater.set_slot("axl", self._imu.update_axl_data)
-        self._status_updater.set_slot("gyro", self._imu.update_gyro_data)
-        self._status_updater.set_slot("yaw", self._imu.update_yaw_angles)
-        # TODO: do something useful with the reset signal
-        self._status_updater.set_slot("reset", lambda x: self._log('MCU reset detected'))
-
-        self._drivetrain.reset()
-        self._motor_ports.reset()
-        self._sensor_ports.reset()
-
-        self._status.robot_status = RobotStatus.NotConfigured
-        self._status.update()
 
 
 class RevvyStatusCode(enum.IntEnum):
@@ -264,7 +43,6 @@ class RobotBLEController:
         self._sw_version = sw_version
 
         self._status_update_thread = periodic(self._update, 0.02, "RobotStatusUpdaterThread")
-        self._background_fn_lock = Lock()
         self._background_fns = []
 
         rc = RemoteController()
@@ -303,12 +81,14 @@ class RobotBLEController:
             self._ble['battery_service'].characteristic('main_battery').update_value(self._robot.battery.main)
             self._ble['battery_service'].characteristic('motor_battery').update_value(self._robot.battery.motor)
 
-            with self._background_fn_lock:
-                fns, self._background_fns = self._background_fns, []
+            fns, self._background_fns = self._background_fns, []
 
-            for fn in fns:
-                self._log('Running background function')
-                fn()
+            if fns:
+                for i, fn in enumerate(fns):
+                    self._log('Running {}/{} background functions'.format(i, len(fns)))
+                    fn()
+
+                self._log('Background functions finished')
         except TransportException:
             self._log(traceback.format_exc())
             self.exit(RevvyStatusCode.ERROR)
@@ -322,10 +102,6 @@ class RobotBLEController:
     @property
     def config(self):
         return self._config
-
-    @property
-    def sound(self):
-        return self._robot.sound
 
     @property
     def status_code(self):
@@ -377,13 +153,12 @@ class RobotBLEController:
 
             self._ble.start()
             self._robot.status.robot_status = RobotStatus.NotConfigured
-            self.configure(None, lambda: self.sound.play_tune('robot2'))
+            self.configure(None, partial(self._robot.play_tune, 'robot2'))
 
     def run_in_background(self, callback):
         if callable(callback):
             self._log('Registering new background function')
-            with self._background_fn_lock:
-                self._background_fns.append(callback)
+            self._background_fns.append(callback)
         else:
             raise ValueError('callback is not callable')
 
@@ -391,11 +166,11 @@ class RobotBLEController:
         self._log('Phone connected' if is_connected else 'Phone disconnected')
         if not is_connected:
             self._robot.status.controller_status = RemoteControllerStatus.NotConnected
-            self._robot.sound.play_tune('disconnect')
+            self._robot.play_tune('disconnect')
             self.configure(None)
         else:
             self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
-            self._robot.sound.play_tune('bell')
+            self._robot.play_tune('bell')
 
     def _on_controller_detected(self):
         self._log('Remote controller detected')
@@ -412,21 +187,19 @@ class RobotBLEController:
         if self._robot.status.robot_status != RobotStatus.Stopped:
             if not self._configuring:
                 self._configuring = True
-                self.run_in_background(lambda: self._configure(config))
+                self.run_in_background(partial(self._configure, config))
             if callable(after):
                 self.run_in_background(after)
 
     def _reset_configuration(self):
-        self.sound.reset_volume()
-
         self._scripts.reset()
         self._scripts.assign('Motor', MotorConstants)
         self._scripts.assign('RingLed', RingLed)
 
         self._remote_controller_thread.stop().wait()
 
-        for res in self._resources:
-            self._resources[res].reset()
+        for res in self._resources.values():
+            res.reset()
 
         # ping robot, because robot may reset after stopping scripts
         self._ping_robot()
@@ -442,7 +215,7 @@ class RobotBLEController:
         # set up motors
         for motor in self._robot.motors:
             motor.configure(config.motors[motor.id])
-            motor.on_status_changed(lambda p: live_service.update_motor(p.id, p.power, p.speed, p.position))
+            motor.on_status_changed.add(lambda p: live_service.update_motor(p.id, p.power, p.speed, p.position))
 
         for motor_id in config.drivetrain['left']:
             self._robot.drivetrain.add_left_motor(self._robot.motors[motor_id])
@@ -450,12 +223,10 @@ class RobotBLEController:
         for motor_id in config.drivetrain['right']:
             self._robot.drivetrain.add_right_motor(self._robot.motors[motor_id])
 
-        self._robot.drivetrain.configure()
-
         # set up sensors
         for sensor in self._robot.sensors:
             sensor.configure(config.sensors[sensor.id])
-            sensor.on_value_changed(lambda p: live_service.update_sensor(p.id, p.raw_value))
+            sensor.on_status_changed.add(lambda p: live_service.update_sensor(p.id, p.raw_value))
 
         # set up remote controller
         for analog in config.controller.analog:
@@ -466,8 +237,7 @@ class RobotBLEController:
                 lambda in_data, scr=script_handle: scr.start({'input': in_data})
             )
 
-        for button in range(len(config.controller.buttons)):
-            script = config.controller.buttons[button]
+        for button, script in enumerate(config.controller.buttons):
             if script:
                 script_handle = self._scripts.add_script(script)
                 self._remote_controller.on_button_pressed(button, script_handle.start)
@@ -507,7 +277,7 @@ class RobotBLEController:
         self._status_update_thread.exit()
 
     def _ping_robot(self, timeout=0):
-        start_time = time.time()
+        stopwatch = Stopwatch()
         retry_ping = True
         while retry_ping:
             retry_ping = False
@@ -516,6 +286,5 @@ class RobotBLEController:
             except (BrokenPipeError, IOError, OSError):
                 retry_ping = True
                 time.sleep(0.1)
-                if timeout != 0:
-                    if time.time() - start_time > timeout:
-                        raise TimeoutError
+                if timeout != 0 and stopwatch.elapsed > timeout:
+                    raise TimeoutError

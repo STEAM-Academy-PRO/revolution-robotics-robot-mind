@@ -6,16 +6,18 @@ import shutil
 import sys
 import tarfile
 import traceback
+from contextlib import suppress
+from functools import partial
 
-from revvy.revvy_utils import RobotBLEController, RevvyStatusCode, Robot
+from revvy.revvy_utils import RobotBLEController, RevvyStatusCode
+from revvy.robot.robot import Robot
 from revvy.robot.led_ring import RingLed
 from revvy.robot.status import RobotStatus
 from revvy.scripting.runtime import ScriptDescriptor
-from revvy.utils.assets import Assets
 from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
 from revvy.utils.error_handler import register_uncaught_exception_handler
 from revvy.utils.file_storage import FileStorage, MemoryStorage, StorageError
-from revvy.firmware_updater import McuUpdater, FirmwareLoader, update_firmware
+from revvy.firmware_updater import update_firmware
 from revvy.utils.functions import get_serial, read_json, str_to_func
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType, LongMessageStatus
 from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
@@ -40,15 +42,12 @@ def extract_asset_longmessage(storage, asset_dir):
     asset_status = storage.read_status(LongMessageType.ASSET_DATA)
 
     if asset_status.status == LongMessageStatus.READY:
-        # noinspection PyBroadException
-        try:
+        with suppress(Exception):
             with open(os.path.join(asset_dir, '.hash'), 'r') as asset_hash_file:
                 stored_hash = asset_hash_file.read()
 
             if stored_hash == asset_status.md5:
                 return
-        except Exception:
-            pass
 
         if os.path.isdir(asset_dir):
             shutil.rmtree(asset_dir)
@@ -76,7 +75,7 @@ class LongMessageImplementation:
         Requests LED ring change in the background"""
 
         if message_type == LongMessageType.FRAMEWORK_DATA:
-            self._robot.run_in_background(lambda: self._robot.robot.led_ring.set_scenario(RingLed.ColorWheel))
+            self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.ColorWheel))
         else:
             self._robot.robot.status.robot_status = RobotStatus.Configuring
 
@@ -86,7 +85,7 @@ class LongMessageImplementation:
         Requests LED ring change in the background"""
 
         if message_type != LongMessageType.FRAMEWORK_DATA:
-            self._robot.run_in_background(lambda: self._robot.robot.led_ring.set_scenario(RingLed.BreathingGreen))
+            self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.BreathingGreen))
 
     def on_message_updated(self, storage, message_type):
         self._log('Received message: {}'.format(message_type))
@@ -100,7 +99,7 @@ class LongMessageImplementation:
             def start_script():
                 self._log("Starting new test script")
                 handle = self._robot._scripts.add_script(script_descriptor)
-                handle.on_stopped(lambda: self._robot.configure(None))
+                handle.on_stopped(partial(self._robot.configure, None))
 
                 # start can't run in on_stopped handler because overwriting script causes deadlock
                 self._robot.run_in_background(handle.start)
@@ -135,14 +134,13 @@ if __name__ == "__main__":
     print('Revvy run from {} ({})'.format(current_installation, __file__))
 
     # base directories
-    writeable_data_dir = os.path.join(current_installation, '..', '..', '..', 'user')
-    package_data_dir = os.path.join(current_installation, 'data')
+    writeable_data_dir = os.path.join('..', '..', '..', 'user')
 
     ble_storage_dir = os.path.join(writeable_data_dir, 'ble')
     data_dir = os.path.join(writeable_data_dir, 'data')
 
     # self-test
-    if not check_manifest(os.path.join(current_installation, 'manifest.json')):
+    if not check_manifest('manifest.json'):
         print('Revvy not started because manifest is invalid')
         sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
 
@@ -159,10 +157,6 @@ if __name__ == "__main__":
     ble_storage = FileStorage(ble_storage_dir)
 
     writeable_assets_dir = os.path.join(writeable_data_dir, 'assets')
-    assets = Assets([
-        os.path.join(package_data_dir, 'assets'),
-        writeable_assets_dir
-    ])
 
     try:
         device_name = device_storage.read('device-name').decode("utf-8")
@@ -177,9 +171,11 @@ if __name__ == "__main__":
     long_message_storage = LongMessageStorage(ble_storage, MemoryStorage())
     extract_asset_longmessage(long_message_storage, writeable_assets_dir)
 
-    with Robot(assets.category_loader('sounds')) as robot:
+    with Robot() as robot:
+        robot.assets.add_source(writeable_assets_dir)
+
         try:
-            update_firmware(os.path.join(package_data_dir, 'firmware'), robot)
+            update_firmware(os.path.join('data', 'firmware'), robot)
         except TimeoutError:
             print('Failed to update firmware')
 

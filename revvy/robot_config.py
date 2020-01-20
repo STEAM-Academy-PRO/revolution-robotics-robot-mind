@@ -3,29 +3,38 @@
 import json
 from json import JSONDecodeError
 
+from revvy.robot.configurations import Motors, Sensors
 from revvy.scripting.runtime import ScriptDescriptor
 from revvy.utils.functions import b64_decode_str, dict_get_first, str_to_func
 from revvy.scripting.builtin_scripts import builtin_scripts
+from revvy.utils.logger import get_logger
+
+_log = get_logger('RobotConfig')
 
 motor_types = [
-    "NotConfigured",
-    "RevvyMotor",
+    None,
+    Motors.RevvyMotor,
     # motor
     [
         [  # left
-            "RevvyMotor_CCW",
-            "RevvyMotor"
+            Motors.RevvyMotor_CCW,
+            Motors.RevvyMotor
         ],
         [  # right
-            "RevvyMotor",
-            "RevvyMotor_CCW"
+            Motors.RevvyMotor,
+            Motors.RevvyMotor_CCW
         ]
     ]
 ]
 
 motor_sides = ["left", "right"]
 
-sensor_types = ["NotConfigured", "HC_SR04", "BumperSwitch", "EV3_Color"]
+sensor_types = [
+    None,
+    Sensors.HC_SR04,
+    Sensors.BumperSwitch,
+    Sensors.EV3_Color
+]
 
 
 class PortConfig:
@@ -38,7 +47,7 @@ class PortConfig:
         return self._port_names
 
     def __getitem__(self, item):
-        return self._ports.get(item, "NotConfigured")
+        return self._ports.get(item)
 
     def __setitem__(self, item, value):
         self._ports[item] = value
@@ -59,6 +68,7 @@ class RobotConfig:
     def create_runnable(script):
         try:
             script_name = dict_get_first(script, ['builtinScriptName', 'builtinscriptname'])
+            _log('Use builtin script: {}'.format(script_name))
 
             try:
                 return builtin_scripts[script_name]
@@ -69,6 +79,10 @@ class RobotConfig:
             try:
                 source_b64_encoded = dict_get_first(script, ['pythonCode', 'pythoncode'])
                 code = b64_decode_str(source_b64_encoded)
+                _log('Use python code as script: {}'.format(code))
+
+                code = code.replace('import time\n', '')
+
                 return str_to_func(code)
 
             except KeyError as e:
@@ -91,6 +105,7 @@ class RobotConfig:
         try:
             i = 0
             for script in blockly_list:
+                _log('Processing script #{}'.format(i))
                 runnable = RobotConfig.create_runnable(script)
 
                 assignments = script['assignments']
@@ -128,22 +143,16 @@ class RobotConfig:
                 if not motor:
                     motor = {'type': 0}
 
-                if motor['type'] == 0:
-                    motor_type = motor_types[motor['type']]
-
-                elif motor['type'] == 1:
-                    # motor
-                    motor_type = motor_types[1]
-                    config.motors.names[motor['name']] = i
-
-                elif motor['type'] == 2:
+                if motor['type'] == 2:
                     # drivetrain
                     motor_type = motor_types[2][motor['side']][motor['reversed']]
-                    config.motors.names[motor['name']] = i
                     config.drivetrain[motor_sides[motor['side']]].append(i)
 
                 else:
-                    raise ValueError('Unknown motor type: {}'.format(motor['type']))
+                    motor_type = motor_types[motor['type']]
+
+                if motor_type is not None:
+                    config.motors.names[motor['name']] = i
 
                 config.motors[i] = motor_type
                 i += 1
@@ -154,13 +163,15 @@ class RobotConfig:
             i = 1
             sensors = robot_config.get('sensors', []) if type(robot_config) is dict else []
             for sensor in sensors:
-                if not sensor or sensor['type'] == 0:
-                    sensor_type = "NotConfigured"
-                else:
-                    sensor_type = sensor_types[sensor['type']]
-                    config.sensors.names[sensor['name']] = i
-                config.sensors[i] = sensor_type
+                if not sensor:
+                    sensor = {'type': 0}
 
+                sensor_type = sensor_types[sensor['type']]
+
+                if sensor_type is not None:
+                    config.sensors.names[sensor['name']] = i
+
+                config.sensors[i] = sensor_type
                 i += 1
 
         except (TypeError, IndexError, KeyError, ValueError) as e:
@@ -170,8 +181,8 @@ class RobotConfig:
 
     def __init__(self):
         self.motors = PortConfig()
-        self.drivetrain = {'left': [], 'right': []}
         self.sensors = PortConfig()
+        self.drivetrain = {'left': [], 'right': []}
         self.controller = RemoteControlConfig()
         self.background_scripts = []
 

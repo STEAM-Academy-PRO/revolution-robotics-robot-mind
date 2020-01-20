@@ -23,34 +23,6 @@ class TestThreadWrapper(unittest.TestCase):
 
         self.assertEqual(1, mock.call_count)
 
-    def test_stop_requested_is_only_true_while_thread_is_running(self):
-        evt = Event()
-
-        tw = ThreadWrapper(lambda x: evt.wait())
-
-        # at first, the thread is not running so it is not stopping
-        self.assertFalse(tw.stopping)
-
-        # the thread is running normally, not stopping
-        tw.start()
-        self.assertFalse(tw.stopping)
-
-        # calling stop() immediately sets stopping to True
-        tw.stop()
-        self.assertTrue(tw.stopping)
-
-        # test that registering a callback while the thread is stopping triggers this callback immediately
-        mock = Mock()
-        tw.on_stop_requested(mock)
-        self.assertEqual(1, mock.call_count)
-
-        # allow exiting
-        evt.set()
-
-        # when the thread ends, stopping is reset to False, since the thread is not running
-        tw.exit()
-        self.assertFalse(tw.stopping)
-
     def test_waiting_for_a_stopped_thread_to_stop_does_nothing(self):
         tw = ThreadWrapper(lambda ctx: None)
         tw.start().wait()
@@ -97,22 +69,17 @@ class TestThreadWrapper(unittest.TestCase):
             tw.exit()
 
     def test_stop_callbacks_called_when_thread_fn_exits(self):
-
         evt = Event()
-
-        def stopped():
-            evt.set()
-            return True
 
         def test_fn(context):
             pass
 
         tw = ThreadWrapper(test_fn)
-        tw.on_stopped(stopped)
 
         try:
             for i in range(1, 3):
                 with self.subTest('Run #{}'.format(i)):
+                    tw.on_stopped(evt.set)
                     evt.clear()
                     tw.start()
                     if not evt.wait(2):
@@ -170,18 +137,16 @@ class TestThreadWrapper(unittest.TestCase):
 
     def test_callback_is_called_when_thread_stops(self):
         mock = Mock(return_value=None)
-        thread_started_evt = Event()
 
-        tw = ThreadWrapper(lambda x: thread_started_evt.set())
+        tw = ThreadWrapper(lambda _: None)
         tw.on_stopped(mock)
 
         try:
             for i in range(3):
                 tw.start()
-                if not thread_started_evt.wait(2):
-                    self.fail('Thread function was not executed')
                 tw.stop().wait()
-                self.assertEqual(1, mock.call_count)  # callback is cleared if it does not return True
+                self.assertEqual(ThreadWrapper.STOPPED, tw.state)
+                self.assertNotEqual(0, mock.call_count)
         finally:
             tw.exit()
 
@@ -195,19 +160,15 @@ class TestThreadWrapper(unittest.TestCase):
     def test_exception_stops_properly(self):
         evt = Event()
 
-        def stopped():
-            evt.set()
-            return True  # keep callback
-
         def _dummy_thread_fn():  # wrong signature, results in TypeError
             pass
 
         tw = ThreadWrapper(_dummy_thread_fn)
-        tw.on_stopped(stopped)
 
         try:
             for i in range(1, 3):
                 with self.subTest('Run #{}'.format(i)):
+                    tw.on_stopped(evt.set)  # set callback first to verify it will be called after clear
                     evt.clear()
                     if not tw.start().wait(2):
                         self.fail('Thread was not started properly')
@@ -297,6 +258,7 @@ class TestThreadWrapper(unittest.TestCase):
                 if not tw.stop().wait(2):
                     self.fail('Failed to stop thread')
 
+                self.assertEqual(ThreadWrapper.STOPPED, tw.state)
                 self.assertEqual(1, mock.call_count)
         finally:
             tw.exit()
