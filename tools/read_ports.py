@@ -8,8 +8,7 @@ from revvy.utils.functions import read_json
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.thread_wrapper import periodic
-from revvy.revvy_utils import Robot
-
+from revvy.robot.robot import Robot
 
 if __name__ == "__main__":
 
@@ -49,10 +48,8 @@ if __name__ == "__main__":
     sensor_data_changed = False
     sensor_data = [0, None, None, None, None, None]
 
-    with RevvyTransportI2C() as transport:
-        robot_control = RevvyControl(transport.bind(0x2D))
+    with Robot() as robot:
         manifest = read_json('manifest.json')
-        robot = Robot(robot_control, None, manifest['version'])
 
         def update():
             global sensor_data_changed
@@ -66,7 +63,7 @@ if __name__ == "__main__":
                     sensor_data_changed = True
 
             if sensor_data_changed:
-                sensor_data[0] = round(time.time() - robot.start_time, 2)
+                sensor_data[0] = round(robot.time(), 2)
                 print(pattern.format(*sensor_data))
 
         def sensor_value_changed(idx, value):

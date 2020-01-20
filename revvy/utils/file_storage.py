@@ -2,7 +2,6 @@
 
 import os
 import json
-import traceback
 from collections import namedtuple
 from json import JSONDecodeError
 

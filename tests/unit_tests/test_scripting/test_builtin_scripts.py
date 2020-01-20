@@ -14,7 +14,7 @@ class TestJoystickScripts(unittest.TestCase):
 
         robot = Mock()
         robot.joystick = Mock()
-        robot.joystick.set_speeds = mock
+        robot.joystick.set_speeds_independent = mock
 
         args = {'robot': robot, 'input': [127, 127]}
         drive_joystick(args)
@@ -26,7 +26,7 @@ class TestJoystickScripts(unittest.TestCase):
 
         robot = Mock()
         robot.joystick = Mock()
-        robot.joystick.set_speeds = mock
+        robot.joystick.set_speeds_independent = mock
 
         args = {'robot': robot, 'input': [127, 255]}
         drive_joystick(args)
@@ -41,7 +41,7 @@ class TestJoystickScripts(unittest.TestCase):
 
         robot = Mock()
         robot.joystick = Mock()
-        robot.joystick.set_speeds = mock
+        robot.joystick.set_speeds_independent = mock
 
         args = {'robot': robot, 'input': [0, 127]}
         drive_joystick(args)
@@ -58,7 +58,7 @@ class TestStickDriveScripts(unittest.TestCase):
 
         robot = Mock()
         robot.joystick = Mock()
-        robot.joystick.set_speeds = mock
+        robot.joystick.set_speeds_independent = mock
 
         args = {'robot': robot, 'input': [127, 127]}
         drive_2sticks(args)
@@ -70,7 +70,7 @@ class TestStickDriveScripts(unittest.TestCase):
 
         robot = Mock()
         robot.joystick = Mock()
-        robot.joystick.set_speeds = mock
+        robot.joystick.set_speeds_independent = mock
 
         args = {'robot': robot, 'input': [127, 255]}
         drive_2sticks(args)

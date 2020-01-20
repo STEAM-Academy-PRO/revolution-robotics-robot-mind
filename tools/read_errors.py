@@ -4,8 +4,7 @@ import argparse
 import enum
 import traceback
 
-from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-from revvy.mcu.rrrc_control import RevvyControl
+from revvy.robot.robot import Robot
 from revvy.utils.version import Version
 from tools.utils import parse_cfsr
 
@@ -118,8 +117,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    with RevvyTransportI2C() as transport:
-        robot_control = RevvyControl(transport.bind(0x2D))
+    with Robot() as robot:
+        robot_control = robot.robot_control
 
         current_hw_version = robot_control.get_hardware_version()
         current_fw_version = robot_control.get_firmware_version()

@@ -4,11 +4,13 @@ import binascii
 import os
 import time
 import traceback
+from contextlib import suppress
 from json import JSONDecodeError
 
-from revvy.revvy_utils import Robot
+from revvy.robot.robot import Robot
 from revvy.utils.file_storage import IntegrityError
 from revvy.utils.logger import get_logger
+from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.version import Version
 from revvy.utils.functions import split, bytestr_hash, read_json
 from revvy.mcu.rrrc_control import McuOperationMode
@@ -18,20 +20,21 @@ class McuUpdater:
     def __init__(self, robot: Robot):
         self._robot = robot.robot_control
         self._bootloader = robot.bootloader_control
+        self._stopwatch = Stopwatch()
 
         self._log = get_logger('McuUpdater')
 
     def _read_operation_mode(self):
-        start_time = time.time()
-        while (time.time() - start_time) < 10:
-            try:
+        self._stopwatch.reset()
+        while self._stopwatch.elapsed < 10:
+            with suppress(OSError):
                 return self._robot.read_operation_mode()
-            except OSError:
-                try:
-                    return self._bootloader.read_operation_mode()
-                except OSError:
-                    self._log("Failed to read operation mode. Retrying")
-                    time.sleep(0.5)
+
+            with suppress(OSError):
+                return self._bootloader.read_operation_mode()
+
+            self._log("Failed to read operation mode. Retrying")
+            time.sleep(0.5)
 
         raise TimeoutError('Could not determine operation mode')
 
@@ -46,7 +49,7 @@ class McuUpdater:
         except OSError:
             self._log('MCU restarted before finishing communication')
         except Exception:
-            traceback.print_exc()
+            self._log(traceback.format_exc())
 
     def _request_bootloader_mode(self):
         try:
@@ -95,10 +98,10 @@ class McuUpdater:
 
         # send data
         self._log('Sending data')
-        start = time.time()
+        self._stopwatch.reset()
         for chunk in chunks:
             self._bootloader.send_firmware(chunk)
-        self._log('Data transfer took {} seconds'.format(round(time.time() - start, 1)))
+        self._log('Data transfer took {} seconds'.format(round(self._stopwatch.elapsed, 1)))
 
         self._finalize_update()
 
@@ -148,20 +151,21 @@ def update_firmware(fw_dir, robot: Robot):
     loader = FirmwareLoader(fw_dir)
 
     try:
-        fw_version, fw_binary = loader.get_firmware(robot.hw_version)
+        try:
+            fw_version, fw_binary = loader.get_firmware(robot.hw_version)
 
-        updater = McuUpdater(robot)
-        if updater.is_update_needed(fw_version):
-            updater.upload_binary(fw_binary)
+            updater = McuUpdater(robot)
+            if updater.is_update_needed(fw_version):
+                updater.upload_binary(fw_binary)
+        except Exception:
+            loader.log(traceback.format_exc())
+            raise
 
     except KeyError:
-        loader.log(traceback.format_exc())
         loader.log('No firmware for the hardware ({})'.format(robot.hw_version))
 
     except IOError:
-        loader.log(traceback.format_exc())
         loader.log('Firmware file does not exist or is not readable')
 
     except IntegrityError:
-        loader.log(traceback.format_exc())
         loader.log('Firmware file corrupted')

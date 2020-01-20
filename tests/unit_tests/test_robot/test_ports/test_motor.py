@@ -10,13 +10,11 @@ from revvy.robot.ports.motor import create_motor_port_handler, DcMotorController
 
 class TestMotorPortHandler(unittest.TestCase):
     def test_constructor_reads_port_amount_and_types(self):
-        configs = {"NotConfigured": {}}
-
         mock_control = Mock()
         mock_control.get_motor_port_amount = Mock(return_value=6)
         mock_control.get_motor_port_types = Mock(return_value={"NotConfigured": 0, "DcMotor": 1})
 
-        ports = create_motor_port_handler(mock_control, configs)
+        ports = create_motor_port_handler(mock_control)
 
         self.assertEqual(1, mock_control.get_motor_port_amount.call_count)
         self.assertEqual(1, mock_control.get_motor_port_types.call_count)
@@ -24,13 +22,11 @@ class TestMotorPortHandler(unittest.TestCase):
         self.assertEqual(6, ports.port_count)
 
     def test_motor_ports_are_indexed_from_one(self):
-        configs = {"NotConfigured": {}}
-
         mock_control = Mock()
         mock_control.get_motor_port_amount = Mock(return_value=6)
         mock_control.get_motor_port_types = Mock(return_value={"NotConfigured": 0})
 
-        ports = create_motor_port_handler(mock_control, configs)
+        ports = create_motor_port_handler(mock_control)
 
         self.assertRaises(KeyError, lambda: ports[0])
         self.assertIs(PortInstance, type(ports[1]))
@@ -42,41 +38,17 @@ class TestMotorPortHandler(unittest.TestCase):
         self.assertRaises(KeyError, lambda: ports[7])
 
     def test_configure_raises_error_if_driver_is_not_supported_in_mcu(self):
-        configs = {
-            "NotConfigured": {'driver': 'NotConfigured', 'config': {}},
-            "Test": {'driver': "NonExistentDriver"}
-        }
-
         mock_control = Mock()
         mock_control.get_motor_port_amount = Mock(return_value=6)
         mock_control.get_motor_port_types = Mock(return_value={"NotConfigured": 0})
         mock_control.set_motor_port_type = Mock()
 
-        ports = create_motor_port_handler(mock_control, configs)
+        ports = create_motor_port_handler(mock_control)
 
         self.assertIs(PortInstance, type(ports[1]))
         self.assertEqual(0, mock_control.set_motor_port_type.call_count)
 
-        self.assertRaises(KeyError, lambda: ports[1].configure("Test"))
-        self.assertEqual(0, mock_control.set_motor_port_type.call_count)
-
-    def test_unconfiguring_not_configured_port_does_nothing(self):
-        configs = {
-            "NotConfigured": {'driver': 'NotConfigured', 'config': {}},
-            "Test": {'driver': "NonExistentDriver"}
-        }
-
-        mock_control = Mock()
-        mock_control.get_motor_port_amount = Mock(return_value=6)
-        mock_control.get_motor_port_types = Mock(return_value={"NotConfigured": 0})
-        mock_control.set_motor_port_type = Mock()
-
-        ports = create_motor_port_handler(mock_control, configs)
-
-        self.assertIs(PortInstance, type(ports[1]))
-        self.assertEqual(0, mock_control.set_motor_port_type.call_count)
-
-        ports[1].configure("NotConfigured")
+        self.assertRaises(KeyError, lambda: ports[1].configure({"driver": "Test", "config": {}}))
         self.assertEqual(0, mock_control.set_motor_port_type.call_count)
 
 
@@ -112,19 +84,3 @@ class TestDcMotorDriver(unittest.TestCase):
 
         self.assertEqual(3, passed_port_id)
         self.assertEqual(50, len(passed_config))
-
-    def test_set_power_sends_port_idx_and_command_and_data(self):
-        port = self.create_port()
-
-        dc = DcMotorController(port, self.config)
-
-        dc.set_power(20)
-
-        method = port.interface.set_motor_port_control_value
-        (passed_port_id, passed_control) = method.call_args[0]
-
-        self.assertEqual(1, method.call_count)
-        self.assertEqual(3, passed_port_id)
-        self.assertEqual(2, len(passed_control))
-        self.assertEqual(0, passed_control[0])  # command id
-        self.assertEqual(20, passed_control[1])  # power

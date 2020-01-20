@@ -3,7 +3,6 @@
 import os
 import struct
 import traceback
-from logging import Logger
 
 from pybleno import Bleno, BlenoPrimaryService, Characteristic, Descriptor
 from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
@@ -128,7 +127,7 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
     def onWriteRequest(self, data, offset, without_response, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
-        elif self._minLength > len(data) or len(data) > self._maxLength:
+        elif not (self._minLength <= len(data) <= self._maxLength):
             callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
         elif self._callbackFn(data):
             callback(Characteristic.RESULT_SUCCESS)
@@ -167,8 +166,9 @@ class BrainToMobileFunctionCharacteristic(Characteristic):
     def update(self, value):
         self._value = value
 
-        if self._updateValueCallback:
-            self._updateValueCallback(value)
+        callback = self._updateValueCallback
+        if callback:
+            callback(value)
 
 
 class SensorCharacteristic(BrainToMobileFunctionCharacteristic):
@@ -183,7 +183,7 @@ class MotorCharacteristic(BrainToMobileFunctionCharacteristic):
 
 class LiveMessageService(BlenoPrimaryService):
     def __init__(self):
-        self._message_handler = lambda x: None
+        self._message_handler = None
 
         self._sensor_characteristics = [
             SensorCharacteristic('135032e6-3e86-404f-b0a9-953fd46dcb17', b'Sensor 1'),
@@ -218,7 +218,9 @@ class LiveMessageService(BlenoPrimaryService):
         analog_values = data[1:11]
         button_values = bits_to_bool_list(data[11:15])
 
-        self._message_handler(RemoteControllerCommand(analog=analog_values, buttons=button_values))
+        message_handler = self._message_handler
+        if message_handler:
+            message_handler(RemoteControllerCommand(analog=analog_values, buttons=button_values))
         return True
 
     def update_sensor(self, sensor, value):
@@ -360,8 +362,9 @@ class CustomBatteryLevelCharacteristic(Characteristic):
     def update_value(self, value):
         self._value = value
 
-        if self._updateValueCallback:
-            self._updateValueCallback([value])
+        update_value_callback = self._updateValueCallback
+        if update_value_callback:
+            update_value_callback([value])
 
 
 class CustomBatteryService(BleService):
@@ -437,8 +440,8 @@ class RevvyBLE:
             self._bleno.setServices(list(self._named_services.values()), on_set_service_error)
 
     def on_connection_changed(self, callback):
-        self._bleno.on('accept', lambda x: callback(True))
-        self._bleno.on('disconnect', lambda x: callback(False))
+        self._bleno.on('accept', lambda _: callback(True))
+        self._bleno.on('disconnect', lambda _: callback(False))
 
     def start(self):
         self._bleno.start()

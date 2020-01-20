@@ -2,16 +2,15 @@
 
 import time
 import traceback
-from threading import Event, Thread, Lock
+from threading import Event, Thread, Lock, RLock
 
 from revvy.utils.logger import get_logger
 
 
-def _call_callbacks(cb_list):
-    for cb in list(cb_list):
-        keep_callback = cb()
-        if not keep_callback:
-            cb_list.remove(cb)
+def _call_callbacks(cb_list: list):
+    while len(cb_list) != 0:
+        cb = cb_list.pop()
+        cb()
 
 
 class ThreadWrapper:
@@ -20,121 +19,156 @@ class ThreadWrapper:
     Threads are not automatically stopped (as it is not possible), but a stop request can be read using the
     context object that is passed to the thread function
     """
+    STOPPED = 0
+    STARTING = 1
+    RUNNING = 2
+    STOPPING = 3
+    EXITED = 4
 
     def __init__(self, func, name="WorkerThread"):
         self._log = get_logger('ThreadWrapper [{}]'.format(name))
         self._log('created')
-        self._exiting = False
-        self._lock = Lock()
+        self._lock = Lock()  # lock used to ensure internal consistency
+        self._interface_lock = RLock()  # prevent concurrent access. RLock so that callbacks may restart the thread
         self._func = func
         self._stopped_callbacks = []
         self._stop_requested_callbacks = []
-        self._control = Event()
-        self._thread_running_event = Event()
-        self._ctx = None
-        self._was_started = False
+        self._control = Event()  # used to wake up thread function when it is stopped
+        self._stop_event = Event()  # used to signal thread function that it should stop
+        self._thread_stopped_event = Event()  # caller can wait for thread to stop after calling stop()
+        self._thread_stopped_event.set()
+        self._thread_running_event = Event()  # caller can wait for the thread function to start running
+        self._state = ThreadWrapper.STOPPED
         self._thread = Thread(target=self._thread_func, args=())
         self._thread.start()
 
     def _wait_for_start(self):
         self._control.wait()
+        self._control.clear()
 
-        return not self._exiting
+        return self._state == ThreadWrapper.STARTING
 
     # noinspection PyBroadException
     def _thread_func(self):
-        while self._wait_for_start():
-            try:
-                with self._lock:
-                    self._ctx = ThreadContext(self)
-                    self._was_started = True
-                    self._thread_running_event.set()
-                    self._control.clear()
-                self._func(self._ctx)
-            except InterruptedError:
-                self._log('interrupted')
-            except Exception:
-                self._log(traceback.format_exc())
-            finally:
-                with self._lock:
-                    self._log('stopped')
-                    self._thread_running_event.clear()
-                    _call_callbacks(self._stopped_callbacks)
-                    self._ctx = None
+        try:
+            ctx = ThreadContext(self, self._stop_event)
+            while self._wait_for_start():
+                try:
+                    self._enter_started()
+                    self._func(ctx)
+                except InterruptedError:
+                    self._log('interrupted')
+                except Exception:
+                    self._log(traceback.format_exc())
+                finally:
+                    self._enter_stopped()
+        finally:
+            self._enter_stopped()
+            self._state = ThreadWrapper.EXITED
+
+    def _enter_started(self):
+        with self._lock:
+            self._stop_event.clear()
+            self._state = ThreadWrapper.RUNNING
+            self._thread_running_event.set()
+        self._log('thread started')
+
+    def _enter_stopped(self):
+        self._log('stopped')
+        with self._lock:
+            self._state = ThreadWrapper.STOPPED
+            self._thread_running_event.clear()
+            _call_callbacks(self._stopped_callbacks)
+            self._thread_stopped_event.set()
 
     @property
-    def stopping(self):
-        if self._ctx is None:
-            return False
-        return self._ctx.stop_requested
+    def state(self):
+        return self._state
 
     @property
     def is_running(self):
         return self._thread_running_event.is_set()
 
-    def start(self):
-        assert not self._exiting
-
+    def _start(self):
         self._log('starting')
+        self._thread_stopped_event.clear()
+        self._state = ThreadWrapper.STARTING
         self._control.set()
 
-        return self._thread_running_event
+    def start(self):
+        with self._interface_lock:
+            assert self._state != ThreadWrapper.EXITED, 'thread has already exited'
+
+            with self._lock:
+                if self._state == ThreadWrapper.STOPPING:
+                    self._log('thread is stopping when start is called')
+                    self.on_stopped(self._start)
+                    return self._thread_running_event
+
+            self._start()
+
+            return self._thread_running_event
 
     def stop(self):
-        self._log('stopping')
-
-        evt = Event()
-        if self._control.is_set():
-            self._thread_running_event.wait()
-
-        with self._lock:
-            if self._thread_running_event.is_set():
-                # register callback that sets event when thread stops
-                self._stopped_callbacks.append(evt.set)
-
-                # request thread to stop
-                self._ctx.stop()
-
-                _call_callbacks(self._stop_requested_callbacks)
+        with self._interface_lock:
+            if self._state in [ThreadWrapper.STOPPING, ThreadWrapper.STOPPED, ThreadWrapper.EXITED]:
+                self._log('stop already called')
             else:
-                evt.set()
+                self._log('stopping')
 
-        return evt
+                if self._state == ThreadWrapper.STARTING:
+                    self._log('startup is in progress, wait for thread to start running')
+                    self._thread_running_event.wait()
+
+                with self._lock:
+                    if self._state == ThreadWrapper.RUNNING:
+                        self._log('request stop')
+
+                        self._state = ThreadWrapper.STOPPING
+                        self._stop_event.set()
+                        call_callbacks = True
+                    else:
+                        call_callbacks = False
+
+                if call_callbacks:
+                    self._log('call stop requested callbacks')
+                    _call_callbacks(self._stop_requested_callbacks)
+                    self._log('stop requested callbacks finished')
+
+            return self._thread_stopped_event
 
     def exit(self):
-        self._log('exiting')
+        with self._interface_lock:
+            self._log('exiting')
 
-        # stop current run
-        self.stop()
+            # stop current run
+            evt = self.stop()
+            self._log('waiting for stop event to be set')
+            evt.wait()
 
-        self._exiting = True
-        self._control.set()
-        self._thread.join()
-        self._log('exited')
+            # wake up thread in case it is waiting to be started
+            # thread will see STOPPED state and will exit
+            self._control.set()
+
+            self._log('joining thread')
+            self._thread.join()
+            self._log('exited')
 
     def on_stopped(self, callback):
-        with self._lock:
-            call = self._was_started and not self._ctx
-            if not call:
-                self._stopped_callbacks.append(callback)
-
-        if call:
-            callback()
+        self._stopped_callbacks.append(callback)
 
     def on_stop_requested(self, callback):
-        with self._lock:
-            call = self._ctx and self._ctx.stop_requested
-            if not call:
-                self._stop_requested_callbacks.append(callback)
-        if call:
+        if self._state == ThreadWrapper.STOPPING:
             callback()
+        else:
+            self._stop_requested_callbacks.append(callback)
 
 
 class ThreadContext:
-    def __init__(self, thread: ThreadWrapper):
-        self._stop_event = Event()
+    def __init__(self, thread: ThreadWrapper, stop_event: Event):
+        self._stop_event = stop_event
 
-        self.stop = self._stop_event.set
+        self.stop = thread.stop
         self.on_stopped = thread.on_stop_requested
 
     def sleep(self, s):

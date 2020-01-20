@@ -5,11 +5,12 @@ import traceback
 from abc import ABC
 from collections import namedtuple
 from enum import Enum
+from typing import List, Union
 
 from revvy.utils.functions import split
 from revvy.utils.logger import get_logger
 from revvy.utils.version import Version, FormatError
-from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseHeader
+from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseStatus
 
 
 class UnknownCommandError(Exception):
@@ -30,19 +31,15 @@ class Command:
         raise NotImplementedError
 
     def _process(self, response: Response):
-        if response.status == ResponseHeader.Status_Ok:
+        if response.status == ResponseStatus.Ok:
             return self.parse_response(response.payload)
-        elif response.status == ResponseHeader.Status_Error_UnknownCommand:
+        elif response.status == ResponseStatus.Error_UnknownCommand:
             raise UnknownCommandError("Command not implemented: {}".format(self._command_byte))
         else:
-            try:
-                status = ResponseHeader.StatusStrings[response.status]
-            except KeyError:
-                status = 'Unknown status (code {})'.format(response.status)
+            raise ValueError('Command status: "{}" with payload: {}'
+                             .format(response.status, repr(response.payload)))
 
-            raise ValueError('Command status: "{}" with payload: {}'.format(status, repr(response.payload)))
-
-    def _send(self, payload=bytes()):
+    def _send(self, payload=b''):
         """
         Send the command with the given payload and process the response
 
@@ -214,41 +211,6 @@ class SendRingLedUserFrameCommand(Command):
         return self._send(led_bytes)
 
 
-class ConfigureDrivetrain(Command):
-    @property
-    def command_id(self): return 0x1A
-
-    def __call__(self, drivetrain_type, config):
-        return self._send([drivetrain_type, *config])
-
-
-class RequestDifferentialDriveTrainSpeedCommand(Command):
-    @property
-    def command_id(self): return 0x1B
-
-    def __call__(self, left, right, power_limit=0):
-        speed_cmd = struct.pack('<bffb', 1, left, right, power_limit)
-        return self._send(speed_cmd)
-
-
-class RequestDifferentialDriveTrainPositionCommand(Command):
-    @property
-    def command_id(self): return 0x1B
-
-    def __call__(self, left, right, left_speed=0, right_speed=0, power_limit=0):
-        pos_cmd = struct.pack('<bllffb', 0, int(left), int(right), left_speed, right_speed, power_limit)
-        return self._send(pos_cmd)
-
-
-class RequestDifferentialDriveTrainTurnCommand(Command):
-    @property
-    def command_id(self): return 0x1B
-
-    def __call__(self, turn_angle, wheel_speed=0, power_limit=0):
-        turn_cmd = struct.pack('<blfb', 3, int(turn_angle), wheel_speed, power_limit)
-        return self._send(turn_cmd)
-
-
 class SetPortConfigCommand(Command, ABC):
     def __call__(self, port_idx, config):
         return self._send([port_idx, *config])
@@ -275,12 +237,28 @@ class ReadSensorPortInfoCommand(Command):
         return payload
 
 
+class MotorPortControlCommand:
+    def __init__(self, port_idx, command_data):
+        self._port_idx = port_idx
+        self._command_data = command_data
+
+    def get_bytes(self):
+        header = ((self._port_idx - 1) & 0x07) | ((len(self._command_data) << 3) & 0xF8)
+        return [header, *self._command_data]
+
+
 class SetMotorPortControlCommand(Command):
     @property
     def command_id(self): return 0x14
 
-    def __call__(self, port_idx, control):
-        return self._send([port_idx, *control])
+    def __call__(self, commands: Union[List[MotorPortControlCommand], MotorPortControlCommand]):
+        if isinstance(commands, MotorPortControlCommand):
+            command_bytes = commands.get_bytes()
+        else:
+            command_bytes = []
+            for command in commands:
+                command_bytes += command.get_bytes()
+        return self._send(command_bytes)
 
 
 class ReadPortStatusCommand(Command, ABC):
@@ -290,11 +268,6 @@ class ReadPortStatusCommand(Command, ABC):
     def parse_response(self, payload):
         """Return the raw response"""
         return payload
-
-
-class ReadMotorPortStatusCommand(ReadPortStatusCommand):
-    @property
-    def command_id(self): return 0x15
 
 
 class McuStatusUpdater_ResetCommand(Command):

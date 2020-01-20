@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-only
+
 import struct
-import time
 import binascii
+from enum import Enum
 from threading import Lock
 
 from revvy.utils.functions import retry
-
+from revvy.utils.stopwatch import Stopwatch
 
 crc7_table = [
     0x00, 0x09, 0x12, 0x1b, 0x24, 0x2d, 0x36, 0x3f,
@@ -67,7 +68,7 @@ class Command:
     OpGetResult = 2
     OpCancel = 3
 
-    def __init__(self, op, command, payload=bytes()):
+    def __init__(self, op, command, payload=b''):
         payload_length = len(payload)
         if payload_length > 255:
             raise ValueError('Payload is too long ({} bytes, 255 allowed)'.format(payload_length))
@@ -101,38 +102,25 @@ class Command:
         return cls(cls.OpCancel, command)
 
 
-class ResponseHeader:
-    Status_Ok = 0
-    Status_Busy = 1
-    Status_Pending = 2
+class ResponseStatus(Enum):
+    Ok = 0
+    Busy = 1
+    Pending = 2
 
-    Status_Error_UnknownOperation = 3
-    Status_Error_InvalidOperation = 4
-    Status_Error_CommandIntegrityError = 5
-    Status_Error_PayloadIntegrityError = 6
-    Status_Error_PayloadLengthError = 7
-    Status_Error_UnknownCommand = 8
-    Status_Error_CommandError = 9
-    Status_Error_InternalError = 10
+    Error_UnknownOperation = 3
+    Error_InvalidOperation = 4
+    Error_CommandIntegrityError = 5
+    Error_PayloadIntegrityError = 6
+    Error_PayloadLengthError = 7
+    Error_UnknownCommand = 8
+    Error_CommandError = 9
+    Error_InternalError = 10
 
     # errors not sent by MCU
-    Status_Error_Timeout = 11
+    Error_Timeout = 11
 
-    StatusStrings = [
-            "Ok",
-            "Busy",
-            "Pending",
-            "Unknown operation",
-            "Invalid operation",
-            "Command integrity error",
-            "Payload integrity error",
-            "Payload length error",
-            "Unknown command",
-            "Command error",
-            "Internal error",
-            "Timeout error"
-        ]
 
+class ResponseHeader:
     length = 5
 
     def __init__(self, data: bytes):
@@ -144,16 +132,17 @@ class ResponseHeader:
         if checksum != data[self.length-1]:
             raise ValueError('Header checksum mismatch')
 
-        (self._status, self._payload_length, self._payload_checksum) = struct.unpack('<bbH', self._raw)
+        status, self._payload_length, self._payload_checksum = struct.unpack('<bbH', self._raw)
+        self._status = ResponseStatus(status)
 
     def validate_payload(self, payload):
         return self._payload_checksum == binascii.crc_hqx(payload, 0xFFFF)
 
-    def __eq__(self, o: 'ResponseHeader') -> bool:
-        return o._raw == self._raw
+    def __ne__(self, o: 'ResponseHeader') -> bool:
+        return o._raw != self._raw
 
     @property
-    def status(self):
+    def status(self) -> ResponseStatus:
         return self._status
 
     @property
@@ -162,7 +151,7 @@ class ResponseHeader:
 
 
 class Response:
-    def __init__(self, status, payload: bytes):
+    def __init__(self, status: ResponseStatus, payload: bytes):
         self._status = status
         self._payload = payload
 
@@ -181,8 +170,9 @@ class RevvyTransport:
 
     def __init__(self, transport: RevvyTransportInterface):
         self._transport = transport
+        self._stopwatch = Stopwatch()
 
-    def send_command(self, command, payload=bytes()) -> Response:
+    def send_command(self, command, payload=b'') -> Response:
         """
         Send a command and get the result.
 
@@ -205,16 +195,16 @@ class RevvyTransport:
                     header = self._send_command(command_start)
 
                     # wait for command execution to finish
-                    while header.status == ResponseHeader.Status_Pending:
+                    while header.status == ResponseStatus.Pending:
                         header = self._send_command(command_get_result)
 
                     # check result
                     # return a result even in case of an error, except when we know we have to resend
-                    if header.status != ResponseHeader.Status_Error_CommandIntegrityError:
+                    if header.status != ResponseStatus.Error_CommandIntegrityError:
                         response_payload = self._read_payload(header)
                         return Response(header.status, response_payload)
             except TimeoutError:
-                return Response(ResponseHeader.Status_Error_Timeout, bytes())
+                return Response(ResponseStatus.Error_Timeout, b'')
 
     def _read_response_header(self, retries=5) -> ResponseHeader:
         """
@@ -249,7 +239,7 @@ class RevvyTransport:
         @return: The payload bytes
         """
         if header.payload_length == 0:
-            return bytes()
+            return b''
 
         def _read_payload_once():
             # read header and payload
@@ -257,7 +247,7 @@ class RevvyTransport:
 
             # make sure we read the same response data we expect
             response_header = ResponseHeader(response_bytes)
-            if not header == response_header:
+            if header != response_header:
                 raise ValueError('Read payload: Unexpected header received')
 
             # make sure data is intact
@@ -285,9 +275,9 @@ class RevvyTransport:
         @return: The response header
         """
         self._transport.write(command.get_bytes())
-        start = time.time()
-        while self.timeout == 0 or time.time() - start < self.timeout:
+        self._stopwatch.reset()
+        while self.timeout == 0 or self._stopwatch.elapsed < self.timeout:
             response = self._read_response_header()
-            if response.status != ResponseHeader.Status_Busy:
+            if response.status != ResponseStatus.Busy:
                 return response
         raise TimeoutError

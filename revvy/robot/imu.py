@@ -3,6 +3,8 @@
 import collections
 import struct
 
+from revvy.robot.ports.common import FunctionAggregator
+
 Vector3D = collections.namedtuple('Vector3D', ['x', 'y', 'z'])
 
 
@@ -12,6 +14,8 @@ class IMU:
         self._rotation = Vector3D(0, 0, 0)
         self._yaw_angle = 0
         self._relative_yaw_angle = 0
+
+        self._change_callbacks = FunctionAggregator()
 
     @property
     def yaw_angle(self):

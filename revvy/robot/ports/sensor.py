@@ -1,37 +1,34 @@
 # SPDX-License-Identifier: GPL-3.0-only
 import collections
 import struct
+from functools import partial
 
 from revvy.utils.functions import map_values, split
 from revvy.mcu.rrrc_control import RevvyControl
-from revvy.robot.ports.common import PortHandler, PortInstance
+from revvy.robot.ports.common import PortHandler, PortInstance, PortDriver
 
 
-def create_sensor_port_handler(interface: RevvyControl, configs: dict):
+def create_sensor_port_handler(interface: RevvyControl):
     port_amount = interface.get_sensor_port_amount()
     port_types = interface.get_sensor_port_types()
 
     drivers = {
-        'NotConfigured': NullSensor,
         'BumperSwitch': bumper_switch,
         'HC_SR04': hcsr04,
         'EV3': lambda port, cfg: Ev3UARTSensor(port),
         'EV3_Color': ev3_color
     }
-    handler = PortHandler(interface, configs, drivers, port_amount, port_types)
+    handler = PortHandler("Sensor", interface, drivers, NullSensor(), port_amount, port_types)
     handler._set_port_type = interface.set_sensor_port_type
 
     return handler
 
 
-class NullSensor:
-    def __init__(self, port: PortInstance, port_config):
-        self.driver = 'NotConfigured'
+class NullSensor(PortDriver):
+    def __init__(self):
+        super().__init__('NotConfigured')
 
     def on_port_type_set(self):
-        pass
-
-    def on_value_changed(self, cb):
         pass
 
     def update_status(self, data):
@@ -46,8 +43,9 @@ class NullSensor:
         return 0
 
 
-class BaseSensorPortDriver:
-    def __init__(self, port: PortInstance):
+class BaseSensorPortDriver(PortDriver):
+    def __init__(self, driver, port: PortInstance):
+        super().__init__(driver)
         self._port = port
         self._interface = port.interface
         self._value = None
@@ -76,7 +74,7 @@ class BaseSensorPortDriver:
         if converted is not None:
             self._value = converted
 
-        self._raise_value_changed_callback()
+        self.on_status_changed(self._port)
 
     @property
     def value(self):
@@ -86,23 +84,12 @@ class BaseSensorPortDriver:
     def raw_value(self):
         return self._raw_value
 
-    def on_value_changed(self, cb):
-        if not callable(cb):
-            cb = None
-
-        self._value_changed_callback = cb
-
-    def _raise_value_changed_callback(self):
-        if self._value_changed_callback:
-            self._value_changed_callback(self._port)
-
     def convert_sensor_value(self, raw): raise NotImplementedError
 
 
 # noinspection PyUnusedLocal
 def bumper_switch(port: PortInstance, cfg):
-    sensor = BaseSensorPortDriver(port)
-    sensor.driver = 'BumperSwitch'
+    sensor = BaseSensorPortDriver('BumperSwitch', port)
 
     def process_bumper(raw):
         assert len(raw) == 2
@@ -114,8 +101,7 @@ def bumper_switch(port: PortInstance, cfg):
 
 # noinspection PyUnusedLocal
 def hcsr04(port: PortInstance, cfg):
-    sensor = BaseSensorPortDriver(port)
-    sensor.driver = 'HC_SR04'
+    sensor = BaseSensorPortDriver('HC_SR04', port)
 
     def process_ultrasonic(raw):
         assert len(raw) == 4
@@ -132,6 +118,18 @@ Ev3DataType = collections.namedtuple("Ev3DataType", ['data_size', 'read_pattern'
 
 
 class Ev3Mode:
+    mode_info_pattern = '<' + 'b' * 4 + 'f' * 6
+
+    @staticmethod
+    def parse(mode_info):
+        (nSamples, dataType, figures, decimals,
+         raw_min, raw_max,
+         pct_min, pct_max,
+         si_min, si_max) = struct.unpack(Ev3Mode.mode_info_pattern, mode_info)
+
+        return Ev3Mode(nSamples, dataType, figures, decimals, raw_min, raw_max, pct_min, pct_max, si_min,
+                       si_max)
+
     _type_info = [
         Ev3DataType(data_size=1, read_pattern='B', name='u8'),
         Ev3DataType(data_size=1, read_pattern='b', name='s8'),
@@ -166,12 +164,11 @@ class Ev3Mode:
         return map_values(value, self._raw_min, self._raw_max, self._si_min, self._si_max)
 
     def convert(self, data):
-        data_size = self._type_info[self._dataType].data_size
-        pattern = self._type_info[self._dataType].read_pattern
+        type_info = self._type_info[self._dataType]
 
         values = []
-        for chunk in split(data, data_size):
-            (value, ) = struct.unpack(pattern, chunk)
+        for chunk in split(data, type_info.data_size):
+            (value,) = struct.unpack(type_info.read_pattern, chunk)
 
             values.append(self._convert_single(value))
 
@@ -192,8 +189,7 @@ class Ev3UARTSensor(BaseSensorPortDriver):
     }
 
     def __init__(self, port: PortInstance, modes=None):
-        super().__init__(port)
-        self.driver = 'EV3'
+        super().__init__('EV3', port)
         self._state = self.STATE_RESET
         self._modes = modes
         self._current_mode = 0
@@ -243,17 +239,9 @@ class Ev3UARTSensor(BaseSensorPortDriver):
             modes = []
             for i in range(1, nModes+1):
                 mode_info = self._interface.read_sensor_info(self._port.id, i)
-                (nSamples, dataType, figures, decimals,
-                 raw_min, raw_max,
-                 pct_min, pct_max,
-                 si_min, si_max) = struct.unpack('<' + 'b'*4 + 'f'*6, mode_info)
-
                 print('New mode: {}/{}'.format(i, nModes))
                 print('===============')
-                modes.append(Ev3Mode(nSamples, dataType, figures, decimals,
-                                     raw_min, raw_max,
-                                     pct_min, pct_max,
-                                     si_min, si_max))
+                modes.append(Ev3Mode.parse(mode_info))
                 print('')
 
             return modes
@@ -303,13 +291,12 @@ def ev3_color(port: PortInstance, cfg):
 
     def convert(raw):
         value = ev3_convert(raw)
-        if value is None:
-            return None
-
-        color_id = int(value[0])
-        return Color(color_id=color_id, name=color_map[color_id]['name'], rgb=color_map[color_id]['rgb'])
+        if value:
+            color_id = int(value[0])
+            color_data = color_map[color_id]
+            return Color(color_id=color_id, name=color_data['name'], rgb=color_data['rgb'])
 
     sensor.convert_sensor_value = convert
-    sensor.on_configured = lambda: sensor.select_mode(2)
+    sensor.on_configured = partial(sensor.select_mode, 2)
 
     return sensor

@@ -26,7 +26,7 @@ class RingLed:
     def scenario(self):
         return self._current_scenario
 
-    def set_scenario(self, scenario):
+    def start_animation(self, scenario):
         self._current_scenario = scenario
         self._interface.ring_led_set_scenario(scenario)
 
@@ -35,4 +35,4 @@ class RingLed:
 
     def display_user_frame(self, frame):
         self.upload_user_frame(frame)
-        self.set_scenario(self.UserFrame)
+        self.start_animation(self.UserFrame)
