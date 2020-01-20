@@ -33,7 +33,7 @@ class TimeWrapper:
 
 
 class ScriptHandle:
-    def _default_sleep(self, time):
+    def _default_sleep(self, _):
         self.log('Error: default sleep called')
         raise Exception('Script not running')
 

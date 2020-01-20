@@ -48,9 +48,9 @@ class ResourceContext:
         self.release()
 
     def release(self):
-        if self._resource:
-            self._resource.release()
-            self._resource = None  # make sure we don't use released resource
+        resource, self._resource = self._resource, None
+        if resource:
+            resource.release()
 
     def __bool__(self):
         return self._resource is not None

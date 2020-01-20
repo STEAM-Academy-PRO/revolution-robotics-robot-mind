@@ -97,7 +97,7 @@ class ThreadWrapper:
 
     def start(self):
         with self._interface_lock:
-            assert self._state != ThreadWrapper.EXITED
+            assert self._state != ThreadWrapper.EXITED, 'thread has already exited'
 
             with self._lock:
                 if self._state == ThreadWrapper.STOPPING:
