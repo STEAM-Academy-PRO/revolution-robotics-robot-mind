@@ -50,6 +50,7 @@ class ResourceContext:
     def release(self):
         if self._resource:
             self._resource.release()
+            self._resource = None  # make sure we don't use released resource
 
     def __bool__(self):
         return self._resource is not None
@@ -330,23 +331,21 @@ class JoystickWrapper(Wrapper):
                     self._res = None
             else:
                 # the resource is ours, use it
-                self._drivetrain.set_speeds_independent(sl, sr)
-                if sl == sr == 0:
-                    # manual stop: allow lower priority scripts to move
-                    self.log("resource released")
-                    self._res.release()
-                    self._res = None
+                self._set_speeds(sl, sr)
         else:
             self._res = self.try_take_resource()
             if self._res:
-                try:
-                    self.log("resource taken")
-                    self._drivetrain.set_speeds_independent(sl, sr)
-                finally:
-                    if sl == sr == 0:
-                        self.log("resource released immediately")
-                        self._res.release()
-                        self._res = None
+                self.log("resource taken")
+                self._set_speeds(sl, sr)
+
+    def _set_speeds(self, sl, sr):
+        try:
+            self._drivetrain.set_speeds_independent(sl, sr)
+        finally:
+            if sl == sr == 0:
+                # manual stop: allow lower priority scripts to move
+                self.log("resource released")
+                self._res.release()
 
 
 class SoundWrapper(Wrapper):
