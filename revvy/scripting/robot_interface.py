@@ -131,13 +131,10 @@ class RingLedWrapper(Wrapper):
     def start_animation(self, scenario):
         self.using_resource(partial(self._ring_led.start_animation, scenario))
 
-    def set(self, led_index, color):
-        if type(led_index) is not list:
-            led_index = [led_index]
-
+    def set(self, leds: list, color):
         rgb = hex2rgb(color)
 
-        for idx in led_index:
+        for idx in leds:
             if not (1 <= idx <= self._ring_led.count):
                 raise IndexError('Led index invalid: {}'.format(idx))
             self._user_leds[idx - 1] = rgb
@@ -298,13 +295,13 @@ class DriveTrainWrapper(Wrapper):
         self.turn = wrap_async_method(self, drivetrain.turn)
         self.drive = wrap_async_method(self, drivetrain.drive)
 
-    def set_speeds(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM):
+    def set_speed(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM):
         self.log("set_speeds")
 
         resource = self.try_take_resource()
         if resource:
             try:
-                self._drivetrain.set_speeds(direction, speed, unit_speed)
+                self._drivetrain.set_speed(direction, speed, unit_speed)
             finally:
                 if speed == 0:
                     resource.release()
@@ -319,7 +316,7 @@ class JoystickWrapper(Wrapper):
         self._drivetrain = drivetrain
         self._res = None
 
-    def set_speeds_independent(self, sl, sr):
+    def set_speeds(self, sl, sr):
         if self._res:
             if self._script.is_stop_requested:
                 raise InterruptedError
@@ -340,7 +337,7 @@ class JoystickWrapper(Wrapper):
 
     def _set_speeds(self, sl, sr):
         try:
-            self._drivetrain.set_speeds_independent(sl, sr)
+            self._drivetrain.set_speeds(sl, sr)
         finally:
             if sl == sr == 0:
                 # manual stop: allow lower priority scripts to move
@@ -440,14 +437,6 @@ class RobotWrapper(RobotInterface):
     def release_resources(self):
         for res in self._resources.values():
             res.release()
-
-    def stop_all_motors(self, action):
-        """
-        @deprecated
-        @param action: MotorConstants.ACTION_STOP_AND_HOLD or MotorConstants.ACTION_RELEASE
-        """
-        for motor in self._motors:
-            motor.stop(action)
 
     def time(self):
         return self._robot.time

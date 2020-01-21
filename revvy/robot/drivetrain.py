@@ -107,14 +107,14 @@ class DifferentialDrivetrain:
                 self._log('motor blocked, stop')
                 self.stop_release()
 
-    def set_speeds_independent(self, left, right, power_limit=None):
+    def set_speeds(self, left, right, power_limit=None):
         self._log('set speeds independent')
         self._cancel_awaiter()
 
         self._update_callback = self._update_move
         self._apply_speeds(left, right, power_limit)
 
-    def set_speeds(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM):
+    def set_speed(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM):
         self._log("set_speeds")
         multipliers = {
             MotorConstants.DIRECTION_FWD: 1,
@@ -122,12 +122,12 @@ class DifferentialDrivetrain:
         }
 
         if unit_speed == MotorConstants.UNIT_SPEED_RPM:
-            self.set_speeds_independent(
+            self.set_speeds(
                 multipliers[direction] * rpm2dps(speed),
                 multipliers[direction] * rpm2dps(speed)
             )
         elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
-            self.set_speeds_independent(
+            self.set_speeds(
                 multipliers[direction] * rpm2dps(self.max_rpm),
                 multipliers[direction] * rpm2dps(self.max_rpm),
                 power_limit=speed
@@ -246,12 +246,12 @@ class DifferentialDrivetrain:
 
         elif unit_rotation == MotorConstants.UNIT_SEC:
             if unit_speed == MotorConstants.UNIT_SPEED_RPM:
-                self.set_speeds_independent(
+                self.set_speeds(
                     rpm2dps(speed) * multipliers[direction],
                     rpm2dps(speed) * multipliers[direction])
 
             elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
-                self.set_speeds_independent(
+                self.set_speeds(
                     rpm2dps(self.max_rpm) * multipliers[direction],
                     rpm2dps(self.max_rpm) * multipliers[direction],
                     power_limit=speed)
@@ -293,7 +293,7 @@ class DifferentialDrivetrain:
 
             left_speed = rpm2dps(speed) * left_multipliers[direction]
             right_speed = rpm2dps(speed) * right_multipliers[direction]
-            self.set_speeds_independent(left_speed, right_speed, power_limit=power)
+            self.set_speeds(left_speed, right_speed, power_limit=power)
 
             awaiter = self._create_timer_awaiter(timeout=rotation)
 
@@ -313,12 +313,10 @@ class DifferentialDrivetrain:
         self._log('move')
         self._cancel_awaiter()
 
-        commands = []
-        for motor in self._left_motors:
-            commands.append(motor.create_relative_position_command(left, left_speed, power_limit))
-
-        for motor in self._right_motors:
-            commands.append(motor.create_relative_position_command(right, right_speed, power_limit))
+        commands = [
+            *(motor.create_relative_position_command(left, left_speed, power_limit) for motor in self._left_motors),
+            *(motor.create_relative_position_command(right, right_speed, power_limit) for motor in self._right_motors)
+        ]
 
         awaiter = AwaiterImpl()
         awaiter.on_cancelled(self._apply_release)
