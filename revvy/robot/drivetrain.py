@@ -7,34 +7,118 @@ from revvy.robot.imu import IMU
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motor import MotorStatus
 from revvy.scripting.robot_interface import MotorConstants
-from revvy.utils.awaiter import AwaiterImpl
+from revvy.utils.awaiter import AwaiterImpl, Awaiter
 from revvy.utils.functions import clip, rpm2dps
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
 
 
+# noinspection PyProtectedMember
+class DrivetrainController:
+    def __init__(self, drivetrain: 'DifferentialDrivetrain'):
+        self._drivetrain = drivetrain
+        self._awaiter = AwaiterImpl()
+        self._awaiter.on_cancelled(self._drivetrain._apply_release)
+        self._awaiter.on_result(self._drivetrain._apply_release)
+
+    @property
+    def awaiter(self) -> Awaiter:
+        return self._awaiter
+
+    def update(self):
+        raise NotImplementedError
+
+
+# noinspection PyProtectedMember
+class TimeController(DrivetrainController):
+
+    def __init__(self, drivetrain: 'DifferentialDrivetrain', timeout):
+        super().__init__(drivetrain)
+
+        t = Timer(timeout, self._awaiter.finish)
+        self._awaiter.on_cancelled(t.cancel)
+        t.start()
+
+    def update(self) -> bool:
+        pass
+
+
+# noinspection PyProtectedMember
+class TurnController(DrivetrainController):
+    def __init__(self, drivetrain: 'DifferentialDrivetrain', turn_angle, wheel_speed=None, power_limit=None):
+        super().__init__(drivetrain)
+
+        self._max_turn_wheel_speed = wheel_speed
+        self._max_turn_power = power_limit
+
+        self._target_angle = turn_angle + drivetrain.yaw
+        self._last_yaw_change_time = Stopwatch()
+        self._last_yaw_angle = drivetrain.yaw
+
+    def _update_turn_speed(self):
+        error = self._target_angle - self._drivetrain.yaw
+        p = clip(error * 10, -self._max_turn_wheel_speed, self._max_turn_wheel_speed)
+        self._drivetrain._apply_speeds(-p, p, self._max_turn_power)
+
+    def update(self):
+        yaw = self._drivetrain.yaw
+        if self._last_yaw_angle != yaw:
+            self._last_yaw_angle = yaw
+            self._last_yaw_change_time.reset()
+            error = self._target_angle - yaw
+            if abs(error) < 1:
+                self._awaiter.finish()
+            else:
+                self._update_turn_speed()
+
+        elif self._last_yaw_change_time.elapsed > 3:
+            # yaw angle has not changed for 3 seconds
+            self._awaiter.cancel()
+
+
+# noinspection PyProtectedMember
+class MoveController(DrivetrainController):
+    def __init__(self, drivetrain: 'DifferentialDrivetrain', left, right,
+                 left_speed=None, right_speed=None, power_limit=None):
+        super().__init__(drivetrain)
+
+        drivetrain._apply_positions(left, right, left_speed, right_speed, power_limit)
+
+    def update(self):
+        if all(map(lambda m: m.status == MotorStatus.GOAL_REACHED, self._drivetrain.motors)):
+            self._awaiter.finish()
+
+
 class DifferentialDrivetrain:
     max_rpm = 150
 
-    def __init__(self, interface: RevvyControl, motor_port_count, imu: IMU):
+    def __init__(self, interface: RevvyControl, imu: IMU):
         self._interface = interface
-        self._motor_count = motor_port_count
         self._motors = []
         self._left_motors = []
         self._right_motors = []
 
         self._log = get_logger('Drivetrain')
         self._imu = imu
+        self._controller = None
 
-        self._awaiter = None
-        self._update_callback = None
-        self._target_angle = 0
-        self._max_turn_wheel_speed = 0
-        self._max_turn_power = None
-        self._last_yaw_change_time = Stopwatch()
-        self._last_yaw_angle = 0
+    @property
+    def yaw(self):
+        return self._imu.yaw_angle
 
-    def _on_motor_config_changed(self, motor, config):
+    @property
+    def motors(self):
+        return self._motors
+
+    @property
+    def left_motors(self):
+        return self._left_motors
+
+    @property
+    def right_motors(self):
+        return self._right_motors
+
+    def _on_motor_config_changed(self, motor, _):
         # if a motor config changes, remove the motor from the drivetrain
         self._motors.remove(motor)
 
@@ -45,17 +129,16 @@ class DifferentialDrivetrain:
             self._right_motors.remove(motor)
 
     def _on_motor_status_changed(self, motor):
-        callback = self._update_callback
-        if callback:
-            callback(motor)
-
-    @property
-    def motors(self):
-        return self._motors
+        if motor.status == MotorStatus.BLOCKED:
+            self._abort_controller()
+        else:
+            controller = self._controller
+            if controller:
+                controller.update()
 
     def reset(self):
         self._log('reset')
-        self._cancel_awaiter()
+        self._abort_controller()
 
         for motor in self._motors:
             motor.on_status_changed.remove(self._on_motor_status_changed)
@@ -81,59 +164,43 @@ class DifferentialDrivetrain:
         self._right_motors.append(motor)
         self._add_motor(motor)
 
-    def _cancel_awaiter(self):
-        awaiter, self._awaiter = self._awaiter, None
-        if awaiter:
-            awaiter.cancel()
+    def _abort_controller(self):
+        controller, self._controller = self._controller, None
+        if controller:
+            controller.awaiter.cancel()
 
     def stop_release(self):
         self._log('stop and release')
-        self._cancel_awaiter()
+        self._abort_controller()
 
         self._apply_release()
 
-    def _update_move(self, changed_motor):
-        awaiter = self._awaiter
-
-        if awaiter:
-            if changed_motor.status == MotorStatus.BLOCKED:
-                self._log('motor blocked, stop')
-                awaiter.cancel()
-            elif all(map(lambda m: m.status == MotorStatus.GOAL_REACHED, self._motors)):
-                self._log('goal reached')
-                awaiter.finish()
-        else:
-            if changed_motor.status == MotorStatus.BLOCKED:
-                self._log('motor blocked, stop')
-                self.stop_release()
-
     def set_speeds(self, left, right, power_limit=None):
         self._log('set speeds independent')
-        self._cancel_awaiter()
+        self._abort_controller()
 
-        self._update_callback = self._update_move
         self._apply_speeds(left, right, power_limit)
 
     def set_speed(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM):
         self._log("set_speeds")
+        self._abort_controller()
         multipliers = {
             MotorConstants.DIRECTION_FWD: 1,
             MotorConstants.DIRECTION_BACK: -1,
         }
 
         if unit_speed == MotorConstants.UNIT_SPEED_RPM:
-            self.set_speeds(
-                multipliers[direction] * rpm2dps(speed),
-                multipliers[direction] * rpm2dps(speed)
-            )
+            left_speed = right_speed = multipliers[direction] * rpm2dps(speed)
+            power_limit = None
+
         elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
-            self.set_speeds(
-                multipliers[direction] * rpm2dps(self.max_rpm),
-                multipliers[direction] * rpm2dps(self.max_rpm),
-                power_limit=speed
-            )
+            left_speed = right_speed = multipliers[direction] * rpm2dps(self.max_rpm)
+            power_limit = speed
+
         else:
             raise ValueError(f'Invalid unit_speed: {unit_speed}')
+
+        self._apply_speeds(left_speed, right_speed, power_limit)
 
     def _apply_release(self):
         commands = [
@@ -149,126 +216,58 @@ class DifferentialDrivetrain:
         ]
         self._interface.set_motor_port_control_value(commands)
 
-    def _update_turn_speed(self):
-        error = self._target_angle - self._imu.yaw_angle
-        p = clip(error * 10, -self._max_turn_wheel_speed, self._max_turn_wheel_speed)
-        self._apply_speeds(-p, p, self._max_turn_power)
-
-    def _update_turn(self, changed_motor):
-        awaiter = self._awaiter
-        if awaiter:
-            _cancel = awaiter.cancel
-            _goal_reached = awaiter.finish
-        else:
-            _cancel = self.stop_release
-            _goal_reached = self.stop_release
-
-        if changed_motor.status == MotorStatus.BLOCKED:
-            self._update_callback = None
-            _cancel()
-            self._log('motor blocked, cancel turn')
-        else:
-            if self._last_yaw_angle != self._imu.yaw_angle:
-                self._last_yaw_angle = self._imu.yaw_angle
-                self._last_yaw_change_time.reset()
-                if abs(self._target_angle - self._imu.yaw_angle) < 1:
-                    self._update_callback = None
-                    _goal_reached()
-                    self._log('turn finished')
-                else:
-                    self._update_turn_speed()
-
-            elif self._last_yaw_change_time.elapsed > 3:
-                # yaw angle has not changed for 3 seconds
-                self._update_callback = None
-                _cancel()
-                self._log('turn blocked, cancel')
-
-    def turn_impl(self, turn_angle, wheel_speed=0, power_limit=None):
-        self._log('turn')
-        self._cancel_awaiter()
-
-        self._max_turn_wheel_speed = wheel_speed
-        self._max_turn_power = power_limit
-
-        self._target_angle = turn_angle + self._imu.yaw_angle
-        self._last_yaw_change_time.reset()
-        self._last_yaw_angle = self._imu.yaw_angle
-
-        awaiter = AwaiterImpl()
-        awaiter.on_cancelled(self._apply_release)
-        awaiter.on_result(self._apply_release)
-
-        self._awaiter = awaiter
-        self._update_callback = self._update_turn
-
-        self._update_turn_speed()
-
-        return awaiter
-
-    def _create_timer_awaiter(self, timeout):
-        awaiter = AwaiterImpl()
-        t = Timer(timeout, awaiter.finish)
-
-        awaiter.on_cancelled(t.cancel)
-        awaiter.on_cancelled(self._apply_release)
-        awaiter.on_result(self._apply_release)
-
-        t.start()
-        self._awaiter = awaiter
-
-        return awaiter
+    def _apply_positions(self, left, right, left_speed, right_speed, power_limit):
+        commands = [
+            *(motor.create_relative_position_command(left, left_speed, power_limit) for motor in self._left_motors),
+            *(motor.create_relative_position_command(right, right_speed, power_limit) for motor in self._right_motors)
+        ]
+        self._interface.set_motor_port_control_value(commands)
 
     def drive(self, direction, rotation, unit_rotation, speed, unit_speed):
         self._log("drive")
-        self._cancel_awaiter()
+        self._abort_controller()
         multipliers = {
             MotorConstants.DIRECTION_FWD:   1,
             MotorConstants.DIRECTION_BACK: -1,
         }
-
-        if unit_rotation == MotorConstants.UNIT_ROT:
+        if unit_rotation == MotorConstants.UNIT_SEC:
             if unit_speed == MotorConstants.UNIT_SPEED_RPM:
-                awaiter = self.move(
-                    360 * rotation * multipliers[direction],
-                    360 * rotation * multipliers[direction],
-                    left_speed=rpm2dps(speed),
-                    right_speed=rpm2dps(speed))
+                power, speed = None, rpm2dps(speed)
 
             elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
-                awaiter = self.move(
-                    360 * rotation * multipliers[direction],
-                    360 * rotation * multipliers[direction],
-                    power_limit=speed)
+                power, speed = speed, rpm2dps(self.max_rpm)
 
             else:
                 raise ValueError(f'Invalid unit_speed: {unit_speed}')
 
-        elif unit_rotation == MotorConstants.UNIT_SEC:
+            left_speed = right_speed = speed * multipliers[direction]
+            self._apply_speeds(left_speed, right_speed, power_limit=power)
+
+            self._controller = TimeController(self, timeout=rotation)
+
+        elif unit_rotation == MotorConstants.UNIT_ROT:
+            left = right = 360 * rotation * multipliers[direction]
+
             if unit_speed == MotorConstants.UNIT_SPEED_RPM:
-                self.set_speeds(
-                    rpm2dps(speed) * multipliers[direction],
-                    rpm2dps(speed) * multipliers[direction])
+                left_speed = right_speed = rpm2dps(speed)
+                power_limit = None
 
             elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
-                self.set_speeds(
-                    rpm2dps(self.max_rpm) * multipliers[direction],
-                    rpm2dps(self.max_rpm) * multipliers[direction],
-                    power_limit=speed)
+                left_speed = right_speed = None
+                power_limit = speed
 
             else:
                 raise ValueError(f'Invalid unit_speed: {unit_speed}')
 
-            awaiter = self._create_timer_awaiter(timeout=rotation)
-
+            self._controller = MoveController(self, left, right, left_speed, right_speed, power_limit)
         else:
             raise ValueError(f'Invalid unit_rotation: {unit_rotation}')
 
-        return awaiter
+        return self._controller.awaiter
 
     def turn(self, direction, rotation, unit_rotation, speed, unit_speed):
         self._log("turn")
-        self._cancel_awaiter()
+        self._abort_controller()
         left_multipliers = {
             MotorConstants.DIRECTION_LEFT: -1,
             MotorConstants.DIRECTION_RIGHT: 1,
@@ -293,38 +292,27 @@ class DifferentialDrivetrain:
 
             left_speed = rpm2dps(speed) * left_multipliers[direction]
             right_speed = rpm2dps(speed) * right_multipliers[direction]
-            self.set_speeds(left_speed, right_speed, power_limit=power)
+            self._apply_speeds(left_speed, right_speed, power_limit=power)
 
-            awaiter = self._create_timer_awaiter(timeout=rotation)
+            self._controller = TimeController(self, timeout=rotation)
 
         elif unit_rotation == MotorConstants.UNIT_TURN_ANGLE:
 
-            awaiter = self.turn_impl(
-                rotation * turn_multipliers[direction],
-                rpm2dps(speed),
-                power_limit=power)
+            self._controller = TurnController(self,
+                                              turn_angle=rotation * turn_multipliers[direction],
+                                              wheel_speed=rpm2dps(speed),
+                                              power_limit=power)
+            self._controller.update()
 
         else:
             raise ValueError(f'Invalid unit_rotation: {unit_rotation}')
 
-        return awaiter
+        return self._controller.awaiter
 
     def move(self, left, right, left_speed=None, right_speed=None, power_limit=None):
         self._log('move')
-        self._cancel_awaiter()
+        self._abort_controller()
 
-        commands = [
-            *(motor.create_relative_position_command(left, left_speed, power_limit) for motor in self._left_motors),
-            *(motor.create_relative_position_command(right, right_speed, power_limit) for motor in self._right_motors)
-        ]
+        self._controller = MoveController(self, left, right, left_speed, right_speed, power_limit)
 
-        awaiter = AwaiterImpl()
-        awaiter.on_cancelled(self._apply_release)
-        awaiter.on_result(self._apply_release)
-
-        self._awaiter = awaiter
-        self._update_callback = self._update_move
-
-        self._interface.set_motor_port_control_value(commands)
-
-        return awaiter
+        return self._controller.awaiter
