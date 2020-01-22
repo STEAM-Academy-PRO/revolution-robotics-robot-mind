@@ -190,6 +190,16 @@ class DifferentialDrivetrain:
         ]
         self._interface.set_motor_port_control_value(commands)
 
+    def _process_unit_speed(self, speed, unit_speed):
+        if unit_speed == MotorConstants.UNIT_SPEED_RPM:
+            power = None
+        elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
+            power, speed = speed, self.max_rpm
+        else:
+            raise ValueError(f'Invalid unit_speed: {unit_speed}')
+
+        return power, speed
+
     def stop_release(self):
         self._log('stop and release')
         self._abort_controller()
@@ -210,12 +220,7 @@ class DifferentialDrivetrain:
             MotorConstants.DIRECTION_BACK: -1,
         }
 
-        if unit_speed == MotorConstants.UNIT_SPEED_RPM:
-            power = None
-        elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
-            power, speed = speed, self.max_rpm
-        else:
-            raise ValueError('Invalid unit_speed: {}'.format(unit_speed))
+        power, speed = self._process_unit_speed(speed, unit_speed)
 
         left_speed = right_speed = multipliers[direction] * rpm2dps(speed)
         self._apply_speeds(left_speed, right_speed, power)
@@ -229,12 +234,7 @@ class DifferentialDrivetrain:
             MotorConstants.DIRECTION_BACK: -1,
         }
 
-        if unit_speed == MotorConstants.UNIT_SPEED_RPM:
-            power = None
-        elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
-            power, speed = speed, self.max_rpm
-        else:
-            raise ValueError(f'Invalid unit_speed: {unit_speed}')
+        power, speed = self._process_unit_speed(speed, unit_speed)
 
         if unit_rotation == MotorConstants.UNIT_SEC:
             left_speed = right_speed = rpm2dps(speed) * multipliers[direction]
@@ -261,12 +261,7 @@ class DifferentialDrivetrain:
             MotorConstants.DIRECTION_RIGHT: -1,  # -ve number -> CW turn
         }
 
-        if unit_speed == MotorConstants.UNIT_SPEED_RPM:
-            power = None
-        elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
-            power, speed = speed, self.max_rpm
-        else:
-            raise ValueError(f'Invalid unit_speed: {unit_speed}')
+        power, speed = self._process_unit_speed(speed, unit_speed)
 
         if unit_rotation == MotorConstants.UNIT_SEC:
 
