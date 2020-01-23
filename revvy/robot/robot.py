@@ -46,7 +46,8 @@ class Robot(RobotInterface):
         self._hw_version = self._robot_control.get_hardware_version()
         self._fw_version = self._robot_control.get_firmware_version()
 
-        self._log('Hardware: {}\nFirmware: {}'.format(self._hw_version, self._fw_version))
+        self._log(f'Hardware: {self._hw_version}')
+        self._log(f'Firmware: {self._fw_version}')
 
         setup = {
             Version('1.0'): SoundControlV1,
@@ -65,11 +66,11 @@ class Robot(RobotInterface):
 
         def _motor_config_changed(motor: PortInstance, config_name):
             callback = None if config_name is None else motor.update_status
-            self._status_updater.set_slot('motor_{}'.format(motor.id), callback)
+            self._status_updater.set_slot(f'motor_{motor.id}', callback)
 
         def _sensor_config_changed(sensor: PortInstance, config_name):
             callback = None if config_name is None else sensor.update_status
-            self._status_updater.set_slot('sensor_{}'.format(sensor.id), callback)
+            self._status_updater.set_slot(f'sensor_{sensor.id}', callback)
 
         self._motor_ports = create_motor_port_handler(self._robot_control)
         for port in self._motor_ports:
@@ -163,7 +164,7 @@ class Robot(RobotInterface):
         self._status_updater.set_slot("gyro", self._imu.update_gyro_data)
         self._status_updater.set_slot("yaw", self._imu.update_yaw_angles)
         # TODO: do something useful with the reset signal
-        self._status_updater.set_slot("reset", lambda x: self._log('MCU reset detected'))
+        self._status_updater.set_slot("reset", lambda _: self._log('MCU reset detected'))
 
         self._drivetrain.reset()
         self._motor_ports.reset()

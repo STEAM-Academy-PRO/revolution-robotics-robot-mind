@@ -44,21 +44,21 @@ class SoundControlBase:
     def _disable_amp_callback(self):
         self._log('Disable amp callback')
         with self._lock:
-            self._log("Sounds playing: {}".format(len(self._processes)))
+            self._log(f"Sounds playing: {len(self._processes)}")
             if not self._processes:
                 self._log('Turning amp off')
                 self._run_command(self._commands['disable_amp'])
 
     def set_volume(self, volume):
         scaled = map_values(clip(volume, 0, 100), 0, 100, -10239, 400)
-        self._run_command('amixer cset numid=1 -- {}'.format(scaled))
+        self._run_command(f'amixer cset numid=1 -- {scaled}')
 
     def reset_volume(self):
         self.set_volume(self._default_volume)
 
     def play_sound(self, sound, callback=None):
         if len(self._processes) <= self._max_parallel_sounds:
-            self._log('Playing sound: {}'.format(sound))
+            self._log(f'Playing sound: {sound}')
 
             def cb():
                 if callable(callback):

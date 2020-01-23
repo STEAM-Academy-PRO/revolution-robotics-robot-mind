@@ -24,7 +24,7 @@ class Command:
         self._transport = transport
         self._command_byte = self.command_id
 
-        self._log = get_logger('{} [id={}]'.format(type(self).__name__, self._command_byte))
+        self._log = get_logger(f'{type(self).__name__} [id={self._command_byte}]')
 
     @property
     def command_id(self):
@@ -34,10 +34,9 @@ class Command:
         if response.status == ResponseStatus.Ok:
             return self.parse_response(response.payload)
         elif response.status == ResponseStatus.Error_UnknownCommand:
-            raise UnknownCommandError("Command not implemented: {}".format(self._command_byte))
+            raise UnknownCommandError(f"Command not implemented: {self._command_byte}")
         else:
-            raise ValueError('Command status: "{}" with payload: {}'
-                             .format(response.status, repr(response.payload)))
+            raise ValueError(f'Command status: "{response.status}" with payload: {repr(response.payload)}')
 
     def _send(self, payload=b''):
         """
@@ -50,7 +49,7 @@ class Command:
         try:
             return self._process(response)
         except (UnknownCommandError, ValueError) as e:
-            self._log('Payload for error: {0} (length {1})'.format(payload, len(payload)))
+            self._log(f'Payload for error: {payload} (length {len(payload)})')
             self._log(traceback.format_exc())
             raise e
 

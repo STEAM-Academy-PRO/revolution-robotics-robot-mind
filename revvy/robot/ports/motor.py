@@ -239,7 +239,7 @@ class DcMotorController(PortDriver):
             self._update_motor_status(MotorStatus(status))
             self.on_status_changed(self._port)
         else:
-            self._log('Received {} bytes of data instead of 9 or 10'.format(len(data)))
+            self._log(f'Received {len(data)} bytes of data instead of 10')
 
     def stop(self, action=MotorConstants.ACTION_RELEASE):
         self._log("stop")

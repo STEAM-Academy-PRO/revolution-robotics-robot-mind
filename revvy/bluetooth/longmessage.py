@@ -64,7 +64,7 @@ class LongMessageType:
     @staticmethod
     def validate(long_message_type):
         if not (0 < long_message_type < LongMessageType.MAX):
-            raise LongMessageError("Invalid long message type {}".format(long_message_type))
+            raise LongMessageError(f"Invalid long message type {long_message_type}")
 
 
 class MessageType:
@@ -179,7 +179,7 @@ class LongMessageHandler:
             if upload_finished_callback:
                 upload_finished_callback(long_message_type)
 
-        self._log("select_long_message_type: {}".format(long_message_type))
+        self._log(f"select_long_message_type: {long_message_type}")
         LongMessageType.validate(long_message_type)
         self._long_message_type = long_message_type
         self._status = LongMessageHandler.STATUS_READ
@@ -203,7 +203,7 @@ class LongMessageHandler:
             upload_started_callback(self._long_message_type)
 
     def upload_message(self, data):
-        self._log("upload_message ({} bytes)".format(len(data)))
+        self._log(f"upload_message ({len(data)} bytes)")
 
         if self._status != LongMessageHandler.STATUS_WRITE:
             raise LongMessageError("init-transfer needs to be called before upload_message")

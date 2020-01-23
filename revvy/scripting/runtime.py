@@ -43,8 +43,8 @@ class ScriptHandle:
         self._inputs = {}
         self._runnable = script
         self.sleep = self._default_sleep
-        self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(name))
-        self.log = get_logger('Script: {}'.format(name))
+        self._thread = ThreadWrapper(self._run, f'ScriptThread: {name}')
+        self.log = get_logger(f'Script: {name}')
 
         self.stop = self._thread.stop
         self.cleanup = self._thread.exit
@@ -124,10 +124,10 @@ class ScriptManager:
 
     def add_script(self, script: ScriptDescriptor):
         if script.name in self._scripts:
-            self._log('Stopping {} before overriding'.format(script.name))
+            self._log(f'Stopping {script.name} before overriding')
             self._scripts[script.name].cleanup()
 
-        self._log('New script: {}'.format(script.name))
+        self._log(f'New script: {script.name}')
         script_handle = ScriptHandle(self, script.runnable, script.name, self._globals)
         try:
             robot = self._robot

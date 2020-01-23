@@ -111,7 +111,7 @@ class RobotStatusIndicator:
 
     @robot_status.setter
     def robot_status(self, value):
-        self._log('Robot: {} -> {}'.format(RobotStatus.name_of(self._robot_status), RobotStatus.name_of(value)))
+        self._log(f'Robot: {RobotStatus.name_of(self._robot_status)} -> {RobotStatus.name_of(value)}')
         if self._robot_status != RobotStatus.Stopped:
             self._robot_status = value
             self._update_leds()

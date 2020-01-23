@@ -42,11 +42,11 @@ class McuStatusUpdater:
         self._robot.status_updater_reset()
 
     def _enable_slot(self, slot):
-        self._log('enable slot {}'.format(slot))
+        self._log(f'enable slot {slot}')
         self._robot.status_updater_control(slot, True)
 
     def _disable_slot(self, slot):
-        self._log('disable slot {}'.format(slot))
+        self._log(f'disable slot {slot}')
         self._robot.status_updater_control(slot, False)
 
     def set_slot(self, slot: str, cb):

@@ -17,4 +17,4 @@ class Sound:
         try:
             self._sound.play_sound(self._get_sound_path(name), callback)
         except KeyError:
-            self._log('Sound not found: {}'.format(name))
+            self._log(f'Sound not found: {name}')

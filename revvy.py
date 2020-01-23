@@ -88,11 +88,11 @@ class LongMessageImplementation:
             self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.BreathingGreen))
 
     def on_message_updated(self, storage, message_type):
-        self._log('Received message: {}'.format(message_type))
+        self._log(f'Received message: {message_type}')
 
         if message_type == LongMessageType.TEST_KIT:
             test_script_source = storage.get_long_message(message_type).decode()
-            self._log('Running test script: {}'.format(test_script_source))
+            self._log(f'Running test script: {test_script_source}')
 
             script_descriptor = ScriptDescriptor("test_kit", str_to_func(test_script_source), 0)
 
@@ -108,7 +108,7 @@ class LongMessageImplementation:
 
         elif message_type == LongMessageType.CONFIGURATION_DATA:
             message_data = storage.get_long_message(message_type).decode()
-            self._log('New configuration: {}'.format(message_data))
+            self._log(f'New configuration: {message_data}')
 
             try:
                 parsed_config = RobotConfig.from_string(message_data)
@@ -131,7 +131,7 @@ class LongMessageImplementation:
 if __name__ == "__main__":
     current_installation = os.path.dirname(os.path.realpath(__file__))
     os.chdir(current_installation)
-    print('Revvy run from {} ({})'.format(current_installation, __file__))
+    print(f'Revvy run from {current_installation} ({__file__})')
 
     # base directories
     writeable_data_dir = os.path.join('..', '..', '..', 'user')
@@ -161,9 +161,9 @@ if __name__ == "__main__":
     try:
         device_name = device_storage.read('device-name').decode("utf-8")
     except StorageError:
-        device_name = 'Revvy_{}'.format(serial)
+        device_name = f'Revvy_{serial}'
 
-    print('Device name: {}'.format(device_name))
+    print(f'Device name: {device_name}')
 
     device_name = Observable(device_name)
     device_name.subscribe(lambda v: device_storage.write('device-name', v.encode("utf-8")))

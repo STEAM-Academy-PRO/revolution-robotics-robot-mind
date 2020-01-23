@@ -72,12 +72,12 @@ class DifferentialDrivetrain:
         motor.on_config_changed.add(self._on_motor_config_changed)
 
     def add_left_motor(self, motor: PortInstance):
-        self._log('Add motor {} to left side'.format(motor.id))
+        self._log(f'Add motor {motor.id} to left side')
         self._left_motors.append(motor)
         self._add_motor(motor)
 
     def add_right_motor(self, motor: PortInstance):
-        self._log('Add motor {} to right side'.format(motor.id))
+        self._log(f'Add motor {motor.id} to right side')
         self._right_motors.append(motor)
         self._add_motor(motor)
 
@@ -133,7 +133,7 @@ class DifferentialDrivetrain:
                 power_limit=speed
             )
         else:
-            raise ValueError('Invalid unit_speed: {}'.format(unit_speed))
+            raise ValueError(f'Invalid unit_speed: {unit_speed}')
 
     def _apply_release(self):
         commands = [
@@ -242,7 +242,7 @@ class DifferentialDrivetrain:
                     power_limit=speed)
 
             else:
-                raise ValueError('Invalid unit_speed: {}'.format(unit_speed))
+                raise ValueError(f'Invalid unit_speed: {unit_speed}')
 
         elif unit_rotation == MotorConstants.UNIT_SEC:
             if unit_speed == MotorConstants.UNIT_SPEED_RPM:
@@ -257,12 +257,12 @@ class DifferentialDrivetrain:
                     power_limit=speed)
 
             else:
-                raise ValueError('Invalid unit_speed: {}'.format(unit_speed))
+                raise ValueError(f'Invalid unit_speed: {unit_speed}')
 
             awaiter = self._create_timer_awaiter(timeout=rotation)
 
         else:
-            raise ValueError('Invalid unit_rotation: {}'.format(unit_rotation))
+            raise ValueError(f'Invalid unit_rotation: {unit_rotation}')
 
         return awaiter
 
@@ -287,7 +287,7 @@ class DifferentialDrivetrain:
         elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
             power, speed = speed, self.max_rpm
         else:
-            raise ValueError('Invalid unit_speed: {}'.format(unit_speed))
+            raise ValueError(f'Invalid unit_speed: {unit_speed}')
 
         if unit_rotation == MotorConstants.UNIT_SEC:
 
@@ -305,7 +305,7 @@ class DifferentialDrivetrain:
                 power_limit=power)
 
         else:
-            raise ValueError('Invalid unit_rotation: {}'.format(unit_rotation))
+            raise ValueError(f'Invalid unit_rotation: {unit_rotation}')
 
         return awaiter
 

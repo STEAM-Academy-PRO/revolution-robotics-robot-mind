@@ -4,7 +4,7 @@ _log_lock = Lock()
 
 
 def get_logger(tag):
-    pattern = '{}: {{}}'.format(tag)
+    pattern = f'{tag}: {{}}'
 
     def logger_func(message):
         with _log_lock:

@@ -49,7 +49,7 @@ class RemoteController:
                     action([message.analog[x] for x in channels])
             except IndexError:
                 # looks like an action was registered for an analog channel that we didn't receive
-                self._log('Skip analog handler for channels {}'.format(", ".join(map(str, channels))))
+                self._log(f'Skip analog handler for channels {", ".join(map(str, channels))}')
 
         # handle button presses
         for handler, button, action in zip(self._buttonHandlers, message.buttons, self._buttonActions):
@@ -101,7 +101,7 @@ class RemoteControllerScheduler:
         # wait for first message
         stopwatch = Stopwatch()
         if self._wait_for_message(ctx, self.first_message_timeout):
-            self._log("Time to first message: {}s".format(stopwatch.elapsed))
+            self._log(f"Time to first message: {stopwatch.elapsed}s")
             if self._controller_detected_callback:
                 self._controller_detected_callback()
 

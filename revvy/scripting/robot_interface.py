@@ -136,7 +136,7 @@ class RingLedWrapper(Wrapper):
 
         for idx in leds:
             if not (1 <= idx <= self._ring_led.count):
-                raise IndexError('Led index invalid: {}'.format(idx))
+                raise IndexError(f'Led index invalid: {idx}')
             self._user_leds[idx - 1] = rgb
 
         self.using_resource(partial(self._ring_led.display_user_frame, self._user_leds))
@@ -173,7 +173,7 @@ class MotorPortWrapper(Wrapper):
 
     def __init__(self, script, motor: PortInstance, resource: ResourceWrapper):
         super().__init__(script, resource)
-        self.log = lambda message: script.log("MotorPortWrapper[motor {}]: {}".format(motor.id, message))
+        self.log = lambda message: script.log(f"MotorPortWrapper[motor {motor.id}]: {message}")
         self._motor = motor
 
     def configure(self, config):
@@ -289,7 +289,7 @@ def wrap_sync_method(owner, method):
 class DriveTrainWrapper(Wrapper):
     def __init__(self, script, drivetrain, resource: ResourceWrapper):
         super().__init__(script, resource)
-        self.log = lambda message: script.log("DriveTrain: {}".format(message))
+        self.log = lambda message: script.log(f"DriveTrain: {message}")
         self._drivetrain = drivetrain
 
         self.turn = wrap_async_method(self, drivetrain.turn)
@@ -312,7 +312,7 @@ class JoystickWrapper(Wrapper):
 
     def __init__(self, script, drivetrain, resource: ResourceWrapper):
         super().__init__(script, resource)
-        self.log = lambda message: script.log("Joystick: {}".format(message))
+        self.log = lambda message: script.log(f"Joystick: {message}")
         self._drivetrain = drivetrain
         self._res = None
 
@@ -407,15 +407,9 @@ class RobotWrapper(RobotInterface):
         self._resources = {name: ResourceWrapper(res[name], priority) for name in res}
         self._robot = robot
 
-        def motor_name(port):
-            return 'motor_{}'.format(port.id)
-
-        def sensor_name(port):
-            return 'sensor_{}'.format(port.id)
-
-        motor_wrappers = [MotorPortWrapper(script, port, self._resources[motor_name(port)])
+        motor_wrappers = [MotorPortWrapper(script, port, self._resources[f'motor_{port.id}'])
                           for port in robot.motors]
-        sensor_wrappers = [SensorPortWrapper(script, port, self._resources[sensor_name(port)])
+        sensor_wrappers = [SensorPortWrapper(script, port, self._resources[f'sensor_{port.id}'])
                            for port in robot.sensors]
         self._motors = PortCollection(motor_wrappers)
         self._sensors = PortCollection(sensor_wrappers)

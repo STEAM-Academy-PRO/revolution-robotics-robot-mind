@@ -153,12 +153,12 @@ class Ev3Mode:
         self._si_min = si_min
         self._si_max = si_max
 
-        print('Datasets: {}'.format(self._nSamples))
-        print('DataType: {}'.format(self._type_info[self._dataType].name))
-        print('Format: {}.{}'.format(self._figures, self._decimals))
-        print('Raw: {}-{}'.format(self._raw_min, self._raw_max))
-        print('%: {}-{}'.format(self._pct_min, self._pct_max))
-        print('SI: {}-{}'.format(self._si_min, self._si_max))
+        print(f'Datasets: {self._nSamples}')
+        print(f'DataType: {self._type_info[self._dataType].name}')
+        print(f'Format: {self._figures}.{self._decimals}')
+        print(f'Raw: {self._raw_min}-{self._raw_max}')
+        print(f'%: {self._pct_min}-{self._pct_max}')
+        print(f'SI: {self._si_min}-{self._si_max}')
 
     def _convert_single(self, value):
         return map_values(value, self._raw_min, self._raw_max, self._si_min, self._si_max)
@@ -239,7 +239,7 @@ class Ev3UARTSensor(BaseSensorPortDriver):
             modes = []
             for i in range(1, nModes+1):
                 mode_info = self._interface.read_sensor_info(self._port.id, i)
-                print('New mode: {}/{}'.format(i, nModes))
+                print(f'New mode: {i}/{nModes}')
                 print('===============')
                 modes.append(Ev3Mode.parse(mode_info))
                 print('')
