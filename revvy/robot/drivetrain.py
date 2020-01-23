@@ -53,7 +53,7 @@ class TurnController(DrivetrainController):
 
         self._target_angle = turn_angle + drivetrain.yaw
         self._last_yaw_change_time = Stopwatch()
-        self._last_yaw_angle = drivetrain.yaw
+        self._last_yaw_angle = None
 
     def update(self):
         yaw = self._drivetrain.yaw
