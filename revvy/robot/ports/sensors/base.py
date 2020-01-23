@@ -29,7 +29,6 @@ class BaseSensorPortDriver(PortDriver):
         self._interface = port.interface
         self._value = None
         self._raw_value = None
-        self._value_changed_callback = None
 
     def on_port_type_set(self):
         pass
