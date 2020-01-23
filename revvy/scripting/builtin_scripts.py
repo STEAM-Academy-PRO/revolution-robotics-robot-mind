@@ -28,7 +28,7 @@ def drive(args, controller):
     sl = map_values(sl, 0, 1, 0, 600)
     sr = map_values(sr, 0, 1, 0, 600)
 
-    robot.joystick.set_speeds_independent(sl, sr)
+    robot.joystick.set_speeds(sl, sr)
 
 
 def drive_joystick(args):
