@@ -55,11 +55,6 @@ class TurnController(DrivetrainController):
         self._last_yaw_change_time = Stopwatch()
         self._last_yaw_angle = drivetrain.yaw
 
-    def _update_turn_speed(self):
-        error = self._target_angle - self._drivetrain.yaw
-        p = clip(error * 10, -self._max_turn_wheel_speed, self._max_turn_wheel_speed)
-        self._drivetrain._apply_speeds(-p, p, self._max_turn_power)
-
     def update(self):
         yaw = self._drivetrain.yaw
         if self._last_yaw_angle != yaw:
@@ -67,9 +62,12 @@ class TurnController(DrivetrainController):
             self._last_yaw_change_time.reset()
             error = self._target_angle - yaw
             if abs(error) < 1:
+                # goal reached
                 self._awaiter.finish()
             else:
-                self._update_turn_speed()
+                # Kp=10, saturate on max allowed wheel speed
+                p = clip(error * 10, -self._max_turn_wheel_speed, self._max_turn_wheel_speed)
+                self._drivetrain._apply_speeds(-p, p, self._max_turn_power)
 
         elif self._last_yaw_change_time.elapsed > 3:
             # yaw angle has not changed for 3 seconds
