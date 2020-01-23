@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
+from enum import Enum
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.logger import get_logger
 
 
-class RobotStatus:
+class RobotStatus(Enum):
     StartingUp = 0
     NotConfigured = 1
     Configured = 2
@@ -12,34 +13,11 @@ class RobotStatus:
     Updating = 4
     Stopped = 5
 
-    _names = {
-        StartingUp:    "StartingUp",
-        NotConfigured: "NotConfigured",
-        Configured:    "Configured",
-        Configuring:   "Configuring",
-        Updating:      "Updating",
-        Stopped:       "Stopped"
-    }
 
-    @staticmethod
-    def name_of(status):
-        return RobotStatus._names.get(status, "Unknown")
-
-
-class RemoteControllerStatus:
+class RemoteControllerStatus(Enum):
     NotConnected = 0
     ConnectedNoControl = 1
     Controlled = 2
-
-    _names = {
-        NotConnected:       "NotConnected",
-        ConnectedNoControl: "ConnectedNoControl",
-        Controlled:         "Controlled"
-    }
-
-    @staticmethod
-    def name_of(status):
-        return RemoteControllerStatus._names.get(status, "Unknown")
 
 
 class RobotStatusIndicator:
@@ -111,7 +89,7 @@ class RobotStatusIndicator:
 
     @robot_status.setter
     def robot_status(self, value):
-        self._log(f'Robot: {RobotStatus.name_of(self._robot_status)} -> {RobotStatus.name_of(value)}')
+        self._log(f'Robot: {self._robot_status} -> {value}')
         if self._robot_status != RobotStatus.Stopped:
             self._robot_status = value
             self._update_leds()
@@ -122,7 +100,6 @@ class RobotStatusIndicator:
 
     @controller_status.setter
     def controller_status(self, value):
-        self._log('Controller: {} -> {}'.format(RemoteControllerStatus.name_of(self._controller_status),
-                                                RemoteControllerStatus.name_of(value)))
+        self._log(f'Controller: {self._controller_status} -> {value}')
         self._controller_status = value
         self._update_leds()
