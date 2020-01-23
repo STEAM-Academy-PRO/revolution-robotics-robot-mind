@@ -87,7 +87,7 @@ class McuUpdater:
         self.reboot_to_bootloader()
 
         checksum = binascii.crc32(data)
-        self._log("Image info: size: {} checksum: {}".format(len(data), checksum))
+        self._log(f"Image info: size: {len(data)} checksum: {checksum}")
 
         # init update
         self._log("Initializing update")
@@ -101,7 +101,7 @@ class McuUpdater:
         self._stopwatch.reset()
         for chunk in chunks:
             self._bootloader.send_firmware(chunk)
-        self._log('Data transfer took {} seconds'.format(round(self._stopwatch.elapsed, 1)))
+        self._log(f'Data transfer took {round(self._stopwatch.elapsed, 1)} seconds')
 
         self._finalize_update()
 
@@ -162,7 +162,7 @@ def update_firmware(fw_dir, robot: Robot):
             raise
 
     except KeyError:
-        loader.log('No firmware for the hardware ({})'.format(robot.hw_version))
+        loader.log(f'No firmware for the hardware ({robot.hw_version})')
 
     except IOError:
         loader.log('Firmware file does not exist or is not readable')

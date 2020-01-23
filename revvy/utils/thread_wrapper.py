@@ -26,7 +26,7 @@ class ThreadWrapper:
     EXITED = 4
 
     def __init__(self, func, name="WorkerThread"):
-        self._log = get_logger('ThreadWrapper [{}]'.format(name))
+        self._log = get_logger(f'ThreadWrapper [{name}]')
         self._log('created')
         self._lock = Lock()  # lock used to ensure internal consistency
         self._interface_lock = RLock()  # prevent concurrent access. RLock so that callbacks may restart the thread

@@ -23,17 +23,17 @@ class Assets:
         # noinspection PyBroadException
         try:
             manifest = read_json(assets_json)
-            self._log('Loading assets from {}'.format(path))
+            self._log(f'Loading assets from {path}')
             files = manifest['files']
             for category, assets in files.items():
                 for asset_name, asset_path in assets.items():
                     if asset_name in self._files[category]:
-                        self._log('{} shadows asset {}'.format(path, asset_name))
+                        self._log(f'{path} shadows asset {asset_name}')
 
-                    self._log('New asset: ({}) {}'.format(category, asset_name))
+                    self._log(f'New asset: ({category}) {asset_name}')
                     self._files[category][asset_name] = os.path.join(path, asset_path)
         except Exception:
-            self._log('Skip loading assets from {}'.format(path))
+            self._log(f'Skip loading assets from {path}')
             self._log(traceback.format_exc())
 
     def get_asset_file(self, category, name):

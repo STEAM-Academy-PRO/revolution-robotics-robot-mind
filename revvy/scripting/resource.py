@@ -42,7 +42,7 @@ class ResourceHandle:
 class Resource:
     def __init__(self, name='Resource'):
         self._lock = Lock()
-        self._log = get_logger('Resource [{}]'.format(name))
+        self._log = get_logger(f'Resource [{name}]')
         self._current_priority = -1
         self._active_handle = None
 
@@ -65,7 +65,7 @@ class Resource:
             self._current_priority = -1
 
     def request(self, with_priority=0, on_taken_away=None):
-        self._log('enter request ({})'.format(with_priority))
+        self._log(f'enter request ({with_priority})')
         with self._lock:
             if self._active_handle is None:
                 self._log('no current owner')

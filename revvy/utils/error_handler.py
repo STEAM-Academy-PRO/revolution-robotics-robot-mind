@@ -8,10 +8,8 @@ def register_uncaught_exception_handler(logfile):
     log = get_logger('Exception logger')
 
     def log_uncaught_exception(exctype, value, tb):
-        log_message = 'Uncaught exception: {}\n' \
-                      'Value: {}\n' \
-                      'Traceback: \n\t{}\n' \
-                      '\n'.format(exctype, value, "\t".join(traceback.format_tb(tb)))
+        trace = "\t".join(traceback.format_tb(tb))
+        log_message = f'Uncaught exception: {exctype}\nValue: {value}\nTraceback: \n\t{trace}\n\n'
         log(log_message)
 
         with open(logfile, 'a') as logf:

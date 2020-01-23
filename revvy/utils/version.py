@@ -23,7 +23,7 @@ class Version:
         self._major = int(match.group('major'))
         self._minor = int(match.group('minor'))
         self._rev = int(match.group('rev')) if match.group('rev') else 0
-        self._normalized = '{}.{}.{}'.format(self._major, self._minor, self._rev)
+        self._normalized = f'{self._major}.{self._minor}.{self._rev}'
 
     @property
     def major(self):

@@ -71,7 +71,7 @@ class Command:
     def __init__(self, op, command, payload=b''):
         payload_length = len(payload)
         if payload_length > 255:
-            raise ValueError('Payload is too long ({} bytes, 255 allowed)'.format(payload_length))
+            raise ValueError(f'Payload is too long ({payload_length} bytes, 255 allowed)')
 
         pl = bytearray(6 + payload_length)
         pl[6:] = payload

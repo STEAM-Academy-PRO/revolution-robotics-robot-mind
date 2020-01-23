@@ -68,18 +68,18 @@ class RobotConfig:
     def create_runnable(script):
         try:
             script_name = dict_get_first(script, ['builtinScriptName', 'builtinscriptname'])
-            _log('Use builtin script: {}'.format(script_name))
+            _log(f'Use builtin script: {script_name}')
 
             try:
                 return builtin_scripts[script_name]
             except KeyError as e:
-                raise KeyError('Builtin script "{}" does not exist'.format(script_name)) from e
+                raise KeyError(f'Builtin script "{script_name}" does not exist') from e
 
         except KeyError:
             try:
                 source_b64_encoded = dict_get_first(script, ['pythonCode', 'pythoncode'])
                 code = b64_decode_str(source_b64_encoded)
-                _log('Use python code as script: {}'.format(code))
+                _log(f'Use python code as script: {code}')
 
                 code = code.replace('import time\n', '')
 
@@ -105,7 +105,7 @@ class RobotConfig:
         try:
             i = 0
             for script in blockly_list:
-                _log('Processing script #{}'.format(i))
+                _log(f'Processing script #{i}')
                 runnable = RobotConfig.create_runnable(script)
 
                 assignments = script['assignments']
@@ -113,7 +113,7 @@ class RobotConfig:
                 if 'analog' in assignments:
                     for analog_assignment in assignments['analog']:
                         channels = ', '.join(map(str, analog_assignment['channels']))
-                        script_name = '[script {}] analog channels {}'.format(i, channels)
+                        script_name = f'[script {i}] analog channels {channels}'
                         priority = analog_assignment['priority']
                         config.controller.analog.append({
                             'channels': analog_assignment['channels'],
@@ -123,13 +123,13 @@ class RobotConfig:
                 if 'buttons' in assignments:
                     for button_assignment in assignments['buttons']:
                         button_id = button_assignment['id']
-                        script_name = '[script {}] button {}'.format(i, button_id)
+                        script_name = f'[script {i}] button {button_id}'
                         priority = button_assignment['priority']
                         config.controller.buttons[button_id] = ScriptDescriptor(script_name, runnable, priority)
                         i += 1
 
                 if 'background' in assignments:
-                    script_name = '[script {}] background'.format(i)
+                    script_name = f'[script {i}] background'
                     priority = assignments['background']
                     config.background_scripts.append(ScriptDescriptor(script_name, runnable, priority))
                     i += 1

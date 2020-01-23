@@ -383,7 +383,7 @@ class RevvyBLE:
         self._deviceName = device_name.get()
         self._log = get_logger('RevvyBLE')
         os.environ["BLENO_DEVICE_NAME"] = self._deviceName
-        self._log('Initializing BLE with device name {}'.format(self._deviceName))
+        self._log(f'Initializing BLE with device name {self._deviceName}')
 
         device_name.subscribe(self._device_name_changed)
 
@@ -416,7 +416,7 @@ class RevvyBLE:
         self._bleno.stopAdvertising(self._start_advertising)
 
     def _on_state_change(self, state):
-        self._log('on -> stateChange: {}'.format(state))
+        self._log(f'on -> stateChange: {state}')
 
         if state == 'poweredOn':
             self._start_advertising()
@@ -428,14 +428,17 @@ class RevvyBLE:
         self._bleno.startAdvertising(self._deviceName, self._advertised_uuid_list)
 
     def _on_advertising_start(self, error):
-        self._log('on -> advertisingStart: {0}'.format(('error ' + str(error) if error else 'success')))
+        def _result(result):
+            return "error " + str(result) if result else "success"
+
+        self._log(f'on -> advertisingStart: {_result(error)}')
 
         if not error:
             self._log('setServices')
 
             # noinspection PyShadowingNames
             def on_set_service_error(error):
-                self._log('setServices: {}'.format('error ' + str(error) if error else 'success'))
+                self._log(f'setServices: {_result(error)}')
 
             self._bleno.setServices(list(self._named_services.values()), on_set_service_error)
 
