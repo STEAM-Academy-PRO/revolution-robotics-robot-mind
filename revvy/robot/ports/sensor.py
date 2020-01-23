@@ -196,7 +196,7 @@ class Ev3UARTSensor(BaseSensorPortDriver):
 
     def select_mode(self, mode):
         if mode < len(self._modes):
-            self._interface.set_sensor_port_config(self._port.id, [mode])
+            self._interface.write_sensor_port(self._port.id, [mode])
             self._current_mode = mode
 
     def convert_sensor_value(self, raw):

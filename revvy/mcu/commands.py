@@ -219,7 +219,7 @@ class SetMotorPortConfigCommand(SetPortConfigCommand):
     def command_id(self): return 0x13
 
 
-class SetSensorPortConfigCommand(SetPortConfigCommand):
+class WriteSensorPortCommand(SetPortConfigCommand):
     @property
     def command_id(self): return 0x23
 
