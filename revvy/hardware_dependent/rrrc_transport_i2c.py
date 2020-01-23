@@ -16,14 +16,14 @@ class RevvyTransportI2CDevice(RevvyTransportInterface):
             self._bus.i2c_rdwr(read_msg)
             return read_msg.buf[0:read_msg.len]
         except TypeError as e:
-            raise TransportException(f"Error during reading I2C address {self._address}") from e
+            raise TransportException(f"Error during reading I2C address 0x{self._address:X}") from e
 
     def write(self, data):
         try:
             write_msg = i2c_msg.write(self._address, data)
             self._bus.i2c_rdwr(write_msg)
         except TypeError as e:
-            raise TransportException(f"Error during writing I2C address {self._address}") from e
+            raise TransportException(f"Error during writing I2C address 0x{self._address:X}") from e
 
 
 class RevvyTransportI2C:
