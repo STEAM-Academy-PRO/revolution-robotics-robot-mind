@@ -13,7 +13,8 @@ if __name__ == "__main__":
         'Ultrasonic': Sensors.HC_SR04,
         'Button':     Sensors.BumperSwitch,
         'EV3':        Sensors.EV3,
-        'EV3_Color':  Sensors.EV3_Color
+        'EV3_Color':  Sensors.EV3_Color,
+        'Color':      Sensors.RevvyColor
     }
 
     parser = argparse.ArgumentParser()

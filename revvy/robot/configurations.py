@@ -31,3 +31,4 @@ class Sensors:
     BumperSwitch = {'driver': 'BumperSwitch', 'config': {}}
     EV3 = {'driver': 'EV3', 'config': {}}
     EV3_Color = {'driver': 'EV3_Color', 'config': {}}
+    RevvyColor = {'driver': 'RevvyColor', 'config': {}}
