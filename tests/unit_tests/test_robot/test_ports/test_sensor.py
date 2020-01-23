@@ -5,7 +5,8 @@ import unittest
 from mock import Mock
 
 from revvy.robot.ports.common import PortInstance
-from revvy.robot.ports.sensor import create_sensor_port_handler, BaseSensorPortDriver
+from revvy.robot.ports.sensor import create_sensor_port_handler
+from revvy.robot.ports.sensors.base import BaseSensorPortDriver
 
 
 class TestSensorPortHandler(unittest.TestCase):

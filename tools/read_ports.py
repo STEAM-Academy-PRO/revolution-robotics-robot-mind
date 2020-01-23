@@ -2,11 +2,9 @@
 # SPDX-License-Identifier: GPL-3.0-only
 import argparse
 import sys
-import time
 
+from revvy.robot.configurations import Sensors
 from revvy.utils.functions import read_json
-from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.thread_wrapper import periodic
 from revvy.robot.robot import Robot
 
@@ -14,10 +12,10 @@ if __name__ == "__main__":
 
     port_choices = ['Ultrasonic', 'Button', 'EV3', 'EV3_Color']
     port_config_map = {
-        'Ultrasonic': 'HC_SR04',
-        'Button':     'BumperSwitch',
-        'EV3':        'EV3',
-        'EV3_Color':  'EV3_Color',
+        'Ultrasonic': Sensors.HC_SR04,
+        'Button':     Sensors.BumperSwitch,
+        'EV3':        Sensors.EV3,
+        'EV3_Color':  Sensors.EV3_Color
     }
 
     parser = argparse.ArgumentParser()
