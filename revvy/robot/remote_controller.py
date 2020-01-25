@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
-import time
 from collections import namedtuple
 from threading import Event
 
@@ -35,21 +34,21 @@ class RemoteController:
             handler.handle(1)
 
     def tick(self, message: RemoteControllerCommand):
-        previous_analog_states, self._analogStates = self._analogStates, message.analog
-
         # handle analog channels
-        for channels, action in self._analogActions:
-            try:
+        if message.analog != self._analogStates:
+            previous_analog_states, self._analogStates = self._analogStates, message.analog
+            for channels, action in self._analogActions:
                 try:
-                    changed = any(previous_analog_states[x] != message.analog[x] for x in channels)
-                except IndexError:
-                    changed = True
+                    try:
+                        changed = any(previous_analog_states[x] != message.analog[x] for x in channels)
+                    except IndexError:
+                        changed = True
 
-                if changed:
-                    action([message.analog[x] for x in channels])
-            except IndexError:
-                # looks like an action was registered for an analog channel that we didn't receive
-                self._log(f'Skip analog handler for channels {", ".join(map(str, channels))}')
+                    if changed:
+                        action([message.analog[x] for x in channels])
+                except IndexError:
+                    # looks like an action was registered for an analog channel that we didn't receive
+                    self._log(f'Skip analog handler for channels {", ".join(map(str, channels))}')
 
         # handle button presses
         for handler, button, action in zip(self._buttonHandlers, message.buttons, self._buttonActions):
@@ -84,12 +83,9 @@ class RemoteControllerScheduler:
 
     def _wait_for_message(self, ctx, wait_time):
         timeout = not self._data_ready_event.wait(wait_time)
+        self._data_ready_event.clear()
 
         return not (timeout or ctx.stop_requested)
-
-    def _dispatch_message(self, message):
-        self._data_ready_event.clear()
-        self._controller.tick(message)
 
     def handle_controller(self, ctx: ThreadContext):
         self._log('Waiting for controller')
@@ -105,11 +101,11 @@ class RemoteControllerScheduler:
             if self._controller_detected_callback:
                 self._controller_detected_callback()
 
-            self._dispatch_message(self._message)
+            self._controller.tick(self._message)
 
-        # wait for the other messages
-        while self._wait_for_message(ctx, self.message_max_period):
-            self._dispatch_message(self._message)
+            # wait for the other messages
+            while self._wait_for_message(ctx, self.message_max_period):
+                self._controller.tick(self._message)
 
         if not ctx.stop_requested:
             if self._controller_lost_callback:
