@@ -249,10 +249,10 @@ class TestResponse(unittest.TestCase):
     def test_response_shorter_than_header_size_is_invalid(self):
         data = bytes([ResponseStatus.Ok.value, 0, 0xFF, 0xFF])  # one byte short
 
-        self.assertRaises(ValueError, lambda: ResponseHeader(data))
-        ResponseHeader(bytes((*data, 117)))  # does not raise
+        self.assertRaises(ValueError, lambda: ResponseHeader.create(data))
+        ResponseHeader.create(bytes((*data, 117)))  # does not raise
 
     def test_response_header_with_wrong_checksum_is_invalid(self):
         data = bytes([ResponseStatus.Ok.value, 0, 0xFF, 0xFF, 118])
 
-        self.assertRaises(ValueError, lambda: ResponseHeader(data))
+        self.assertRaises(ValueError, lambda: ResponseHeader.create(data))

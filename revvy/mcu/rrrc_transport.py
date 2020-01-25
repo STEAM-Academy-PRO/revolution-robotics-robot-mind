@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-only
-
+import collections
 import struct
 import binascii
 from enum import Enum
 from threading import Lock
+from typing import NamedTuple
 
 from revvy.utils.functions import retry
 from revvy.utils.stopwatch import Stopwatch
@@ -120,48 +121,36 @@ class ResponseStatus(Enum):
     Error_Timeout = 11
 
 
-class ResponseHeader:
-    length = 5
+class ResponseHeader(NamedTuple):
+    status: ResponseStatus
+    payload_length: int
+    payload_checksum: int
+    raw: bytes
 
-    def __init__(self, data: bytes):
-        if len(data) < ResponseHeader.length:
+    @staticmethod
+    def create(data: bytes):
+        if len(data) < 5:
             raise ValueError('Header too short')
 
-        self._raw = data[0:self.length-1]
-        checksum = crc7(self._raw)
-        if checksum != data[self.length-1]:
+        header_bytes = data[0:4]
+        checksum = crc7(header_bytes)
+        if checksum != data[4]:
             raise ValueError('Header checksum mismatch')
 
-        status, self._payload_length, self._payload_checksum = struct.unpack('<bbH', self._raw)
-        self._status = ResponseStatus(status)
+        status, _payload_length, _payload_checksum = struct.unpack('<bbH', header_bytes)
+        return ResponseHeader(status=ResponseStatus(status),
+                              payload_length=_payload_length,
+                              payload_checksum=_payload_checksum,
+                              raw=header_bytes)
 
     def validate_payload(self, payload):
-        return self._payload_checksum == binascii.crc_hqx(payload, 0xFFFF)
+        return self.payload_checksum == binascii.crc_hqx(payload, 0xFFFF)
 
-    def __ne__(self, o: 'ResponseHeader') -> bool:
-        return o._raw != self._raw
-
-    @property
-    def status(self) -> ResponseStatus:
-        return self._status
-
-    @property
-    def payload_length(self):
-        return self._payload_length
+    def is_same_as(self, response_header):
+        return self.raw == response_header
 
 
-class Response:
-    def __init__(self, status: ResponseStatus, payload: bytes):
-        self._status = status
-        self._payload = payload
-
-    @property
-    def status(self):
-        return self._status
-
-    @property
-    def payload(self) -> bytes:
-        return self._payload
+Response = collections.namedtuple('Response', ['status', 'payload'])
 
 
 class RevvyTransport:
@@ -217,9 +206,9 @@ class RevvyTransport:
         """
 
         def _read_response_header_once():
-            header_bytes = self._transport.read(ResponseHeader.length)
+            header_bytes = self._transport.read(5)
 
-            return ResponseHeader(header_bytes)
+            return ResponseHeader.create(header_bytes)
 
         header = retry(_read_response_header_once, retries)
 
@@ -227,7 +216,7 @@ class RevvyTransport:
             raise BrokenPipeError('Read response header: Retry limit reached')
         return header
 
-    def _read_payload(self, header, retries=5) -> bytes:
+    def _read_payload(self, header: ResponseHeader, retries=5) -> bytes:
         """
         Read the rest of the response
 
@@ -243,19 +232,18 @@ class RevvyTransport:
 
         def _read_payload_once():
             # read header and payload
-            response_bytes = self._transport.read(header.length + header.payload_length)
+            response_bytes = self._transport.read(5 + header.payload_length)
+            response_header, response_payload = response_bytes[0:4], response_bytes[5:]  # skip checksum byte
 
             # make sure we read the same response data we expect
-            response_header = ResponseHeader(response_bytes)
-            if header != response_header:
+            if not header.is_same_as(response_header):
                 raise ValueError('Read payload: Unexpected header received')
 
             # make sure data is intact
-            payload_bytes = response_bytes[ResponseHeader.length:]
-            if not header.validate_payload(payload_bytes):
+            if not header.validate_payload(response_payload):
                 raise ValueError('Read payload: payload contents invalid')
 
-            return payload_bytes
+            return response_payload
 
         payload = retry(_read_payload_once, retries)
 
