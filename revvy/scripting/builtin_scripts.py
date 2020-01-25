@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
-
+from revvy.scripting.robot_interface import JoystickWrapper
 from revvy.utils.functions import clip, map_values
 from revvy.scripting.controllers import stick_controller, joystick
 
@@ -16,27 +16,27 @@ def normalize_analog(b):
     return clip((b - 127) / 127.0, -1.0, 1.0)
 
 
-def drive(args, controller):
-    robot = args['robot']
-    channels = args['input']
-
+def drive(joystick_control: JoystickWrapper, channels, controller):
     x = normalize_analog(channels[0])
     y = normalize_analog(channels[1])
 
-    (sl, sr) = controller(x, y)
+    sl, sr = controller(x, y)
 
-    sl = map_values(sl, 0, 1, 0, 600)
-    sr = map_values(sr, 0, 1, 0, 600)
-
-    robot.joystick.set_speeds(sl, sr)
+    joystick_control.set_speeds(
+        map_values(sl, 0, 1, 0, 600),
+        map_values(sr, 0, 1, 0, 600))
 
 
 def drive_joystick(args):
-    drive(args, joystick)
+    robot = args['robot']
+    channels = args['input']
+    drive(robot.joystick, channels, joystick)
 
 
 def drive_2sticks(args):
-    drive(args, stick_controller)
+    robot = args['robot']
+    channels = args['input']
+    drive(robot.joystick, channels, stick_controller)
 
 
 builtin_scripts = {
