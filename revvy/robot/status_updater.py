@@ -67,17 +67,12 @@ class McuStatusUpdater:
 
         idx = 0
         while idx < len(data):
-            slot, slot_length = data[idx:idx+2]
-
             data_start = idx + 2
-            data_end = data_start + slot_length
+            slot, slot_length = data[idx:data_start]
+            idx = data_start + slot_length
 
-            if data_end <= len(data):
-                handler = self._handlers[slot]
-                if handler:
-                    # noinspection PyCallingNonCallable
-                    handler(data[data_start:data_end])
-            else:
-                self._log('invalid slot length')
+            handler = self._handlers[slot]
+            if handler:
+                # noinspection PyCallingNonCallable
+                handler(data[data_start:idx])
 
-            idx = data_end
