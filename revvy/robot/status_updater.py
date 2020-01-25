@@ -75,4 +75,3 @@ class McuStatusUpdater:
             if handler:
                 # noinspection PyCallingNonCallable
                 handler(data[data_start:idx])
-
