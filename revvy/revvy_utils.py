@@ -234,7 +234,7 @@ class RobotBLEController:
             script_handle = self._scripts.add_script(script)
             self._remote_controller.on_analog_values(
                 analog['channels'],
-                lambda in_data, scr=script_handle: scr.start({'input': in_data})
+                lambda in_data, scr=script_handle: scr.start(channels=in_data)
             )
 
         for button, script in enumerate(config.controller.buttons):

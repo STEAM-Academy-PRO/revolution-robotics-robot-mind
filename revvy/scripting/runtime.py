@@ -39,7 +39,7 @@ class ScriptHandle:
 
     def __init__(self, owner: 'ScriptManager', script, name, global_variables: dict):
         self._owner = owner
-        self._globals = dict(global_variables)
+        self._globals = global_variables.copy()
         self._inputs = {}
         self._runnable = script
         self.sleep = self._default_sleep
@@ -78,13 +78,7 @@ class ScriptHandle:
 
             self.sleep = ctx.sleep
             self.log("Starting script")
-            self._runnable({
-                **self._globals,
-                **self._inputs,
-                'Control': ctx,
-                'ctx': ctx,
-                'time': TimeWrapper(ctx)
-            })
+            self._runnable(Control=ctx, ctx=ctx, time=TimeWrapper(ctx), **self._inputs)
         except InterruptedError:
             self.log('Interrupted')
             raise
@@ -93,10 +87,11 @@ class ScriptHandle:
             self.log("Script finished")
             self.sleep = self._default_sleep
 
-    def start(self, variables=None):
-        if variables is None:
-            variables = {}
-        self._inputs = variables
+    def start(self, **kwargs):
+        if not kwargs:
+            self._inputs = self._globals
+        else:
+            self._inputs = {**self._globals, **kwargs}
         return self._thread.start()
 
 

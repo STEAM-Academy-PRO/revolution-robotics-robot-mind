@@ -7,7 +7,6 @@ from binascii import b2a_base64, a2b_base64
 
 import math
 from contextlib import suppress
-from functools import partial
 
 
 def clip(x, min_x, max_x):
@@ -190,7 +189,17 @@ def read_json(filename):
 
 
 def str_to_func(code):
-    return partial(exec, code)
+    """Take python code as string and create a callable functions
+    The function arguments will be injected into the code as global variables
+
+    >>> code='print(f"Called with {input}")'
+    >>> func=str_to_func(code)
+    >>> func(input='something')
+    Called with something
+    """
+    def wrapper(**kwargs):
+        exec(code, kwargs)
+    return wrapper
 
 
 def rpm2dps(rpm):

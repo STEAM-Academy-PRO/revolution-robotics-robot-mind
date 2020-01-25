@@ -27,15 +27,11 @@ def drive(joystick_control: JoystickWrapper, channels, controller):
         map_values(sr, 0, 1, 0, 600))
 
 
-def drive_joystick(args):
-    robot = args['robot']
-    channels = args['input']
+def drive_joystick(robot, channels, **_):
     drive(robot.joystick, channels, joystick)
 
 
-def drive_2sticks(args):
-    robot = args['robot']
-    channels = args['input']
+def drive_2sticks(robot, channels, **_):
     drive(robot.joystick, channels, stick_controller)
 
 
