@@ -1,29 +1,17 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import time
+from typing import NamedTuple
 
 from revvy.scripting.robot_interface import RobotWrapper
 from revvy.utils.logger import get_logger
 from revvy.utils.thread_wrapper import ThreadContext, ThreadWrapper
 
 
-class ScriptDescriptor:
-    def __init__(self, name, runnable, priority):
-        self._name = name
-        self._runnable = runnable
-        self._priority = priority
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def runnable(self):
-        return self._runnable
-
-    @property
-    def priority(self):
-        return self._priority
+class ScriptDescriptor(NamedTuple):
+    name: str
+    runnable: callable
+    priority: int
 
 
 class TimeWrapper:
