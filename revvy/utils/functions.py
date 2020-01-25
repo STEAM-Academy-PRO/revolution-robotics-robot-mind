@@ -20,7 +20,12 @@ def clip(x, min_x, max_x):
     >>> clip(1.5, 1, 2)
     1.5
     """
-    return min(max(x, min_x), max_x)
+    if x < min_x:
+        return min_x
+    elif x > max_x:
+        return max_x
+    else:
+        return x
 
 
 def map_values(x, min_x, max_x, min_y, max_y):
