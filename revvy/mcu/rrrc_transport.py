@@ -69,7 +69,8 @@ class Command:
     OpGetResult = 2
     OpCancel = 3
 
-    def __init__(self, op, command, payload=b''):
+    @staticmethod
+    def create(op, command, payload=b''):
         payload_length = len(payload)
         if payload_length > 255:
             raise ValueError(f'Payload is too long ({payload_length} bytes, 255 allowed)')
@@ -85,22 +86,19 @@ class Command:
         # calculate header checksum
         pl[5] = crc7(pl[0:5], 0xFF)
 
-        self._payload = pl
-
-    def get_bytes(self):
-        return self._payload
+        return pl
 
     @classmethod
-    def start(cls, command, payload: bytes) -> 'Command':
-        return cls(cls.OpStart, command, payload)
+    def start(cls, command, payload: bytes):
+        return cls.create(cls.OpStart, command, payload)
 
     @classmethod
-    def get_result(cls, command) -> 'Command':
-        return cls(cls.OpGetResult, command)
+    def get_result(cls, command):
+        return cls.create(cls.OpGetResult, command)
 
     @classmethod
-    def cancel(cls, command) -> 'Command':
-        return cls(cls.OpCancel, command)
+    def cancel(cls, command):
+        return cls.create(cls.OpCancel, command)
 
 
 class ResponseStatus(Enum):
@@ -252,17 +250,17 @@ class RevvyTransport:
 
         return payload
 
-    def _send_command(self, command: Command) -> ResponseHeader:
+    def _send_command(self, command: bytes) -> ResponseHeader:
         """
         Send a command and return the response header
 
         This function waits for the slave MCU to finish processing the command and returns if it is done or the
         timeout defined in the class header elapses.
 
-        @param command: The command to send
+        @param command: The command bytes to send
         @return: The response header
         """
-        self._transport.write(command.get_bytes())
+        self._transport.write(command)
         self._stopwatch.reset()
         while self.timeout == 0 or self._stopwatch.elapsed < self.timeout:
             response = self._read_response_header()
