@@ -72,11 +72,7 @@ class Resource:
                 self._create_new_handle(with_priority, on_taken_away)
                 return self._active_handle
 
-            elif self._current_priority == with_priority:
-                self._log('taking from equal prio owner')
-                return self._active_handle
-
-            elif self._current_priority > with_priority:
+            elif self._current_priority >= with_priority:
                 self._log('taking from lower prio owner')
                 self._active_handle.interrupt()
                 self._create_new_handle(with_priority, on_taken_away)
