@@ -1,19 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
-import collections
 import hashlib
+import struct
 from json import JSONDecodeError
+from typing import NamedTuple
+
 from revvy.utils.file_storage import StorageInterface, StorageError
 from revvy.utils.functions import split
 from revvy.utils.logger import get_logger
-
-
-def hex2byte(hex):
-    """
-    >>> hex2byte('AA')
-    b'\\xaa'
-    """
-    return bytes((int(hex, 16), ))
 
 
 def hexdigest2bytes(hexdigest):
@@ -25,7 +19,9 @@ def hexdigest2bytes(hexdigest):
     >>> hexdigest2bytes("ABCD0F")
     b'\\xab\\xcd\\x0f'
     """
-    return b"".join(map(hex2byte, split(hexdigest, 2)))
+    def hex2byte(h):
+        return int(h, 16)
+    return bytes(map(hex2byte, split(hexdigest, 2)))
 
 
 def bytes2hexdigest(hash_bytes):
@@ -40,15 +36,18 @@ def bytes2hexdigest(hash_bytes):
     return "".join('{0:0>2x}'.format(byte) for byte in hash_bytes)
 
 
-LongMessageStatusInfo = collections.namedtuple('LongMessageStatusInfo', ['status', 'md5', 'length'])
-
-
 class LongMessageStatus:
     UNUSED = 0
     UPLOAD = 1
     VALIDATION = 2
     READY = 3
     VALIDATION_ERROR = 4
+
+
+class LongMessageStatusInfo(NamedTuple):
+    status: int
+    md5: bytes
+    length: int
 
 
 class LongMessageType:
@@ -96,9 +95,9 @@ class LongMessageStorage:
         try:
             storage = self._get_storage(long_message_type)
             data = storage.read_metadata(long_message_type)
-            return LongMessageStatusInfo(LongMessageStatus.READY, data['md5'], data['length'])
+            return LongMessageStatusInfo(LongMessageStatus.READY, hexdigest2bytes(data['md5']), data['length'])
         except (StorageError, JSONDecodeError):
-            return LongMessageStatusInfo(LongMessageStatus.UNUSED, None, None)
+            return LongMessageStatusInfo(LongMessageStatus.UNUSED, b'', 0)
 
     def set_long_message(self, long_message_type, data, md5):
         self._log("set_long_message")
@@ -162,13 +161,13 @@ class LongMessageHandler:
         self._log("read_status")
 
         if self._status == LongMessageHandler.STATUS_IDLE:
-            return LongMessageStatusInfo(LongMessageStatus.UNUSED, None, None)
+            return LongMessageStatusInfo(LongMessageStatus.UNUSED, b'', 0)
 
         if self._status == LongMessageHandler.STATUS_READ:
             return self._long_message_storage.read_status(self._long_message_type)
 
         if self._status == LongMessageHandler.STATUS_INVALID:
-            return LongMessageStatusInfo(LongMessageStatus.VALIDATION_ERROR, None, None)
+            return LongMessageStatusInfo(LongMessageStatus.VALIDATION_ERROR, b'', 0)
 
         assert self._status == LongMessageHandler.STATUS_WRITE
         return LongMessageStatusInfo(LongMessageStatus.UPLOAD, self._aggregator.md5, len(self._aggregator.data))
@@ -254,10 +253,11 @@ class LongMessageProtocol:
     def handle_read(self):
         try:
             status = self._handler.read_status()
-            value = status.status.to_bytes(1, byteorder="big")
-            if status.md5 is not None:
-                value += hexdigest2bytes(status.md5)
-                value += status.length.to_bytes(4, byteorder="big")
+            if status.status in [LongMessageStatus.READY, LongMessageStatus.UPLOAD]:
+                # a byte, a 16byte string and an unsigned long packed into a big endian array
+                value = struct.pack('>b16sL', status.status, status.md5, status.length)
+            else:
+                value = bytes((status.status, ))
 
             return value
         except (IOError, TypeError, JSONDecodeError) as e:

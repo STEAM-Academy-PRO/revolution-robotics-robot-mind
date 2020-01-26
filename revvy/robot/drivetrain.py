@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
+import itertools
 from contextlib import suppress
 from threading import Timer
 
@@ -168,25 +169,25 @@ class DifferentialDrivetrain:
                 controller.update()
 
     def _apply_release(self):
-        commands = [
+        commands = itertools.chain(
             *(motor.create_set_power_command(0) for motor in self._left_motors),
             *(motor.create_set_power_command(0) for motor in self._right_motors)
-        ]
-        self._interface.set_motor_port_control_value(commands)
+        )
+        self._interface.set_motor_port_control_value(bytes(commands))
 
     def _apply_speeds(self, left, right, power_limit):
-        commands = [
+        commands = itertools.chain(
             *(motor.create_set_speed_command(left, power_limit) for motor in self._left_motors),
             *(motor.create_set_speed_command(right, power_limit) for motor in self._right_motors)
-        ]
-        self._interface.set_motor_port_control_value(commands)
+        )
+        self._interface.set_motor_port_control_value(bytes(commands))
 
     def _apply_positions(self, left, right, left_speed, right_speed, power_limit):
-        commands = [
+        commands = itertools.chain(
             *(motor.create_relative_position_command(left, left_speed, power_limit) for motor in self._left_motors),
             *(motor.create_relative_position_command(right, right_speed, power_limit) for motor in self._right_motors)
-        ]
-        self._interface.set_motor_port_control_value(commands)
+        )
+        self._interface.set_motor_port_control_value(bytes(commands))
 
     def _process_unit_speed(self, speed, unit_speed):
         if unit_speed == MotorConstants.UNIT_SPEED_RPM:

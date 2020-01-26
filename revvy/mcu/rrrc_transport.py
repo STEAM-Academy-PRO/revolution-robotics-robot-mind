@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
-import collections
+
 import struct
 import binascii
 from enum import Enum
@@ -148,7 +148,9 @@ class ResponseHeader(NamedTuple):
         return self.raw == response_header
 
 
-Response = collections.namedtuple('Response', ['status', 'payload'])
+class Response(NamedTuple):
+    status: ResponseStatus
+    payload: bytes
 
 
 class RevvyTransport:
@@ -173,7 +175,7 @@ class RevvyTransport:
         with self._mutex:
             # create commands in advance, they can be reused in case of an error
             command_start = Command.start(command, payload)
-            command_get_result = Command.get_result(command)
+            command_get_result = None
 
             try:
                 # once a command gets through and a valid response is read, this loop will exit
@@ -182,8 +184,14 @@ class RevvyTransport:
                     header = self._send_command(command_start)
 
                     # wait for command execution to finish
-                    while header.status == ResponseStatus.Pending:
+                    if header.status == ResponseStatus.Pending:
+                        # lazily create GetResult command
+                        if not command_get_result:
+                            command_get_result = Command.get_result(command)
+
                         header = self._send_command(command_get_result)
+                        while header.status == ResponseStatus.Pending:
+                            header = self._send_command(command_get_result)
 
                     # check result
                     # return a result even in case of an error, except when we know we have to resend
@@ -262,7 +270,7 @@ class RevvyTransport:
         """
         self._transport.write(command)
         self._stopwatch.reset()
-        while self.timeout == 0 or self._stopwatch.elapsed < self.timeout:
+        while self._stopwatch.elapsed < self.timeout:
             response = self._read_response_header()
             if response.status != ResponseStatus.Busy:
                 return response

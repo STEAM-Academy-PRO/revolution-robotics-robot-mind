@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import os
+from functools import partial
 
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.hardware_dependent.sound import SoundControlV1, SoundControlV2
@@ -9,7 +10,6 @@ from revvy.mcu.rrrc_control import RevvyControl, BootloaderControl
 from revvy.robot.drivetrain import DifferentialDrivetrain
 from revvy.robot.imu import IMU
 from revvy.robot.led_ring import RingLed
-from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motor import create_motor_port_handler
 from revvy.robot.ports.sensor import create_sensor_port_handler
 from revvy.robot.sound import Sound
@@ -64,21 +64,19 @@ class Robot(RobotInterface):
 
         self._imu = IMU()
 
-        def _motor_config_changed(motor: PortInstance, config_name):
-            callback = None if config_name is None else motor.update_status
-            self._status_updater.set_slot(f'motor_{motor.id}', callback)
-
-        def _sensor_config_changed(sensor: PortInstance, config_name):
-            callback = None if config_name is None else sensor.update_status
-            self._status_updater.set_slot(f'sensor_{sensor.id}', callback)
+        def _set_updater(slot_name, port, config_name):
+            if config_name is None:
+                self._status_updater.disable_slot(slot_name)
+            else:
+                self._status_updater.enable_slot(slot_name, port.update_status)
 
         self._motor_ports = create_motor_port_handler(self._robot_control)
         for port in self._motor_ports:
-            port.on_config_changed.add(_motor_config_changed)
+            port.on_config_changed.add(partial(_set_updater, f'motor_{port.id}'))
 
         self._sensor_ports = create_sensor_port_handler(self._robot_control)
         for port in self._sensor_ports:
-            port.on_config_changed.add(_sensor_config_changed)
+            port.on_config_changed.add(partial(_set_updater, f'sensor_{port.id}'))
 
         self._drivetrain = DifferentialDrivetrain(self._robot_control, self._imu)
 
@@ -159,12 +157,12 @@ class Robot(RobotInterface):
 
             self._battery = BatteryStatus(chargerStatus=main_status, main=main_percentage, motor=motor_percentage)
 
-        self._status_updater.set_slot("battery", _process_battery_slot)
-        self._status_updater.set_slot("axl", self._imu.update_axl_data)
-        self._status_updater.set_slot("gyro", self._imu.update_gyro_data)
-        self._status_updater.set_slot("yaw", self._imu.update_yaw_angles)
+        self._status_updater.enable_slot("battery", _process_battery_slot)
+        self._status_updater.enable_slot("axl", self._imu.update_axl_data)
+        self._status_updater.enable_slot("gyro", self._imu.update_gyro_data)
+        self._status_updater.enable_slot("yaw", self._imu.update_yaw_angles)
         # TODO: do something useful with the reset signal
-        self._status_updater.set_slot("reset", lambda _: self._log('MCU reset detected'))
+        self._status_updater.enable_slot("reset", lambda _: self._log('MCU reset detected'))
 
         self._drivetrain.reset()
         self._motor_ports.reset()

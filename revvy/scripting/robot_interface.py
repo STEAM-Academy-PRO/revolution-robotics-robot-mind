@@ -132,11 +132,14 @@ class RingLedWrapper(Wrapper):
         self.using_resource(partial(self._ring_led.start_animation, scenario))
 
     def set(self, leds: list, color):
-        rgb = hex2rgb(color)
+        def out_of_range(led_idx):
+            return not 0 < led_idx <= len(self._user_leds)
 
+        if any(map(out_of_range, leds)):
+            raise IndexError(f'Led index must be between 1 and {len(self._user_leds)}')
+
+        rgb = hex2rgb(color)
         for idx in leds:
-            if not (1 <= idx <= self._ring_led.count):
-                raise IndexError(f'Led index invalid: {idx}')
             self._user_leds[idx - 1] = rgb
 
         self.using_resource(partial(self._ring_led.display_user_frame, self._user_leds))

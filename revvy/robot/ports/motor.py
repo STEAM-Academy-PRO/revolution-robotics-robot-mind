@@ -3,7 +3,6 @@
 from enum import Enum
 from functools import partial
 
-from revvy.mcu.commands import MotorPortControlCommand
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler, PortInstance, PortDriver
 import struct
@@ -63,42 +62,43 @@ class NullMotor(PortDriver):
         pass
 
 
-class DcMotorPowerRequest(MotorPortControlCommand):
-    def __init__(self, port_idx, power):
-        power = clip(power, -100, 100)
-        if power < 0:
-            power = 256 + power
+def motor_port_control_command(port_idx, *command_data):
+    header = ((len(command_data) << 3) & 0xF8) | port_idx
 
-        super().__init__(port_idx, [0, power])
+    return (header, *command_data)
 
 
-class DcMotorSpeedRequest(MotorPortControlCommand):
-    def __init__(self, port_idx, speed, power_limit=None):
+def dc_motor_power_request(port_idx, power):
+    power = clip(power, -100, 100)
+    if power < 0:
+        power = 256 + power
+    return motor_port_control_command(port_idx, 0, power)
+
+
+def dc_motor_speed_request(port_idx, speed, power_limit=None):
+    if power_limit is None:
+        control = struct.pack("<f", speed)
+    else:
+        control = struct.pack("<ff", speed, power_limit)
+
+    return motor_port_control_command(port_idx, 1, *control)
+
+
+def dc_motor_position_request(port_idx, request_type, position, speed_limit=None, power_limit=None):
+    position = int(position)
+
+    if speed_limit is None:
         if power_limit is None:
-            control = struct.pack("<bf", 1, speed)
+            control = struct.pack("<l", position)
         else:
-            control = struct.pack("<bff", 1, speed, power_limit)
-
-        super().__init__(port_idx, control)
-
-
-class DcMotorPositionRequest(MotorPortControlCommand):
-    REQUEST_ABSOLUTE = 2
-    REQUEST_RELATIVE = 3
-
-    def __init__(self, port_idx, position, request_type, speed_limit=None, power_limit=None):
-        position = int(position)
-
-        if speed_limit is not None and power_limit is not None:
-            control = struct.pack("<blff", request_type, position, speed_limit, power_limit)
-        elif speed_limit is not None:
-            control = struct.pack("<blbf", request_type, position, 1, speed_limit)
-        elif power_limit is not None:
-            control = struct.pack("<blbf", request_type, position, 0, power_limit)
+            control = struct.pack("<lbf", position, 0, power_limit)
+    else:
+        if power_limit is None:
+            control = struct.pack("<lbf", position, 1, speed_limit)
         else:
-            control = struct.pack("<bl", request_type, position)
+            control = struct.pack("<lff", position, speed_limit, power_limit)
 
-        super().__init__(port_idx, control)
+    return motor_port_control_command(port_idx, request_type, *control)
 
 
 class MotorStatus(Enum):
@@ -111,35 +111,38 @@ class DcMotorController(PortDriver):
     """Generic driver for dc motors"""
     def __init__(self, port: PortInstance, port_config):
         super().__init__('DcMotor')
-        self._name = 'Motor {}'.format(port.id)
         self._port = port
         self._port_config = port_config
-        self._log = get_logger(self._name)
+        self._log = get_logger(f'Motor {port.id}')
 
         self._configure = partial(port.interface.set_motor_port_config, port.id)
 
         self._pos = 0
         self._speed = 0
         self._power = 0
-        self._pos_reached = None
 
         self._awaiter = None
         self._status = MotorStatus.NORMAL
 
         self._timeout = 0
 
+        self.create_set_power_command = partial(dc_motor_power_request, self._port.id - 1)
+        self.create_set_speed_command = partial(dc_motor_speed_request, self._port.id - 1)
+        self.create_absolute_position_command = partial(dc_motor_position_request, self._port.id - 1, 2)
+        self.create_relative_position_command = partial(dc_motor_position_request, self._port.id - 1, 3)
+
     def on_port_type_set(self):
         (posP, posI, posD, speedLowerLimit, speedUpperLimit) = self._port_config['position_controller']
         (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = self._port_config['speed_controller']
         (decMax, accMax) = self._port_config['acceleration_limits']
 
-        config = [
+        config = (
             *struct.pack("<h", self._port_config['encoder_resolution']),
-            *struct.pack("<{}".format("f" * 5), posP, posI, posD, speedLowerLimit, speedUpperLimit),
-            *struct.pack("<{}".format("f" * 5), speedP, speedI, speedD, powerLowerLimit, powerUpperLimit),
+            *struct.pack("<5f", posP, posI, posD, speedLowerLimit, speedUpperLimit),
+            *struct.pack("<5f", speedP, speedI, speedD, powerLowerLimit, powerUpperLimit),
             *struct.pack("<ff", decMax, accMax)
-        ]
-        self._log('Sending configuration: {}'.format(config))
+        )
+        self._log(f'Sending configuration: {config}')
 
         self._configure(config)
 
@@ -160,20 +163,6 @@ class DcMotorController(PortDriver):
     @property
     def power(self):
         return self._power
-
-    def create_set_power_command(self, power):
-        return DcMotorPowerRequest(self._port.id, power)
-
-    def create_set_speed_command(self, speed, power_limit=None):
-        return DcMotorSpeedRequest(self._port.id, speed, power_limit)
-
-    def create_absolute_position_command(self, position, speed_limit=None, power_limit=None):
-        return DcMotorPositionRequest(self._port.id, position,
-                                      DcMotorPositionRequest.REQUEST_ABSOLUTE, speed_limit, power_limit)
-
-    def create_relative_position_command(self, position, speed_limit=None, power_limit=None):
-        return DcMotorPositionRequest(self._port.id, position,
-                                      DcMotorPositionRequest.REQUEST_RELATIVE, speed_limit, power_limit)
 
     def set_power(self, power):
         self._cancel_awaiter()
@@ -208,7 +197,6 @@ class DcMotorController(PortDriver):
         awaiter.on_cancelled(_canceled)
 
         self._awaiter = awaiter
-        self._pos_reached = False
 
         req_type = {'absolute': self.create_absolute_position_command,
                     'relative': self.create_relative_position_command}
