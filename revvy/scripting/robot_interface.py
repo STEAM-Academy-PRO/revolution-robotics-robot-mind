@@ -176,8 +176,11 @@ class MotorPortWrapper(Wrapper):
 
     def __init__(self, script, motor: PortInstance, resource: ResourceWrapper):
         super().__init__(script, resource)
-        self.log = lambda message: script.log(f"MotorPortWrapper[motor {motor.id}]: {message}")
+        self._log_prefix = f"MotorPortWrapper[motor {motor.id}]: "
         self._motor = motor
+
+    def log(self, message):
+        self._script.log(self._log_prefix + message)
 
     def configure(self, config):
         if type(config) is str:
@@ -292,11 +295,13 @@ def wrap_sync_method(owner, method):
 class DriveTrainWrapper(Wrapper):
     def __init__(self, script, drivetrain, resource: ResourceWrapper):
         super().__init__(script, resource)
-        self.log = lambda message: script.log(f"DriveTrain: {message}")
         self._drivetrain = drivetrain
 
         self.turn = wrap_async_method(self, drivetrain.turn)
         self.drive = wrap_async_method(self, drivetrain.drive)
+
+    def log(self, message):
+        self._script.log("DriveTrain: " + message)
 
     def set_speed(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM):
         self.log("set_speeds")
@@ -315,9 +320,11 @@ class JoystickWrapper(Wrapper):
 
     def __init__(self, script, drivetrain, resource: ResourceWrapper):
         super().__init__(script, resource)
-        self.log = lambda message: script.log(f"Joystick: {message}")
         self._drivetrain = drivetrain
         self._res = None
+
+    def log(self, message):
+        self._script.log("Joystick: " + message)
 
     def set_speeds(self, sl, sr):
         if self._res:

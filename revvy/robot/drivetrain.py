@@ -84,7 +84,7 @@ class MoveController(DrivetrainController):
         drivetrain._apply_positions(left, right, left_speed, right_speed, power_limit)
 
     def update(self):
-        if all(map(lambda m: m.status == MotorStatus.GOAL_REACHED, self._drivetrain.motors)):
+        if all(m.status == MotorStatus.GOAL_REACHED for m in self._drivetrain.motors):
             self._awaiter.finish()
 
 
