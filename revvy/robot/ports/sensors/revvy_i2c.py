@@ -7,10 +7,11 @@ from revvy.robot.ports.sensors.base import BaseSensorPortDriver
 
 
 class RevvyI2CSensorState(Enum):
-    STATE_RESET = 0
-    STATE_DETECTED_BOOTLOADER = 1
-    STATE_DETECTED_FIRMWARE = 2
-    STATE_OPERATIONAL = 3
+    STATE_ERROR = 0
+    STATE_RESET = 1
+    STATE_DETECTED_BOOTLOADER = 2
+    STATE_DETECTED_FIRMWARE = 3
+    STATE_OPERATIONAL = 4
 
 
 class BaseRevvyI2CSensor(BaseSensorPortDriver):
