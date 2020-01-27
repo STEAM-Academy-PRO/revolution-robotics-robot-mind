@@ -6,12 +6,44 @@ from revvy.robot.ports.common import FunctionAggregator
 from revvy.utils.logger import get_logger
 
 
+class NullHandle:
+    def __init__(self):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def __bool__(self):
+        return False
+
+    def interrupt(self):
+        pass
+
+    def release(self):
+        pass
+
+
+null_handle = NullHandle()
+
+
 class ResourceHandle:
     def __init__(self, resource: 'Resource'):
         self._resource = resource
         self._on_interrupted = FunctionAggregator()
         self._on_released = FunctionAggregator()
         self._is_interrupted = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.release()
+
+    def __bool__(self):
+        return True
 
     @property
     def on_interrupted(self):
@@ -44,7 +76,7 @@ class Resource:
         self._lock = Lock()
         self._log = get_logger(f'Resource [{name}]')
         self._current_priority = -1
-        self._active_handle = None
+        self._active_handle = null_handle
 
     def __enter__(self):
         self._lock.__enter__()
@@ -55,8 +87,7 @@ class Resource:
     def reset(self):
         self._log('Reset')
         with self._lock:
-            handle = self._active_handle
-            self._active_handle = None
+            handle, self._active_handle = self._active_handle, null_handle
 
             if handle:
                 self._log('Interrupting active resource handle')
@@ -67,7 +98,7 @@ class Resource:
     def request(self, with_priority=0, on_taken_away=None):
         self._log(f'enter request ({with_priority})')
         with self._lock:
-            if self._active_handle is None:
+            if not self._active_handle:
                 self._log('no current owner')
                 self._create_new_handle(with_priority, on_taken_away)
                 return self._active_handle
@@ -80,7 +111,7 @@ class Resource:
 
             else:
                 self._log('failed to take')
-                return None
+                return null_handle
 
     def _create_new_handle(self, with_priority, on_taken_away):
         self._current_priority = with_priority
@@ -92,7 +123,7 @@ class Resource:
         self._log('enter release')
         with self._lock:
             if self._active_handle == resource_handle:
-                self._active_handle = None
+                self._active_handle = null_handle
                 self._current_priority = -1
                 self._log('released')
             else:

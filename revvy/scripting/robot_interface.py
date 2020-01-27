@@ -4,7 +4,7 @@ from functools import partial
 from revvy.robot.configurations import Motors, Sensors
 from revvy.robot.led_ring import RingLed
 from revvy.robot.sound import Sound
-from revvy.scripting.resource import Resource, ResourceHandle
+from revvy.scripting.resource import Resource
 from revvy.utils.functions import hex2rgb, rpm2dps
 from revvy.robot.ports.common import PortInstance, PortCollection
 
@@ -23,44 +23,18 @@ class ResourceWrapper:
             return self._current_handle
 
         handle = self._resource.request(self._priority, callback)
-
         if handle:
             handle.on_interrupted.add(self._release_handle)
             handle.on_released.add(self._release_handle)
 
             self._current_handle = handle
-        return handle
+
+        return self._current_handle
 
     def release(self):
         handle = self._current_handle
         if handle:
             handle.interrupt()
-
-
-class ResourceContext:
-    def __init__(self, resource: ResourceHandle):
-        self._resource = resource
-
-    def __enter__(self):
-        return self._resource
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.release()
-
-    def release(self):
-        resource, self._resource = self._resource, None
-        if resource:
-            resource.release()
-
-    def __bool__(self):
-        return self._resource is not None
-
-    @property
-    def is_interrupted(self):
-        if self._resource:
-            return self._resource.is_interrupted
-        else:
-            return True
 
 
 class Wrapper:
@@ -75,7 +49,7 @@ class Wrapper:
         if self._script.is_stop_requested:
             raise InterruptedError
 
-        return ResourceContext(self._resource.request(callback))
+        return self._resource.request(callback)
 
     def using_resource(self, callback):
         self.if_resource_available(lambda res: res.run_uninterruptable(callback))
