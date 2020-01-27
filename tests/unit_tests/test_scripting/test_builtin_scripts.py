@@ -11,8 +11,8 @@ max_speed = 600
 def create_mock_robot():
     mock = Mock()
     robot = Mock()
-    robot.joystick = Mock()
-    robot.joystick.set_speeds = mock
+    robot.drivetrain = Mock()
+    robot.drivetrain.set_speeds = mock
     return mock, robot
 
 

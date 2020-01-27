@@ -278,7 +278,7 @@ class DriveTrainWrapper(Wrapper):
         self._script.log("DriveTrain: " + message)
 
     def set_speed(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM):
-        self.log("set_speeds")
+        self.log("set_speed")
 
         resource = self.try_take_resource()
         if resource:
@@ -288,45 +288,14 @@ class DriveTrainWrapper(Wrapper):
                 if speed == 0:
                     resource.release()
 
-
-class JoystickWrapper(Wrapper):
-    max_rpm = 150
-
-    def __init__(self, script, drivetrain, resource: ResourceWrapper):
-        super().__init__(script, resource)
-        self._drivetrain = drivetrain
-        self._res = None
-
-    def log(self, message):
-        self._script.log("Joystick: " + message)
-
     def set_speeds(self, sl, sr):
-        if self._res:
-            if self._script.is_stop_requested:
-                raise InterruptedError
-
-            # we already have the resource - check if it was taken away
-            if self._res.is_interrupted:
-                # need to release the stick before re-taking
+        resource = self.try_take_resource()
+        if resource:
+            try:
+                self._drivetrain.set_speeds(sl, sr)
+            finally:
                 if sl == sr == 0:
-                    self._res = None
-            else:
-                # the resource is ours, use it
-                self._set_speeds(sl, sr)
-        else:
-            self._res = self.try_take_resource()
-            if self._res:
-                self.log("resource taken")
-                self._set_speeds(sl, sr)
-
-    def _set_speeds(self, sl, sr):
-        try:
-            self._drivetrain.set_speeds(sl, sr)
-        finally:
-            if sl == sr == 0:
-                # manual stop: allow lower priority scripts to move
-                self.log("resource released")
-                self._res.release()
+                    resource.release()
 
 
 class SoundWrapper(Wrapper):
@@ -402,7 +371,6 @@ class RobotWrapper(RobotInterface):
         self._sound = SoundWrapper(script, robot.sound, self._resources['sound'])
         self._ring_led = RingLedWrapper(script, robot.led, self._resources['led_ring'])
         self._drivetrain = DriveTrainWrapper(script, robot.drivetrain, self._resources['drivetrain'])
-        self._joystick = JoystickWrapper(script, robot.drivetrain, self._resources['drivetrain'])
 
         self._script = script
 
@@ -434,10 +402,6 @@ class RobotWrapper(RobotInterface):
     @property
     def drivetrain(self):
         return self._drivetrain
-
-    @property
-    def joystick(self):
-        return self._joystick
 
     @property
     def imu(self):
