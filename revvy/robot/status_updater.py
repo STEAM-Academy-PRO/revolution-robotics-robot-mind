@@ -41,43 +41,32 @@ class McuStatusUpdater:
         self._handlers = [None] * 32
         self._robot.status_updater_reset()
 
-    def _enable_slot(self, slot):
-        self._log('enable slot {}'.format(slot))
-        self._robot.status_updater_control(slot, True)
-
-    def _disable_slot(self, slot):
-        self._log('disable slot {}'.format(slot))
-        self._robot.status_updater_control(slot, False)
-
-    def set_slot(self, slot: str, cb):
+    def enable_slot(self, slot, callback):
         slot_idx = self.mcu_updater_slots[slot]
-        if callable(cb):
-            if not self._is_enabled[slot_idx]:
-                self._is_enabled[slot_idx] = True
-                self._enable_slot(slot_idx)
-            self._handlers[slot_idx] = cb
-        else:
-            if self._is_enabled[slot_idx]:
-                self._is_enabled[slot_idx] = False
-                self._disable_slot(slot_idx)
-            self._handlers[slot_idx] = None
+        if not self._is_enabled[slot_idx]:
+            self._is_enabled[slot_idx] = True
+            self._log(f'enable slot {slot_idx}')
+            self._robot.status_updater_control(slot_idx, True)
+        self._handlers[slot_idx] = callback
+
+    def disable_slot(self, slot):
+        slot_idx = self.mcu_updater_slots[slot]
+        if self._is_enabled[slot_idx]:
+            self._is_enabled[slot_idx] = False
+            self._log(f'disable slot {slot_idx}')
+            self._robot.status_updater_control(slot_idx, False)
+        self._handlers[slot_idx] = None
 
     def read(self):
         data = self._robot.status_updater_read()
 
         idx = 0
         while idx < len(data):
-            slot, slot_length = data[idx:idx+2]
-
             data_start = idx + 2
-            data_end = data_start + slot_length
+            slot, slot_length = data[idx:data_start]
+            idx = data_start + slot_length
 
-            if data_end <= len(data):
-                handler = self._handlers[slot]
-                if handler:
-                    # noinspection PyCallingNonCallable
-                    handler(data[data_start:data_end])
-            else:
-                self._log('invalid slot length')
-
-            idx = data_end
+            handler = self._handlers[slot]
+            if handler:
+                # noinspection PyCallingNonCallable
+                handler(data[data_start:idx])

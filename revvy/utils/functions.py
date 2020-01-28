@@ -7,7 +7,6 @@ from binascii import b2a_base64, a2b_base64
 
 import math
 from contextlib import suppress
-from functools import partial
 
 
 def clip(x, min_x, max_x):
@@ -20,7 +19,12 @@ def clip(x, min_x, max_x):
     >>> clip(1.5, 1, 2)
     1.5
     """
-    return min(max(x, min_x), max_x)
+    if x < min_x:
+        return min_x
+    elif x > max_x:
+        return max_x
+    else:
+        return x
 
 
 def map_values(x, min_x, max_x, min_y, max_y):
@@ -59,20 +63,20 @@ def get_serial():
 
 def retry(fn, retries=5):
     """Retry the given function a number of times, or until it returns True or None"""
-    status = False
     retry_num = 0
-    while retry_num < retries and not status:
+    while retry_num < retries:
         # noinspection PyBroadException
         try:
             status = fn()
             if status is None:
-                status = True
+                return
+            elif status:
+                return status
         except Exception:
             print(traceback.format_exc())
-            status = False
         retry_num += 1
 
-    return status
+    return False
 
 
 def split(data, chunk_size):
@@ -95,16 +99,16 @@ def split(data, chunk_size):
 
 def hex2rgb(hex_str):
     """
-    >>> hex2rgb("#aabbcc")
-    11189196
+    >>> '{0:X}'.format(hex2rgb("#aabbcc"))
+    'AABBCC'
     >>> hex2rgb("#000000")
     0
     >>> hex2rgb("#0000FF")
     255
     """
-    rgb = [int(chunk, 16) for chunk in split(hex_str.lstrip('#'), 2)]
-
-    return rgb[0] << 16 | rgb[1] << 8 | rgb[2]
+    rgb = hex_str.lstrip('#')
+    assert len(rgb) == 6, "RGB color must be 6 characters long"
+    return int(rgb, 16)
 
 
 def b64_encode_str(to_encode):
@@ -185,7 +189,17 @@ def read_json(filename):
 
 
 def str_to_func(code):
-    return partial(exec, code)
+    """Take python code as string and create a callable functions
+    The function arguments will be injected into the code as global variables
+
+    >>> code='print(f"Called with {input}")'
+    >>> func=str_to_func(code)
+    >>> func(input='something')
+    Called with something
+    """
+    def wrapper(**kwargs):
+        exec(code, kwargs)
+    return wrapper
 
 
 def rpm2dps(rpm):

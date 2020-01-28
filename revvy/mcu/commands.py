@@ -5,7 +5,6 @@ import traceback
 from abc import ABC
 from collections import namedtuple
 from enum import Enum
-from typing import List, Union
 
 from revvy.utils.functions import split
 from revvy.utils.logger import get_logger
@@ -24,7 +23,7 @@ class Command:
         self._transport = transport
         self._command_byte = self.command_id
 
-        self._log = get_logger('{} [id={}]'.format(type(self).__name__, self._command_byte))
+        self._log = get_logger(f'{type(self).__name__} [id={self._command_byte}]')
 
     @property
     def command_id(self):
@@ -34,23 +33,22 @@ class Command:
         if response.status == ResponseStatus.Ok:
             return self.parse_response(response.payload)
         elif response.status == ResponseStatus.Error_UnknownCommand:
-            raise UnknownCommandError("Command not implemented: {}".format(self._command_byte))
+            raise UnknownCommandError(f"Command not implemented: {self._command_byte}")
         else:
-            raise ValueError('Command status: "{}" with payload: {}'
-                             .format(response.status, repr(response.payload)))
+            raise ValueError(f'Command status: "{response.status}" with payload: {repr(response.payload)}')
 
     def _send(self, payload=b''):
         """
         Send the command with the given payload and process the response
 
-        @type payload: bytes|list
+        @type payload: iterable
         """
         response = self._transport.send_command(self._command_byte, payload)
 
         try:
             return self._process(response)
         except (UnknownCommandError, ValueError) as e:
-            self._log('Payload for error: {0} (length {1})'.format(payload, len(payload)))
+            self._log(f'Payload for error: {payload} (length {len(payload)})')
             self._log(traceback.format_exc())
             raise e
 
@@ -99,7 +97,7 @@ class SetMasterStatusCommand(Command):
 
     def __call__(self, status):
         # TODO: make this accept something meaningful
-        return self._send([status])
+        return self._send((status, ))
 
 
 class SetBluetoothStatusCommand(Command):
@@ -108,7 +106,7 @@ class SetBluetoothStatusCommand(Command):
 
     def __call__(self, status):
         # TODO: make this accept something meaningful
-        return self._send([status])
+        return self._send((status, ))
 
 
 class McuOperationMode(Enum):
@@ -171,7 +169,7 @@ class ReadSensorPortAmountCommand(ReadPortAmountCommand):
 
 class SetPortTypeCommand(Command, ABC):
     def __call__(self, port, port_type_idx):
-        return self._send([port, port_type_idx])
+        return self._send((port, port_type_idx))
 
 
 class SetMotorPortTypeCommand(SetPortTypeCommand):
@@ -189,7 +187,7 @@ class SetRingLedScenarioCommand(Command):
     def command_id(self): return 0x31
 
     def __call__(self, scenario_idx):
-        return self._send([scenario_idx])
+        return self._send((scenario_idx, ))
 
 
 class GetRingLedAmountCommand(Command):
@@ -207,13 +205,13 @@ class SendRingLedUserFrameCommand(Command):
 
     def __call__(self, colors):
         rgb565_values = map(rgb_to_rgb565_bytes, colors)
-        led_bytes = struct.pack("<" + "H" * len(colors), *rgb565_values)
+        led_bytes = struct.pack(f"<{len(colors)}H", *rgb565_values)
         return self._send(led_bytes)
 
 
 class SetPortConfigCommand(Command, ABC):
     def __call__(self, port_idx, config):
-        return self._send([port_idx, *config])
+        return self._send((port_idx, *config))
 
 
 class SetMotorPortConfigCommand(SetPortConfigCommand):
@@ -231,39 +229,23 @@ class ReadSensorPortInfoCommand(Command):
     def command_id(self): return 0x24
 
     def __call__(self, port_idx, page=0):
-        return self._send([port_idx, page])
+        return self._send((port_idx, page))
 
     def parse_response(self, payload):
         return payload
-
-
-class MotorPortControlCommand:
-    def __init__(self, port_idx, command_data):
-        self._port_idx = port_idx
-        self._command_data = command_data
-
-    def get_bytes(self):
-        header = ((self._port_idx - 1) & 0x07) | ((len(self._command_data) << 3) & 0xF8)
-        return [header, *self._command_data]
 
 
 class SetMotorPortControlCommand(Command):
     @property
     def command_id(self): return 0x14
 
-    def __call__(self, commands: Union[List[MotorPortControlCommand], MotorPortControlCommand]):
-        if isinstance(commands, MotorPortControlCommand):
-            command_bytes = commands.get_bytes()
-        else:
-            command_bytes = []
-            for command in commands:
-                command_bytes += command.get_bytes()
+    def __call__(self, command_bytes: bytes):
         return self._send(command_bytes)
 
 
 class ReadPortStatusCommand(Command, ABC):
     def __call__(self, port_idx):
-        return self._send([port_idx])
+        return self._send((port_idx, ))
 
     def parse_response(self, payload):
         """Return the raw response"""
@@ -280,7 +262,7 @@ class McuStatusUpdater_ControlCommand(Command):
     def command_id(self): return 0x3B
 
     def __call__(self, slot, is_enabled: bool):
-        return self._send([slot, is_enabled])
+        return self._send((slot, is_enabled))
 
 
 class McuStatusUpdater_ReadCommand(Command):

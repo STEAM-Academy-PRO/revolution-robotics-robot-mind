@@ -8,7 +8,7 @@ from revvy.utils.logger import get_logger
 
 
 def _call_callbacks(cb_list: list):
-    while len(cb_list) != 0:
+    while cb_list:
         cb = cb_list.pop()
         cb()
 
@@ -26,7 +26,7 @@ class ThreadWrapper:
     EXITED = 4
 
     def __init__(self, func, name="WorkerThread"):
-        self._log = get_logger('ThreadWrapper [{}]'.format(name))
+        self._log = get_logger(f'ThreadWrapper [{name}]')
         self._log('created')
         self._lock = Lock()  # lock used to ensure internal consistency
         self._interface_lock = RLock()  # prevent concurrent access. RLock so that callbacks may restart the thread
@@ -39,6 +39,7 @@ class ThreadWrapper:
         self._thread_stopped_event.set()
         self._thread_running_event = Event()  # caller can wait for the thread function to start running
         self._state = ThreadWrapper.STOPPED
+        self._is_exiting = False
         self._thread = Thread(target=self._thread_func, args=())
         self._thread.start()
 
@@ -90,15 +91,17 @@ class ThreadWrapper:
         return self._thread_running_event.is_set()
 
     def _start(self):
-        self._log('starting')
-        self._thread_stopped_event.clear()
-        self._state = ThreadWrapper.STARTING
-        self._control.set()
+        if not self._is_exiting:
+            self._log('starting')
+            self._thread_stopped_event.clear()
+            self._state = ThreadWrapper.STARTING
+            self._control.set()
 
     def start(self):
-        with self._interface_lock:
-            assert self._state != ThreadWrapper.EXITED, 'thread has already exited'
+        assert not self._is_exiting, 'can not start an exiting thread'
+        assert self._state != ThreadWrapper.EXITED, 'thread has already exited'
 
+        with self._interface_lock:
             with self._lock:
                 if self._state == ThreadWrapper.STOPPING:
                     self._log('thread is stopping when start is called')
@@ -140,8 +143,8 @@ class ThreadWrapper:
     def exit(self):
         with self._interface_lock:
             self._log('exiting')
+            self._is_exiting = True
 
-            # stop current run
             evt = self.stop()
             self._log('waiting for stop event to be set')
             evt.wait()

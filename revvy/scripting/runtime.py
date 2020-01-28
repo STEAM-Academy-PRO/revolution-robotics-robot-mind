@@ -1,29 +1,17 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import time
+from typing import NamedTuple
 
 from revvy.scripting.robot_interface import RobotWrapper
 from revvy.utils.logger import get_logger
 from revvy.utils.thread_wrapper import ThreadContext, ThreadWrapper
 
 
-class ScriptDescriptor:
-    def __init__(self, name, runnable, priority):
-        self._name = name
-        self._runnable = runnable
-        self._priority = priority
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def runnable(self):
-        return self._runnable
-
-    @property
-    def priority(self):
-        return self._priority
+class ScriptDescriptor(NamedTuple):
+    name: str
+    runnable: callable
+    priority: int
 
 
 class TimeWrapper:
@@ -39,12 +27,12 @@ class ScriptHandle:
 
     def __init__(self, owner: 'ScriptManager', script, name, global_variables: dict):
         self._owner = owner
-        self._globals = dict(global_variables)
+        self._globals = global_variables.copy()
         self._inputs = {}
         self._runnable = script
         self.sleep = self._default_sleep
-        self._thread = ThreadWrapper(self._run, 'ScriptThread: {}'.format(name))
-        self.log = get_logger('Script: {}'.format(name))
+        self._thread = ThreadWrapper(self._run, f'ScriptThread: {name}')
+        self.log = get_logger(f'Script: {name}')
 
         self.stop = self._thread.stop
         self.cleanup = self._thread.exit
@@ -78,13 +66,7 @@ class ScriptHandle:
 
             self.sleep = ctx.sleep
             self.log("Starting script")
-            self._runnable({
-                **self._globals,
-                **self._inputs,
-                'Control': ctx,
-                'ctx': ctx,
-                'time': TimeWrapper(ctx)
-            })
+            self._runnable(Control=ctx, ctx=ctx, time=TimeWrapper(ctx), **self._inputs)
         except InterruptedError:
             self.log('Interrupted')
             raise
@@ -93,10 +75,11 @@ class ScriptHandle:
             self.log("Script finished")
             self.sleep = self._default_sleep
 
-    def start(self, variables=None):
-        if variables is None:
-            variables = {}
-        self._inputs = variables
+    def start(self, **kwargs):
+        if not kwargs:
+            self._inputs = self._globals
+        else:
+            self._inputs = {**self._globals, **kwargs}
         return self._thread.start()
 
 
@@ -124,10 +107,10 @@ class ScriptManager:
 
     def add_script(self, script: ScriptDescriptor):
         if script.name in self._scripts:
-            self._log('Stopping {} before overriding'.format(script.name))
+            self._log(f'Stopping {script.name} before overriding')
             self._scripts[script.name].cleanup()
 
-        self._log('New script: {}'.format(script.name))
+        self._log(f'New script: {script.name}')
         script_handle = ScriptHandle(self, script.runnable, script.name, self._globals)
         try:
             robot = self._robot

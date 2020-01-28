@@ -80,7 +80,7 @@ class FileStorage(StorageInterface):
             with open(self._access_file(), "w") as fp:
                 fp.write("true")
         except IOError as e:
-            raise StorageError("Invalid storage directory set. Not writable.") from e
+            raise StorageError(f"Storage directory {storage_dir} is not writable.") from e
 
     def _path(self, filename):
         return os.path.join(self._storage_dir, filename)
@@ -89,10 +89,10 @@ class FileStorage(StorageInterface):
         return self._path("access-test")
 
     def _storage_file(self, filename):
-        return self._path("{}.data".format(filename))
+        return self._path(f"{filename}.data")
 
     def _meta_file(self, filename):
-        return self._path("{}.meta".format(filename))
+        return self._path(f"{filename}.meta")
 
     def read_metadata(self, filename):
         try:

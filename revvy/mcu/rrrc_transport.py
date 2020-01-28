@@ -4,6 +4,7 @@ import struct
 import binascii
 from enum import Enum
 from threading import Lock
+from typing import NamedTuple
 
 from revvy.utils.functions import retry
 from revvy.utils.stopwatch import Stopwatch
@@ -68,10 +69,11 @@ class Command:
     OpGetResult = 2
     OpCancel = 3
 
-    def __init__(self, op, command, payload=b''):
+    @staticmethod
+    def create(op, command, payload=b''):
         payload_length = len(payload)
         if payload_length > 255:
-            raise ValueError('Payload is too long ({} bytes, 255 allowed)'.format(payload_length))
+            raise ValueError(f'Payload is too long ({payload_length} bytes, 255 allowed)')
 
         pl = bytearray(6 + payload_length)
         pl[6:] = payload
@@ -84,22 +86,19 @@ class Command:
         # calculate header checksum
         pl[5] = crc7(pl[0:5], 0xFF)
 
-        self._payload = pl
-
-    def get_bytes(self):
-        return self._payload
+        return pl
 
     @classmethod
-    def start(cls, command, payload: bytes) -> 'Command':
-        return cls(cls.OpStart, command, payload)
+    def start(cls, command, payload: bytes):
+        return cls.create(cls.OpStart, command, payload)
 
     @classmethod
-    def get_result(cls, command) -> 'Command':
-        return cls(cls.OpGetResult, command)
+    def get_result(cls, command):
+        return cls.create(cls.OpGetResult, command)
 
     @classmethod
-    def cancel(cls, command) -> 'Command':
-        return cls(cls.OpCancel, command)
+    def cancel(cls, command):
+        return cls.create(cls.OpCancel, command)
 
 
 class ResponseStatus(Enum):
@@ -120,48 +119,38 @@ class ResponseStatus(Enum):
     Error_Timeout = 11
 
 
-class ResponseHeader:
-    length = 5
+class ResponseHeader(NamedTuple):
+    status: ResponseStatus
+    payload_length: int
+    payload_checksum: int
+    raw: bytes
 
-    def __init__(self, data: bytes):
-        if len(data) < ResponseHeader.length:
+    @staticmethod
+    def create(data: bytes):
+        if len(data) < 5:
             raise ValueError('Header too short')
 
-        self._raw = data[0:self.length-1]
-        checksum = crc7(self._raw)
-        if checksum != data[self.length-1]:
+        header_bytes = data[0:4]
+        checksum = crc7(header_bytes)
+        if checksum != data[4]:
             raise ValueError('Header checksum mismatch')
 
-        status, self._payload_length, self._payload_checksum = struct.unpack('<bbH', self._raw)
-        self._status = ResponseStatus(status)
+        status, _payload_length, _payload_checksum = struct.unpack('<bbH', header_bytes)
+        return ResponseHeader(status=ResponseStatus(status),
+                              payload_length=_payload_length,
+                              payload_checksum=_payload_checksum,
+                              raw=header_bytes)
 
     def validate_payload(self, payload):
-        return self._payload_checksum == binascii.crc_hqx(payload, 0xFFFF)
+        return self.payload_checksum == binascii.crc_hqx(payload, 0xFFFF)
 
-    def __ne__(self, o: 'ResponseHeader') -> bool:
-        return o._raw != self._raw
-
-    @property
-    def status(self) -> ResponseStatus:
-        return self._status
-
-    @property
-    def payload_length(self):
-        return self._payload_length
+    def is_same_as(self, response_header):
+        return self.raw == response_header
 
 
-class Response:
-    def __init__(self, status: ResponseStatus, payload: bytes):
-        self._status = status
-        self._payload = payload
-
-    @property
-    def status(self):
-        return self._status
-
-    @property
-    def payload(self) -> bytes:
-        return self._payload
+class Response(NamedTuple):
+    status: ResponseStatus
+    payload: bytes
 
 
 class RevvyTransport:
@@ -186,7 +175,7 @@ class RevvyTransport:
         with self._mutex:
             # create commands in advance, they can be reused in case of an error
             command_start = Command.start(command, payload)
-            command_get_result = Command.get_result(command)
+            command_get_result = None
 
             try:
                 # once a command gets through and a valid response is read, this loop will exit
@@ -195,8 +184,14 @@ class RevvyTransport:
                     header = self._send_command(command_start)
 
                     # wait for command execution to finish
-                    while header.status == ResponseStatus.Pending:
+                    if header.status == ResponseStatus.Pending:
+                        # lazily create GetResult command
+                        if not command_get_result:
+                            command_get_result = Command.get_result(command)
+
                         header = self._send_command(command_get_result)
+                        while header.status == ResponseStatus.Pending:
+                            header = self._send_command(command_get_result)
 
                     # check result
                     # return a result even in case of an error, except when we know we have to resend
@@ -217,9 +212,9 @@ class RevvyTransport:
         """
 
         def _read_response_header_once():
-            header_bytes = self._transport.read(ResponseHeader.length)
+            header_bytes = self._transport.read(5)
 
-            return ResponseHeader(header_bytes)
+            return ResponseHeader.create(header_bytes)
 
         header = retry(_read_response_header_once, retries)
 
@@ -227,7 +222,7 @@ class RevvyTransport:
             raise BrokenPipeError('Read response header: Retry limit reached')
         return header
 
-    def _read_payload(self, header, retries=5) -> bytes:
+    def _read_payload(self, header: ResponseHeader, retries=5) -> bytes:
         """
         Read the rest of the response
 
@@ -243,19 +238,18 @@ class RevvyTransport:
 
         def _read_payload_once():
             # read header and payload
-            response_bytes = self._transport.read(header.length + header.payload_length)
+            response_bytes = self._transport.read(5 + header.payload_length)
+            response_header, response_payload = response_bytes[0:4], response_bytes[5:]  # skip checksum byte
 
             # make sure we read the same response data we expect
-            response_header = ResponseHeader(response_bytes)
-            if header != response_header:
+            if not header.is_same_as(response_header):
                 raise ValueError('Read payload: Unexpected header received')
 
             # make sure data is intact
-            payload_bytes = response_bytes[ResponseHeader.length:]
-            if not header.validate_payload(payload_bytes):
+            if not header.validate_payload(response_payload):
                 raise ValueError('Read payload: payload contents invalid')
 
-            return payload_bytes
+            return response_payload
 
         payload = retry(_read_payload_once, retries)
 
@@ -264,19 +258,19 @@ class RevvyTransport:
 
         return payload
 
-    def _send_command(self, command: Command) -> ResponseHeader:
+    def _send_command(self, command: bytes) -> ResponseHeader:
         """
         Send a command and return the response header
 
         This function waits for the slave MCU to finish processing the command and returns if it is done or the
         timeout defined in the class header elapses.
 
-        @param command: The command to send
+        @param command: The command bytes to send
         @return: The response header
         """
-        self._transport.write(command.get_bytes())
+        self._transport.write(command)
         self._stopwatch.reset()
-        while self.timeout == 0 or self._stopwatch.elapsed < self.timeout:
+        while self._stopwatch.elapsed < self.timeout:
             response = self._read_response_header()
             if response.status != ResponseStatus.Busy:
                 return response

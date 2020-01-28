@@ -4,7 +4,7 @@ from functools import partial
 from revvy.robot.configurations import Motors, Sensors
 from revvy.robot.led_ring import RingLed
 from revvy.robot.sound import Sound
-from revvy.scripting.resource import Resource, ResourceHandle
+from revvy.scripting.resource import Resource
 from revvy.utils.functions import hex2rgb, rpm2dps
 from revvy.robot.ports.common import PortInstance, PortCollection
 
@@ -23,44 +23,18 @@ class ResourceWrapper:
             return self._current_handle
 
         handle = self._resource.request(self._priority, callback)
-
         if handle:
             handle.on_interrupted.add(self._release_handle)
             handle.on_released.add(self._release_handle)
 
             self._current_handle = handle
-        return handle
+
+        return self._current_handle
 
     def release(self):
         handle = self._current_handle
         if handle:
             handle.interrupt()
-
-
-class ResourceContext:
-    def __init__(self, resource: ResourceHandle):
-        self._resource = resource
-
-    def __enter__(self):
-        return self._resource
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.release()
-
-    def release(self):
-        resource, self._resource = self._resource, None
-        if resource:
-            resource.release()
-
-    def __bool__(self):
-        return self._resource is not None
-
-    @property
-    def is_interrupted(self):
-        if self._resource:
-            return self._resource.is_interrupted
-        else:
-            return True
 
 
 class Wrapper:
@@ -75,7 +49,7 @@ class Wrapper:
         if self._script.is_stop_requested:
             raise InterruptedError
 
-        return ResourceContext(self._resource.request(callback))
+        return self._resource.request(callback)
 
     def using_resource(self, callback):
         self.if_resource_available(lambda res: res.run_uninterruptable(callback))
@@ -132,11 +106,14 @@ class RingLedWrapper(Wrapper):
         self.using_resource(partial(self._ring_led.start_animation, scenario))
 
     def set(self, leds: list, color):
-        rgb = hex2rgb(color)
+        def out_of_range(led_idx):
+            return not 0 < led_idx <= len(self._user_leds)
 
+        if any(map(out_of_range, leds)):
+            raise IndexError(f'Led index must be between 1 and {len(self._user_leds)}')
+
+        rgb = hex2rgb(color)
         for idx in leds:
-            if not (1 <= idx <= self._ring_led.count):
-                raise IndexError('Led index invalid: {}'.format(idx))
             self._user_leds[idx - 1] = rgb
 
         self.using_resource(partial(self._ring_led.display_user_frame, self._user_leds))
@@ -173,8 +150,11 @@ class MotorPortWrapper(Wrapper):
 
     def __init__(self, script, motor: PortInstance, resource: ResourceWrapper):
         super().__init__(script, resource)
-        self.log = lambda message: script.log("MotorPortWrapper[motor {}]: {}".format(motor.id, message))
+        self._log_prefix = f"MotorPortWrapper[motor {motor.id}]: "
         self._motor = motor
+
+    def log(self, message):
+        self._script.log(self._log_prefix + message)
 
     def configure(self, config):
         if type(config) is str:
@@ -289,14 +269,16 @@ def wrap_sync_method(owner, method):
 class DriveTrainWrapper(Wrapper):
     def __init__(self, script, drivetrain, resource: ResourceWrapper):
         super().__init__(script, resource)
-        self.log = lambda message: script.log("DriveTrain: {}".format(message))
         self._drivetrain = drivetrain
 
         self.turn = wrap_async_method(self, drivetrain.turn)
         self.drive = wrap_async_method(self, drivetrain.drive)
 
+    def log(self, message):
+        self._script.log("DriveTrain: " + message)
+
     def set_speed(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM):
-        self.log("set_speeds")
+        self.log("set_speed")
 
         resource = self.try_take_resource()
         if resource:
@@ -306,43 +288,14 @@ class DriveTrainWrapper(Wrapper):
                 if speed == 0:
                     resource.release()
 
-
-class JoystickWrapper(Wrapper):
-    max_rpm = 150
-
-    def __init__(self, script, drivetrain, resource: ResourceWrapper):
-        super().__init__(script, resource)
-        self.log = lambda message: script.log("Joystick: {}".format(message))
-        self._drivetrain = drivetrain
-        self._res = None
-
     def set_speeds(self, sl, sr):
-        if self._res:
-            if self._script.is_stop_requested:
-                raise InterruptedError
-
-            # we already have the resource - check if it was taken away
-            if self._res.is_interrupted:
-                # need to release the stick before re-taking
+        resource = self.try_take_resource()
+        if resource:
+            try:
+                self._drivetrain.set_speeds(sl, sr)
+            finally:
                 if sl == sr == 0:
-                    self._res = None
-            else:
-                # the resource is ours, use it
-                self._set_speeds(sl, sr)
-        else:
-            self._res = self.try_take_resource()
-            if self._res:
-                self.log("resource taken")
-                self._set_speeds(sl, sr)
-
-    def _set_speeds(self, sl, sr):
-        try:
-            self._drivetrain.set_speeds(sl, sr)
-        finally:
-            if sl == sr == 0:
-                # manual stop: allow lower priority scripts to move
-                self.log("resource released")
-                self._res.release()
+                    resource.release()
 
 
 class SoundWrapper(Wrapper):
@@ -407,15 +360,9 @@ class RobotWrapper(RobotInterface):
         self._resources = {name: ResourceWrapper(res[name], priority) for name in res}
         self._robot = robot
 
-        def motor_name(port):
-            return 'motor_{}'.format(port.id)
-
-        def sensor_name(port):
-            return 'sensor_{}'.format(port.id)
-
-        motor_wrappers = [MotorPortWrapper(script, port, self._resources[motor_name(port)])
+        motor_wrappers = [MotorPortWrapper(script, port, self._resources[f'motor_{port.id}'])
                           for port in robot.motors]
-        sensor_wrappers = [SensorPortWrapper(script, port, self._resources[sensor_name(port)])
+        sensor_wrappers = [SensorPortWrapper(script, port, self._resources[f'sensor_{port.id}'])
                            for port in robot.sensors]
         self._motors = PortCollection(motor_wrappers)
         self._sensors = PortCollection(sensor_wrappers)
@@ -424,7 +371,6 @@ class RobotWrapper(RobotInterface):
         self._sound = SoundWrapper(script, robot.sound, self._resources['sound'])
         self._ring_led = RingLedWrapper(script, robot.led, self._resources['led_ring'])
         self._drivetrain = DriveTrainWrapper(script, robot.drivetrain, self._resources['drivetrain'])
-        self._joystick = JoystickWrapper(script, robot.drivetrain, self._resources['drivetrain'])
 
         self._script = script
 
@@ -456,10 +402,6 @@ class RobotWrapper(RobotInterface):
     @property
     def drivetrain(self):
         return self._drivetrain
-
-    @property
-    def joystick(self):
-        return self._joystick
 
     @property
     def imu(self):

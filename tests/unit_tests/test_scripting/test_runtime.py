@@ -85,9 +85,9 @@ mock()'''), 0))
         sm.assign('test', self)
         sm.assign('RobotInterface', RobotInterface)
 
-        def _script(args):
-            args['test'].assertIsInstance(args['robot'], RobotInterface)
-            args['mock']()
+        def _script(test, robot, mock, **kwargs):
+            test.assertIsInstance(robot, RobotInterface)
+            mock()
 
         sm.add_script(ScriptDescriptor('test', _script, 0))
 
@@ -124,13 +124,13 @@ mock()'''), 0))
 
         script = sm['test']
 
-        script.start({'mock': mock})
-        script.stop().wait()
+        script.start(mock=mock)
+        script.stop().wait(2)
         self.assertEqual(1, mock.call_count)
 
         with self.subTest('Input is not remmebered'):
             script.start()  # mock shall not be called again
-            script.stop().wait()
+            script.stop().wait(2)
             self.assertEqual(1, mock.call_count)
 
         script.cleanup()

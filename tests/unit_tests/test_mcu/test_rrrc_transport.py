@@ -12,35 +12,35 @@ from revvy.mcu.rrrc_transport import Command, crc7, RevvyTransport, RevvyTranspo
 class TestCommand(unittest.TestCase):
     def test_first_byte_is_opcode(self):
         ch = Command.start(5, bytes())
-        self.assertEqual(0, ch.get_bytes()[0])
+        self.assertEqual(0, ch[0])
 
         ch = Command.get_result(5)
-        self.assertEqual(2, ch.get_bytes()[0])
+        self.assertEqual(2, ch[0])
 
         ch = Command.cancel(5)
-        self.assertEqual(3, ch.get_bytes()[0])
+        self.assertEqual(3, ch[0])
 
     def test_max_payload_length_is_255(self):
         ch = Command.start(5, b'\x00'*25)
-        self.assertEqual(6 + 25, len(ch.get_bytes()))
-        self.assertEqual(25, ch.get_bytes()[2])
+        self.assertEqual(6 + 25, len(ch))
+        self.assertEqual(25, ch[2])
 
         ch = Command.start(5, b'\x00'*255)
-        self.assertEqual(6 + 255, len(ch.get_bytes()))
-        self.assertEqual(255, ch.get_bytes()[2])
+        self.assertEqual(6 + 255, len(ch))
+        self.assertEqual(255, ch[2])
 
         self.assertRaises(ValueError, lambda: Command.start(5, b'\x00' * 256))
 
     def test_empty_payload_header_is_ffff(self):
         ch = Command.start(5, bytes())
 
-        self.assertEqual(bytes([0xFF, 0xFF]), ch.get_bytes()[3:5])
+        self.assertEqual(bytes([0xFF, 0xFF]), ch[3:5])
 
     def test_header_checksum_is_calculated_using_crc7(self):
         ch = Command.start(5, bytes())
         expected_checksum = crc7([Command.OpStart, 5, 0, 0xFF, 0xFF], 0xFF)
 
-        self.assertEqual(expected_checksum, ch.get_bytes()[5])
+        self.assertEqual(expected_checksum, ch[5])
 
     def test_header_checksum_includes_payload(self):
         ch = Command.start(5, b'\x01\x02\x03')
@@ -50,8 +50,8 @@ class TestCommand(unittest.TestCase):
         checksum_if_payload_ffff = crc7([Command.OpStart, 5, 0, 0xFF, 0xFF], 0xFF)
         expected_checksum = crc7([Command.OpStart, 5, 0, *payload_checksum], 0xFF)
 
-        self.assertNotEqual(checksum_if_payload_ffff, ch.get_bytes()[5])
-        self.assertNotEqual(expected_checksum, ch.get_bytes()[5])
+        self.assertNotEqual(checksum_if_payload_ffff, ch[5])
+        self.assertNotEqual(expected_checksum, ch[5])
 
 
 class MockInterface(RevvyTransportInterface):
@@ -85,7 +85,7 @@ class TestRevvyTransport(unittest.TestCase):
         self.assertEqual(1, len(mock_interface._reads))
         self.assertEqual(0, mock_interface._writes[0][0])  # write happened first
         self.assertEqual(1, mock_interface._reads[0][0])  # read happened second
-        self.assertEqual(Command.start(10, b'\x08\x09').get_bytes(), mock_interface._writes[0][1])
+        self.assertEqual(Command.start(10, b'\x08\x09'), mock_interface._writes[0][1])
         self.assertEqual(ResponseStatus.Ok, response.status)
         self.assertEqual(0, len(response.payload))
 
@@ -249,10 +249,10 @@ class TestResponse(unittest.TestCase):
     def test_response_shorter_than_header_size_is_invalid(self):
         data = bytes([ResponseStatus.Ok.value, 0, 0xFF, 0xFF])  # one byte short
 
-        self.assertRaises(ValueError, lambda: ResponseHeader(data))
-        ResponseHeader(bytes((*data, 117)))  # does not raise
+        self.assertRaises(ValueError, lambda: ResponseHeader.create(data))
+        ResponseHeader.create(bytes((*data, 117)))  # does not raise
 
     def test_response_header_with_wrong_checksum_is_invalid(self):
         data = bytes([ResponseStatus.Ok.value, 0, 0xFF, 0xFF, 118])
 
-        self.assertRaises(ValueError, lambda: ResponseHeader(data))
+        self.assertRaises(ValueError, lambda: ResponseHeader.create(data))

@@ -58,8 +58,8 @@ class RobotBLEController:
             'drivetrain': Resource('DriveTrain'),
             'sound':      Resource('Sound'),
 
-            **{'motor_{}'.format(port.id): Resource('Motor {}'.format(port.id)) for port in self._robot.motors},
-            **{'sensor_{}'.format(port.id): Resource('Sensor {}'.format(port.id)) for port in self._robot.sensors}
+            **{f'motor_{port.id}': Resource(f'Motor {port.id}') for port in self._robot.motors},
+            **{f'sensor_{port.id}': Resource(f'Sensor {port.id}') for port in self._robot.sensors}
         }
 
         revvy_ble['live_message_service'].register_message_handler(rcs.data_ready)
@@ -85,7 +85,7 @@ class RobotBLEController:
 
             if fns:
                 for i, fn in enumerate(fns):
-                    self._log('Running {}/{} background functions'.format(i, len(fns)))
+                    self._log(f'Running {i}/{len(fns)} background functions')
                     fn()
 
                 self._log('Background functions finished')
@@ -116,7 +116,7 @@ class RobotBLEController:
         return self._remote_controller
 
     def exit(self, status_code):
-        self._log('exit requested with code {}'.format(status_code))
+        self._log(f'exit requested with code {status_code}')
         self._status_code = status_code
         if self.needs_interrupting:
             os.kill(os.getpid(), signal.SIGINT)
@@ -228,14 +228,13 @@ class RobotBLEController:
             sensor.configure(config.sensors[sensor.id])
             sensor.on_status_changed.add(lambda p: live_service.update_sensor(p.id, p.raw_value))
 
+        def start_analog_script(src, channels):
+            src.start(channels=channels)
+
         # set up remote controller
         for analog in config.controller.analog:
-            script = analog['script']
-            script_handle = self._scripts.add_script(script)
-            self._remote_controller.on_analog_values(
-                analog['channels'],
-                lambda in_data, scr=script_handle: scr.start({'input': in_data})
-            )
+            script_handle = self._scripts.add_script(analog['script'])
+            self._remote_controller.on_analog_values(analog['channels'], partial(start_analog_script, script_handle))
 
         for button, script in enumerate(config.controller.buttons):
             if script:

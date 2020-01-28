@@ -4,10 +4,10 @@ _log_lock = Lock()
 
 
 def get_logger(tag):
-    pattern = '{}: {{}}'.format(tag)
+    prefix = tag + ': '
 
     def logger_func(message):
         with _log_lock:
-            print(pattern.format(message))
+            print(prefix + message)
 
     return logger_func
