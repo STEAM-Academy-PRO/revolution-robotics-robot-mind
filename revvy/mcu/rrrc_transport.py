@@ -50,7 +50,7 @@ def crc7(data, crc=0xFF):
     16
     """
     for b in data:
-        crc = crc7_table[(b ^ (crc << 1) & 0xFF)]
+        crc = crc7_table[b ^ ((crc << 1) & 0xFF)]
     return crc
 
 
@@ -79,26 +79,34 @@ class Command:
         pl[6:] = payload
 
         payload_checksum = binascii.crc_hqx(pl[6:], 0xFFFF)
-
+        high_byte, low_byte = divmod(payload_checksum, 256)  # get bytes of unsigned short
         # fill header
-        pl[0:5] = op, command, payload_length, *payload_checksum.to_bytes(2, byteorder='little')
+        pl[0:5] = op, command, payload_length, low_byte, high_byte
 
         # calculate header checksum
-        pl[5] = crc7(pl[0:5], 0xFF)
+        pl[5] = crc7(pl[0:5])
 
         return pl
 
-    @classmethod
-    def start(cls, command, payload: bytes):
-        return cls.create(cls.OpStart, command, payload)
+    @staticmethod
+    def start(command, payload: bytes):
+        """
+        >>> Command.start(2, b'')
+        bytearray(b'\\x00\\x02\\x00\\xff\\xffQ')
+        """
+        return Command.create(Command.OpStart, command, payload)
 
-    @classmethod
-    def get_result(cls, command):
-        return cls.create(cls.OpGetResult, command)
+    @staticmethod
+    def get_result(command):
+        """
+        >>> Command.get_result(2)
+        bytearray(b'\\x02\\x02\\x00\\xff\\xff=')
+        """
+        return Command.create(Command.OpGetResult, command)
 
-    @classmethod
-    def cancel(cls, command):
-        return cls.create(cls.OpCancel, command)
+    @staticmethod
+    def cancel(command):
+        return Command.create(Command.OpCancel, command)
 
 
 class ResponseStatus(Enum):
