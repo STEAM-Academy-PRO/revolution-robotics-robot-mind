@@ -255,3 +255,19 @@ class TestThreadWrapper(unittest.TestCase):
                 self.assertEqual(1, mock.call_count)
         finally:
             tw.exit()
+
+    def test_start_does_not_raise_if_not_exited(self):
+        def test_fn(ctx):
+            print('running')
+
+        tw = ThreadWrapper(test_fn)
+        try:
+            # this is a probabilistic failure, false negatives may happen still if the implementation is incorrect
+            start = time.time()
+            while time.time() - start < 5:
+                for _ in range(10000):
+                    tw.start()
+        except AssertionError:
+            self.fail('start() raised event')
+        finally:
+            tw.exit()

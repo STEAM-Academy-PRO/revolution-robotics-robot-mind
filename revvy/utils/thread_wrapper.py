@@ -103,6 +103,9 @@ class ThreadWrapper:
 
         with self._interface_lock:
             with self._lock:
+                if self._state in [ThreadWrapper.STARTING, ThreadWrapper.RUNNING]:
+                    return self._thread_running_event
+
                 if self._state == ThreadWrapper.STOPPING:
                     self._log('thread is stopping when start is called')
                     self.on_stopped(self._start)
