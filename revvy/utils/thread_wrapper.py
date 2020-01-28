@@ -98,8 +98,8 @@ class ThreadWrapper:
             self._control.set()
 
     def start(self):
-        assert not self._is_exiting, 'can not start an exiting thread'
         assert self._state != ThreadWrapper.EXITED, 'thread has already exited'
+        assert not self._is_exiting, 'can not start an exiting thread'
 
         with self._interface_lock:
             with self._lock:
