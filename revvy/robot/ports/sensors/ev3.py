@@ -2,27 +2,31 @@ import collections
 import struct
 from functools import partial
 
+from typing import NamedTuple
+
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.sensors.base import BaseSensorPortDriver
 from revvy.utils.functions import split, map_values
 
-Ev3DataType = collections.namedtuple("Ev3DataType", ['data_size', 'read_pattern', 'name'])
+
+class Ev3DataType(NamedTuple):
+    data_size: int
+    read_pattern: str
+    name: str
 
 
 class Ev3Mode:
-    mode_info_pattern = '<' + 'b' * 4 + 'f' * 6
-
     @staticmethod
     def parse(mode_info):
         (nSamples, dataType, figures, decimals,
          raw_min, raw_max,
          pct_min, pct_max,
-         si_min, si_max) = struct.unpack(Ev3Mode.mode_info_pattern, mode_info)
+         si_min, si_max) = struct.unpack('<4b6f', mode_info)
 
         return Ev3Mode(nSamples, dataType, figures, decimals, raw_min, raw_max, pct_min, pct_max, si_min,
                        si_max)
 
-    _type_info = [
+    _type_info = (
         Ev3DataType(data_size=1, read_pattern='B', name='u8'),
         Ev3DataType(data_size=1, read_pattern='b', name='s8'),
         Ev3DataType(data_size=2, read_pattern='<H', name='u16'),
@@ -31,7 +35,7 @@ class Ev3Mode:
         Ev3DataType(data_size=4, read_pattern='<l', name='s32'),
         Ev3DataType(data_size=4, read_pattern='>l', name='s32be'),
         Ev3DataType(data_size=4, read_pattern='<f', name='float')
-    ]
+    )
 
     def __init__(self, n_samples, data_type, figures, decimals, raw_min, raw_max, pct_min, pct_max, si_min, si_max):
         self._nSamples = n_samples
@@ -44,13 +48,6 @@ class Ev3Mode:
         self._pct_max = pct_max
         self._si_min = si_min
         self._si_max = si_max
-
-        print(f'Datasets: {self._nSamples}')
-        print(f'DataType: {self._type_info[self._dataType].name}')
-        print(f'Format: {self._figures}.{self._decimals}')
-        print(f'Raw: {self._raw_min}-{self._raw_max}')
-        print(f'%: {self._pct_min}-{self._pct_max}')
-        print(f'SI: {self._si_min}-{self._si_max}')
 
     def _convert_single(self, value):
         return map_values(value, self._raw_min, self._raw_max, self._si_min, self._si_max)
@@ -65,6 +62,14 @@ class Ev3Mode:
             values.append(self._convert_single(value))
 
         return values
+
+    def __str__(self) -> str:
+        return f'Datasets: {self._nSamples}\n' \
+               f'DataType: {self._type_info[self._dataType].name}\n' \
+               f'Format: {self._figures}.{self._decimals}\n' \
+               f'Raw: {self._raw_min}-{self._raw_max}\n' \
+               f'%: {self._pct_min}-{self._pct_max}\n' \
+               f'SI: {self._si_min}-{self._si_max}'
 
 
 class Ev3UARTSensor(BaseSensorPortDriver):
@@ -131,10 +136,11 @@ class Ev3UARTSensor(BaseSensorPortDriver):
             modes = []
             for i in range(1, nModes+1):
                 mode_info = self._interface.read_sensor_info(self._port.id, i)
-                print(f'New mode: {i}/{nModes}')
-                print('===============')
-                modes.append(Ev3Mode.parse(mode_info))
-                print('')
+                mode = Ev3Mode.parse(mode_info)
+                modes.append(mode)
+                self.log(f'New mode: {i}/{nModes}')
+                self.log(str(mode))
+                self.log('===============')
 
             return modes
 

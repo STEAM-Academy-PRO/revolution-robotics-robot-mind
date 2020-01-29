@@ -25,10 +25,14 @@ class NullSensor(PortDriver):
 class BaseSensorPortDriver(PortDriver):
     def __init__(self, driver, port: PortInstance):
         super().__init__(driver)
+        self._log_tag = f'[driver={driver}]: '
         self._port = port
         self._interface = port.interface
         self._value = None
         self._raw_value = None
+
+    def log(self, message):
+        self._port.log(self._log_tag + message)
 
     def on_port_type_set(self):
         pass
