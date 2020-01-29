@@ -3,10 +3,9 @@
 import os
 from functools import partial
 
-from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.hardware_dependent.sound import SoundControlV1, SoundControlV2
 from revvy.mcu.commands import BatteryStatus
-from revvy.mcu.rrrc_control import RevvyControl, BootloaderControl
+from revvy.mcu.rrrc_control import RevvyTransportBase
 from revvy.robot.drivetrain import DifferentialDrivetrain
 from revvy.robot.imu import IMU
 from revvy.robot.led_ring import RingLed
@@ -23,11 +22,16 @@ from revvy.utils.version import Version
 
 
 class Robot(RobotInterface):
-    BOOTLOADER_I2C_ADDRESS = 0x2B
-    ROBOT_I2C_ADDRESS = 0x2D
+    @staticmethod
+    def _default_bus_factory() -> RevvyTransportBase:
+        from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 
-    def __init__(self, i2c_bus=1):
-        self._i2c_bus = i2c_bus
+        return RevvyTransportI2C(1)
+
+    def __init__(self, bus_factory=None):
+        if bus_factory is None:
+            bus_factory = self._default_bus_factory
+        self._bus_factory = bus_factory
 
         self._assets = Assets()
         self._assets.add_source(os.path.join('data', 'assets'))
@@ -35,10 +39,10 @@ class Robot(RobotInterface):
         self._log = get_logger('Robot')
 
     def __enter__(self):
-        self._i2c = RevvyTransportI2C(self._i2c_bus)
+        self._comm_interface = self._bus_factory()
 
-        self._robot_control = RevvyControl(self._i2c.bind(self.ROBOT_I2C_ADDRESS))
-        self._bootloader_control = BootloaderControl(self._i2c.bind(self.BOOTLOADER_I2C_ADDRESS))
+        self._robot_control = self._comm_interface.create_application_control()
+        self._bootloader_control = self._comm_interface.create_bootloader_control()
 
         self._stopwatch = Stopwatch()
 
@@ -86,7 +90,7 @@ class Robot(RobotInterface):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._i2c.close()
+        self._comm_interface.close()
 
     @property
     def assets(self):

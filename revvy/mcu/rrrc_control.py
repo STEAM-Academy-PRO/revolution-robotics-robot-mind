@@ -4,6 +4,12 @@ from revvy.mcu.commands import *
 from revvy.mcu.rrrc_transport import RevvyTransport
 
 
+class RevvyTransportBase:
+    def create_bootloader_control(self) -> 'BootloaderControl': raise NotImplementedError()
+    def create_application_control(self) -> 'RevvyControl': raise NotImplementedError()
+    def close(self): raise NotImplementedError()
+
+
 class BootloaderControl:
     def __init__(self, transport: RevvyTransport):
         self.get_hardware_version = ReadHardwareVersionCommand(transport)

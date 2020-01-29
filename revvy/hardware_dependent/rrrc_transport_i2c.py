@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 from smbus2 import i2c_msg, SMBus
+
+from revvy.mcu.rrrc_control import RevvyTransportBase, RevvyControl, BootloaderControl
 from revvy.mcu.rrrc_transport import RevvyTransportInterface, RevvyTransport, TransportException
 
 
@@ -26,12 +28,21 @@ class RevvyTransportI2CDevice(RevvyTransportInterface):
             raise TransportException(f"Error during writing I2C address 0x{self._address:X}") from e
 
 
-class RevvyTransportI2C:
+class RevvyTransportI2C(RevvyTransportBase):
+    BOOTLOADER_I2C_ADDRESS = 0x2B
+    ROBOT_I2C_ADDRESS = 0x2D
+
     def __init__(self, bus):
         self._bus = SMBus(bus)
 
-    def bind(self, address):
+    def _bind(self, address):
         return RevvyTransport(RevvyTransportI2CDevice(address, self._bus))
+
+    def create_bootloader_control(self) -> BootloaderControl:
+        return BootloaderControl(self._bind(self.BOOTLOADER_I2C_ADDRESS))
+
+    def create_application_control(self) -> RevvyControl:
+        return RevvyControl(self._bind(self.ROBOT_I2C_ADDRESS))
 
     def close(self):
         self._bus.close()
