@@ -112,11 +112,16 @@ class PortHandler:
 
 class PortInstance:
     def __init__(self, port_idx, interface: RevvyControl, configurator):
+        self._log = get_logger(f'Port [id={port_idx}]')
         self._port_idx = port_idx
         self._configurator = configurator
         self._interface = interface
         self._driver = None
         self._config_changed_callbacks = FunctionAggregator()
+
+    @property
+    def log(self):
+        return self._log
 
     @property
     def id(self):
@@ -130,7 +135,7 @@ class PortInstance:
     def on_config_changed(self):
         return self._config_changed_callbacks
 
-    def configure(self, config) -> PortDriver:
+    def _configure(self, config):
         # temporarily disable reading port
         self._config_changed_callbacks(self, None)
         if self._driver:
@@ -140,8 +145,13 @@ class PortInstance:
 
         return self._driver
 
+    def configure(self, config) -> PortDriver:
+        self._log('Configure')
+        return self._configure(config)
+
     def uninitialize(self):
-        self.configure(None)
+        self._log('Set to not configured')
+        self._configure(None)
 
     def __getattr__(self, name):
         return self._driver.__getattribute__(name)
