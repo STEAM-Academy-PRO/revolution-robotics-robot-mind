@@ -27,18 +27,19 @@ class BaseRevvyI2CSensor(BaseSensorPortDriver):
         self._sensor_address = sensor_address
 
     def on_port_type_set(self):
+        self.log(f'Setting sensor address {self._sensor_address:X}')
         self._interface.write_sensor_port(self._port.id, (self.WRITE_SENSOR_ADDRESS, self._sensor_address))
 
     def convert_sensor_value(self, data):
         state = RevvyI2CSensorState(data[0])
 
         if state == RevvyI2CSensorState.STATE_DETECTED_FIRMWARE:
-            print(state)
+            self.log('Setting sensor mode ' + self._mode)
             self._interface.write_sensor_port(self._port.id, (self.WRITE_SELECT_SENSOR_MODE, self._mode))
         elif state == RevvyI2CSensorState.STATE_OPERATIONAL:
             return self.convert_sensor_data(data)
         else:
-            print(state)
+            self.log(state)
 
     def convert_sensor_data(self, data):
         raise NotImplementedError
@@ -66,6 +67,7 @@ null_color = ColorSensorData(0, Color.NONE)
 
 def revvy_color_sensor(port: PortInstance, _):
     sensor = BaseRevvyI2CSensor(0xC0, port, mode=1)
+    sensor.log('Creating Revolution Robotics Color Sensor')
 
     def convert_color_sensor_data(data):
         if len(data) > 2:
@@ -73,6 +75,7 @@ def revvy_color_sensor(port: PortInstance, _):
 
             return ColorSensorData(line_pos, Color(color))
         else:
+            sensor.log('Invalid data received')
             return null_color
 
     sensor.convert_sensor_data = convert_color_sensor_data
