@@ -119,9 +119,8 @@ class PortInstance:
         self._driver = None
         self._config_changed_callbacks = FunctionAggregator()
 
-    @property
-    def log(self):
-        return self._log
+    def log(self, message):
+        return self._log(message)
 
     @property
     def id(self):
