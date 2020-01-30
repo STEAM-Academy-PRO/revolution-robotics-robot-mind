@@ -42,7 +42,7 @@ class RobotBLEController:
         self._ble = revvy_ble
         self._sw_version = sw_version
 
-        self._status_update_thread = periodic(self._update, 0.02, "RobotStatusUpdaterThread")
+        self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
         self._background_fns = []
 
         rc = RemoteController()
