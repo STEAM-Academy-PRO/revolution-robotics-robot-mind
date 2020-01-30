@@ -35,12 +35,12 @@ class RemoteController:
 
     def tick(self, message: RemoteControllerCommand):
         # handle analog channels
-        if message.analog != self._analogStates:
+        if True:  # message.analog != self._analogStates:
             previous_analog_states, self._analogStates = self._analogStates, message.analog
             for channels, action in self._analogActions:
                 try:
                     try:
-                        changed = any(previous_analog_states[x] != message.analog[x] for x in channels)
+                        changed = True  # any(previous_analog_states[x] != message.analog[x] for x in channels)
                     except IndexError:
                         changed = True
 

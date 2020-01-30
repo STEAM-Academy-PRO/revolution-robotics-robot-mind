@@ -174,6 +174,7 @@ class RobotConfig:
                 config.sensors[i] = sensor_type
                 i += 1
 
+            config.sensors[1] = Sensors.RevvyColor
         except (TypeError, IndexError, KeyError, ValueError) as e:
             raise ConfigError('Failed to decode received sensor configuration') from e
 

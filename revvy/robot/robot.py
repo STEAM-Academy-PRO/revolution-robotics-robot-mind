@@ -83,7 +83,7 @@ class Robot(RobotInterface):
             port.on_config_changed.add(partial(_set_updater, f'sensor_{port.id}'))
 
         self._drivetrain = DifferentialDrivetrain(self._robot_control, self._imu)
-
+        
         self.update_status = self._status_updater.read
         self.ping = self._robot_control.ping
 

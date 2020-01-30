@@ -34,7 +34,7 @@ class BaseRevvyI2CSensor(BaseSensorPortDriver):
         state = RevvyI2CSensorState(data[0])
 
         if state == RevvyI2CSensorState.STATE_DETECTED_FIRMWARE:
-            self.log('Setting sensor mode ' + self._mode)
+            self.log('Setting sensor mode ' + str(self._mode))
             self._interface.write_sensor_port(self._port.id, (self.WRITE_SELECT_SENSOR_MODE, self._mode))
         elif state == RevvyI2CSensorState.STATE_OPERATIONAL:
             return self.convert_sensor_data(data)

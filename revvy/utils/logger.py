@@ -10,4 +10,4 @@ def get_logger(tag):
         with _log_lock:
             print(prefix + message)
 
-    return logger_func
+    return lambda _: None # logger_func
