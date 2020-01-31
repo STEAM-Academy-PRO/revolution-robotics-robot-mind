@@ -42,7 +42,7 @@ class RobotBLEController:
         self._ble = revvy_ble
         self._sw_version = sw_version
 
-        self._status_update_thread = periodic(self._update, 0.02, "RobotStatusUpdaterThread")
+        self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
         self._background_fns = []
 
         rc = RemoteController()
@@ -185,9 +185,7 @@ class RobotBLEController:
     def configure(self, config, after=None):
         self._log('Request configuration')
         if self._robot.status.robot_status != RobotStatus.Stopped:
-            if not self._configuring:
-                self._configuring = True
-                self.run_in_background(partial(self._configure, config))
+            self.run_in_background(partial(self._configure, config))
             if callable(after):
                 self.run_in_background(after)
 
@@ -264,8 +262,6 @@ class RobotBLEController:
             self._robot.status.robot_status = RobotStatus.NotConfigured
         else:
             self._robot.status.robot_status = RobotStatus.Configured
-
-        self._configuring = False
 
     def stop(self):
         self._robot.status.controller_status = RemoteControllerStatus.NotConnected

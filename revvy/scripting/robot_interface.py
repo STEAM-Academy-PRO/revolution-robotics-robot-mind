@@ -220,7 +220,7 @@ class MotorPortWrapper(Wrapper):
 
                 elif unit_amount == MotorConstants.UNIT_SEC:
                     self.sleep(amount)
-                    resource.run_uninterruptable(partial(self._motor.set_speed, 0))
+                    resource.run_uninterruptable(partial(self._motor.set_power, 0))
                 self.log("movement finished")
 
     def spin(self, direction, rotation, unit_rotation):

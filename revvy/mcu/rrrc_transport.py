@@ -9,7 +9,7 @@ from typing import NamedTuple
 from revvy.utils.functions import retry
 from revvy.utils.stopwatch import Stopwatch
 
-crc7_table = [
+crc7_table = (
     0x00, 0x09, 0x12, 0x1b, 0x24, 0x2d, 0x36, 0x3f,
     0x48, 0x41, 0x5a, 0x53, 0x6c, 0x65, 0x7e, 0x77,
     0x19, 0x10, 0x0b, 0x02, 0x3d, 0x34, 0x2f, 0x26,
@@ -41,7 +41,7 @@ crc7_table = [
     0x17, 0x1e, 0x05, 0x0c, 0x33, 0x3a, 0x21, 0x28,
     0x5f, 0x56, 0x4d, 0x44, 0x7b, 0x72, 0x69, 0x60,
     0x0e, 0x07, 0x1c, 0x15, 0x2a, 0x23, 0x38, 0x31,
-    0x46, 0x4f, 0x54, 0x5d, 0x62, 0x6b, 0x70, 0x79]
+    0x46, 0x4f, 0x54, 0x5d, 0x62, 0x6b, 0x70, 0x79)
 
 
 def crc7(data, crc=0xFF):
@@ -50,7 +50,7 @@ def crc7(data, crc=0xFF):
     16
     """
     for b in data:
-        crc = crc7_table[(b ^ (crc << 1) & 0xFF)]
+        crc = crc7_table[b ^ ((crc << 1) & 0xFF)]
     return crc
 
 
@@ -79,26 +79,34 @@ class Command:
         pl[6:] = payload
 
         payload_checksum = binascii.crc_hqx(pl[6:], 0xFFFF)
-
+        high_byte, low_byte = divmod(payload_checksum, 256)  # get bytes of unsigned short
         # fill header
-        pl[0:5] = op, command, payload_length, *payload_checksum.to_bytes(2, byteorder='little')
+        pl[0:5] = op, command, payload_length, low_byte, high_byte
 
         # calculate header checksum
-        pl[5] = crc7(pl[0:5], 0xFF)
+        pl[5] = crc7(pl[0:5])
 
         return pl
 
-    @classmethod
-    def start(cls, command, payload: bytes):
-        return cls.create(cls.OpStart, command, payload)
+    @staticmethod
+    def start(command, payload: bytes):
+        """
+        >>> Command.start(2, b'')
+        bytearray(b'\\x00\\x02\\x00\\xff\\xffQ')
+        """
+        return Command.create(Command.OpStart, command, payload)
 
-    @classmethod
-    def get_result(cls, command):
-        return cls.create(cls.OpGetResult, command)
+    @staticmethod
+    def get_result(command):
+        """
+        >>> Command.get_result(2)
+        bytearray(b'\\x02\\x02\\x00\\xff\\xff=')
+        """
+        return Command.create(Command.OpGetResult, command)
 
-    @classmethod
-    def cancel(cls, command):
-        return cls.create(cls.OpCancel, command)
+    @staticmethod
+    def cancel(command):
+        return Command.create(Command.OpCancel, command)
 
 
 class ResponseStatus(Enum):

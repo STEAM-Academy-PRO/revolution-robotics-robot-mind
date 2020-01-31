@@ -4,6 +4,12 @@ from revvy.mcu.commands import *
 from revvy.mcu.rrrc_transport import RevvyTransport
 
 
+class RevvyTransportBase:
+    def create_bootloader_control(self) -> 'BootloaderControl': raise NotImplementedError()
+    def create_application_control(self) -> 'RevvyControl': raise NotImplementedError()
+    def close(self): raise NotImplementedError()
+
+
 class BootloaderControl:
     def __init__(self, transport: RevvyTransport):
         self.get_hardware_version = ReadHardwareVersionCommand(transport)
@@ -33,7 +39,7 @@ class RevvyControl:
         self.get_sensor_port_amount = ReadSensorPortAmountCommand(transport)
         self.get_sensor_port_types = ReadSensorPortTypesCommand(transport)
         self.set_sensor_port_type = SetSensorPortTypeCommand(transport)
-        self.set_sensor_port_config = SetSensorPortConfigCommand(transport)
+        self.write_sensor_port = WriteSensorPortCommand(transport)
         self.read_sensor_info = ReadSensorPortInfoCommand(transport)
 
         self.ring_led_get_scenario_types = ReadRingLedScenarioTypesCommand(transport)
