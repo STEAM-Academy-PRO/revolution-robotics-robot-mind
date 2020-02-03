@@ -5,19 +5,21 @@ class Motors:
     RevvyMotor = {
         'driver': 'DcMotor',
         'config': {
-            'speed_controller': [1 / 18, 0.5, 0, -200, 200],
-            'position_controller': [4, 0, 0, -600, 600],
-            'acceleration_limits': [14400, 3600],
-            'encoder_resolution': 1536
+            'speed_controller': [0.5, 0.3935, 0, -150, 150],
+            'position_controller': [0.125, 0.0001, 0, -150, 150],
+            'acceleration_limits': [500, 500],
+            'linearity': {0.5: 14, 4.6875: 16, 6.3477: 18, 7.8125: 20, 38.2813: 60, 99.3164: 100, 146.1914: 140},
+            'encoder_resolution': 3072
         }
     }
     RevvyMotor_CCW = {
         'driver': 'DcMotor',
         'config': {
-            'speed_controller': [1 / 18, 0.5, 0, -200, 200],
-            'position_controller': [4, 0, 0, -600, 600],
-            'acceleration_limits': [14400, 3600],
-            'encoder_resolution': -1536
+            'speed_controller': [0.5, 0.3935, 0, -150, 150],
+            'position_controller': [0.125, 0.0001, 0, -150, 150],
+            'acceleration_limits': [500, 500],
+            'linearity': {0.5: 14, 4.6875: 16, 6.3477: 18, 7.8125: 20, 38.2813: 60, 99.3164: 100, 146.1914: 140},
+            'encoder_resolution': -3072
         }
     }
 
