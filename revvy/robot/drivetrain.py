@@ -46,6 +46,8 @@ class TimeController(DrivetrainController):
 
 # noinspection PyProtectedMember
 class TurnController(DrivetrainController):
+    Kp = 1
+
     def __init__(self, drivetrain: 'DifferentialDrivetrain', turn_angle, wheel_speed=None, power_limit=None):
         super().__init__(drivetrain)
 
@@ -67,7 +69,7 @@ class TurnController(DrivetrainController):
                 self._awaiter.finish()
             else:
                 # Kp=10, saturate on max allowed wheel speed
-                p = clip(error * 10, -self._max_turn_wheel_speed, self._max_turn_wheel_speed)
+                p = clip(error * self.Kp, -self._max_turn_wheel_speed, self._max_turn_wheel_speed)
                 self._drivetrain._apply_speeds(-p, p, self._max_turn_power)
 
         elif self._last_yaw_change_time.elapsed > 3:
@@ -89,7 +91,7 @@ class MoveController(DrivetrainController):
 
 
 class DifferentialDrivetrain:
-    max_rpm = 150
+    max_rpm = 120
 
     def __init__(self, interface: RevvyControl, imu: IMU):
         self._interface = interface
