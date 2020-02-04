@@ -61,6 +61,9 @@ class NullMotor(PortDriver):
     def update_status(self, data):
         pass
 
+    def stop(self, _=MotorConstants.ACTION_RELEASE):
+        pass
+
 
 def motor_port_control_command(port_idx, *command_data):
     header = ((len(command_data) << 3) & 0xF8) | port_idx
