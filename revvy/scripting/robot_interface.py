@@ -5,7 +5,7 @@ from revvy.robot.configurations import Motors, Sensors
 from revvy.robot.led_ring import RingLed
 from revvy.robot.sound import Sound
 from revvy.scripting.resource import Resource
-from revvy.utils.functions import hex2rgb, rpm2dps
+from revvy.utils.functions import hex2rgb
 from revvy.robot.ports.common import PortInstance, PortCollection
 
 
@@ -176,10 +176,10 @@ class MotorPortWrapper(Wrapper):
             MotorConstants.UNIT_DEG: {
                 MotorConstants.UNIT_SPEED_RPM: {
                     MotorConstants.DIRECTION_FWD: lambda: self._motor.set_position(amount,
-                                                                                   speed_limit=rpm2dps(limit),
+                                                                                   speed_limit=limit,
                                                                                    pos_type='relative'),
                     MotorConstants.DIRECTION_BACK: lambda: self._motor.set_position(-amount,
-                                                                                    speed_limit=rpm2dps(limit),
+                                                                                    speed_limit=limit,
                                                                                     pos_type='relative'),
                 },
                 MotorConstants.UNIT_SPEED_PWR: {
@@ -192,8 +192,8 @@ class MotorPortWrapper(Wrapper):
 
             MotorConstants.UNIT_SEC: {
                 MotorConstants.UNIT_SPEED_RPM: {
-                    MotorConstants.DIRECTION_FWD: lambda: self._motor.set_speed(rpm2dps(limit)),
-                    MotorConstants.DIRECTION_BACK: lambda: self._motor.set_speed(rpm2dps(-limit)),
+                    MotorConstants.DIRECTION_FWD: lambda: self._motor.set_speed(limit),
+                    MotorConstants.DIRECTION_BACK: lambda: self._motor.set_speed(-limit),
                 },
                 MotorConstants.UNIT_SPEED_PWR: {
                     MotorConstants.DIRECTION_FWD: lambda: self._motor.set_power(limit),
@@ -228,8 +228,8 @@ class MotorPortWrapper(Wrapper):
         self.log("spin")
         set_speed_fns = {
             MotorConstants.UNIT_SPEED_RPM: {
-                MotorConstants.DIRECTION_FWD: lambda: self._motor.set_speed(rpm2dps(rotation)),
-                MotorConstants.DIRECTION_BACK: lambda: self._motor.set_speed(rpm2dps(-rotation))
+                MotorConstants.DIRECTION_FWD: lambda: self._motor.set_speed(rotation),
+                MotorConstants.DIRECTION_BACK: lambda: self._motor.set_speed(-rotation)
             },
             MotorConstants.UNIT_SPEED_PWR: {
                 MotorConstants.DIRECTION_FWD: lambda: self._motor.set_power(rotation),

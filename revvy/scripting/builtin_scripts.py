@@ -23,8 +23,8 @@ def drive(drivetrain_control: DriveTrainWrapper, channels, controller):
     sl, sr = controller(x, y)
 
     drivetrain_control.set_speeds(
-        map_values(sl, 0, 1, 0, 600),
-        map_values(sr, 0, 1, 0, 600))
+        map_values(sl, 0, 1, 0, 120),
+        map_values(sr, 0, 1, 0, 120))
 
 
 def drive_joystick(robot, channels, **_):

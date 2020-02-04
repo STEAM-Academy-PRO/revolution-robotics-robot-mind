@@ -136,12 +136,15 @@ class DcMotorController(PortDriver):
         (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = self._port_config['speed_controller']
         (decMax, accMax) = self._port_config['acceleration_limits']
 
-        config = (
+        config = [
             *struct.pack("<h", self._port_config['encoder_resolution']),
             *struct.pack("<5f", posP, posI, posD, speedLowerLimit, speedUpperLimit),
             *struct.pack("<5f", speedP, speedI, speedD, powerLowerLimit, powerUpperLimit),
             *struct.pack("<ff", decMax, accMax)
-        )
+        ]
+        for x, y in self._port_config.get('linearity', {}).items():
+            config += struct.pack('<ff', x, y)
+
         self._log(f'Sending configuration: {config}')
 
         self._configure(config)

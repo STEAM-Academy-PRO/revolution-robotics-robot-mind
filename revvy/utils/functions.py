@@ -200,13 +200,3 @@ def str_to_func(code):
     def wrapper(**kwargs):
         exec(code, kwargs)
     return wrapper
-
-
-def rpm2dps(rpm):
-    """
-    >>> rpm2dps(1)
-    6
-    >>> rpm2dps(60)
-    360
-    """
-    return rpm * 6

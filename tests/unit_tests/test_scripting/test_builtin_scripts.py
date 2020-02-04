@@ -5,7 +5,7 @@ from mock import Mock
 
 from revvy.scripting.builtin_scripts import drive_joystick, drive_2sticks
 
-max_speed = 600
+max_speed = 120
 
 
 def create_mock_robot():

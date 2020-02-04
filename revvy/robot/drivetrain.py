@@ -9,7 +9,7 @@ from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motor import MotorStatus
 from revvy.scripting.robot_interface import MotorConstants
 from revvy.utils.awaiter import AwaiterImpl, Awaiter
-from revvy.utils.functions import clip, rpm2dps
+from revvy.utils.functions import clip
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
 
@@ -46,6 +46,8 @@ class TimeController(DrivetrainController):
 
 # noinspection PyProtectedMember
 class TurnController(DrivetrainController):
+    Kp = 1
+
     def __init__(self, drivetrain: 'DifferentialDrivetrain', turn_angle, wheel_speed=None, power_limit=None):
         super().__init__(drivetrain)
 
@@ -67,7 +69,7 @@ class TurnController(DrivetrainController):
                 self._awaiter.finish()
             else:
                 # Kp=10, saturate on max allowed wheel speed
-                p = clip(error * 10, -self._max_turn_wheel_speed, self._max_turn_wheel_speed)
+                p = clip(error * self.Kp, -self._max_turn_wheel_speed, self._max_turn_wheel_speed)
                 self._drivetrain._apply_speeds(-p, p, self._max_turn_power)
 
         elif self._last_yaw_change_time.elapsed > 3:
@@ -89,7 +91,7 @@ class MoveController(DrivetrainController):
 
 
 class DifferentialDrivetrain:
-    max_rpm = 150
+    max_rpm = 120
 
     def __init__(self, interface: RevvyControl, imu: IMU):
         self._interface = interface
@@ -221,7 +223,7 @@ class DifferentialDrivetrain:
 
         power, speed = self._process_unit_speed(speed, unit_speed)
 
-        left_speed = right_speed = multipliers[direction] * rpm2dps(speed)
+        left_speed = right_speed = multipliers[direction] * speed
         self._apply_speeds(left_speed, right_speed, power)
 
     def drive(self, direction, rotation, unit_rotation, speed, unit_speed):
@@ -236,14 +238,14 @@ class DifferentialDrivetrain:
         power, speed = self._process_unit_speed(speed, unit_speed)
 
         if unit_rotation == MotorConstants.UNIT_SEC:
-            left_speed = right_speed = rpm2dps(speed) * multipliers[direction]
+            left_speed = right_speed = speed * multipliers[direction]
             self._apply_speeds(left_speed, right_speed, power_limit=power)
 
             self._controller = TimeController(self, timeout=rotation)
 
         elif unit_rotation == MotorConstants.UNIT_ROT:
             left = right = 360 * rotation * multipliers[direction]
-            left_speed = right_speed = rpm2dps(speed)
+            left_speed = right_speed = speed
 
             self._controller = MoveController(self, left, right, left_speed, right_speed, power)
         else:
@@ -264,7 +266,7 @@ class DifferentialDrivetrain:
 
         if unit_rotation == MotorConstants.UNIT_SEC:
 
-            right_speed = rpm2dps(speed) * multipliers[direction]
+            right_speed = speed * multipliers[direction]
             self._apply_speeds(-1 * right_speed, right_speed, power_limit=power)
 
             self._controller = TimeController(self, timeout=rotation)
@@ -273,7 +275,7 @@ class DifferentialDrivetrain:
 
             self._controller = TurnController(self,
                                               turn_angle=rotation * multipliers[direction],
-                                              wheel_speed=rpm2dps(speed),
+                                              wheel_speed=speed,
                                               power_limit=power)
             self._controller.update()
 
