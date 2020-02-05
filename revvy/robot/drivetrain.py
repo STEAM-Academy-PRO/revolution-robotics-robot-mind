@@ -162,8 +162,8 @@ class DifferentialDrivetrain:
         with suppress(ValueError):
             self._right_motors.remove(motor)
 
-    def _on_motor_status_changed(self, motor):
-        if motor.status == MotorStatus.BLOCKED:
+    def _on_motor_status_changed(self, _):
+        if all(m.status == MotorStatus.BLOCKED for m in self._motors):
             self._abort_controller()
         else:
             controller = self._controller
