@@ -32,7 +32,7 @@ class RobotStatusIndicator:
 
     BluetoothLeds = {
         RemoteControllerStatus.NotConnected: 0,
-        RemoteControllerStatus.ConnectedNoControl: 0,
+        RemoteControllerStatus.ConnectedNoControl: 1,
         RemoteControllerStatus.Controlled: 1
     }
 
