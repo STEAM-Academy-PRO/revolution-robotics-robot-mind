@@ -2,7 +2,7 @@
 import re
 
 
-version_re = re.compile('(?P<major>\\d+?)\\.(?P<minor>\\d+?)(\\.(?P<rev>\\d+))?(-.*?)?$')
+version_re = re.compile('(?P<major>\\d+?)\\.(?P<minor>\\d+?)(\\.(?P<rev>\\d+))?(-(?P<branch>.*?))?$')
 
 
 class FormatError(Exception):
@@ -14,8 +14,8 @@ class Version:
         """
         >>> Version('1.0.123')
         Version(1.0.123)
-        >>> Version('1.0-foobar') # optional tag is ignored
-        Version(1.0.0)
+        >>> Version('1.0-foobar')
+        Version(1.0.0-foobar)
         """
         match = version_re.match(ver_str)
         if not match:
@@ -23,7 +23,11 @@ class Version:
         self._major = int(match.group('major'))
         self._minor = int(match.group('minor'))
         self._rev = int(match.group('rev')) if match.group('rev') else 0
-        self._normalized = f'{self._major}.{self._minor}.{self._rev}'
+        self._branch = match.group('branch') or 'stable'
+        if self._branch == 'stable':
+            self._normalized = f'{self._major}.{self._minor}.{self._rev}'
+        else:
+            self._normalized = f'{self._major}.{self._minor}.{self._rev}-{self._branch}'
 
     @property
     def major(self):
@@ -48,6 +52,14 @@ class Version:
         45
         """
         return self._rev
+
+    @property
+    def branch(self):
+        """
+        >>> Version('2.3-foobranch').branch
+        'foobranch'
+        """
+        return self._branch
 
     def __le__(self, other):
         """
@@ -78,8 +90,10 @@ class Version:
         False
         >>> Version('1.0.0') == Version('2.0.0')
         False
+        >>> Version('1.0.0') == Version('1.0.0-dev')
+        False
         """
-        return self.compare(other) == 0
+        return self.compare(other) == 0 and self.branch == other.branch
 
     def __ne__(self, other):
         """
@@ -91,8 +105,10 @@ class Version:
         True
         >>> Version('1.0.0') != Version('2.0.0')
         True
+        >>> Version('1.0.0') != Version('1.0.0-dev')
+        True
         """
-        return self.compare(other) != 0
+        return not (self == other)
 
     def __lt__(self, other):
         """
@@ -180,6 +196,8 @@ class Version:
         """
         >>> str(Version('1.0'))
         '1.0.0'
+        >>> str(Version('1.0-dev'))
+        '1.0.0-dev'
         """
         return self._normalized
 
