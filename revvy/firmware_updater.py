@@ -58,14 +58,21 @@ class McuUpdater:
         except OSError:
             self._log('MCU restarted before finishing communication')
 
-    def is_update_needed(self, fw_version: Version):
+    def is_update_needed(self, fw_version: Version, fw_crc):
         """
         Compare firmware version to the currently running one
         """
         mode = self._read_operation_mode()
         if mode == McuOperationMode.APPLICATION:
             fw = self._robot.get_firmware_version()
-            return fw != fw_version  # allow downgrade as well
+            if fw != fw_version:  # allow downgrade as well
+                return True
+            elif fw_version.branch == 'stable':
+                return False  # avoid rebooting to bootloader on production robots
+            else:
+                self.reboot_to_bootloader()
+                crc = self._bootloader.read_firmware_crc()
+                return crc != fw_crc
         else:
             # in bootloader mode, probably no firmware, request update
             return True
@@ -83,10 +90,9 @@ class McuUpdater:
             mode = self._read_operation_mode()
             assert mode == McuOperationMode.BOOTLOADER
 
-    def upload_binary(self, data):
+    def upload_binary(self, checksum, data):
         self.reboot_to_bootloader()
 
-        checksum = binascii.crc32(data)
         self._log(f"Image info: size: {len(data)} checksum: {checksum}")
 
         # init update
@@ -103,10 +109,11 @@ class McuUpdater:
             self._bootloader.send_firmware(chunk)
         self._log(f'Data transfer took {round(self._stopwatch.elapsed, 1)} seconds')
 
-        self._finalize_update()
+    def finalize(self):
+        if self._read_operation_mode() == McuOperationMode.BOOTLOADER:
+            self._finalize_update()
 
-        # read operating mode - this should return only when application has started
-        assert self._read_operation_mode() == McuOperationMode.APPLICATION
+            assert self._read_operation_mode() == McuOperationMode.APPLICATION
 
 
 class FirmwareLoader:
@@ -153,10 +160,14 @@ def update_firmware(fw_dir, robot: Robot):
     try:
         try:
             fw_version, fw_binary = loader.get_firmware(robot.hw_version)
+            checksum = binascii.crc32(fw_binary)
 
             updater = McuUpdater(robot)
-            if updater.is_update_needed(fw_version):
-                updater.upload_binary(fw_binary)
+
+            if updater.is_update_needed(fw_version, checksum):
+                updater.upload_binary(checksum, fw_binary)
+
+            updater.finalize()
         except Exception:
             loader.log(traceback.format_exc())
             raise
