@@ -17,6 +17,7 @@ class BootloaderControl:
         self.send_init_update = InitializeUpdateCommand(transport)
         self.send_firmware = SendFirmwareCommand(transport)
         self.finalize_update = FinalizeUpdateCommand(transport)
+        self.read_firmware_crc = ReadFirmwareCrcCommand(transport)
 
 
 class RevvyControl:
