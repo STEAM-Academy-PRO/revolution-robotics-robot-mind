@@ -140,8 +140,10 @@ class DcMotorController(PortDriver):
         (decMax, accMax) = self._port_config['acceleration_limits']
         max_current = self._port_config['max_current']
 
+        resolution = self._port_config['encoder_resolution'] * self._port_config['gear_ratio']
+
         config = [
-            *struct.pack("<h", self._port_config['encoder_resolution']),
+            *struct.pack("<f", resolution),
             *struct.pack("<5f", posP, posI, posD, speedLowerLimit, speedUpperLimit),
             *struct.pack("<5f", speedP, speedI, speedD, powerLowerLimit, powerUpperLimit),
             *struct.pack("<ff", decMax, accMax),

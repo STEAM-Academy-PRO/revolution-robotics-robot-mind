@@ -45,4 +45,4 @@ class IMU:
         self._acceleration = self._read_vector(data, 0.061)
 
     def update_gyro_data(self, data):
-        self._rotation = self._read_vector(data, 0.035)
+        self._rotation = self._read_vector(data, 0.035*1.03)

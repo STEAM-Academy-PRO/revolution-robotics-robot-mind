@@ -57,7 +57,8 @@ class TestDcMotorDriver(unittest.TestCase):
         'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
         'position_controller': [10, 0, 0, -900, 900],
         'acceleration_limits': [10, 10],
-        'encoder_resolution':  1168,
+        'encoder_resolution':  12,
+        'gear_ratio': 64.8,
         'max_current': 1.0,
         'linearity': {0: 0, 1: 1}
     }
@@ -85,4 +86,4 @@ class TestDcMotorDriver(unittest.TestCase):
         (passed_port_id, passed_config) = port.interface.set_motor_port_config.call_args[0]
 
         self.assertEqual(3, passed_port_id)
-        self.assertEqual(70, len(passed_config))
+        self.assertEqual(56 + 2 * 8, len(passed_config))
