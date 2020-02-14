@@ -46,7 +46,7 @@ class TimeController(DrivetrainController):
 
 # noinspection PyProtectedMember
 class TurnController(DrivetrainController):
-    Kp = 1
+    Kp = 0.75
 
     def __init__(self, drivetrain: 'DifferentialDrivetrain', turn_angle, wheel_speed=None, power_limit=None):
         super().__init__(drivetrain)
