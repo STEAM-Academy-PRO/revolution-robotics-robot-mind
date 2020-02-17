@@ -19,7 +19,8 @@ from revvy.utils.error_handler import register_uncaught_exception_handler
 from revvy.utils.file_storage import FileStorage, MemoryStorage, StorageError
 from revvy.firmware_updater import update_firmware
 from revvy.utils.functions import get_serial, read_json, str_to_func
-from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType, LongMessageStatus
+from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType, LongMessageStatus, \
+    ReceivedLongMessage
 from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
 from revvy.utils.logger import get_logger
 from revvy.utils.version import Version
@@ -69,25 +70,28 @@ class LongMessageImplementation:
 
         self._log = get_logger("LongMessageImplementation")
 
-    def on_upload_started(self, message_type):
+    def on_upload_started(self, message: ReceivedLongMessage):
         """Visual indication that an upload has started
 
         Requests LED ring change in the background"""
 
+        message_type = message.message_type
         if message_type == LongMessageType.FRAMEWORK_DATA:
             self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.ColorWheel))
         else:
             self._robot.robot.status.robot_status = RobotStatus.Configuring
 
-    def on_transmission_finished(self, message_type):
+    def on_transmission_finished(self, message: ReceivedLongMessage):
         """Visual indication that an upload has finished
 
         Requests LED ring change in the background"""
 
+        message_type = message.message_type
         if message_type != LongMessageType.FRAMEWORK_DATA:
             self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.BreathingGreen))
 
-    def on_message_updated(self, storage, message_type):
+    def on_message_updated(self, storage, message: ReceivedLongMessage):
+        message_type = message.message_type
         self._log(f'Received message: {message_type}')
 
         if message_type == LongMessageType.TEST_KIT:

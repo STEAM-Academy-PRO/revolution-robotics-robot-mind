@@ -188,7 +188,7 @@ class LongMessageHandler:
         if self._status == LongMessageHandler.STATUS_WRITE:
             upload_finished_callback = self._upload_finished_callback
             if upload_finished_callback:
-                upload_finished_callback(long_message_type)
+                upload_finished_callback(self._current_message)
 
         self._log(f"select_long_message_type: {long_message_type}")
         LongMessageType.validate(long_message_type)
@@ -201,7 +201,7 @@ class LongMessageHandler:
         if self._status == LongMessageHandler.STATUS_WRITE:
             upload_finished_callback = self._upload_finished_callback
             if upload_finished_callback:
-                upload_finished_callback(self._long_message_type)
+                upload_finished_callback(self._current_message)
 
         if self._status == LongMessageHandler.STATUS_IDLE:
             raise LongMessageError("init-transfer needs to be called after select_long_message_type")
@@ -211,7 +211,7 @@ class LongMessageHandler:
 
         upload_started_callback = self._upload_started_callback
         if upload_started_callback:
-            upload_started_callback(self._long_message_type)
+            upload_started_callback(self._current_message)
 
     def upload_message(self, data):
         self._log(f"upload_message ({len(data)} bytes)")
@@ -235,16 +235,16 @@ class LongMessageHandler:
 
             # observer must take care of verifying that there is actually a message
             if updated_callback:
-                updated_callback(self._long_message_storage, self._long_message_type)
+                updated_callback(self._long_message_storage, self._current_message)
 
         elif self._status == LongMessageHandler.STATUS_WRITE:
             if upload_finished_callback:
-                upload_finished_callback(self._long_message_type)
+                upload_finished_callback(self._current_message)
 
             if self._current_message.is_valid:
                 self._long_message_storage.set_long_message(self._current_message)
                 if updated_callback:
-                    updated_callback(self._long_message_storage, self._long_message_type)
+                    updated_callback(self._long_message_storage, self._current_message)
                 self._status = LongMessageHandler.STATUS_READ
             else:
                 self._status = LongMessageHandler.STATUS_INVALID
