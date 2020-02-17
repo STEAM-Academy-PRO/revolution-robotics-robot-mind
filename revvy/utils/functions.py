@@ -172,7 +172,7 @@ def dict_get_first(dictionary: dict, keys: list):
 
 
 # noinspection SpellCheckingInspection
-def bytestr_hash(byte_str):
+def bytestr_hash(byte_str) -> str:
     hash_fn = hashlib.md5()
     hash_fn.update(byte_str)
     return hash_fn.hexdigest()
