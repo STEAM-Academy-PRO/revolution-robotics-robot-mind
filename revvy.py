@@ -77,15 +77,18 @@ class LongMessageImplementation:
 
         message_type = message.message_type
         if message_type == LongMessageType.FRAMEWORK_DATA:
-            if message.total_chunks == 0:
-                message.total_chunks = 1000
-
             self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.ColorWheel))
         else:
             self._robot.robot.status.robot_status = RobotStatus.Configuring
 
     def on_upload_progress(self, message: ReceivedLongMessage):
         """Indicate long message download progress"""
+        if message.total_chunks == 0:
+            # calculate approximate chunk count
+            expected_size = 250000
+            chunk_size = len(message.data) / message.received_chunks
+            message.total_chunks = expected_size / chunk_size
+
         if message.total_chunks != 0:
             self._log(f'Progress: {message.received_chunks}/{message.total_chunks}')
             progress = map_values(message.received_chunks, 0, message.total_chunks, 0, 12)
