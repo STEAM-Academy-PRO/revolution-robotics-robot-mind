@@ -77,6 +77,9 @@ class LongMessageImplementation:
 
         message_type = message.message_type
         if message_type == LongMessageType.FRAMEWORK_DATA:
+            if message.total_chunks == 0:
+                message.total_chunks = 1000
+
             self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.ColorWheel))
         else:
             self._robot.robot.status.robot_status = RobotStatus.Configuring
@@ -95,7 +98,11 @@ class LongMessageImplementation:
         Requests LED ring change in the background"""
 
         message_type = message.message_type
-        if message_type != LongMessageType.FRAMEWORK_DATA:
+        if message_type == LongMessageType.FRAMEWORK_DATA:
+            if not message.is_valid:
+                self._log('Firmware update cancelled')
+                self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.BreathingGreen))
+        else:
             self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.BreathingGreen))
 
     def on_message_updated(self, storage, message: ReceivedLongMessage):
