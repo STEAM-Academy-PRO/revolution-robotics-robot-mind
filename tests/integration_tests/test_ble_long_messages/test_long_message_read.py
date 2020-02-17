@@ -4,7 +4,7 @@ import hashlib
 import unittest
 
 from revvy.bluetooth.longmessage import LongMessageStorage, LongMessageHandler, LongMessageProtocol, bytes2hexdigest, \
-    MessageType
+    MessageType, LongMessageType, LongMessageStatus
 from revvy.utils.file_storage import MemoryStorage
 
 
@@ -52,3 +52,39 @@ class TestLongMessageRead(unittest.TestCase):
         ble.handle_write(0, [2])  # select long message 2
         ble.handle_write(1, bytes([0]*16))  # init
         self.assertEqual(LongMessageProtocol.RESULT_SUCCESS, ble.handle_write(MessageType.UPLOAD_MESSAGE, bytes([2])))
+
+    def test_upload_is_only_valid_if_chunk_count_matches_expected(self):
+        storage = LongMessageStorage(MemoryStorage(), MemoryStorage())
+        chunks = [b'12345', b'1234568', b'98765432']
+
+        checksum = hashlib.md5()
+        for chunk in chunks:
+            checksum.update(chunk)
+
+        expected_md5 = checksum.hexdigest()
+
+        handler = LongMessageHandler(storage)
+        handler.select_long_message_type(LongMessageType.FIRMWARE_DATA)
+
+        def run_update():
+            for chunk in chunks:
+                handler.upload_message(chunk)
+            handler.finalize_message()
+
+            return handler.read_status()
+
+        handler.init_transfer(expected_md5, len(chunks))
+        status = run_update()
+        self.assertEqual(LongMessageStatus.READY, status.status)
+
+        handler.init_transfer(expected_md5, 0)
+        status = run_update()
+        self.assertEqual(LongMessageStatus.READY, status.status)
+
+        handler.init_transfer(expected_md5, len(chunks)+1)
+        status = run_update()
+        self.assertEqual(LongMessageStatus.VALIDATION_ERROR, status.status)
+
+        handler.init_transfer(expected_md5, len(chunks)-1)
+        status = run_update()
+        self.assertEqual(LongMessageStatus.VALIDATION_ERROR, status.status)
