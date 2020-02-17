@@ -66,25 +66,18 @@ class TestLongMessageRead(unittest.TestCase):
         handler = LongMessageHandler(storage)
         handler.select_long_message_type(LongMessageType.FIRMWARE_DATA)
 
-        def run_update():
+        expectations = (
+            (len(chunks), LongMessageStatus.READY),
+            (0, LongMessageStatus.READY),
+            (len(chunks)-1, LongMessageStatus.VALIDATION_ERROR),
+            (len(chunks)+1, LongMessageStatus.VALIDATION_ERROR)
+        )
+
+        for length, expected_status in expectations:
+            handler.init_transfer(expected_md5, length)
             for chunk in chunks:
                 handler.upload_message(chunk)
             handler.finalize_message()
 
-            return handler.read_status()
-
-        handler.init_transfer(expected_md5, len(chunks))
-        status = run_update()
-        self.assertEqual(LongMessageStatus.READY, status.status)
-
-        handler.init_transfer(expected_md5, 0)
-        status = run_update()
-        self.assertEqual(LongMessageStatus.READY, status.status)
-
-        handler.init_transfer(expected_md5, len(chunks)+1)
-        status = run_update()
-        self.assertEqual(LongMessageStatus.VALIDATION_ERROR, status.status)
-
-        handler.init_transfer(expected_md5, len(chunks)-1)
-        status = run_update()
-        self.assertEqual(LongMessageStatus.VALIDATION_ERROR, status.status)
+            status = handler.read_status()
+            self.assertEqual(expected_status, status.status)
