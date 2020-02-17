@@ -86,19 +86,26 @@ class LongMessageError(Exception):
 class ReceivedLongMessage:
     """Helper class for building long messages"""
 
-    def __init__(self, message_type, md5: str):
+    def __init__(self, message_type, md5: str, size=0):
         self.message_type = message_type
         self.md5 = md5
+        self.total_chunks = size
+        self.received_chunks = 0
         self.data = bytearray()
         self._md5calc = hashlib.md5()
 
     def append_data(self, data):
+        self.received_chunks += 1
         self.data += data
         self._md5calc.update(data)
 
     @property
     def is_valid(self):
         """Returns true if the uploaded data matches the predefined md5 checksum."""
+        if self.total_chunks != 0:
+            if self.received_chunks != self.total_chunks:
+                return False
+
         md5computed = self._md5calc.hexdigest()
 
         return md5computed == self.md5
@@ -154,6 +161,7 @@ class LongMessageHandler:
         self._current_message = None
         self._message_updated_callback = None
         self._upload_started_callback = None
+        self._upload_progress_callback = None
         self._upload_finished_callback = None
         self._log = get_logger('LongMessageHandler')
 
@@ -162,6 +170,9 @@ class LongMessageHandler:
 
     def on_upload_started(self, callback):
         self._upload_started_callback = callback
+
+    def on_upload_progress(self, callback):
+        self._upload_progress_callback = callback
 
     def on_upload_finished(self, callback):
         self._upload_finished_callback = callback
@@ -195,7 +206,7 @@ class LongMessageHandler:
         self._long_message_type = long_message_type
         self._status = LongMessageHandler.STATUS_READ
 
-    def init_transfer(self, md5: str):
+    def init_transfer(self, md5: str, size=0):
         self._log("init_transfer")
 
         if self._status == LongMessageHandler.STATUS_WRITE:
@@ -207,7 +218,7 @@ class LongMessageHandler:
             raise LongMessageError("init-transfer needs to be called after select_long_message_type")
 
         self._status = LongMessageHandler.STATUS_WRITE
-        self._current_message = ReceivedLongMessage(self._long_message_type, md5)
+        self._current_message = ReceivedLongMessage(self._long_message_type, md5, size)
 
         upload_started_callback = self._upload_started_callback
         if upload_started_callback:
@@ -220,6 +231,9 @@ class LongMessageHandler:
             raise LongMessageError("init-transfer needs to be called before upload_message")
 
         self._current_message.append_data(data)
+        upload_progress_callback = self._upload_progress_callback
+        if upload_progress_callback:
+            upload_progress_callback(self._current_message)
 
     def finalize_message(self):
         self._log("finalize_message")
@@ -285,7 +299,10 @@ class LongMessageProtocol:
 
         elif header == MessageType.INIT_TRANSFER:
             if len(data) == 16:
-                self._handler.init_transfer(bytes2hexdigest(data))
+                self._handler.init_transfer(bytes2hexdigest(data), 0)
+                result = LongMessageProtocol.RESULT_SUCCESS
+            elif len(data) == 20:
+                self._handler.init_transfer(bytes2hexdigest(data[0:16]), int.from_bytes(data[16:20], byteorder='big'))
                 result = LongMessageProtocol.RESULT_SUCCESS
             else:
                 result = LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH

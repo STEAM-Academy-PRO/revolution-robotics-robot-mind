@@ -18,7 +18,7 @@ from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
 from revvy.utils.error_handler import register_uncaught_exception_handler
 from revvy.utils.file_storage import FileStorage, MemoryStorage, StorageError
 from revvy.firmware_updater import update_firmware
-from revvy.utils.functions import get_serial, read_json, str_to_func
+from revvy.utils.functions import get_serial, read_json, str_to_func, map_values
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType, LongMessageStatus, \
     ReceivedLongMessage
 from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
@@ -80,6 +80,14 @@ class LongMessageImplementation:
             self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.ColorWheel))
         else:
             self._robot.robot.status.robot_status = RobotStatus.Configuring
+
+    def on_upload_progress(self, message: ReceivedLongMessage):
+        """Indicate long message download progress"""
+        if message.total_chunks != 0:
+            self._log(f'Progress: {message.received_chunks}/{message.total_chunks}')
+            progress = map_values(message.received_chunks, 0, message.total_chunks, 0, 12)
+            leds = [0x00FF00 if led < progress else 0 for led in range(12)]
+            self._robot.run_in_background(partial(self._robot.robot.led.display_user_frame, leds))
 
     def on_transmission_finished(self, message: ReceivedLongMessage):
         """Visual indication that an upload has finished
@@ -188,6 +196,7 @@ if __name__ == "__main__":
 
         lmi = LongMessageImplementation(robot_manager, writeable_assets_dir, False)
         long_message_handler.on_upload_started(lmi.on_upload_started)
+        long_message_handler.on_upload_progress(lmi.on_upload_progress)
         long_message_handler.on_upload_finished(lmi.on_transmission_finished)
         long_message_handler.on_message_updated(lmi.on_message_updated)
 
