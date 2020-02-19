@@ -52,21 +52,19 @@ def format_error(error, installed_fw: Version, only_current=False):
 
             cfsr_reasons = parse_cfsr(cfsr)
             if cfsr_reasons:
-                details_str += "\n\tReasons:"
-                for reason in cfsr_reasons:
-                    details_str += "\n\t\t" + reason
+                details_str += "\n\tReasons:" + "\n\t\t".join(cfsr_reasons)
 
         elif error_id == ErrorType.StackOverflow:
             task = bytes(error_data).decode("utf-8")
-            details_str = '\nTask: {}'.format(task)
+            details_str = f'\nTask: {task}'
 
         elif error_id == ErrorType.AssertFailure:
             line = int.from_bytes(error_data[0:4], byteorder='little')
             file = bytes(error_data[4:]).decode("utf-8")
-            details_str = '\nFile: {}, Line: {}'.format(file, line)
+            details_str = f'\nFile: {file}, Line: {line}'
 
         elif error_id == ErrorType.TestError:
-            details_str = '\nData: {}'.format(error_data)
+            details_str = f'\nData: {error_data}'
 
         elif error_id == ErrorType.ImuError:
             details_str = ''
@@ -96,7 +94,7 @@ def format_error(error, installed_fw: Version, only_current=False):
 
     except Exception:
         traceback.print_exc()
-        return 'Error during processing\nRaw data: {}'.format(error)
+        return f'Error during processing\nRaw data: {error}'
 
 
 if __name__ == "__main__":
@@ -114,7 +112,7 @@ if __name__ == "__main__":
 
         current_hw_version = robot_control.get_hardware_version()
         current_fw_version = robot_control.get_firmware_version()
-        print('Current version numbers: HW: {} FW: {}'.format(current_fw_version, current_fw_version))
+        print(f'Current version numbers: HW: {current_fw_version} FW: {current_fw_version}')
 
         if args.inject_test_error:
             print('Recording a test error')
@@ -129,7 +127,7 @@ if __name__ == "__main__":
         elif error_count == 1:
             print('There is one error stored')
         else:
-            print('There are {} errors stored'.format(error_count))
+            print(f'There are {error_count} errors stored')
 
         remaining = error_count
         i = 0
@@ -145,7 +143,7 @@ if __name__ == "__main__":
                 formatted_error = format_error(error_entry, current_fw_version, only_current=args.only_current)
                 if formatted_error is not None:
                     print('----------------------------------------')
-                    print('Error {}'.format(i))
+                    print(f'Error {i}')
                     print(formatted_error)
                 i += 1
 
