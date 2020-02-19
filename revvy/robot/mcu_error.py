@@ -1,5 +1,16 @@
+from enum import Enum
+
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.logger import get_logger
+
+
+class ErrorType(Enum):
+    HardFault = 0
+    StackOverflow = 1
+    AssertFailure = 2
+    TestError = 3
+    ImuError = 4
+    I2CError = 5
 
 
 class McuErrorReader:
@@ -11,4 +22,3 @@ class McuErrorReader:
     @property
     def count(self):
         return self._count
-

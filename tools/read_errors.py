@@ -1,20 +1,12 @@
 #!/usr/bin/python3
 # SPDX-License-Identifier: GPL-3.0-only
 import argparse
-import enum
 import traceback
 
+from revvy.robot.mcu_error import ErrorType, McuErrorReader
 from revvy.robot.robot import Robot
 from revvy.utils.version import Version
 from tools.utils import parse_cfsr
-
-
-class ErrorType(enum.IntEnum):
-    HardFault = 0
-    StackOverflow = 1
-    AssertFailure = 2
-    TestError = 3
-    ImuError = 4
 
 
 hw_formats = {
@@ -128,8 +120,10 @@ if __name__ == "__main__":
             print('Recording a test error')
             robot_control.error_memory_test()
 
+        error_reader = McuErrorReader(robot_control)
+
         # read errors
-        error_count = robot_control.error_memory_read_count()
+        error_count = error_reader.count
         if error_count == 0:
             print('There are no errors stored')
         elif error_count == 1:
