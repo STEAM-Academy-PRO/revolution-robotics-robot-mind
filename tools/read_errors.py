@@ -129,25 +129,12 @@ if __name__ == "__main__":
         else:
             print(f'There are {error_count} errors stored')
 
-        remaining = error_count
-        i = 0
-        while remaining > 0:
-            errors = robot_control.error_memory_read_errors(i)
-            if len(errors) == 0:
-                print('0 errors returned, exiting')
-                break
-
-            remaining -= len(errors)
-
-            for error_entry in errors:
-                formatted_error = format_error(error_entry, current_fw_version, only_current=args.only_current)
-                if formatted_error is not None:
-                    print('----------------------------------------')
-                    print(f'Error {i}')
-                    print(formatted_error)
-                i += 1
+        for i, error_entry in enumerate(error_reader.read_all()):
+            formatted_error = format_error(error_entry, current_fw_version, only_current=args.only_current)
+            if formatted_error is not None:
+                print('----------------------------------------')
+                print(f'Error {i}')
+                print(formatted_error)
 
         if args.clear:
-            print('Clearing error memory...')
-            robot_control.error_memory_clear()
-            print('Error memory cleared')
+            error_reader.clear()
