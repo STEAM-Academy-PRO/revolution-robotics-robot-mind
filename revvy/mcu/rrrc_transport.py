@@ -144,7 +144,7 @@ class ResponseHeader(NamedTuple):
             if crc7(header_bytes) != data[4]:
                 raise ValueError('Header checksum mismatch')
 
-            status, _payload_length, _payload_checksum = struct.unpack('<bbH', header_bytes)
+            status, _payload_length, _payload_checksum = struct.unpack('<BBH', header_bytes)
             return ResponseHeader(status=ResponseStatus(status),
                                   payload_length=_payload_length,
                                   payload_checksum=_payload_checksum,
