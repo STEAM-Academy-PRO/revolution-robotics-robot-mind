@@ -34,12 +34,12 @@ exception_names = [
 def format_error(error, installed_fw: Version, only_current=False):
     # noinspection PyBroadException
     try:
-        error_id = error[0]
+        error_type = ErrorType(error[0])
         hw_version = error[1:5]
         fw_version = error[5:9]
         error_data = error[9:]
 
-        if error_id == ErrorType.HardFault:
+        if error_type == ErrorType.HardFault:
             pc = int.from_bytes(error_data[0:4], byteorder='little')
             psr = int.from_bytes(error_data[4:8], byteorder='little')
             lr = int.from_bytes(error_data[8:12], byteorder='little')
@@ -54,23 +54,23 @@ def format_error(error, installed_fw: Version, only_current=False):
             if cfsr_reasons:
                 details_str += "\n\tReasons:" + "\n\t\t".join(cfsr_reasons)
 
-        elif error_id == ErrorType.StackOverflow:
+        elif error_type == ErrorType.StackOverflow:
             task = bytes(error_data).decode("utf-8")
             details_str = f'\nTask: {task}'
 
-        elif error_id == ErrorType.AssertFailure:
+        elif error_type == ErrorType.AssertFailure:
             line = int.from_bytes(error_data[0:4], byteorder='little')
             file = bytes(error_data[4:]).decode("utf-8")
             details_str = f'\nFile: {file}, Line: {line}'
 
-        elif error_id == ErrorType.TestError:
+        elif error_type == ErrorType.TestError:
             details_str = f'\nData: {error_data}'
 
-        elif error_id == ErrorType.ImuError:
+        elif error_type == ErrorType.ImuError:
             details_str = ''
 
         else:
-            details_str = '\nData: {}'.format(error_data)
+            details_str = f'\nData: {error_data}'
 
         hw = int.from_bytes(hw_version, byteorder='little')
         fw = int.from_bytes(fw_version, byteorder='little')
@@ -79,7 +79,7 @@ def format_error(error, installed_fw: Version, only_current=False):
         fw_str = fw_formats[hw].format(fw)
 
         try:
-            exception_name = exception_names[error_id]
+            exception_name = exception_names[error_type.value]
         except IndexError:
             exception_name = 'Unknown error'
 
@@ -90,7 +90,7 @@ def format_error(error, installed_fw: Version, only_current=False):
         else:
             return None
 
-        return error_template.format(exception_name, error_id, hw_str, fw_str, details_str)
+        return error_template.format(exception_name, error_type.value, hw_str, fw_str, details_str)
 
     except Exception:
         traceback.print_exc()
