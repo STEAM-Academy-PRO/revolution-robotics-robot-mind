@@ -112,7 +112,7 @@ if __name__ == "__main__":
 
         current_hw_version = robot_control.get_hardware_version()
         current_fw_version = robot_control.get_firmware_version()
-        print(f'Current version numbers: HW: {current_fw_version} FW: {current_fw_version}')
+        print(f'Current version numbers: HW: {current_hw_version} FW: {current_fw_version}')
 
         if args.inject_test_error:
             print('Recording a test error')
