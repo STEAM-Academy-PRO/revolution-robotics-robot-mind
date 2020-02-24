@@ -106,7 +106,8 @@ class LongMessageImplementation:
                 self._log('Firmware update cancelled')
                 self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.BreathingGreen))
         else:
-            self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.BreathingGreen))
+            # don't schedule on background, the robot will be restarted before setting the LEDs
+            self._robot.robot.led.start_animation(RingLed.ColorWheel)
 
     def on_message_updated(self, storage, message: ReceivedLongMessage):
         message_type = message.message_type
