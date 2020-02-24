@@ -76,10 +76,14 @@ class Command:
             raise ValueError(f'Payload is too long ({payload_length} bytes, 255 allowed)')
 
         pl = bytearray(6 + payload_length)
-        pl[6:] = payload
 
-        payload_checksum = binascii.crc_hqx(pl[6:], 0xFFFF)
-        high_byte, low_byte = divmod(payload_checksum, 256)  # get bytes of unsigned short
+        if payload:
+            pl[6:] = payload
+            payload_checksum = binascii.crc_hqx(pl[6:], 0xFFFF)
+            high_byte, low_byte = divmod(payload_checksum, 256)  # get bytes of unsigned short
+        else:
+            high_byte = low_byte = 0xFF
+
         # fill header
         pl[0:5] = op, command, payload_length, low_byte, high_byte
 
@@ -135,19 +139,18 @@ class ResponseHeader(NamedTuple):
 
     @staticmethod
     def create(data: bytes):
-        if len(data) < 5:
-            raise ValueError('Header too short')
+        try:
+            header_bytes = data[0:4]
+            if crc7(header_bytes) != data[4]:
+                raise ValueError('Header checksum mismatch')
 
-        header_bytes = data[0:4]
-        checksum = crc7(header_bytes)
-        if checksum != data[4]:
-            raise ValueError('Header checksum mismatch')
-
-        status, _payload_length, _payload_checksum = struct.unpack('<bbH', header_bytes)
-        return ResponseHeader(status=ResponseStatus(status),
-                              payload_length=_payload_length,
-                              payload_checksum=_payload_checksum,
-                              raw=header_bytes)
+            status, _payload_length, _payload_checksum = struct.unpack('<BBH', header_bytes)
+            return ResponseHeader(status=ResponseStatus(status),
+                                  payload_length=_payload_length,
+                                  payload_checksum=_payload_checksum,
+                                  raw=header_bytes)
+        except IndexError as e:
+            raise ValueError('Header too short') from e
 
     def validate_payload(self, payload):
         return self.payload_checksum == binascii.crc_hqx(payload, 0xFFFF)

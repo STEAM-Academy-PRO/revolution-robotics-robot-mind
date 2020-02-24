@@ -305,6 +305,14 @@ class ErrorMemory_TestError(Command):
 
 
 # Bootloader-specific commands:
+class ReadFirmwareCrcCommand(Command):
+    @property
+    def command_id(self): return 0x07
+
+    def parse_response(self, payload):
+        return int.from_bytes(payload, byteorder="little")
+
+
 class InitializeUpdateCommand(Command):
     @property
     def command_id(self): return 0x08

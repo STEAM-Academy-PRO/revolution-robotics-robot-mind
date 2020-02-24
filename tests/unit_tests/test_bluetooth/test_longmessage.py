@@ -5,7 +5,8 @@ import unittest
 from mock import Mock, patch
 
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageError, LongMessageType, LongMessageStatusInfo, \
-    LongMessageStatus
+    LongMessageStatus, hexdigest2bytes, UnusedLongMessageStatusInfo
+from revvy.utils.functions import bytestr_hash
 
 
 class TestLongMessageHandler(unittest.TestCase):
@@ -37,7 +38,7 @@ class TestLongMessageHandler(unittest.TestCase):
     def test_reading_not_uploaded_message_returns_unused_status(self):
         storage = Mock()
 
-        storage.read_status = Mock(return_value=LongMessageStatusInfo(LongMessageStatus.UNUSED, None, None))
+        storage.read_status = Mock(return_value=UnusedLongMessageStatusInfo)
         storage.set_long_message = Mock()
         storage.get_long_message = Mock()
 
@@ -52,7 +53,7 @@ class TestLongMessageHandler(unittest.TestCase):
     def test_reading_previously_uploaded_message_returns_ready_and_metadata(self):
         storage = Mock()
 
-        storage.read_status = Mock(return_value=LongMessageStatusInfo(LongMessageStatus.READY, 'md5hash', 123))
+        storage.read_status = Mock(return_value=LongMessageStatusInfo(LongMessageStatus.READY, b'md5hash', 123))
         storage.set_long_message = Mock()
         storage.get_long_message = Mock()
 
@@ -63,34 +64,37 @@ class TestLongMessageHandler(unittest.TestCase):
                 handler.select_long_message_type(mt)
                 status = handler.read_status()
                 self.assertEqual(LongMessageStatus.READY, status.status)
-                self.assertEqual('md5hash', status.md5)
+                self.assertEqual(b'md5hash', status.md5)
                 self.assertEqual(123, status.length)
 
     def test_reading_during_upload_returns_md5_and_current_length_of_new_message(self):
         storage = Mock()
+        new_md5 = bytestr_hash(b'new_md5')
+        new_md5_bytes = hexdigest2bytes(new_md5)
 
         handler = LongMessageHandler(storage)
 
         for mt in self.known_message_types:
             with self.subTest(mt=mt):
                 handler.select_long_message_type(mt)
-                handler.init_transfer('new_md5')
+
+                handler.init_transfer(new_md5)
                 handler.upload_message(b'12345')
                 status = handler.read_status()
                 self.assertEqual(LongMessageStatus.UPLOAD, status.status)
-                self.assertEqual('new_md5', status.md5)
+                self.assertEqual(new_md5_bytes, status.md5)
                 self.assertEqual(5, status.length)
 
                 handler.upload_message(b'67890')
                 status = handler.read_status()
                 self.assertEqual(LongMessageStatus.UPLOAD, status.status)
-                self.assertEqual('new_md5', status.md5)
+                self.assertEqual(new_md5_bytes, status.md5)
                 self.assertEqual(10, status.length)
 
     @patch('hashlib.md5', new_callable=Mock)
     def test_finalize_validates_and_stores_uploaded_message(self, mock_hash):
         storage = Mock()
-        storage.read_status = Mock(return_value=LongMessageStatusInfo(LongMessageStatus.READY, 'new_md5', 123))
+        storage.read_status = Mock(return_value=LongMessageStatusInfo(LongMessageStatus.READY, b'new_md5', 123))
         storage.set_long_message = Mock()
 
         mock_hash.return_value = mock_hash
@@ -104,7 +108,7 @@ class TestLongMessageHandler(unittest.TestCase):
             mock_hash.reset_mock()
 
             mock_hash.hexdigest.return_value = 'invalid_md5'
-            with self.subTest(mt='invalid ({})'.format(mt)):
+            with self.subTest(mt=f'invalid ({mt})'):
                 handler.select_long_message_type(mt)
                 handler.init_transfer('new_md5')
                 self.assertEqual(1, mock_hash.call_count)
@@ -127,7 +131,7 @@ class TestLongMessageHandler(unittest.TestCase):
             storage.reset_mock()
 
             mock_hash.hexdigest.return_value = 'new_md5'
-            with self.subTest(mt='valid ({})'.format(mt)):
+            with self.subTest(mt=f'valid ({mt})'):
                 handler.select_long_message_type(mt)
                 handler.init_transfer('new_md5')
                 self.assertEqual(1, mock_hash.call_count)
@@ -148,7 +152,7 @@ class TestLongMessageHandler(unittest.TestCase):
     @patch('hashlib.md5', new_callable=Mock)
     def test_finalize_notifies_about_valid_message(self, mock_hash):
         storage = Mock()
-        storage.read_status = Mock(return_value=LongMessageStatusInfo(LongMessageStatus.READY, 'new_md5', 123))
+        storage.read_status = Mock(return_value=LongMessageStatusInfo(LongMessageStatus.READY, b'new_md5', 123))
 
         mock_hash.return_value = mock_hash
         mock_hash.update = Mock()
@@ -164,7 +168,7 @@ class TestLongMessageHandler(unittest.TestCase):
             mock_hash.reset_mock()
 
             mock_hash.hexdigest.return_value = 'invalid_md5'
-            with self.subTest(mt='invalid ({})'.format(mt)):
+            with self.subTest(mt=f'invalid ({mt})'):
                 handler.select_long_message_type(mt)
                 handler.init_transfer('new_md5')
                 handler.upload_message(b'12345')
@@ -177,7 +181,7 @@ class TestLongMessageHandler(unittest.TestCase):
             mock_callback.reset_mock()
 
             mock_hash.hexdigest.return_value = 'new_md5'
-            with self.subTest(mt='valid ({})'.format(mt)):
+            with self.subTest(mt=f'valid ({mt})'):
                 handler.select_long_message_type(mt)
                 handler.init_transfer('new_md5')
                 handler.upload_message(b'12345')
@@ -187,7 +191,7 @@ class TestLongMessageHandler(unittest.TestCase):
 
     def test_finalize_notifies_for_already_stored_message_without_upload(self):
         storage = Mock()
-        storage.read_status = Mock(return_value=LongMessageStatusInfo(LongMessageStatus.READY, 'new_md5', 123))
+        storage.read_status = Mock(return_value=LongMessageStatusInfo(LongMessageStatus.READY, b'new_md5', 123))
         storage.set_long_message = Mock()
 
         mock_callback = Mock()
