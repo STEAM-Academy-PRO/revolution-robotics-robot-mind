@@ -2,8 +2,8 @@
 
 import os
 import json
-from collections import namedtuple
 from json import JSONDecodeError
+from typing import NamedTuple
 
 from revvy.utils.functions import bytestr_hash, read_json
 from revvy.utils.logger import get_logger
@@ -27,7 +27,10 @@ class StorageInterface:
     def read(self, filename): raise NotImplementedError
 
 
-MemoryStorageItem = namedtuple('MemoryStorageItem', ['md5', 'data', 'meta'])
+class MemoryStorageItem(NamedTuple):
+    md5: str
+    data: bytes
+    meta: dict
 
 
 class MemoryStorage(StorageInterface):

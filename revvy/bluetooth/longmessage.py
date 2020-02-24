@@ -10,6 +10,10 @@ from revvy.utils.functions import split
 from revvy.utils.logger import get_logger
 
 
+def hex2byte(h):
+    return int(h, 16)
+
+
 def hexdigest2bytes(hexdigest):
     """
     >>> hexdigest2bytes("aabbcc")
@@ -19,8 +23,6 @@ def hexdigest2bytes(hexdigest):
     >>> hexdigest2bytes("ABCD0F")
     b'\\xab\\xcd\\x0f'
     """
-    def hex2byte(h):
-        return int(h, 16)
     return bytes(map(hex2byte, split(hexdigest, 2)))
 
 
@@ -50,6 +52,10 @@ class LongMessageStatusInfo(NamedTuple):
     length: int
 
 
+UnusedLongMessageStatusInfo = LongMessageStatusInfo(LongMessageStatus.UNUSED, b'', 0)
+ValidationErrorLongMessageStatusInfo = LongMessageStatusInfo(LongMessageStatus.VALIDATION_ERROR, b'', 0)
+
+
 class LongMessageType:
     FIRMWARE_DATA = 1
     FRAMEWORK_DATA = 2
@@ -77,6 +83,35 @@ class LongMessageError(Exception):
     pass
 
 
+class ReceivedLongMessage:
+    """Helper class for building long messages"""
+
+    def __init__(self, message_type, md5: str, size=0):
+        self.message_type = message_type
+        self.md5 = md5
+        self.total_chunks = size
+        self.received_chunks = 0
+        self.data = bytearray()
+        self._md5calc = hashlib.md5()
+        self._size_known = size != 0
+
+    def append_data(self, data):
+        self.received_chunks += 1
+        self.data += data
+        self._md5calc.update(data)
+
+    @property
+    def is_valid(self):
+        """Returns true if the uploaded data matches the predefined md5 checksum."""
+        if self._size_known:
+            if self.received_chunks != self.total_chunks:
+                return False
+
+        md5computed = self._md5calc.hexdigest()
+
+        return md5computed == self.md5
+
+
 class LongMessageStorage:
     """Store long messages using the given storage class, with extra validation"""
 
@@ -88,7 +123,7 @@ class LongMessageStorage:
     def _get_storage(self, message_type):
         return self._storage if message_type in LongMessageType.PermanentMessages else self._temp_storage
 
-    def read_status(self, long_message_type):
+    def read_status(self, long_message_type) -> LongMessageStatusInfo:
         """Return status with triplet of (LongMessageStatus, md5-hexdigest, length). Last two fields might be None)."""
         self._log("read_status")
         LongMessageType.validate(long_message_type)
@@ -96,38 +131,20 @@ class LongMessageStorage:
             storage = self._get_storage(long_message_type)
             data = storage.read_metadata(long_message_type)
             return LongMessageStatusInfo(LongMessageStatus.READY, hexdigest2bytes(data['md5']), data['length'])
-        except (StorageError, JSONDecodeError):
-            return LongMessageStatusInfo(LongMessageStatus.UNUSED, b'', 0)
 
-    def set_long_message(self, long_message_type, data, md5):
+        except (StorageError, JSONDecodeError):
+            return UnusedLongMessageStatusInfo
+
+    def set_long_message(self, message: ReceivedLongMessage):
         self._log("set_long_message")
-        LongMessageType.validate(long_message_type)
-        storage = self._get_storage(long_message_type)
-        storage.write(long_message_type, data, md5=md5)
+        LongMessageType.validate(message.message_type)
+        storage = self._get_storage(message.message_type)
+        storage.write(message.message_type, message.data, md5=message.md5)
 
     def get_long_message(self, long_message_type):
         self._log("get_long_message")
         storage = self._get_storage(long_message_type)
         return storage.read(long_message_type)
-
-
-class LongMessageAggregator:
-    """Helper class for building long messages"""
-
-    def __init__(self, md5):
-        self.md5 = md5
-        self.data = bytearray()
-        self._md5calc = hashlib.md5()
-
-    def append_data(self, data):
-        self.data += data
-        self._md5calc.update(data)
-
-    def finalize(self):
-        """Returns true if the uploaded data matches the predefined md5 checksum."""
-        md5computed = self._md5calc.hexdigest()
-
-        return md5computed == self.md5
 
 
 class LongMessageHandler:
@@ -142,9 +159,10 @@ class LongMessageHandler:
         self._long_message_storage = long_message_storage
         self._long_message_type = None
         self._status = LongMessageHandler.STATUS_IDLE
-        self._aggregator = None
+        self._current_message = None
         self._message_updated_callback = None
         self._upload_started_callback = None
+        self._upload_progress_callback = None
         self._upload_finished_callback = None
         self._log = get_logger('LongMessageHandler')
 
@@ -154,52 +172,58 @@ class LongMessageHandler:
     def on_upload_started(self, callback):
         self._upload_started_callback = callback
 
+    def on_upload_progress(self, callback):
+        self._upload_progress_callback = callback
+
     def on_upload_finished(self, callback):
         self._upload_finished_callback = callback
 
-    def read_status(self):
+    def read_status(self) -> LongMessageStatusInfo:
         self._log("read_status")
 
         if self._status == LongMessageHandler.STATUS_IDLE:
-            return LongMessageStatusInfo(LongMessageStatus.UNUSED, b'', 0)
+            return UnusedLongMessageStatusInfo
 
         if self._status == LongMessageHandler.STATUS_READ:
             return self._long_message_storage.read_status(self._long_message_type)
 
         if self._status == LongMessageHandler.STATUS_INVALID:
-            return LongMessageStatusInfo(LongMessageStatus.VALIDATION_ERROR, b'', 0)
+            return ValidationErrorLongMessageStatusInfo
 
         assert self._status == LongMessageHandler.STATUS_WRITE
-        return LongMessageStatusInfo(LongMessageStatus.UPLOAD, self._aggregator.md5, len(self._aggregator.data))
+        return LongMessageStatusInfo(
+            LongMessageStatus.UPLOAD,
+            hexdigest2bytes(self._current_message.md5),
+            len(self._current_message.data))
 
     def select_long_message_type(self, long_message_type):
         if self._status == LongMessageHandler.STATUS_WRITE:
             upload_finished_callback = self._upload_finished_callback
             if upload_finished_callback:
-                upload_finished_callback(long_message_type)
+                upload_finished_callback(self._current_message)
 
         self._log(f"select_long_message_type: {long_message_type}")
         LongMessageType.validate(long_message_type)
         self._long_message_type = long_message_type
         self._status = LongMessageHandler.STATUS_READ
 
-    def init_transfer(self, md5):
+    def init_transfer(self, md5: str, size=0):
         self._log("init_transfer")
 
         if self._status == LongMessageHandler.STATUS_WRITE:
             upload_finished_callback = self._upload_finished_callback
             if upload_finished_callback:
-                upload_finished_callback(self._long_message_type)
+                upload_finished_callback(self._current_message)
 
         if self._status == LongMessageHandler.STATUS_IDLE:
             raise LongMessageError("init-transfer needs to be called after select_long_message_type")
 
         self._status = LongMessageHandler.STATUS_WRITE
-        self._aggregator = LongMessageAggregator(md5)
+        self._current_message = ReceivedLongMessage(self._long_message_type, md5, size)
 
         upload_started_callback = self._upload_started_callback
         if upload_started_callback:
-            upload_started_callback(self._long_message_type)
+            upload_started_callback(self._current_message)
 
     def upload_message(self, data):
         self._log(f"upload_message ({len(data)} bytes)")
@@ -207,7 +231,10 @@ class LongMessageHandler:
         if self._status != LongMessageHandler.STATUS_WRITE:
             raise LongMessageError("init-transfer needs to be called before upload_message")
 
-        self._aggregator.append_data(data)
+        self._current_message.append_data(data)
+        upload_progress_callback = self._upload_progress_callback
+        if upload_progress_callback:
+            upload_progress_callback(self._current_message)
 
     def finalize_message(self):
         self._log("finalize_message")
@@ -223,16 +250,16 @@ class LongMessageHandler:
 
             # observer must take care of verifying that there is actually a message
             if updated_callback:
-                updated_callback(self._long_message_storage, self._long_message_type)
+                updated_callback(self._long_message_storage, self._current_message)
 
         elif self._status == LongMessageHandler.STATUS_WRITE:
             if upload_finished_callback:
-                upload_finished_callback(self._long_message_type)
-            if self._aggregator.finalize():
-                self._long_message_storage.set_long_message(self._long_message_type, self._aggregator.data,
-                                                            self._aggregator.md5)
+                upload_finished_callback(self._current_message)
+
+            if self._current_message.is_valid:
+                self._long_message_storage.set_long_message(self._current_message)
                 if updated_callback:
-                    updated_callback(self._long_message_storage, self._long_message_type)
+                    updated_callback(self._long_message_storage, self._current_message)
                 self._status = LongMessageHandler.STATUS_READ
             else:
                 self._status = LongMessageHandler.STATUS_INVALID
@@ -273,7 +300,10 @@ class LongMessageProtocol:
 
         elif header == MessageType.INIT_TRANSFER:
             if len(data) == 16:
-                self._handler.init_transfer(bytes2hexdigest(data))
+                self._handler.init_transfer(bytes2hexdigest(data), 0)
+                result = LongMessageProtocol.RESULT_SUCCESS
+            elif len(data) == 20:
+                self._handler.init_transfer(bytes2hexdigest(data[0:16]), int.from_bytes(data[16:20], byteorder='big'))
                 result = LongMessageProtocol.RESULT_SUCCESS
             else:
                 result = LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH
