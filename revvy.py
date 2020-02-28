@@ -81,20 +81,22 @@ class LongMessageImplementation:
         if message_type == LongMessageType.FRAMEWORK_DATA:
             self._progress = ProgressIndicator(self._robot.robot.led, message.total_chunks, 0x00FF00, 0xFF00FF)
         else:
+            self._progress = None
             self._robot.robot.status.robot_status = RobotStatus.Configuring
 
     def on_upload_progress(self, message: ReceivedLongMessage):
         """Indicate long message download progress"""
-        if message.total_chunks == 0:
-            # calculate approximate chunk count
-            expected_size = 250000
-            chunk_size = len(message.data) / message.received_chunks
-            message.total_chunks = expected_size / chunk_size
-            self._progress.end = message.total_chunks
+        if self._progress:
+            if message.total_chunks == 0:
+                # calculate approximate chunk count
+                expected_size = 250000
+                chunk_size = len(message.data) / message.received_chunks
+                message.total_chunks = expected_size / chunk_size
+                self._progress.end = message.total_chunks
 
-        if message.total_chunks != 0:
-            self._log(f'Progress: {message.received_chunks}/{message.total_chunks}')
-            self._progress.update(message.received_chunks)
+            if message.total_chunks != 0:
+                self._log(f'Progress: {message.received_chunks}/{message.total_chunks}')
+                self._progress.update(message.received_chunks)
 
     def on_transmission_finished(self, message: ReceivedLongMessage):
         """Visual indication that an upload has finished
