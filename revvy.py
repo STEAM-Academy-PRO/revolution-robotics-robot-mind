@@ -111,7 +111,8 @@ class LongMessageImplementation:
                 self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.BreathingGreen))
         else:
             # don't schedule on background, the robot will be restarted before setting the LEDs
-            self._progress.set_indeterminate()
+            if self._progress:
+                self._progress.set_indeterminate()
 
     def on_message_updated(self, storage, message: ReceivedLongMessage):
         message_type = message.message_type
