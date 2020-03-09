@@ -174,6 +174,7 @@ class DcMotorController(PortDriver):
     @pos.setter
     def pos(self, val):
         self._pos_offset = val - self._pos
+        self._log(f'setting position offset to {self._pos_offset}')
 
     @property
     def power(self):
