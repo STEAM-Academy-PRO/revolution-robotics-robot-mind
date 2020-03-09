@@ -16,15 +16,16 @@ from revvy.robot.status import RobotStatus
 from revvy.scripting.runtime import ScriptDescriptor
 from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
 from revvy.utils.error_handler import register_uncaught_exception_handler
-from revvy.utils.file_storage import FileStorage, MemoryStorage, StorageError
+from revvy.utils.file_storage import FileStorage, MemoryStorage, StorageError, create_unique_file
 from revvy.firmware_updater import update_firmware
-from revvy.utils.functions import get_serial, read_json, str_to_func, map_values
+from revvy.utils.functions import get_serial, read_json, str_to_func
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, LongMessageType, LongMessageStatus, \
     ReceivedLongMessage
 from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
 from revvy.utils.logger import get_logger
 from revvy.utils.progress_indicator import ProgressIndicator
 from revvy.utils.version import Version
+from revvy.utils.logger import logger, LogLevel
 
 from tools.check_manifest import check_manifest
 
@@ -173,7 +174,7 @@ if __name__ == "__main__":
         print('Revvy not started because manifest is invalid')
         sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
 
-    register_uncaught_exception_handler(logfile=os.path.join(data_dir, 'revvy_crash.log'))
+    register_uncaught_exception_handler()
 
     # prepare environment
 
@@ -181,6 +182,17 @@ if __name__ == "__main__":
 
     manifest = read_json('manifest.json')
     sw_version = Version(manifest['version'])
+
+    if manifest['branch'] in ['HEAD', 'master']:
+        logger.minimum_level = LogLevel.INFO
+    else:
+        logger.minimum_level = LogLevel.DEBUG
+
+    def on_log_flush(buffer):
+        with create_unique_file(os.path.join(data_dir, 'revvy_log')) as file:
+            file.writelines(buffer)
+
+    logger.on_flush = on_log_flush
 
     device_storage = FileStorage(data_dir)
     ble_storage = FileStorage(ble_storage_dir)

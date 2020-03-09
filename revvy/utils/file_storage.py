@@ -135,3 +135,17 @@ class FileStorage(StorageInterface):
 
         except JSONDecodeError as e:
             raise IntegrityError('Metadata') from e
+
+
+def create_unique_file(base_filename):
+
+    try:
+        return open(base_filename, 'x')
+    except FileExistsError:
+
+        i = 1
+        while True:
+            try:
+                return open(base_filename + str(i), 'x')
+            except FileExistsError:
+                i += 1
