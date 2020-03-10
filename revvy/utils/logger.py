@@ -36,12 +36,15 @@ class Logger:
 
 
 class LogWrapper:
-    def __init__(self, logger, tag):
+    def __init__(self, logger, tag, default_log_level=LogLevel.INFO):
         self._tag = tag + ': '
         self._logger = logger
+        self._default_log_level = default_log_level
 
-    def __call__(self, message, level=LogLevel.INFO):
+    def __call__(self, message, level=None):
         message = self._tag + message
+        if level is None:
+            level = self._default_log_level
         self._logger.log(message, level)
 
     def flush(self):
@@ -51,5 +54,5 @@ class LogWrapper:
 logger = Logger()
 
 
-def get_logger(tag):
-    return LogWrapper(logger, tag)
+def get_logger(tag, default_log_level=LogLevel.INFO):
+    return LogWrapper(logger, tag, default_log_level)
