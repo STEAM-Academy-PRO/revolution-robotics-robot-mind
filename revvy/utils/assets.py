@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-only
-
 import os
 import traceback
 from collections import defaultdict
 
 from revvy.utils.functions import read_json
-from revvy.utils.logger import get_logger
+from revvy.utils.logger import get_logger, LogLevel
 
 
 class Assets:
@@ -30,11 +29,13 @@ class Assets:
                     if asset_name in self._files[category]:
                         self._log(f'{path} shadows asset {asset_name}')
 
-                    self._log(f'New asset: ({category}) {asset_name}')
+                    self._log(f'New asset: ({category}) {asset_name}', LogLevel.DEBUG)
                     self._files[category][asset_name] = os.path.join(path, asset_path)
+        except FileNotFoundError:
+            self._log(f'Asset source does not exist: {path}', LogLevel.WARNING)
         except Exception:
-            self._log(f'Skip loading assets from {path}')
-            self._log(traceback.format_exc())
+            self._log(f'Skip loading assets from {path} due to unexpected error', LogLevel.WARNING)
+            self._log(traceback.format_exc(), LogLevel.DEBUG)
 
     def get_asset_file(self, category, name):
         return self._files[category][name]
