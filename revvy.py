@@ -23,6 +23,7 @@ from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage, 
     ReceivedLongMessage
 from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
 from revvy.utils.logger import get_logger
+from revvy.utils.progress_indicator import ProgressIndicator
 from revvy.utils.version import Version
 
 from tools.check_manifest import check_manifest
@@ -67,6 +68,7 @@ class LongMessageImplementation:
         self._robot = robot_manager
         self._ignore_config = ignore_config
         self._asset_dir = asset_dir
+        self._progress = None
 
         self._log = get_logger("LongMessageImplementation")
 
@@ -77,23 +79,24 @@ class LongMessageImplementation:
 
         message_type = message.message_type
         if message_type == LongMessageType.FRAMEWORK_DATA:
-            self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.ColorWheel))
+            self._progress = ProgressIndicator(self._robot.robot.led, message.total_chunks, 0x00FF00, 0xFF00FF)
         else:
+            self._progress = None
             self._robot.robot.status.robot_status = RobotStatus.Configuring
 
     def on_upload_progress(self, message: ReceivedLongMessage):
         """Indicate long message download progress"""
-        if message.total_chunks == 0:
-            # calculate approximate chunk count
-            expected_size = 250000
-            chunk_size = len(message.data) / message.received_chunks
-            message.total_chunks = expected_size / chunk_size
+        if self._progress:
+            if message.total_chunks == 0:
+                # calculate approximate chunk count
+                expected_size = 250000
+                chunk_size = len(message.data) / message.received_chunks
+                message.total_chunks = expected_size / chunk_size
+                self._progress.end = message.total_chunks
 
-        if message.total_chunks != 0:
-            self._log(f'Progress: {message.received_chunks}/{message.total_chunks}')
-            progress = map_values(message.received_chunks, 0, message.total_chunks, 0, 12)
-            leds = [0x00FF00 if led < progress else 0 for led in range(12)]
-            self._robot.run_in_background(partial(self._robot.robot.led.display_user_frame, leds))
+            if message.total_chunks != 0:
+                self._log(f'Progress: {message.received_chunks}/{message.total_chunks}')
+                self._progress.update(message.received_chunks)
 
     def on_transmission_finished(self, message: ReceivedLongMessage):
         """Visual indication that an upload has finished
@@ -104,10 +107,12 @@ class LongMessageImplementation:
         if message_type == LongMessageType.FRAMEWORK_DATA:
             if not message.is_valid:
                 self._log('Firmware update cancelled')
+                self._progress = None
                 self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.BreathingGreen))
         else:
             # don't schedule on background, the robot will be restarted before setting the LEDs
-            self._robot.robot.led.start_animation(RingLed.ColorWheel)
+            if self._progress:
+                self._progress.set_indeterminate()
 
     def on_message_updated(self, storage, message: ReceivedLongMessage):
         message_type = message.message_type
@@ -145,6 +150,7 @@ class LongMessageImplementation:
 
         elif message_type == LongMessageType.FRAMEWORK_DATA:
             self._robot.robot.status.robot_status = RobotStatus.Updating
+            self._progress.set_indeterminate()
             self._robot.request_update()
 
         elif message_type == LongMessageType.ASSET_DATA:

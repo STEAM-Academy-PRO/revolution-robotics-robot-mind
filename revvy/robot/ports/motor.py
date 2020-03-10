@@ -123,6 +123,7 @@ class DcMotorController(PortDriver):
         self._pos = 0
         self._speed = 0
         self._power = 0
+        self._pos_offset = 0
 
         self._awaiter = None
         self._status = MotorStatus.NORMAL
@@ -167,8 +168,13 @@ class DcMotorController(PortDriver):
         return self._speed
 
     @property
-    def position(self):
-        return self._pos
+    def pos(self):
+        return self._pos + self._pos_offset
+
+    @pos.setter
+    def pos(self, val):
+        self._pos_offset = val - self._pos
+        self._log(f'setting position offset to {self._pos_offset}')
 
     @property
     def power(self):
@@ -208,9 +214,14 @@ class DcMotorController(PortDriver):
 
         self._awaiter = awaiter
 
-        req_type = {'absolute': self.create_absolute_position_command,
-                    'relative': self.create_relative_position_command}
-        command = req_type[pos_type](position, speed_limit, power_limit)
+        if pos_type == 'absolute':
+            position -= self._pos_offset
+            command = self.create_absolute_position_command(position, speed_limit, power_limit)
+        elif pos_type == 'relative':
+            command = self.create_relative_position_command(position, speed_limit, power_limit)
+        else:
+            raise ValueError(f'Invalid pos_type {pos_type}')
+
         self._port.interface.set_motor_port_control_value(command)
 
         return awaiter

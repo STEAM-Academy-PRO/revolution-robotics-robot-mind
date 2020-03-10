@@ -111,6 +111,8 @@ class PortHandler:
 
 
 class PortInstance:
+    props = ['_log', '_port_idx', '_configurator', '_interface', '_driver', '_config_changed_callbacks']
+
     def __init__(self, port_idx, interface: RevvyControl, configurator):
         self._log = get_logger(f'Port [id={port_idx}]')
         self._port_idx = port_idx
@@ -153,4 +155,10 @@ class PortInstance:
         self._configure(None)
 
     def __getattr__(self, name):
-        return self._driver.__getattribute__(name)
+        return getattr(self._driver, name)
+
+    def __setattr__(self, key, value):
+        if key in self.props:
+            self.__dict__[key] = value
+        else:
+            setattr(self._driver, key, value)

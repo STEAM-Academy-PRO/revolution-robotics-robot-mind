@@ -153,6 +153,14 @@ class MotorPortWrapper(Wrapper):
         self._log_prefix = f"MotorPortWrapper[motor {motor.id}]: "
         self._motor = motor
 
+    @property
+    def pos(self):
+        return self._motor.pos
+
+    @pos.setter
+    def pos(self, val):
+        self._motor.pos = val
+
     def log(self, message):
         self._script.log(self._log_prefix + message)
 
