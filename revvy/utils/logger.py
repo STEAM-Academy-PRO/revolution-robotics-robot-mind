@@ -25,9 +25,9 @@ class Logger:
 
     def log(self, message, level=LogLevel.INFO):
         if level >= self.minimum_level:
-            message = f'{self._sw.elapsed} {levels[level]}: {message}\n'
+            message = f'{self._sw.elapsed} {levels[level]}: {message}'
             print(message)
-            self._buffer.append(message)
+            self._buffer.append(message + '\n')
 
     def flush(self):
         if self.on_flush:

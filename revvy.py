@@ -190,7 +190,7 @@ if __name__ == "__main__":
 
     def on_log_flush(buffer):
         with create_unique_file(os.path.join(data_dir, 'revvy_log')) as file:
-            file.write(f"Framework version: {sw_version}-{manifest['branch']}")
+            file.write(f"Framework version: {sw_version}-{manifest['branch']}\n")
             file.writelines(buffer)
 
     logger.on_flush = on_log_flush
