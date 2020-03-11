@@ -16,7 +16,15 @@ class LogLevel:
 levels = ('Debug', 'Info', 'Warning', 'Error')
 
 
-class Logger:
+class BaseLogger:
+    def log(self, message, level):
+        pass
+
+    def flush(self):
+        pass
+
+
+class Logger(BaseLogger):
     def __init__(self, buffer_size=1000):
         self._sw = Stopwatch()
         self._buffer = deque(maxlen=buffer_size)
@@ -35,17 +43,20 @@ class Logger:
             self._buffer.clear()
 
 
-class LogWrapper:
-    def __init__(self, logger, tag, default_log_level=LogLevel.INFO):
+class LogWrapper(BaseLogger):
+    def __init__(self, logger: BaseLogger, tag, default_log_level=LogLevel.INFO):
         self._tag = tag + ': '
         self._logger = logger
         self._default_log_level = default_log_level
 
-    def __call__(self, message, level=None):
+    def log(self, message, level=None):
         message = self._tag + message
         if level is None:
             level = self._default_log_level
         self._logger.log(message, level)
+
+    def __call__(self, message, level=None):
+        self.log(message, level)
 
     def flush(self):
         self._logger.flush()
@@ -54,5 +65,5 @@ class LogWrapper:
 logger = Logger()
 
 
-def get_logger(tag, default_log_level=LogLevel.INFO):
-    return LogWrapper(logger, tag, default_log_level)
+def get_logger(tag, default_log_level=LogLevel.INFO, base=None):
+    return LogWrapper(base or logger, tag, default_log_level)

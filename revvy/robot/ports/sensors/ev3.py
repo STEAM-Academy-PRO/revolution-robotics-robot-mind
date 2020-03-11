@@ -1,4 +1,3 @@
-import collections
 import struct
 from functools import partial
 
