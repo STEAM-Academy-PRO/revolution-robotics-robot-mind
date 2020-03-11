@@ -67,7 +67,7 @@ class SensorPortWrapper(Wrapper):
     _named_configurations = {
         'NotConfigured': None,
         'BumperSwitch': Sensors.BumperSwitch,
-        'HC_SR04': Sensors.HC_SR04
+        'HC_SR04': Sensors.Ultrasonic
     }
 
     def __init__(self, script, sensor: PortInstance, resource: ResourceWrapper):
