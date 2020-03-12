@@ -41,7 +41,6 @@ def bytes2hexdigest(hash_bytes):
 class LongMessageStatus:
     UNUSED = 0
     UPLOAD = 1
-    VALIDATION = 2
     READY = 3
     VALIDATION_ERROR = 4
 
