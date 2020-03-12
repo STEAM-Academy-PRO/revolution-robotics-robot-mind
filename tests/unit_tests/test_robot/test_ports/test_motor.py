@@ -5,8 +5,17 @@ from unittest.mock import call
 
 from mock import Mock
 
-from revvy.robot.ports.common import PortInstance
-from revvy.robot.ports.motor import create_motor_port_handler, DcMotorController
+from revvy.robot.ports.common import PortInstance, PortDriver
+from revvy.robot.ports.motor import create_motor_port_handler
+from revvy.robot.ports.motors.dc_motor import DcMotorController
+
+
+class TestDriver(PortDriver):
+    def __init__(self, port: 'PortInstance', _):
+        super(TestDriver, self).__init__(port, "Test")
+
+    def on_port_type_set(self):
+        pass
 
 
 class TestMotorPortHandler(unittest.TestCase):
@@ -49,7 +58,7 @@ class TestMotorPortHandler(unittest.TestCase):
         self.assertIs(PortInstance, type(ports[1]))
         self.assertEqual(0, mock_control.set_motor_port_type.call_count)
 
-        self.assertRaises(KeyError, lambda: ports[1].configure({"driver": "Test", "config": {}}))
+        self.assertRaises(KeyError, lambda: ports[1].configure({"driver": TestDriver, "config": {}}))
         self.assertEqual(0, mock_control.set_motor_port_type.call_count)
 
 
