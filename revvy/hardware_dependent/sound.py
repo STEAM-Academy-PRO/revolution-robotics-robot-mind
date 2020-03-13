@@ -41,6 +41,8 @@ class SoundControlBase:
         thread = threading.Thread(target=run_in_thread, args=(commands,))
         thread.start()
 
+        return thread
+
     def _disable_amp_callback(self):
         self._log('Disable amp callback')
         with self._lock:
@@ -66,9 +68,9 @@ class SoundControlBase:
 
                 self._disable_amp_callback()
 
-            self._run_command_with_callback([
+            return self._run_command_with_callback([
                 self._commands['enable_amp'],
-                "mpg123 {}".format(sound)
+                "mpg123 " + sound
             ], cb)
         else:
             self._log('Too many sounds are playing, skip')

@@ -175,3 +175,6 @@ class Robot(RobotInterface):
 
         self._status.robot_status = RobotStatus.NotConfigured
         self._status.update()
+
+    def stop(self):
+        self._sound.wait()

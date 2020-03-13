@@ -270,6 +270,7 @@ class RobotBLEController:
         self._ble.stop()
         self._scripts.reset()
         self._status_update_thread.exit()
+        self._robot.stop()
 
     def _ping_robot(self, timeout=0):
         stopwatch = Stopwatch()
