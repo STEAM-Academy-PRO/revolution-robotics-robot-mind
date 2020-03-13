@@ -210,5 +210,5 @@ class TestLongMessageHandler(unittest.TestCase):
                 handler.finalize_message()
                 self.assertTrue(mock_callback.called)
                 self.assertEqual(0, storage.set_long_message.call_count)
-                self.assertEqual(mt, mock_callback.call_args.args[1].message_type)
-                self.assertEqual('012345', mock_callback.call_args.args[1].md5)
+                self.assertEqual(mt, mock_callback.call_args.args[0].message_type)
+                self.assertEqual('012345', mock_callback.call_args.args[0].md5)
