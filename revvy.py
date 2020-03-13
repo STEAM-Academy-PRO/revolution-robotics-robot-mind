@@ -38,8 +38,8 @@ def extract_asset_longmessage(storage, asset_dir):
     Skip extracting if the long message has the same checksum as stored in the folder.
     The folder will be deleted if exists before decompression.
 
-    :param storage: the source where the asset data message is stored
-    :param asset_dir: the destination directory
+    @param storage: the source where the asset data message is stored
+    @param asset_dir: the destination directory
     """
 
     asset_status = storage.read_status(LongMessageType.ASSET_DATA)
@@ -65,11 +65,12 @@ def extract_asset_longmessage(storage, asset_dir):
 
 class LongMessageImplementation:
     # TODO: this, together with the other long message classes is probably a lasagna worth simplifying
-    def __init__(self, robot_manager: RobotBLEController, asset_dir, ignore_config):
+    def __init__(self, robot_manager: RobotBLEController, storage: LongMessageStorage, asset_dir, ignore_config):
         self._robot = robot_manager
         self._ignore_config = ignore_config
         self._asset_dir = asset_dir
         self._progress = None
+        self._storage = storage
 
         self._log = get_logger("LongMessageImplementation")
 
@@ -115,12 +116,12 @@ class LongMessageImplementation:
             if self._progress:
                 self._progress.set_indeterminate()
 
-    def on_message_updated(self, storage, message: ReceivedLongMessage):
+    def on_message_updated(self, message: ReceivedLongMessage):
         message_type = message.message_type
         self._log(f'Received message: {message_type}')
 
         if message_type == LongMessageType.TEST_KIT:
-            test_script_source = storage.get_long_message(message_type).decode()
+            test_script_source = message.data.decode()
             self._log(f'Running test script: {test_script_source}')
 
             script_descriptor = ScriptDescriptor("test_kit", str_to_func(test_script_source), 0)
@@ -136,7 +137,7 @@ class LongMessageImplementation:
             self._robot.configure(empty_robot_config, start_script)
 
         elif message_type == LongMessageType.CONFIGURATION_DATA:
-            message_data = storage.get_long_message(message_type).decode()
+            message_data = message.data.decode()
             self._log(f'New configuration: {message_data}')
 
             try:
@@ -155,7 +156,7 @@ class LongMessageImplementation:
             self._robot.request_update()
 
         elif message_type == LongMessageType.ASSET_DATA:
-            extract_asset_longmessage(storage, self._asset_dir)
+            extract_asset_longmessage(self._storage, self._asset_dir)
 
 
 if __name__ == "__main__":
@@ -224,7 +225,7 @@ if __name__ == "__main__":
         long_message_handler = LongMessageHandler(long_message_storage)
         robot_manager = RobotBLEController(robot, sw_version, RevvyBLE(device_name, serial, long_message_handler))
 
-        lmi = LongMessageImplementation(robot_manager, writeable_assets_dir, False)
+        lmi = LongMessageImplementation(robot_manager, long_message_storage, writeable_assets_dir, False)
         long_message_handler.on_upload_started(lmi.on_upload_started)
         long_message_handler.on_upload_progress(lmi.on_upload_progress)
         long_message_handler.on_upload_finished(lmi.on_transmission_finished)
