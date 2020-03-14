@@ -1,4 +1,6 @@
 [run]
 omit =
+    dev_tools/*
     tests/*
+    tools/*
     venv/*

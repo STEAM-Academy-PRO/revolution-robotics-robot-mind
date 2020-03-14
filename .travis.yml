@@ -13,13 +13,13 @@ install:
 # command to run tests
 script:
   - nose2 -B
-  - python -m tools.precommit_pep8 --check-all
+  - python -m dev_tools.precommit_pep8 --check-all
 
 # Push the results back to codecov
 after_success:
   - codecov
-  - if [ ! -z "$TRAVIS_TAG" ]; then ./tools/trigger-build.sh; fi
-  - python -m tools.create_package
+  - if [ ! -z "$TRAVIS_TAG" ]; then ./dev_tools/trigger-build.sh; fi
+  - python -m dev_tools.create_package
 
 deploy:
   skip_cleanup: true

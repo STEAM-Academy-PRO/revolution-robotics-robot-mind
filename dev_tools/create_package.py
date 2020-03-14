@@ -10,7 +10,7 @@ from os import path
 
 from revvy.utils.functions import file_hash, read_json
 from tools.common import find_files
-from tools.generate_manifest import gen_manifest
+from dev_tools.generate_manifest import gen_manifest
 
 
 def create_package(sources, output):
