@@ -49,7 +49,7 @@ class TestThreadWrapper(unittest.TestCase):
         mock = Mock()
         evt = Event()
 
-        def test_fn(context):
+        def test_fn(_):
             mock()
             evt.set()
 
@@ -57,7 +57,7 @@ class TestThreadWrapper(unittest.TestCase):
 
         try:
             for i in range(1, 3):
-                with self.subTest('Run #{}'.format(i)):
+                with self.subTest(f'Run #{i}'):
                     evt.clear()
                     tw.start()
                     if not evt.wait(2):
@@ -71,14 +71,14 @@ class TestThreadWrapper(unittest.TestCase):
     def test_stop_callbacks_called_when_thread_fn_exits(self):
         evt = Event()
 
-        def test_fn(context):
+        def test_fn(_):
             pass
 
         tw = ThreadWrapper(test_fn)
 
         try:
             for i in range(1, 3):
-                with self.subTest('Run #{}'.format(i)):
+                with self.subTest(f'Run #{i}'):
                     tw.on_stopped(evt.set)
                     evt.clear()
                     tw.start()
@@ -167,7 +167,7 @@ class TestThreadWrapper(unittest.TestCase):
 
         try:
             for i in range(1, 3):
-                with self.subTest('Run #{}'.format(i)):
+                with self.subTest(f'Run #{i}'):
                     tw.on_stopped(evt.set)  # set callback first to verify it will be called after clear
                     evt.clear()
                     if not tw.start().wait(2):
@@ -257,7 +257,7 @@ class TestThreadWrapper(unittest.TestCase):
             tw.exit()
 
     def test_start_does_not_raise_if_not_exited(self):
-        def test_fn(ctx):
+        def test_fn(_):
             print('running')
 
         tw = ThreadWrapper(test_fn)
