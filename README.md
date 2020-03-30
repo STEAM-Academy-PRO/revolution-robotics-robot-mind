@@ -11,7 +11,7 @@ Some sound effects (bell, duck, lion and engine revving sounds) in the assets di
  - Open Device Manager and make sure it shows up under Network Interfaces as `USB Ethernet/RNDIS Gadget`
     - If not, unplug the robot and observe that the device list flashes once.
     - If the device list does not flash, your computer does not see the robot. Replace the USB cable with a new one and try again.
-    - If the device list flashes, but you don't see the `USB Ethernet/RNDIS Gadget`, you'll need to install drivers from <TODO>. This should not be necessary on recent Windows versions.
+    - If the device list flashes, but you don't see the `USB Ethernet/RNDIS Gadget`, you'll need to install drivers from https://www.catalog.update.microsoft.com/Search.aspx?q=USB%20RNDIS%20Gadget. Make sure to select `	Acer Incorporated. - Other hardware - USB Ethernet/RNDIS Gadget	Windows 7,Windows 8,Windows 8.1 and later drivers`. This should not be necessary on recent Windows versions.
 
  - Download and install putty
  - In the host field, enter `pi@raspberrypi.local`. Make sure port is 22 and that SSH is selected.
