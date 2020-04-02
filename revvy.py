@@ -217,11 +217,6 @@ if __name__ == "__main__":
     with Robot() as robot:
         robot.assets.add_source(writeable_assets_dir)
 
-        try:
-            update_firmware(os.path.join('data', 'firmware'), robot)
-        except TimeoutError:
-            print('Failed to update firmware')
-
         long_message_handler = LongMessageHandler(long_message_storage)
         robot_manager = RobotBLEController(robot, sw_version, RevvyBLE(device_name, serial, long_message_handler))
 
