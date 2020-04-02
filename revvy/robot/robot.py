@@ -59,6 +59,7 @@ class Robot(RobotInterface):
                 except OSError:
                     self._log('Failed to read robot version')
 
+        from revvy.firmware_updater import update_firmware
         update_firmware(os.path.join('data', 'firmware'), self)
 
         # read version again in case it was updated
