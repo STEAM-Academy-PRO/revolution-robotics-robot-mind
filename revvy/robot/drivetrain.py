@@ -6,8 +6,7 @@ from threading import Timer
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.imu import IMU
 from revvy.robot.ports.common import PortInstance
-from revvy.robot.ports.motor import MotorStatus
-from revvy.scripting.robot_interface import MotorConstants
+from revvy.robot.ports.motors.dc_motor import MotorStatus, MotorConstants
 from revvy.utils.awaiter import AwaiterImpl, Awaiter
 from revvy.utils.functions import clip
 from revvy.utils.logger import get_logger

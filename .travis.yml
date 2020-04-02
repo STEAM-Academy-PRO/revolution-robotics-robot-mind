@@ -13,13 +13,13 @@ install:
 # command to run tests
 script:
   - nose2 -B
-  - python -m tools.precommit_pep8 --check-all
+  - python -m dev_tools.precommit_pep8 --check-all
 
 # Push the results back to codecov
 after_success:
   - codecov
-  - if [ ! -z "$TRAVIS_TAG" ]; then ./tools/trigger-build.sh; fi
-  - python -m tools.create_package
+  - if [ ! -z "$TRAVIS_TAG" ]; then ./dev_tools/trigger-build.sh; fi
+  - python -m dev_tools.create_package
 
 deploy:
   skip_cleanup: true
@@ -33,4 +33,7 @@ deploy:
     secure: "4T1fbaGBdIfhWrL1WI9hBXaENYlzWzZK3Gf2gx0qDIQ7qYNsyGIjqDBKU8Dr4Brv/Srl4s+8j5sBQZN2fCnTW+lzyS09fCK4TI7f2RzZUEIjNF4mubxkOyIU7TB8OWF7qraQO6FLQeD2eq20jjpAhFFDDClDyIlJXuq55wLKFf8bCfnsrp4K5ibnuj5k9tFEq3wxXTkdXU4x6QTEaN0WUNxATl+l/rx7dTfdIxRYT7JmQEXqd/hkLAHHn5Hqo/pvvvK6Sj0QfnUa7djv7dQuLSQIApX9q9AcEB7ifT/KObwqQ3QCoIE3xrzROjq/upBh5cRuhOWst+jurE5A79FVeDyEZcEJu3ipBjvENrIpVdEzDEQoGG76hEs6WSI6dzWgD34CJvAvPWQrOto/qYdfK2QFctlliLgt1jJrIzl3qz8HQrXmcQ5E5TDCoTU31ckpQaXHVS6QQnmjPMAFx8FlPNkHO5Qy0ybric5MHIzMvsKBiFc9FZYX1lVQEuNeyS65Nlj6LeBdjLycR65kfTsUrPWgaEp5BaJuezgiAS0gp1rXSDnt3c6qqxZmzj2+dTW810vjGyzo5QWpKGdnAjER4/PXv2PnJPo5wXu5hjbVGlms9cBrKSaIzsaIVDuAs6FwqWHGGcXF86iAlUee6/0k9e2LJ88optFU3VlJF84OSJw="
 
 notifications:
-  slack: revolution-robotics:sXlaetqFuXuT3Vr4atwogEdK
+  slack:
+    on_success: change
+    rooms:
+      - revolution-robotics:sXlaetqFuXuT3Vr4atwogEdK

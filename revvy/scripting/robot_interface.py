@@ -3,6 +3,7 @@ from functools import partial
 
 from revvy.robot.configurations import Motors, Sensors
 from revvy.robot.led_ring import RingLed
+from revvy.robot.ports.motor import MotorConstants
 from revvy.robot.sound import Sound
 from revvy.scripting.resource import Resource
 from revvy.utils.functions import hex2rgb
@@ -66,7 +67,7 @@ class SensorPortWrapper(Wrapper):
     _named_configurations = {
         'NotConfigured': None,
         'BumperSwitch': Sensors.BumperSwitch,
-        'HC_SR04': Sensors.HC_SR04
+        'HC_SR04': Sensors.Ultrasonic
     }
 
     def __init__(self, script, sensor: PortInstance, resource: ResourceWrapper):
@@ -117,24 +118,6 @@ class RingLedWrapper(Wrapper):
             self._user_leds[idx - 1] = rgb
 
         self.using_resource(partial(self._ring_led.display_user_frame, self._user_leds))
-
-
-class MotorConstants:
-    DIRECTION_FWD = 0
-    DIRECTION_BACK = 1
-    DIRECTION_LEFT = 2
-    DIRECTION_RIGHT = 3
-
-    UNIT_ROT = 0
-    UNIT_SEC = 1
-    UNIT_DEG = 2
-    UNIT_TURN_ANGLE = 3
-
-    UNIT_SPEED_RPM = 0
-    UNIT_SPEED_PWR = 1
-
-    ACTION_STOP_AND_HOLD = 0
-    ACTION_RELEASE = 1
 
 
 class MotorPortWrapper(Wrapper):

@@ -419,7 +419,7 @@ class TestRobotConfig(unittest.TestCase):
 
         config = RobotConfig.from_string(json)
 
-        self.assertEqual(Sensors.HC_SR04, config.sensors[1])
+        self.assertEqual(Sensors.Ultrasonic, config.sensors[1])
         self.assertEqual(Sensors.BumperSwitch, config.sensors[2])
         self.assertEqual(None, config.sensors[3])
         self.assertEqual(None, config.sensors[4])
@@ -452,7 +452,7 @@ class TestRobotConfig(unittest.TestCase):
 
         config = RobotConfig.from_string(json)
 
-        self.assertEqual(Sensors.HC_SR04, config.sensors[1])
+        self.assertEqual(Sensors.Ultrasonic, config.sensors[1])
         self.assertEqual(None, config.sensors[2])
         self.assertEqual(None, config.sensors[3])
         self.assertEqual(Sensors.BumperSwitch, config.sensors[4])

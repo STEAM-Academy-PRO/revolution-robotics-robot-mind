@@ -41,7 +41,6 @@ def bytes2hexdigest(hash_bytes):
 class LongMessageStatus:
     UNUSED = 0
     UPLOAD = 1
-    VALIDATION = 2
     READY = 3
     VALIDATION_ERROR = 4
 
@@ -155,7 +154,7 @@ class LongMessageHandler:
     STATUS_WRITE = 2
     STATUS_INVALID = 3
 
-    def __init__(self, long_message_storage):
+    def __init__(self, long_message_storage: LongMessageStorage):
         self._long_message_storage = long_message_storage
         self._long_message_type = None
         self._status = LongMessageHandler.STATUS_IDLE
@@ -207,6 +206,8 @@ class LongMessageHandler:
         self._long_message_type = long_message_type
         self._status = LongMessageHandler.STATUS_READ
 
+        self._current_message = None
+
     def init_transfer(self, md5: str, size=0):
         self._log("init_transfer")
 
@@ -250,7 +251,17 @@ class LongMessageHandler:
 
             # observer must take care of verifying that there is actually a message
             if updated_callback:
-                updated_callback(self._long_message_storage, self._current_message)
+                if self._current_message is None:
+                    # load the stored message contents
+                    message = self._long_message_storage.get_long_message(self._long_message_type)
+                    info = self._long_message_storage.read_status(self._long_message_type)
+                    self._current_message = ReceivedLongMessage(
+                        self._long_message_type,
+                        bytes2hexdigest(info.md5),
+                        info.length)
+                    self._current_message.append_data(message)
+
+                updated_callback(self._current_message)
 
         elif self._status == LongMessageHandler.STATUS_WRITE:
             if upload_finished_callback:
@@ -259,7 +270,7 @@ class LongMessageHandler:
             if self._current_message.is_valid:
                 self._long_message_storage.set_long_message(self._current_message)
                 if updated_callback:
-                    updated_callback(self._long_message_storage, self._current_message)
+                    updated_callback(self._current_message)
                 self._status = LongMessageHandler.STATUS_READ
             else:
                 self._status = LongMessageHandler.STATUS_INVALID

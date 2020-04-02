@@ -47,7 +47,22 @@ class Robot(RobotInterface):
         self._stopwatch = Stopwatch()
 
         # read versions
-        self._hw_version = self._robot_control.get_hardware_version()
+        while True:
+            try:
+                self._hw_version = self._robot_control.get_hardware_version()
+                self._fw_version = self._robot_control.get_firmware_version()
+                break
+            except OSError:
+                try:
+                    self._hw_version = self._bootloader_control.get_hardware_version()
+                    self._fw_version = Version('0.0.0')
+                except OSError:
+                    self._log('Failed to read robot version')
+
+        from revvy.firmware_updater import update_firmware
+        update_firmware(os.path.join('data', 'firmware'), self)
+
+        # read version again in case it was updated
         self._fw_version = self._robot_control.get_firmware_version()
 
         self._log(f'Hardware: {self._hw_version}')
@@ -175,3 +190,6 @@ class Robot(RobotInterface):
 
         self._status.robot_status = RobotStatus.NotConfigured
         self._status.update()
+
+    def stop(self):
+        self._sound.wait()

@@ -22,9 +22,11 @@ class FunctionAggregator:
 
 
 class PortDriver:
-    def __init__(self, driver):
+    def __init__(self, port: 'PortInstance', driver):
         self._driver = driver
+        self._port = port
         self._on_status_changed = FunctionAggregator()
+        self.log = get_logger(f'[{driver}]', base=port.log)
 
     @property
     def driver(self):
@@ -61,14 +63,12 @@ class PortCollection:
 
 
 class PortHandler:
-    def __init__(self, name, interface: RevvyControl, drivers: dict,
-                 default_driver: PortDriver, amount: int, supported: dict):
+    def __init__(self, name, interface: RevvyControl, default_driver, amount: int, supported: dict):
         self._log = get_logger(f"PortHandler[{name}]")
-        self._drivers = drivers
         self._types = supported
         self._port_count = amount
         self._default_driver = default_driver
-        self._ports = {i: PortInstance(i, interface, self.configure_port) for i in range(1, amount + 1)}
+        self._ports = {i: PortInstance(i, f'{name}Port', interface, self.configure_port) for i in range(1, amount + 1)}
 
         self._log(f'Created handler for {amount} ports')
         self._log('Supported types:\n  {}'.format("\n  ".join(self.available_types)))
@@ -97,12 +97,10 @@ class PortHandler:
     def configure_port(self, port, config) -> PortDriver:
         if config is None:
             self._log(f'set port {port.id} to not configured')
-            driver = self._default_driver
+            driver = self._default_driver(port)
 
         else:
-            new_driver_name = config['driver']
-            self._log(f'Configuring port {port.id} to {new_driver_name}')
-            driver = self._drivers[new_driver_name](port, config['config'])
+            driver = config['driver'](port, config['config'])
 
         self._set_port_type(port.id, self._types[driver.driver])
         driver.on_port_type_set()
@@ -111,18 +109,15 @@ class PortHandler:
 
 
 class PortInstance:
-    props = ['_log', '_port_idx', '_configurator', '_interface', '_driver', '_config_changed_callbacks']
+    props = ['log', '_port_idx', '_configurator', '_interface', '_driver', '_config_changed_callbacks']
 
-    def __init__(self, port_idx, interface: RevvyControl, configurator):
-        self._log = get_logger(f'Port [id={port_idx}]')
+    def __init__(self, port_idx, name, interface: RevvyControl, configurator):
+        self.log = get_logger(f'{name} {port_idx}')
         self._port_idx = port_idx
         self._configurator = configurator
         self._interface = interface
         self._driver = None
         self._config_changed_callbacks = FunctionAggregator()
-
-    def log(self, message):
-        return self._log(message)
 
     @property
     def id(self):
@@ -147,11 +142,11 @@ class PortInstance:
         return self._driver
 
     def configure(self, config) -> PortDriver:
-        self._log('Configure')
+        self.log('Configure')
         return self._configure(config)
 
     def uninitialize(self):
-        self._log('Set to not configured')
+        self.log('Set to not configured')
         self._configure(None)
 
     def __getattr__(self, name):

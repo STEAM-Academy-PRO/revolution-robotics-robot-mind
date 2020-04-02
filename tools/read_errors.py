@@ -1,20 +1,43 @@
 #!/usr/bin/python3
 # SPDX-License-Identifier: GPL-3.0-only
+
 import argparse
-import enum
 import traceback
 
+from revvy.robot.mcu_error import ErrorType, McuErrorReader
 from revvy.robot.robot import Robot
 from revvy.utils.version import Version
-from tools.utils import parse_cfsr
 
+from revvy.utils.functions import is_bit_set
 
-class ErrorType(enum.IntEnum):
-    HardFault = 0
-    StackOverflow = 1
-    AssertFailure = 2
-    TestError = 3
-    ImuError = 4
+cfsr_reasons = [
+    "The processor has attempted to execute an undefined instruction",
+    "The processor attempted a load or store at a location that does not permit the operation",
+    None,
+    "Unstack for an exception return has caused one or more access violations",
+    "Stacking for an exception entry has caused one or more access violations",
+    "A MemManage fault occurred during floating-point lazy state preservation",
+    None,
+    None,
+    "Instruction bus error",
+    "Data bus error (PC value points to the instruction that caused the fault)",
+    "Data bus error (PC value is not directly related to the instruction that caused the error)",
+    "Unstack for an exception return has caused one or more BusFaults",
+    "Stacking for an exception entry has caused one or more BusFaults",
+    "A bus fault occurred during floating-point lazy state preservation",
+    None,
+    None,
+    "The processor has attempted to execute an undefined instruction",
+    "The processor has attempted to execute an instruction that makes illegal use of the EPSR",
+    "The processor has attempted an illegal load to the PC",
+    "The processor has attempted to access a coprocessor",
+    None,
+    None,
+    None,
+    None,
+    "The processor has made an unaligned memory access",
+    "The processor has executed an SDIV or UDIV instruction with a divisor of 0",
+]
 
 
 hw_formats = {
@@ -39,15 +62,19 @@ exception_names = [
 ]
 
 
+def parse_cfsr(cfsr):
+    return [reason for bit, reason in enumerate(cfsr_reasons) if is_bit_set(cfsr, bit) and reason]
+
+
 def format_error(error, installed_fw: Version, only_current=False):
     # noinspection PyBroadException
     try:
-        error_id = error[0]
+        error_type = ErrorType(error[0])
         hw_version = error[1:5]
         fw_version = error[5:9]
         error_data = error[9:]
 
-        if error_id == ErrorType.HardFault:
+        if error_type == ErrorType.HardFault:
             pc = int.from_bytes(error_data[0:4], byteorder='little')
             psr = int.from_bytes(error_data[4:8], byteorder='little')
             lr = int.from_bytes(error_data[8:12], byteorder='little')
@@ -60,27 +87,25 @@ def format_error(error, installed_fw: Version, only_current=False):
 
             cfsr_reasons = parse_cfsr(cfsr)
             if cfsr_reasons:
-                details_str += "\n\tReasons:"
-                for reason in cfsr_reasons:
-                    details_str += "\n\t\t" + reason
+                details_str += "\n\tReasons:" + "\n\t\t".join(cfsr_reasons)
 
-        elif error_id == ErrorType.StackOverflow:
+        elif error_type == ErrorType.StackOverflow:
             task = bytes(error_data).decode("utf-8")
-            details_str = '\nTask: {}'.format(task)
+            details_str = f'\nTask: {task}'
 
-        elif error_id == ErrorType.AssertFailure:
+        elif error_type == ErrorType.AssertFailure:
             line = int.from_bytes(error_data[0:4], byteorder='little')
             file = bytes(error_data[4:]).decode("utf-8")
-            details_str = '\nFile: {}, Line: {}'.format(file, line)
+            details_str = f'\nFile: {file}, Line: {line}'
 
-        elif error_id == ErrorType.TestError:
-            details_str = '\nData: {}'.format(error_data)
+        elif error_type == ErrorType.TestError:
+            details_str = f'\nData: {error_data}'
 
-        elif error_id == ErrorType.ImuError:
+        elif error_type == ErrorType.ImuError:
             details_str = ''
 
         else:
-            details_str = '\nData: {}'.format(error_data)
+            details_str = f'\nData: {error_data}'
 
         hw = int.from_bytes(hw_version, byteorder='little')
         fw = int.from_bytes(fw_version, byteorder='little')
@@ -89,7 +114,7 @@ def format_error(error, installed_fw: Version, only_current=False):
         fw_str = fw_formats[hw].format(fw)
 
         try:
-            exception_name = exception_names[error_id]
+            exception_name = exception_names[error_type.value]
         except IndexError:
             exception_name = 'Unknown error'
 
@@ -100,11 +125,11 @@ def format_error(error, installed_fw: Version, only_current=False):
         else:
             return None
 
-        return error_template.format(exception_name, error_id, hw_str, fw_str, details_str)
+        return error_template.format(exception_name, error_type.value, hw_str, fw_str, details_str)
 
     except Exception:
         traceback.print_exc()
-        return 'Error during processing\nRaw data: {}'.format(error)
+        return f'Error during processing\nRaw data: {error}'
 
 
 if __name__ == "__main__":
@@ -122,40 +147,29 @@ if __name__ == "__main__":
 
         current_hw_version = robot_control.get_hardware_version()
         current_fw_version = robot_control.get_firmware_version()
-        print('Current version numbers: HW: {} FW: {}'.format(current_fw_version, current_fw_version))
+        print(f'Current version numbers: HW: {current_hw_version} FW: {current_fw_version}')
 
         if args.inject_test_error:
             print('Recording a test error')
             robot_control.error_memory_test()
 
+        error_reader = McuErrorReader(robot_control)
+
         # read errors
-        error_count = robot_control.error_memory_read_count()
+        error_count = error_reader.count
         if error_count == 0:
             print('There are no errors stored')
         elif error_count == 1:
             print('There is one error stored')
         else:
-            print('There are {} errors stored'.format(error_count))
+            print(f'There are {error_count} errors stored')
 
-        remaining = error_count
-        i = 0
-        while remaining > 0:
-            errors = robot_control.error_memory_read_errors(i)
-            if len(errors) == 0:
-                print('0 errors returned, exiting')
-                break
-
-            remaining -= len(errors)
-
-            for error_entry in errors:
-                formatted_error = format_error(error_entry, current_fw_version, only_current=args.only_current)
-                if formatted_error is not None:
-                    print('----------------------------------------')
-                    print('Error {}'.format(i))
-                    print(formatted_error)
-                i += 1
+        for i, error_entry in enumerate(error_reader.read_all()):
+            formatted_error = format_error(error_entry, current_fw_version, only_current=args.only_current)
+            if formatted_error is not None:
+                print('----------------------------------------')
+                print(f'Error {i}')
+                print(formatted_error)
 
         if args.clear:
-            print('Clearing error memory...')
-            robot_control.error_memory_clear()
-            print('Error memory cleared')
+            error_reader.clear()

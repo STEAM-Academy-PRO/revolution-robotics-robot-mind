@@ -4,7 +4,7 @@ import time
 import traceback
 from threading import Event, Thread, Lock, RLock
 
-from revvy.utils.logger import get_logger
+from revvy.utils.logger import get_logger, LogLevel
 
 
 def _call_callbacks(cb_list: list):
@@ -60,7 +60,8 @@ class ThreadWrapper:
                 except InterruptedError:
                     self._log('interrupted')
                 except Exception:
-                    self._log(traceback.format_exc())
+                    self._log(traceback.format_exc(), LogLevel.ERROR)
+                    self._log.flush()
                 finally:
                     self._enter_stopped()
         finally:

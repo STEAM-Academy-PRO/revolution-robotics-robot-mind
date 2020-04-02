@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # SPDX-License-Identifier: GPL-3.0-only
-# start using 'python -m tools.create_package' from the root directory
+# start using 'python -m dev_tools.create_package' from the root directory
 import argparse
 import json
 import tarfile
@@ -10,7 +10,7 @@ from os import path
 
 from revvy.utils.functions import file_hash, read_json
 from tools.common import find_files
-from tools.generate_manifest import gen_manifest
+from dev_tools.generate_manifest import gen_manifest
 
 
 def create_package(sources, output):

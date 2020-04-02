@@ -190,9 +190,13 @@ class TestLongMessageHandler(unittest.TestCase):
                 self.assertEqual(1, mock_callback.call_count)
 
     def test_finalize_notifies_for_already_stored_message_without_upload(self):
+        info = LongMessageStatusInfo(LongMessageStatus.READY, b'\x01\x23\x45', 123)
+        data = b'foobar'
+
         storage = Mock()
-        storage.read_status = Mock(return_value=LongMessageStatusInfo(LongMessageStatus.READY, b'new_md5', 123))
+        storage.read_status = Mock(return_value=info)
         storage.set_long_message = Mock()
+        storage.get_long_message = Mock(return_value=data)
 
         mock_callback = Mock()
 
@@ -204,5 +208,7 @@ class TestLongMessageHandler(unittest.TestCase):
             with self.subTest(mt=mt):
                 handler.select_long_message_type(mt)
                 handler.finalize_message()
-                self.assertEqual(1, mock_callback.call_count)
+                self.assertTrue(mock_callback.called)
                 self.assertEqual(0, storage.set_long_message.call_count)
+                self.assertEqual(mt, mock_callback.call_args.args[0].message_type)
+                self.assertEqual('012345', mock_callback.call_args.args[0].md5)
