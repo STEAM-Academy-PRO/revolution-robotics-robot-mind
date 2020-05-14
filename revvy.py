@@ -201,9 +201,10 @@ if __name__ == "__main__":
 
     writeable_assets_dir = os.path.join(writeable_data_dir, 'assets')
 
+    # noinspection PyBroadException
     try:
         device_name = device_storage.read('device-name').decode("utf-8")
-    except StorageError:
+    except Exception:
         device_name = f'Revvy_{serial}'
 
     print(f'Device name: {device_name}')
