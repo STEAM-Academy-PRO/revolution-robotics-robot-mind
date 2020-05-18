@@ -302,8 +302,12 @@ class SystemIdCharacteristic(Characteristic):
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
         else:
             try:
-                self._system_id.update(data.decode('ascii'))
-                callback(Characteristic.RESULT_SUCCESS)
+                name = data.decode('ascii')
+                if len(name) > 15:
+                    callback(Characteristic.RESULT_UNLIKELY_ERROR)
+                else:
+                    self._system_id.update(name)
+                    callback(Characteristic.RESULT_SUCCESS)
             except UnicodeDecodeError:
                 callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
