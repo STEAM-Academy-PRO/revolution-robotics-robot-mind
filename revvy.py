@@ -203,7 +203,7 @@ if __name__ == "__main__":
 
     # noinspection PyBroadException
     try:
-        device_name = device_storage.read('device-name').decode("utf-8")
+        device_name = device_storage.read('device-name').decode("ascii")
     except Exception:
         device_name = f'Revvy_{serial}'
 
