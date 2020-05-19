@@ -204,6 +204,9 @@ if __name__ == "__main__":
     # noinspection PyBroadException
     try:
         device_name = device_storage.read('device-name').decode("ascii")
+
+        if 0 == len(device_name) or len(device_name) > 15:
+            device_name = f'Revvy_{serial}'
     except Exception:
         device_name = f'Revvy_{serial}'
 
