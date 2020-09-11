@@ -21,11 +21,13 @@ if __name__ == "__main__":
     parser.add_argument('--s2', help='Configure S2', default=None, choices=port_config_map.keys())
     parser.add_argument('--s3', help='Configure S3', default=None, choices=port_config_map.keys())
     parser.add_argument('--s4', help='Configure S4', default=None, choices=port_config_map.keys())
-    parser.add_argument('--imu-angle', help='Read IMU yaw angle', action='store_true')
+    parser.add_argument('--imu-yaw', help='Read IMU yaw angle', action='store_true')
+    parser.add_argument('--raw-imu', help='Read raw IMU acceleration', action='store_true')
+    parser.add_argument('--raw-gyro', help='Read raw IMU rotation', action='store_true')
 
     args = parser.parse_args()
 
-    if not (args.s1 or args.s2 or args.s3 or args.s4 or args.imu_angle):
+    if not (args.s1 or args.s2 or args.s3 or args.s4 or args.imu_yaw or args.raw_imu or args.raw_gyro):
         print('No ports configured')
         sys.exit(0)
 
@@ -38,11 +40,15 @@ if __name__ == "__main__":
         pattern += "\t{3}"
     if args.s4:
         pattern += "\t{4}"
-    if args.imu_angle:
+    if args.imu_yaw:
         pattern += "\t{5}"
+    if args.raw_imu:
+        pattern += "\t{6}"
+    if args.raw_gyro:
+        pattern += "\t{7}"
 
     sensor_data_changed = False
-    sensor_data = [0, None, None, None, None, None]
+    sensor_data = [0, None, None, None, None, None, None, None]
 
     with Robot() as robot:
         def update():
@@ -50,10 +56,22 @@ if __name__ == "__main__":
             sensor_data_changed = False
             robot.update_status()
 
-            if args.imu_angle:
+            if args.imu_yaw:
                 angle = robot.imu.yaw_angle
                 if angle != sensor_data[5]:
                     sensor_data[5] = angle
+                    sensor_data_changed = True
+
+            if args.raw_imu:
+                angle = robot.imu.acceleration
+                if angle != sensor_data[6]:
+                    sensor_data[6] = angle
+                    sensor_data_changed = True
+
+            if args.raw_gyro:
+                angle = robot.imu.rotation
+                if angle != sensor_data[7]:
+                    sensor_data[7] = angle
                     sensor_data_changed = True
 
             if sensor_data_changed:
