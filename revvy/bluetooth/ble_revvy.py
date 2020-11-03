@@ -69,7 +69,7 @@ class LongMessageCharacteristic(Characteristic):
                 callback(Characteristic.RESULT_SUCCESS, value)
 
             except LongMessageError:
-                callback(Characteristic.RESULT_UNLIKELY_ERROR)
+                callback(Characteristic.RESULT_UNLIKELY_ERROR, None)
 
     @staticmethod
     def _translate_result(result):
@@ -153,7 +153,7 @@ class BrainToMobileFunctionCharacteristic(Characteristic):
 
     def onReadRequest(self, offset, callback):
         if offset:
-            callback(Characteristic.RESULT_ATTR_NOT_LONG)
+            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
@@ -272,7 +272,7 @@ class VersionCharacteristic(Characteristic):
 
     def onReadRequest(self, offset, callback):
         if offset:
-            callback(Characteristic.RESULT_ATTR_NOT_LONG)
+            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
             callback(Characteristic.RESULT_SUCCESS, self._version)
 
@@ -293,7 +293,7 @@ class SystemIdCharacteristic(Characteristic):
 
     def onReadRequest(self, offset, callback):
         if offset:
-            callback(Characteristic.RESULT_ATTR_NOT_LONG)
+            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
             callback(Characteristic.RESULT_SUCCESS, self._system_id.get().encode('utf-8'))
 
@@ -353,7 +353,7 @@ class CustomBatteryLevelCharacteristic(Characteristic):
 
     def onReadRequest(self, offset, callback):
         if offset:
-            callback(Characteristic.RESULT_ATTR_NOT_LONG)
+            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
             callback(Characteristic.RESULT_SUCCESS, [self._value])
 
