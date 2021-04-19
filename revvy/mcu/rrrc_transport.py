@@ -233,11 +233,10 @@ class RevvyTransport:
         def _read_response_header_once():
             try:
                 header_bytes = self._transport.read(5)
-            except TransportException as e:
+                return ResponseHeader.create(header_bytes)
+            except Exception as e:
                 self._errors += 1
                 raise e
-
-            return ResponseHeader.create(header_bytes)
 
         header = retry(_read_response_header_once, retries)
 
