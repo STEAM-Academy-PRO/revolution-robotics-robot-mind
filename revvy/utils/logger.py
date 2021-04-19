@@ -13,7 +13,12 @@ class LogLevel:
     ERROR = 3
 
 
-levels = ('Debug', 'Info', 'Warning', 'Error')
+levels = (
+    '\x1b[90mDebug\x1b[0m',
+    '\x1b[32mInfo\x1b[0m',
+    '\x1b[33mWarning\x1b[0m',
+    '\x1b[31mError\x1b[0m'
+)
 
 
 class BaseLogger:
@@ -33,7 +38,7 @@ class Logger(BaseLogger):
 
     def log(self, message, level=LogLevel.INFO):
         if level >= self.minimum_level:
-            message = f'{self._sw.elapsed} {levels[level]}: {message}'
+            message = f'[{self._sw.elapsed:.2f}][{levels[level]}] {message}'
             print(message)
             self._buffer.append(message + '\n')
 

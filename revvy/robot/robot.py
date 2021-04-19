@@ -56,6 +56,7 @@ class Robot(RobotInterface):
                 try:
                     self._hw_version = self._bootloader_control.get_hardware_version()
                     self._fw_version = Version('0.0.0')
+                    break
                 except OSError:
                     self._log('Failed to read robot version')
 
