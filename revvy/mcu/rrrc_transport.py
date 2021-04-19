@@ -263,7 +263,7 @@ class RevvyTransport:
             try:
                 response_bytes = self._transport.read(
                     5 + header.payload_length)
-            except TransportException as e:
+            except Exception as e:
                 self._errors += 1
                 raise e
 
@@ -309,7 +309,7 @@ class RevvyTransport:
 
         try:
             self._transport.write(command)
-        except TransportException as e:
+        except Exception as e:
             self._errors += 1
             raise e
 
