@@ -231,7 +231,11 @@ class RevvyTransport:
         """
 
         def _read_response_header_once():
-            header_bytes = self._transport.read(5)
+            try:
+                header_bytes = self._transport.read(5)
+            except TransportException as e:
+                self._errors += 1
+                raise e
 
             return ResponseHeader.create(header_bytes)
 
@@ -257,16 +261,24 @@ class RevvyTransport:
 
         def _read_payload_once():
             # read header and payload
-            response_bytes = self._transport.read(5 + header.payload_length)
+            try:
+                response_bytes = self._transport.read(
+                    5 + header.payload_length)
+            except TransportException as e:
+                self._errors += 1
+                raise e
+
             # skip checksum byte
             response_header, response_payload = response_bytes[0:4], response_bytes[5:]
 
             # make sure we read the same response data we expect
             if not header.is_same_as(response_header):
+                self._errors += 1
                 raise ValueError('Read payload: Unexpected header received')
 
             # make sure data is intact
             if not header.validate_payload(response_payload):
+                self._errors += 1
                 raise ValueError('Read payload: payload contents invalid')
 
             return response_payload
@@ -288,8 +300,6 @@ class RevvyTransport:
         @param command: The command bytes to send
         @return: The response header
         """
-        self._transport.write(command)
-        self._stopwatch.reset()
 
         if self._error_print_timeout.elapsed >= 1:
             self._error_print_timeout.reset()
@@ -297,6 +307,14 @@ class RevvyTransport:
                 self._log.log(
                     'Errors in last second: {self._errors}', LogLevel.WARNING)
                 self._errors = 0
+
+        try:
+            self._transport.write(command)
+        except TransportException as e:
+            self._errors += 1
+            raise e
+
+        self._stopwatch.reset()
 
         while self._stopwatch.elapsed < self.timeout:
             response = self._read_response_header()
