@@ -304,7 +304,7 @@ class RevvyTransport:
             self._error_print_timeout.reset()
             if self._errors > 0:
                 self._log.log(
-                    'Errors in last second: {self._errors}', LogLevel.WARNING)
+                    f'Errors in last second: {self._errors}', LogLevel.WARNING)
                 self._errors = 0
 
         try:
