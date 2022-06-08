@@ -229,9 +229,12 @@ class ReadSensorPortInfoCommand(Command):
     def command_id(self): return 0x24
 
     def __call__(self, port_idx, page=0):
-        return self._send((port_idx, page))
+        val = self._send((port_idx, page))
+        # print(val, port_idx, page)
+        return val
 
     def parse_response(self, payload):
+        # print("parse_response ReadSensorPortInfoCommand", payload)
         return payload
 
 
@@ -240,7 +243,9 @@ class SetMotorPortControlCommand(Command):
     def command_id(self): return 0x14
 
     def __call__(self, command_bytes: bytes):
-        return self._send(command_bytes)
+        val = self._send(command_bytes)
+        # print("call SetMotorPortControlCommand  0x14", val, command_bytes)
+        return val
 
 
 class ReadPortStatusCommand(Command, ABC):

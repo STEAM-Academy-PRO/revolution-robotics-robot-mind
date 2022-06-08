@@ -86,6 +86,7 @@ class RobotBLEController:
             if fns:
                 for i, fn in enumerate(fns):
                     self._log(f'Running {i}/{len(fns)} background functions')
+                    print("     fn:   ", fn)
                     fn()
 
                 self._log('Background functions finished')
@@ -207,22 +208,27 @@ class RobotBLEController:
     def _apply_new_configuration(self, config):
         # apply new configuration
         self._log('Applying new configuration')
+        print("config:", config)
 
         live_service = self._ble['live_message_service']
 
         # set up motors
         for motor in self._robot.motors:
+            print("motor", config.motors[motor.id])
             motor.configure(config.motors[motor.id])
             motor.on_status_changed.add(lambda p: live_service.update_motor(p.id, p.power, p.speed, p.pos))
 
         for motor_id in config.drivetrain['left']:
+            print("drivetrain_l", config.drivetrain['left'])
             self._robot.drivetrain.add_left_motor(self._robot.motors[motor_id])
 
         for motor_id in config.drivetrain['right']:
+            print("drivetrain_r", config.drivetrain['right'])
             self._robot.drivetrain.add_right_motor(self._robot.motors[motor_id])
 
         # set up sensors
         for sensor in self._robot.sensors:
+            print("sensor", config.sensors[sensor.id])
             sensor.configure(config.sensors[sensor.id])
             sensor.on_status_changed.add(lambda p: live_service.update_sensor(p.id, p.raw_value))
 
@@ -231,10 +237,14 @@ class RobotBLEController:
 
         # set up remote controller
         for analog in config.controller.analog:
+            print("analog", analog)
             script_handle = self._scripts.add_script(analog['script'])
             self._remote_controller.on_analog_values(analog['channels'], partial(start_analog_script, script_handle))
 
         for button, script in enumerate(config.controller.buttons):
+            if button < 7:
+                print("button", button)
+                print("script", script)
             if script:
                 script_handle = self._scripts.add_script(script)
                 self._remote_controller.on_button_pressed(button, script_handle.start)
@@ -275,6 +285,7 @@ class RobotBLEController:
     def _ping_robot(self, timeout=0):
         stopwatch = Stopwatch()
         retry_ping = True
+        print("_______________________ping_robot____________________________")
         while retry_ping:
             retry_ping = False
             try:

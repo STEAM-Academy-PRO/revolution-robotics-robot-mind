@@ -40,8 +40,9 @@ class ThreadWrapper:
         self._thread_running_event = Event()  # caller can wait for the thread function to start running
         self._state = ThreadWrapper.STOPPED
         self._is_exiting = False
-        self._thread = Thread(target=self._thread_func, args=())
+        self._thread = Thread(target=self._thread_func, args=(), daemon=True)
         self._thread.start()
+
 
     def _wait_for_start(self):
         self._control.wait()

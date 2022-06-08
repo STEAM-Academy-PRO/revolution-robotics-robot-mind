@@ -63,6 +63,11 @@ class McuUpdater:
         Compare firmware version to the currently running one
         """
         mode = self._read_operation_mode()
+        print("---mode:", mode, "\n run finalize")
+        self.finalize()
+        print("end finalize")
+        mode = self._read_operation_mode()
+        print("---mode:", mode)
         if mode == McuOperationMode.APPLICATION:
             fw = self._robot.get_firmware_version()
             if fw != fw_version:  # allow downgrade as well

@@ -75,6 +75,7 @@ def retry(fn, retries=5):
         except Exception:
             print(traceback.format_exc())
         retry_num += 1
+        print("!!!!!", retry_num, "fn: ", fn)
 
     return False
 

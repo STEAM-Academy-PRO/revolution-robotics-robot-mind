@@ -109,6 +109,7 @@ class ScriptManager:
         if script.name in self._scripts:
             self._log(f'Stopping {script.name} before overriding')
             self._scripts[script.name].cleanup()
+            # print(script.name, script.runnable, script.priority)
 
         self._log(f'New script: {script.name}')
         script_handle = ScriptHandle(self, script.runnable, script.name, self._globals)

@@ -1,8 +1,8 @@
 {
     "2.0.0": {
-        "version": "0.2.1191",
-        "filename": "revvy_firmware-0.2.1191.bin",
-        "length": 70712,
-        "md5": "3343dc8cbf9f0cdf925f854900243423"
+        "version": "0.2.1192-feature-rgb_sensor",
+        "filename": "revvy_firmware-0.2.1192-feature-rgb_sensor.bin",
+        "length": 73820,
+        "md5": "9788f9946650690e3a80fbcc03713008"
     }
 }

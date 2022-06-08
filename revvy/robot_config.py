@@ -33,7 +33,8 @@ sensor_types = [
     None,
     Sensors.Ultrasonic,
     Sensors.BumperSwitch,
-    Sensors.EV3_Color
+    Sensors.EV3_Color,
+    Sensors.SofteqCS,
 ]
 
 
@@ -162,10 +163,13 @@ class RobotConfig:
         try:
             i = 1
             sensors = robot_config.get('sensors', []) if type(robot_config) is dict else []
+            print(sensors)
             for sensor in sensors:
+                # print(sensor)
                 if not sensor:
                     sensor = {'type': 0}
 
+                # print(sensor_types)
                 sensor_type = sensor_types[sensor['type']]
 
                 if sensor_type is not None:

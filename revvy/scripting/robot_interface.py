@@ -1,4 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
+import struct
+
 from functools import partial
 
 from revvy.robot.configurations import Motors, Sensors
@@ -67,7 +69,9 @@ class SensorPortWrapper(Wrapper):
     _named_configurations = {
         'NotConfigured': None,
         'BumperSwitch': Sensors.BumperSwitch,
-        'HC_SR04': Sensors.Ultrasonic
+        'HC_SR04': Sensors.Ultrasonic,
+        'EV3': None,
+        'RGB': Sensors.SofteqCS,
     }
 
     def __init__(self, script, sensor: PortInstance, resource: ResourceWrapper):
@@ -409,3 +413,26 @@ class RobotWrapper(RobotInterface):
 
     def stop(self):
         pass
+
+
+def rgb_to_hsv(red, green, blue):
+    r, g, b = red/255.0, green/255.0, blue/255.0
+    mx = max(r, g, b)
+    mn = min(r, g, b)
+    df = mx-mn
+    h = 1.0
+
+    if mx == mn:
+        h = 0
+    elif mx == r:
+        h = (60 * ((g-b)/df) + 360) % 360
+    elif mx == g:
+        h = (60 * ((b-r)/df) + 120) % 360
+    elif mx == b:
+        h = (60 * ((r-g)/df) + 240) % 360
+    if mx == 0:
+        s = 0
+    else:
+        s = (df/mx)*100
+    v = mx*100
+    return round(h, 1), round(s, 1), round(v, 1)
