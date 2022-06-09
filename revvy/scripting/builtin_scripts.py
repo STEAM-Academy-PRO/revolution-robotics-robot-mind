@@ -2,6 +2,8 @@
 import struct
 import time
 
+from math import sqrt
+
 from revvy.scripting.robot_interface import DriveTrainWrapper, SensorPortWrapper, rgb_to_hsv
 from revvy.utils.functions import clip, map_values
 from revvy.scripting.controllers import stick_controller, joystick
@@ -57,27 +59,32 @@ class ColorHSV:
         return self.value
 
 
-def drive_color(drivetrain_control: DriveTrainWrapper, robot_sensors: SensorPortWrapper, controller):
+def drive_color(drivetrain_control: DriveTrainWrapper, robot_sensors: SensorPortWrapper):
+    """ need to set correct line and background colors """
     base_color = 20.3   # 14.5
     background_color_c = 60  # 61.0
     background_color_f = 61.7  # 59.0
     background_color_l = 58.4  # 58.0
     background_color_r = 60  # 56.1
-    base_color_delta = background_color_c - base_color
-    base_speed = 0.3  # 0.3
+    delta_base_background = 40
+    base_speed = 0.35  # 0.33  # 0.3
     count = 0
 
-    while count < 300:  # 800:
-        count += 1
+    k_speed = 1 - 0.33 * base_speed
+    if k_speed > 0.99:
+        k_speed = 0.99
+    k_angle = 5.0
 
+    while count < 500:  # 800:
+        count += 1
         # get colors
         res = robot_sensors["RGB"].read()
-        li = [rgb_to_hsv(*_) for _ in struct.iter_unpack("<BBB", res)]
-        # print(li)
-        forward = li[0][0]  # round(li[0][0], 1)
-        left = 0.76 * li[1][0]  # round(li[1][0], 1)
-        right = li[2][0]  # round(li[2][0], 1)
-        center = li[3][0]  # round(li[3][0], 1)
+        sensors = [rgb_to_hsv(*_) for _ in struct.iter_unpack("<BBB", res)]
+        # print(sensors)
+        forward = sensors[0][0]
+        left = 0.76 * sensors[1][0]  # each sensor gives some difference, need to correct
+        right = sensors[2][0]
+        center = sensors[3][0]
         print(forward, left, right, center)
 
         # check: stop when line loosed and exit from function
@@ -92,46 +99,32 @@ def drive_color(drivetrain_control: DriveTrainWrapper, robot_sensors: SensorPort
         sl = base_speed
         sr = base_speed
         delta_lr = abs(right-left)
-        k_lr = abs(base_color_delta * 3.30 - delta_lr) / (base_color_delta * 3.30)
-        k_diff = k_lr * (1.01 - base_speed) * 1.4  # * 1.15  # k_lr*base_speed*2
-        print("k_lr:", round(k_lr, 2), "k_diff:", round(k_diff, 2), "delta_lr:", delta_lr)
-        if k_diff > 0.99:
-            print("\n\n")
-            k_diff = 0.99
+        delta = delta_base_background*1.03
 
+        k_diff = (1-k_speed) \
+                + k_speed*((k_angle*sqrt(delta-delta_lr)+(delta_base_background-k_angle*sqrt(delta))) / delta)
+        print("   k_diff", k_diff, "\n   k_speed", k_speed)
         speed_primary = base_speed * k_diff
-        # val = (0.1 + (60 - delta_lr) / 100 + k_diff / 2.8)
-        val = k_diff * (100 - delta_lr) / 100
-        if val > 1:
-            print("\n\n")
-        print(val, (100 - delta_lr) / 100, k_diff / 2.8)
-        speed_secondary = base_speed / val
-        # speed_secondary = base_speed / k_diff
-        print("primary:", speed_primary, "secondary", speed_secondary)
+        speed_secondary = base_speed / k_diff
 
         """ red line (17), light background (70)
             if forward sensor at line """
         if abs(base_color-forward) < 55:
-            if delta_lr > 3:
+            compare = delta_base_background/20
+            if delta_lr > compare:
+                sr = speed_primary
+                sl = speed_secondary
+                print("!!!!!!  at right!!")
                 if right > left:
                     sl = speed_primary
-                    print("to left!!  left-center:", round(left - center, 1))
-                    # if abs(base_color - forward) > 3:
-                    if delta_lr > 8:
-                        sr = speed_secondary
-                        print("!!!+++turn left DoubleWells=== ")
-                elif right < left:
-                    sr = speed_primary
-                    print("     to right!!  right-center:", round(right - center, 1))
-                    # if abs(base_color - forward) > 3:
-                    if delta_lr > 8:
-                        sl = speed_secondary
-                        print("      !!!+++turn right DoubleWells=== ")
-            # set calculated speeds
+                    sr = speed_secondary
+                    print("++++++  at left!!")
+            # check overspeed
             if sl > 1:
                 sl = 1
             if sr > 1:
                 sr = 1
+            # set calculated speeds
             drivetrain_control.set_speeds(
                 map_values(sl, 0, 1, 0, 120),
                 map_values(sr, 0, 1, 0, 120))
@@ -140,18 +133,18 @@ def drive_color(drivetrain_control: DriveTrainWrapper, robot_sensors: SensorPort
             # drivetrain_control.set_speeds(
             #     map_values(sl, 0, 1, 0, 120),
             #     map_values(sr, 0, 1, 0, 120))
-            # turn right/left straight no
-
+            # turn right/left straight now
         # wait
-        time.sleep(0.02)
+        time.sleep(0.015)
     # stop at end of function
     drivetrain_control.set_speeds(
         map_values(0, 0, 1, 0, 120),
         map_values(0, 0, 1, 0, 120))
+    return 0
 
 
 def drive_line(robot, **_):
-    drive_color(robot.drivetrain, robot.sensors, joystick)
+    drive_color(robot.drivetrain, robot.sensors)
 
 
 builtin_scripts = {
