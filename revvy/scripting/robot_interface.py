@@ -417,6 +417,7 @@ class RobotWrapper(RobotInterface):
 
 def rgb_to_hsv(red, green, blue):
     r, g, b = red/255.0, green/255.0, blue/255.0
+    grey = 0.299*red + 0.587*green + 0.114*blue
     mx = max(r, g, b)
     mn = min(r, g, b)
     df = mx-mn
@@ -435,4 +436,4 @@ def rgb_to_hsv(red, green, blue):
     else:
         s = (df/mx)*100
     v = mx*100
-    return round(h, 1), round(s, 1), round(v, 1)
+    return round(h, 1), round(s, 1), round(v, 1), round(grey, 1)

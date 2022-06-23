@@ -59,110 +59,135 @@ class ColorHSV:
         return self.value
 
 
-def detect_line_background_colors(fd, ct, lt, rt):
-    line = 1
-    background = 1
-    if abs(1 - fd/ct) < 0.2 and abs(1 - lt/rt) < 0.2:
-        line = (fd+ct)/2
-        background = (lt+rt)/2
-        return line, background
-    return line, background
+def detect_line_background_colors(sensors):
+    res = [[], [], []]  # [H] [S] [V]
+    grey = []
+    for sensor in sensors:
+        res[0].append(sensor[0])
+        res[1].append(sensor[1])
+        res[2].append(sensor[2])
+        grey.append(sensor[3])
+    print(res)
+    delta = []   # searching of most signed from H S V
+    for _ in res:
+        delta.append(max(_) - min(_))
+    i = delta.index(max(delta))
+    """next commented  is for using most heavy from H,S,V"""
+    # maximum = max(res[i])
+    # minimum = min(res[i])
+    # background = minimum
+    # line = maximum
+    # if res[i].index(maximum) in (1, 2):   # then the value of background color is max and line is min
+    #     background = maximum
+    #     line = minimum
+    # print(i, res[i], )
+    """grey color using at the time of following is most effective,
+       in this case we use HSV just for make decision which way be the next"""
+    maxi = max(grey)
+    mini = min(grey)
+    background = mini
+    line = maxi
+    if grey.index(maxi) in (1, 2):
+        background = maxi
+        line = mini
+
+    return line, background, i, tuple(grey), tuple(res[i])
 
 
 def drive_color(drivetrain_control: DriveTrainWrapper, robot_sensors: SensorPortWrapper):
     """ need to set correct line and background colors """
-    base_color = 20.3  # 14.5
-    background_color = 50
-    # background_color_c = 60  # 61.0
-    # background_color_f = 61.7  # 59.0
-    # background_color_l = 58.4  # 58.0
-    # background_color_r = 60  # 56.1
-    # delta_base_background = 40
-    base_speed = 0.2  # 0.33  # 0.3
+    base_speed = 0.2
     count = 0
 
-    k_speed = 1 - 0.33 * base_speed
+    k_speed = 1 - 0.23 * base_speed
     if k_speed > 0.99:
         k_speed = 0.99
-    k_angle = 5.0
+
+    res = robot_sensors["RGB"].read()
+    sensors = [rgb_to_hsv(*_) for _ in struct.iter_unpack("<BBB", res)]
+    base_color, background_color, i, colors, colors_grey = detect_line_background_colors(sensors)
 
     while count < 500:  # 800:
         count += 1
         # get colors
         res = robot_sensors["RGB"].read()
         sensors = [rgb_to_hsv(*_) for _ in struct.iter_unpack("<BBB", res)]
-        print(sensors)
-        forward = sensors[0][0]
-        left = 0.76 * sensors[1][0]  # each sensor gives some difference, need to correct
-        right = sensors[2][0]
-        center = sensors[3][0]
-        color_max = max(forward, left, right, center)
-        color_min = min(forward, left, right, center)
-        if color_max > background_color:
-            background_color = color_max
-        if color_min < base_color:
-            base_color = color_min
-        delta_base_background = background_color - base_color
+        base_color_, background_color_, i, colors_grey, colors = detect_line_background_colors(sensors)
+        if base_color < background_color:
+            base_color = min(base_color_, base_color)
+            background_color = max(background_color_, background_color)
+        else:
+            base_color = max(base_color_, base_color)
+            background_color = min(background_color_, background_color)
 
-        line, background = detect_line_background_colors(forward, center, left, right)
-        print(line, background)
-        # print(detect_line_background_colors(forward, left, right, center))
-        print(forward, left, right, center, base_color, background_color)
+        forward, left, right, center = colors_grey
+        print("   ", base_color, background_color, "___", forward, left, right, center, "i:", i, colors)
+
+        delta_base_background = abs(background_color - base_color)
+        delta = delta_base_background * 1.03
 
         # check: stop when line loosed and exit from function
-        # if abs(background_color-forward) < 7 and abs(background_color-center) < 7 \
-        #         and abs(background_color-right) < 7 and abs(background_color-left) < 7:
-        if not (abs(base_color - forward) < 7 or abs(base_color - center) < 7
-                or abs(base_color - right) < 7 or abs(base_color - left) < 7):
-            # print("")
-            # else:
+        param = delta_base_background * 0.4
+        if not (abs(base_color - forward) < param or abs(base_color - center) < param
+                or abs(base_color - right) < param or abs(base_color - left) < param):
             drivetrain_control.set_speeds(
                 map_values(0, 0, 1, 0, 120),
                 map_values(0, 0, 1, 0, 120))
             print("stop, line loosed")
             return 1
 
+        forward_level = 0.35  #  0.40 good for base_speed = 0.2
+        k_forward = 0
+        temp = abs(forward - base_color) / delta_base_background
+        if temp > 0.25:
+            k_forward = forward_level * temp
+        k_angle = 1.02 + sqrt(delta_base_background / 6.8)  # 7.0 good for base_speed = 0.2
         sl = base_speed
         sr = base_speed
         delta_lr = abs(right - left)
-        delta = delta_base_background * 1.03
+        print("delta:", delta, "delta_lr:", delta_lr, "k_angle:", k_angle, "k_forward:", k_forward)
 
         k_diff = (1 - k_speed) \
-                 + k_speed * ((k_angle * sqrt(delta - delta_lr) + (
+                 + k_speed * ((k_angle * sqrt(abs(delta - delta_lr)) + (
                     delta_base_background - k_angle * sqrt(delta))) / delta)
-        print("   k_diff", k_diff, "\n   k_speed", k_speed)
-        speed_primary = base_speed * k_diff
-        speed_secondary = base_speed / k_diff
+        print("   k_speed:", k_speed, "\n   k_diff:", k_diff, "     k_diff*(1-k_forward):", k_diff*(1-k_forward))
+        k_diff = k_diff*(1-k_forward)
 
+        speed_primary = base_speed * k_diff * 0.9
+        speed_secondary = base_speed / k_diff
         """ red line (17), light background (70)
             if forward sensor at line """
-        if abs(base_color - forward) < 200:  # 55:
-            compare = delta_base_background / 20
-            if delta_lr > compare:
-                sr = speed_primary
-                sl = speed_secondary
-                print("!!!!!!  at right!!")
-                if right > left:
-                    sl = speed_primary
-                    sr = speed_secondary
-                    print("++++++  at left!!")
-            # check overspeed
-            if sl > 1:
-                sl = 1
-            if sr > 1:
-                sr = 1
-            # set calculated speeds
-            drivetrain_control.set_speeds(
-                map_values(sl, 0, 1, 0, 120),
-                map_values(sr, 0, 1, 0, 120))
-        else:
-            print("_________________need to turn")
-            # drivetrain_control.set_speeds(
-            #     map_values(sl, 0, 1, 0, 120),
-            #     map_values(sr, 0, 1, 0, 120))
-            # turn right/left straight now
-        # wait
+        compare = delta_base_background / 40  # /20  # !!!!!!!!!!
+        if delta_lr > compare:
+            sr = speed_primary
+            sl = speed_secondary
+            if base_color > background_color:
+                sr = speed_secondary
+                sl = speed_primary
+            str_turn = "!!!!!!  at right!!"
+            if right > left:
+                sl = speed_primary
+                sr = speed_secondary
+                if base_color > background_color:
+                    sl = speed_secondary
+                    sr = speed_primary
+                str_turn = "++++++  at left!!"
+
+            print(str_turn)
+        # check overspeed
+        if sl > 1:
+            sl = 0
+            count = 500
+        if sr > 1:
+            sr = 0
+            count = 500
+        # set calculated speeds
+        drivetrain_control.set_speeds(
+            map_values(sl, 0, 1, 0, 120),
+            map_values(sr, 0, 1, 0, 120))
+
         time.sleep(0.015)
+
     # stop at end of function
     drivetrain_control.set_speeds(
         map_values(0, 0, 1, 0, 120),
