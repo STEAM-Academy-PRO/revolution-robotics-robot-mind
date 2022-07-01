@@ -305,7 +305,7 @@ def search_color(drivetrain_control: DriveTrainWrapper, robot_sensors: SensorPor
         map_values(0, 0, 1, 0, 120))
     time.sleep(0.2)
     return 0
-    # return 0 -- color don't detected
+    # return 0 -- color don't detected now
 
 
 def search_lr(color):
