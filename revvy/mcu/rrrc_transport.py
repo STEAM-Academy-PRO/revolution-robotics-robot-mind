@@ -143,9 +143,8 @@ class ResponseHeader(NamedTuple):
             header_bytes = data[0:4]
             if crc7(header_bytes) != data[4]:
                 # print("data:", data, header_bytes, data[4], crc7(header_bytes))
-                raise ValueError('Header checksum mismatch')
-            # print("Header checksum OK!", data, header_bytes, data[4], crc7(header_bytes))
-
+                # raise ValueError('Header checksum mismatch')
+                return 0
             status, _payload_length, _payload_checksum = struct.unpack('<BBH', header_bytes)
             return ResponseHeader(status=ResponseStatus(status),
                                   payload_length=_payload_length,
@@ -260,11 +259,13 @@ class RevvyTransport:
 
             # make sure we read the same response data we expect
             if not header.is_same_as(response_header):
-                raise ValueError('Read payload: Unexpected header received')
+                # raise ValueError('Read payload: Unexpected header received')
+                return 0
 
             # make sure data is intact
             if not header.validate_payload(response_payload):
-                raise ValueError('Read payload: payload contents invalid')
+                # raise ValueError('Read payload: payload contents invalid')
+                return 0
 
             return response_payload
 

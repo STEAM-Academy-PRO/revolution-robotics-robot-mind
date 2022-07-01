@@ -95,7 +95,8 @@ def detect_line_background_colors(sensors):
 
 
 def drive_color(drivetrain_control: DriveTrainWrapper, robot_sensors: SensorPortWrapper):
-    """ need to set correct line and background colors """
+    """ need to set correct line and background colors, this colors we need to get from search_color function
+    it is function for step 3"""
     base_speed = 0.2
     count = 0
 
@@ -199,8 +200,129 @@ def drive_line(robot, **_):
     drive_color(robot.drivetrain, robot.sensors)
 
 
+def search_color(drivetrain_control: DriveTrainWrapper, robot_sensors: SensorPortWrapper, line_color, func_search_lr):
+    """ searches current line and background colors
+    when finished color sensor should be at the center of line (left color == right color)"""
+    base_speed = 0.03
+
+    func_search_lr(line_color)
+    res = robot_sensors["RGB"].read()
+    sensors = [rgb_to_hsv(*_) for _ in struct.iter_unpack("<BBB", res)]
+    base_color, background_color, i, colors, colors_grey = detect_line_background_colors(sensors)
+    print(colors)
+
+    count = 0
+    while count < 20:  # 800:
+        count += 1
+        # get colors
+        res = robot_sensors["RGB"].read()
+        sensors = [rgb_to_hsv(*_) for _ in struct.iter_unpack("<BBB", res)]
+        base_color_, background_color_, i, colors_grey, colors = detect_line_background_colors(sensors)
+        if base_color < background_color:
+            base_color = min(base_color_, base_color)
+            background_color = max(background_color_, background_color)
+        else:
+            base_color = max(base_color_, base_color)
+            background_color = min(background_color_, background_color)
+
+        forward, left, right, center = colors_grey
+        print("   ", base_color, background_color, "___", forward, left, right, center, "i:", i, colors)
+
+        delta_base_background = abs(background_color - base_color)
+        delta = delta_base_background * 1.03
+
+        drivetrain_control.set_speeds(
+            map_values(base_speed, 0, 1, 0, 120),
+            map_values(-base_speed, 0, 1, 0, 120))
+        time.sleep(0.02)
+    drivetrain_control.set_speeds(
+        map_values(0, 0, 1, 0, 120),
+        map_values(0, 0, 1, 0, 120))
+    time.sleep(0.2)
+
+    count = 0
+    while count < 40:  # 800:
+        count += 1
+        # get colors
+        res = robot_sensors["RGB"].read()
+        sensors = [rgb_to_hsv(*_) for _ in struct.iter_unpack("<BBB", res)]
+        base_color_, background_color_, i, colors_grey, colors = detect_line_background_colors(sensors)
+        if base_color < background_color:
+            base_color = min(base_color_, base_color)
+            background_color = max(background_color_, background_color)
+        else:
+            base_color = max(base_color_, base_color)
+            background_color = min(background_color_, background_color)
+
+        forward, left, right, center = colors_grey
+        print("   ", base_color, background_color, "___", forward, left, right, center, "i:", i, colors)
+
+        delta_base_background = abs(background_color - base_color)
+        delta = delta_base_background * 1.03
+
+        drivetrain_control.set_speeds(
+            map_values(-base_speed, 0, 1, 0, 120),
+            map_values(base_speed, 0, 1, 0, 120))
+        time.sleep(0.02)
+    drivetrain_control.set_speeds(
+        map_values(0, 0, 1, 0, 120),
+        map_values(0, 0, 1, 0, 120))
+    time.sleep(0.2)
+    count = 0
+    while count < 50:  # 800:
+        count += 1
+        # get colors
+        res = robot_sensors["RGB"].read()
+        sensors = [rgb_to_hsv(*_) for _ in struct.iter_unpack("<BBB", res)]
+        base_color_, background_color_, i, colors_grey, colors = detect_line_background_colors(sensors)
+        if base_color < background_color:
+            base_color = min(base_color_, base_color)
+            background_color = max(background_color_, background_color)
+        else:
+            base_color = max(base_color_, base_color)
+            background_color = min(background_color_, background_color)
+
+        forward, left, right, center = colors_grey
+        print("   ", base_color, background_color, "___", forward, left, right, center, "i:", i, colors)
+
+        delta_base_background = abs(background_color - base_color)
+        delta = delta_base_background * 1.03
+
+        if abs(left-right) < 5 and abs(forward-base_color) < 10:
+            drivetrain_control.set_speeds(
+                map_values(0, 0, 1, 0, 120),
+                map_values(0, 0, 1, 0, 120))
+            return 1
+            # return detected_color_name
+
+        drivetrain_control.set_speeds(
+            map_values(base_speed, 0, 1, 0, 120),
+            map_values(-base_speed, 0, 1, 0, 120))
+        time.sleep(0.02)
+
+    drivetrain_control.set_speeds(
+        map_values(0, 0, 1, 0, 120),
+        map_values(0, 0, 1, 0, 120))
+    time.sleep(0.2)
+    return 0
+    # return 0 -- color don't detected
+
+
+def search_lr(color):
+    """this function should search color where we change direction
+    when founded we stop current line follower and go to the next step"""
+    print("\n!\n", color)
+
+
+def search_line(robot, func=search_lr, **_):
+    """this function is step 2, we search line to follow and return line color and background color
+    when function ends the color sensor position is left color == right color"""
+    color_line = "red"
+    search_color(robot.drivetrain, robot.sensors, color_line, func)
+
 builtin_scripts = {
     'drive_2sticks': drive_2sticks,
     'drive_joystick': drive_joystick,
     'drive_line': drive_line,
+    'search_line': search_line,
 }
