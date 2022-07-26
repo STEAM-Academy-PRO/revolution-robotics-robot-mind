@@ -1,6 +1,4 @@
 # SPDX-License-Identifier: GPL-3.0-only
-import struct
-
 from functools import partial
 
 from revvy.robot.configurations import Motors, Sensors
@@ -413,53 +411,3 @@ class RobotWrapper(RobotInterface):
 
     def stop(self):
         pass
-
-
-def get_color_name(r, g, b):
-    name = 'not_defined'
-    if r < 120 and g < 120 and b < 120:
-        name = 'black'
-        return name
-    if r > 195 and g > 195 and b > 195:
-        name = 'white'
-        return name
-    if r > 120 and g < 120 and b < 120:
-        name = 'red'
-        return name
-    if r < 120 and g > 120 and b < 150:  # b < 120
-        name = 'green'
-        return name
-    if r < 120 and g < 120 and b > 120:
-        name = 'blue'
-        return name
-    if r > 180 and g > 180 and b < 160:
-        name = 'yellow'
-        return name
-    if r < 160 and g > 180 and b > 180:
-        name = 'cyan'
-        return name
-    return name
-
-
-def rgb_to_hsv_grey(red, green, blue):
-    r, g, b = red/255.0, green/255.0, blue/255.0
-    grey = 0.299*red + 0.587*green + 0.114*blue
-    mx = max(r, g, b)
-    mn = min(r, g, b)
-    df = mx-mn
-    h = 1.0
-
-    if mx == mn:
-        h = 0
-    elif mx == r:
-        h = (60 * ((g-b)/df) + 360) % 360
-    elif mx == g:
-        h = (60 * ((b-r)/df) + 120) % 360
-    elif mx == b:
-        h = (60 * ((r-g)/df) + 240) % 360
-    if mx == 0:
-        s = 0
-    else:
-        s = (df/mx)*100
-    v = mx*100
-    return round(h, 1), round(s, 1), round(v, 1), round(grey, 1), get_color_name(red, green, blue), (red, green, blue)
