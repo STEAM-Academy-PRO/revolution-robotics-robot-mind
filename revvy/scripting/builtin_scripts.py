@@ -4,10 +4,10 @@ import time
 
 from math import sqrt
 
-from revvy.scripting.robot_interface import DriveTrainWrapper, SensorPortWrapper
+from revvy.scripting.robot_interface import DriveTrainWrapper
 from revvy.scripting.robot_interface import MotorConstants as Motor
 from revvy.utils.functions import clip, map_values
-from revvy.scripting.controllers import stick_controller, joystick, rgb_to_hsv_grey, detect_line_background_colors,\
+from revvy.scripting.controllers import stick_controller, joystick, rgb_to_hsv_grey, detect_line_background_colors, \
     search_line, search_lr
 
 
@@ -61,13 +61,16 @@ class ColorHSV:
         return self.value
 
 
-def follow_line(
-        drivetrain_control: DriveTrainWrapper, robot_sensors: SensorPortWrapper,
-        base_color=0, background_color=0, line_name='not_defined', count_time=100, base_speed=0.2,
-        func_search_lr=None, desired_color='', side='',
-):
+def follow_line(robot,
+                base_color=0, background_color=0, line_name='not_defined',
+                count_time=100, base_speed=0.2,
+                func_search_lr=None, desired_color='', side='',
+                ):
     """ need to set correct line and background colors, this colors we need to get from search_color function
     it is function for step 3"""
+    drivetrain_control = robot.drivetrain
+    robot_sensors = robot.sensors
+
     if base_color == 0 or background_color == 0 or line_name == 'not_defined':
         print("line_grey:", base_color, "background_grey:", background_color, "line_color_name:", line_name)
         return 2
@@ -81,7 +84,7 @@ def follow_line(
         # get colors
         res = robot_sensors["RGB"].read()
         sensors = [rgb_to_hsv_grey(*_) for _ in struct.iter_unpack("<BBB", res)]
-        base_color_, background_color_, line_name_, background_name_, i, colors_grey, colors =\
+        base_color_, background_color_, line_name_, background_name_, i, colors_grey, colors = \
             detect_line_background_colors(sensors)
 
         forward, left, right, center = colors_grey
@@ -110,7 +113,7 @@ def follow_line(
                 print("stop, line found")
                 return 0
 
-        forward_level = 0.35  #  0.40 good for base_speed = 0.2
+        forward_level = 0.35  # 0.40 good for base_speed = 0.2
         k_forward = 0
         temp = abs(forward - base_color) / delta_base_background
         if temp > 0.25:
@@ -119,23 +122,17 @@ def follow_line(
         sl = base_speed
         sr = base_speed
         delta_lr = abs(right - left)
-        # print("delta:", round(delta, 2), "    delta_lr:", round(delta_lr, 2),
-        #       "    k_angle:", round(k_angle, 3), "    k_forward:", round(k_forward, 3))
-        k_diff = (1 - k_speed) \
-                 + k_speed * ((k_angle * sqrt(abs(delta - delta_lr)) + (
-                    delta_base_background - k_angle * sqrt(delta))) / delta)
-        # print("k_speed:", round(k_speed, 3), "    k_diff:", round(k_diff, 3),
-        #       "   k_diff*(1-k_forward):", round(k_diff * (1 - k_forward), 3))
+        k_diff = (1 - k_speed) + k_speed * ((k_angle * sqrt(abs(delta - delta_lr)) + (
+                delta_base_background - k_angle * sqrt(delta))) / delta)
 
         if forward_name == line_name:
             k_forward = 0
 
-        k_diff = k_diff*(1-k_forward)
+        k_diff = k_diff * (1 - k_forward)
 
         speed_primary = base_speed * k_diff  # * 0.9
         speed_secondary = base_speed / k_diff
-        """ red line (17), light background (70)
-            if forward sensor at line """
+
         compare = delta_base_background / 40  # /20  # !!!!!!!!!!
         if delta_lr > compare:
             sr = speed_primary
@@ -163,7 +160,6 @@ def follow_line(
         drivetrain_control.set_speeds(
             map_values(sl, 0, 1, 0, 120),
             map_values(sr, 0, 1, 0, 120))
-
         time.sleep(0.015)
 
     # stop at end of function
@@ -173,26 +169,27 @@ def follow_line(
     return 3
 
 
-# def algorithm(robot, func=search_lr, **_):
 def algorithm(robot, **_):
     """this function is step 2, we search line to follow and return line color and background color
     when function ends the color sensor position is left color == right color"""
     line_color = "blue"
-    base_color, background_color, line_color_name = search_line(robot.drivetrain, robot.sensors)
+    base_color, background_color, line_color_name = search_line(robot)
     time.sleep(0.4)
     if line_color_name == line_color:
-        res = follow_line(robot.drivetrain, robot.sensors, base_color, background_color, line_color, 500, 0.2,
+        res = follow_line(robot, base_color, background_color, line_color, 500, 0.2,
                           search_lr, 'green', 'left')
         time.sleep(0.4)
         if res == 0:
-            robot.drive(direction=Motor.DIRECTION_FWD, rotation=0.4, unit_rotation=Motor.UNIT_ROT, speed=25,    # Motor.UNIT_SEC, speed=25,
+            robot.drive(direction=Motor.DIRECTION_FWD, rotation=0.4, unit_rotation=Motor.UNIT_ROT, speed=25,
                         unit_speed=Motor.UNIT_SPEED_RPM)
             time.sleep(0.5)
-            robot.turn(direction=Motor.DIRECTION_LEFT, rotation=90, unit_rotation=Motor.UNIT_TURN_ANGLE, speed=25,
+            robot.turn(direction=Motor.DIRECTION_LEFT, rotation=85, unit_rotation=Motor.UNIT_TURN_ANGLE, speed=25,
                        unit_speed=Motor.UNIT_SPEED_RPM)
             robot.drivetrain.set_speeds(
                 map_values(0, 0, 1, 0, 120),
                 map_values(0, 0, 1, 0, 120))
+        else:
+            return 1
     else:
         print(f"there aren't found {line_color} line. it is {line_color_name}")
         res = robot.sensors["RGB"].read()
@@ -203,20 +200,22 @@ def algorithm(robot, **_):
     time.sleep(0.4)
 
     line_color = "green"
-    base_color, background_color, line_color_name = search_line(robot.drivetrain, robot.sensors)
+    base_color, background_color, line_color_name = search_line(robot)
     if line_color_name == line_color:
-        res = follow_line(robot.drivetrain, robot.sensors, base_color, background_color, line_color, 200, 0.2,
+        res = follow_line(robot, base_color, background_color, line_color, 200, 0.2,
                           search_lr, 'red', 'left')
         time.sleep(0.4)
         if res == 0:
-            robot.drive(direction=Motor.DIRECTION_FWD, rotation=0.41, unit_rotation=Motor.UNIT_ROT, speed=25,    # Motor.UNIT_SEC, speed=25,
+            robot.drive(direction=Motor.DIRECTION_FWD, rotation=0.41, unit_rotation=Motor.UNIT_ROT, speed=25,
                         unit_speed=Motor.UNIT_SPEED_RPM)
             time.sleep(0.2)
-            robot.turn(direction=Motor.DIRECTION_LEFT, rotation=90, unit_rotation=Motor.UNIT_TURN_ANGLE, speed=25,
+            robot.turn(direction=Motor.DIRECTION_LEFT, rotation=85, unit_rotation=Motor.UNIT_TURN_ANGLE, speed=25,
                        unit_speed=Motor.UNIT_SPEED_RPM)
             robot.drivetrain.set_speeds(
                 map_values(0, 0, 1, 0, 120),
                 map_values(0, 0, 1, 0, 120))
+        else:
+            return 1
     else:
         print(f"there aren't found {line_color} line. it is {line_color_name}")
         res = robot.sensors["RGB"].read()
@@ -227,17 +226,16 @@ def algorithm(robot, **_):
     time.sleep(0.4)
 
     line_color = "red"
-    base_color, background_color, line_color_name = \
-        search_line(robot.drivetrain, robot.sensors)
+    base_color, background_color, line_color_name = search_line(robot)
     if line_color_name == line_color:
-        res = follow_line(robot.drivetrain, robot.sensors, base_color, background_color, line_color, 200, 0.2)
+        res = follow_line(robot, base_color, background_color, line_color, 200, 0.2)
         print(f"search_line done, res: {res}")
     else:
         print(f"there aren't found {line_color} line. it is {line_color_name}")
-        res = robot.sensors["RGB"].read()
-        sensors = [rgb_to_hsv_grey(*_) for _ in struct.iter_unpack("<BBB", res)]
-        print(sensors)
-        print(detect_line_background_colors(sensors))
+        # res = robot.sensors["RGB"].read()
+        # sensors = [rgb_to_hsv_grey(*_) for _ in struct.iter_unpack("<BBB", res)]
+        # print(sensors)
+        # print(detect_line_background_colors(sensors))
         return 1
     return 0
 

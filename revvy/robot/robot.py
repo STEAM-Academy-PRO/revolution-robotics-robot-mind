@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import os
+
 from functools import partial
 
 from revvy.hardware_dependent.sound import SoundControlV1, SoundControlV2

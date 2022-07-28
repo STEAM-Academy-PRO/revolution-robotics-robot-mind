@@ -58,13 +58,13 @@ def get_color_name(r, g, b):
     if r > 195 and g > 195 and b > 195:
         name = 'white'
         return name
-    if r > 120 and g < 120 and b < 120:
+    if r > 110 and g < 120 and b < 120:
         name = 'red'
         return name
     if r < 120 and g > 100 and b < 140:  # b < 120
         name = 'green'
         return name
-    if r < 120 and g < 120 and b > 120:
+    if r < 120 < b and g < 120:
         name = 'blue'
         return name
     if r > 180 and g > 180 and b < 160:
@@ -175,10 +175,10 @@ def rotate_for_search(
         # print("   ", base_color, background_color, "___", forward, left, right, center, "i:", i, colors)
         delta_base_background = abs(background_color - base_color)
         if stop_line:
-            if abs(left - right) < 0.08 * (left + right) \
+            if abs(left - right) < 0.12 * (left + right) \
                     and (
-                    abs(center - base_color) < 0.3 * delta_base_background
-                    or abs(forward - base_color) < 0.3 * delta_base_background
+                    abs(center - base_color) < 0.4 * delta_base_background
+                    or abs(forward - base_color) < 0.4 * delta_base_background
             ):
                 drivetrain_control.set_speeds(
                     map_values(0, 0, 1, 0, 120),
@@ -192,22 +192,27 @@ def rotate_for_search(
     return 0, base_color, background_color, None, None
 
 
-def search_line(drivetrain_control: DriveTrainWrapper, robot_sensors: SensorPortWrapper):
+def search_line(robot):
     """ searches current line and background colors
     when finished color sensor should be at the center of line (left color == right color)"""
-    # robot.drivetrain, robot.sensors
+
+    drivetrain_control = robot.drivetrain
+    robot_sensors = robot.sensors
 
     res = robot_sensors["RGB"].read()
     sensors = [rgb_to_hsv_grey(*_) for _ in struct.iter_unpack("<BBB", res)]
     base_color, background_color, line_name, background_name, i, colors, colors_grey = \
         detect_line_background_colors(sensors)
 
-    status, base_color, background_color, line_color_name, _ = rotate_for_search(drivetrain_control, robot_sensors, base_color,
-                                                                    background_color, 0, 40, 0.03, 0)
-    status, base_color, background_color, line_color_name, _ = rotate_for_search(drivetrain_control, robot_sensors, base_color,
-                                                                    background_color, 1, 120, 0.03, 0)
-    status, base_color, background_color, line_color_name, _ = rotate_for_search(drivetrain_control, robot_sensors, base_color,
-                                                                    background_color, 0, 160, 0.03, 1)
+    status, base_color, background_color, line_color_name, _ = rotate_for_search(drivetrain_control, robot_sensors,
+                                                                                 base_color, background_color,
+                                                                                 0, 40, 0.03, 0)
+    status, base_color, background_color, line_color_name, _ = rotate_for_search(drivetrain_control, robot_sensors,
+                                                                                 base_color, background_color,
+                                                                                 1, 120, 0.03, 0)
+    status, base_color, background_color, line_color_name, _ = rotate_for_search(drivetrain_control, robot_sensors,
+                                                                                 base_color, background_color,
+                                                                                 0, 160, 0.03, 1)
     return base_color, background_color, line_color_name
 
 
@@ -218,11 +223,11 @@ def search_lr(colors: tuple, color='', side=''):
         print("color or side aren't sat")
         return False
     forward, left, right, center = colors
-    if side is 'left':
+    if side == 'left':
         if left == color:
             print(f"\n\nchannel 2 is {color} at {side}\n\n")
             return True
-    elif side is 'right':
+    elif side == 'right':
         if right == color:
             print(f"\n\nchannel 3 is {color} at {side}\n\n")
             return True

@@ -237,6 +237,7 @@ class LiveMessageService(BlenoPrimaryService):
             data = list(struct.pack(">flb", speed, position, power))
             self._motor_characteristics[motor - 1].update(data)
 
+
 # Device Information Service
 class ReadOnlyCharacteristic(Characteristic):
     def __init__(self, uuid, value):
