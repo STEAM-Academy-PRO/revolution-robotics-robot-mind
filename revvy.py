@@ -139,25 +139,25 @@ class LongMessageImplementation:
             message_data = message.data.decode()
             self._log(f'New configuration: {message_data}')
 
-            string = '{"robotConfig": ' \
-                     '{"motors": [{"name": "drive1", "type": 2, "reversed": 0, "side": 0}, {}, {},{"name": "drive4", "type": 2, "reversed": 0, "side": 1}, {}, {}],' \
-                     '"sensors": [{"name":"RGB","type":4}, {}, {"name":"button","type":2}, {"name":"distance","type":1}]},' \
-                     '"blocklyList": [' \
-                     '{"pythonCode": "Zm9yIGNvdW50IGluIHJhbmdlKDQpOgogIHJvYm90LmRyaXZlKGRpcmVjdGlvbj1Nb3Rvci5ESVJFQ1RJT05fRldELCByb3RhdGlvbj0yLCB1bml0X3JvdGF0aW9uPU1vdG9yLlVOSVRfU0VDLCBzcGVlZD03NSwgdW5pdF9zcGVlZD1Nb3Rvci5VTklUX1NQRUVEX1JQTSkKICByb2JvdC50dXJuKGRpcmVjdGlvbj1Nb3Rvci5ESVJFQ1RJT05fTEVGVCwgcm90YXRpb249OTAsIHVuaXRfcm90YXRpb249TW90b3IuVU5JVF9UVVJOX0FOR0xFLCBzcGVlZD03NSwgdW5pdF9zcGVlZD1Nb3Rvci5VTklUX1NQRUVEX1JQTSk=",' \
-                     '"assignments": {"buttons": [{"id": 1, "priority": 3}]}}, ' \
-                     '{"pythonCode": "cm9ib3QuZHJpdmUoZGlyZWN0aW9uPU1vdG9yLkRJUkVDVElPTl9GV0QsIHJvdGF0aW9uPTMsIHVuaXRfcm90YXRpb249TW90b3IuVU5JVF9TRUMsIHNwZWVkPTM2LCB1bml0X3NwZWVkPU1vdG9yLlVOSVRfU1BFRURfUlBNKQpyb2JvdC5wbGF5X3R1bmUoJ3NpcmVuJykKd2hpbGUgcm9ib3Quc2Vuc29yc1siYnV0dG9uIl0ucmVhZCgpOgogIHRpbWUuc2xlZXAoMC4wNSkgICMgYWxsb3cgb3RoZXIgdGhyZWFkcyB0byBydW4Kd2hpbGUgbm90IHJvYm90LnNlbnNvcnNbImJ1dHRvbiJdLnJlYWQoKToKICB0aW1lLnNsZWVwKDAuMDUpICAjIGFsbG93IG90aGVyIHRocmVhZHMgdG8gcnVuCnJvYm90LnBsYXlfdHVuZSgnZHVjaycpCg==",' \
-                     '"assignments": {"buttons": [{"id": 4, "priority": 5}]}}, ' \
-                     '{"pythonCode": "d2hpbGUgVHJ1ZToKICBpZiAocm9ib3Quc2Vuc29yc1siZGlzdGFuY2UiXS5yZWFkKCkpIDwgMTU6CiAgICByb2JvdC5kcml2ZShkaXJlY3Rpb249TW90b3IuRElSRUNUSU9OX0JBQ0ssIHJvdGF0aW9uPTEsIHVuaXRfcm90YXRpb249TW90b3IuVU5JVF9TRUMsIHNwZWVkPTEwMCwgdW5pdF9zcGVlZD1Nb3Rvci5VTklUX1NQRUVEX1JQTSkKICAgIHJvYm90LnR1cm4oZGlyZWN0aW9uPU1vdG9yLkRJUkVDVElPTl9SSUdIVCwgcm90YXRpb249MjIuNSwgdW5pdF9yb3RhdGlvbj1Nb3Rvci5VTklUX1RVUk5fQU5HTEUsIHNwZWVkPTc1LCB1bml0X3NwZWVkPU1vdG9yLlVOSVRfU1BFRURfUlBNKQogIGVsc2U6CiAgICByb2JvdC5kcml2ZXRyYWluLnNldF9zcGVlZChkaXJlY3Rpb249TW90b3IuRElSRUNUSU9OX0ZXRCwgc3BlZWQ9NDAsIHVuaXRfc3BlZWQ9TW90b3IuVU5JVF9TUEVFRF9SUE0pCiAgdGltZS5zbGVlcCgwLjA1KSAgIyBhbGxvdyBvdGhlciB0aHJlYWRzIHRvIHJ1bg==",' \
-                     '"assignments": {"buttons": [{"id": 5, "priority": 4}]}}, ' \
-                     '{"builtinScriptName": "drive_joystick", "assignments": {"analog": [{"channels": [0, 1], "priority": 1}]}},' \
-                     '{"builtinScriptName": "algorithm", ' \
-                     '"assignments": {"buttons": [{"id": 0, "priority": 2}]}}]}'
-                    # drive_line
-            print(string)
+            # string = '{"robotConfig": ' \
+            #          '{"motors": [{"name": "drive1", "type": 2, "reversed": 0, "side": 0}, {}, {},{"name": "drive4", "type": 2, "reversed": 0, "side": 1}, {}, {}],' \
+            #          '"sensors": [{"name":"RGB","type":4}, {}, {"name":"button","type":2}, {"name":"distance","type":1}]},' \
+            #          '"blocklyList": [' \
+            #          '{"pythonCode": "Zm9yIGNvdW50IGluIHJhbmdlKDQpOgogIHJvYm90LmRyaXZlKGRpcmVjdGlvbj1Nb3Rvci5ESVJFQ1RJT05fRldELCByb3RhdGlvbj0yLCB1bml0X3JvdGF0aW9uPU1vdG9yLlVOSVRfU0VDLCBzcGVlZD03NSwgdW5pdF9zcGVlZD1Nb3Rvci5VTklUX1NQRUVEX1JQTSkKICByb2JvdC50dXJuKGRpcmVjdGlvbj1Nb3Rvci5ESVJFQ1RJT05fTEVGVCwgcm90YXRpb249OTAsIHVuaXRfcm90YXRpb249TW90b3IuVU5JVF9UVVJOX0FOR0xFLCBzcGVlZD03NSwgdW5pdF9zcGVlZD1Nb3Rvci5VTklUX1NQRUVEX1JQTSk=",' \
+            #          '"assignments": {"buttons": [{"id": 1, "priority": 3}]}}, ' \
+            #          '{"pythonCode": "cm9ib3QuZHJpdmUoZGlyZWN0aW9uPU1vdG9yLkRJUkVDVElPTl9GV0QsIHJvdGF0aW9uPTMsIHVuaXRfcm90YXRpb249TW90b3IuVU5JVF9TRUMsIHNwZWVkPTM2LCB1bml0X3NwZWVkPU1vdG9yLlVOSVRfU1BFRURfUlBNKQpyb2JvdC5wbGF5X3R1bmUoJ3NpcmVuJykKd2hpbGUgcm9ib3Quc2Vuc29yc1siYnV0dG9uIl0ucmVhZCgpOgogIHRpbWUuc2xlZXAoMC4wNSkgICMgYWxsb3cgb3RoZXIgdGhyZWFkcyB0byBydW4Kd2hpbGUgbm90IHJvYm90LnNlbnNvcnNbImJ1dHRvbiJdLnJlYWQoKToKICB0aW1lLnNsZWVwKDAuMDUpICAjIGFsbG93IG90aGVyIHRocmVhZHMgdG8gcnVuCnJvYm90LnBsYXlfdHVuZSgnZHVjaycpCg==",' \
+            #          '"assignments": {"buttons": [{"id": 4, "priority": 5}]}}, ' \
+            #          '{"pythonCode": "d2hpbGUgVHJ1ZToKICBpZiAocm9ib3Quc2Vuc29yc1siZGlzdGFuY2UiXS5yZWFkKCkpIDwgMTU6CiAgICByb2JvdC5kcml2ZShkaXJlY3Rpb249TW90b3IuRElSRUNUSU9OX0JBQ0ssIHJvdGF0aW9uPTEsIHVuaXRfcm90YXRpb249TW90b3IuVU5JVF9TRUMsIHNwZWVkPTEwMCwgdW5pdF9zcGVlZD1Nb3Rvci5VTklUX1NQRUVEX1JQTSkKICAgIHJvYm90LnR1cm4oZGlyZWN0aW9uPU1vdG9yLkRJUkVDVElPTl9SSUdIVCwgcm90YXRpb249MjIuNSwgdW5pdF9yb3RhdGlvbj1Nb3Rvci5VTklUX1RVUk5fQU5HTEUsIHNwZWVkPTc1LCB1bml0X3NwZWVkPU1vdG9yLlVOSVRfU1BFRURfUlBNKQogIGVsc2U6CiAgICByb2JvdC5kcml2ZXRyYWluLnNldF9zcGVlZChkaXJlY3Rpb249TW90b3IuRElSRUNUSU9OX0ZXRCwgc3BlZWQ9NDAsIHVuaXRfc3BlZWQ9TW90b3IuVU5JVF9TUEVFRF9SUE0pCiAgdGltZS5zbGVlcCgwLjA1KSAgIyBhbGxvdyBvdGhlciB0aHJlYWRzIHRvIHJ1bg==",' \
+            #          '"assignments": {"buttons": [{"id": 5, "priority": 4}]}}, ' \
+            #          '{"builtinScriptName": "drive_joystick", "assignments": {"analog": [{"channels": [0, 1], "priority": 1}]}},' \
+            #          '{"builtinScriptName": "algorithm", ' \
+            #          '"assignments": {"buttons": [{"id": 0, "priority": 2}]}}]}'
+            #         # drive_line
+            # print(string)
 
             try:
-                # parsed_config = RobotConfig.from_string(message_data)
-                parsed_config = RobotConfig.from_string(string)
+                parsed_config = RobotConfig.from_string(message_data)
+                # parsed_config = RobotConfig.from_string(string)
 
                 if self._ignore_config:
                     self._log('New configuration ignored')
