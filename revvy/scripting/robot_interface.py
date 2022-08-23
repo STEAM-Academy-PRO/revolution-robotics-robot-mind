@@ -67,7 +67,9 @@ class SensorPortWrapper(Wrapper):
     _named_configurations = {
         'NotConfigured': None,
         'BumperSwitch': Sensors.BumperSwitch,
-        'HC_SR04': Sensors.Ultrasonic
+        'HC_SR04': Sensors.Ultrasonic,
+        'EV3': None,
+        'RGB': Sensors.SofteqCS,
     }
 
     def __init__(self, script, sensor: PortInstance, resource: ResourceWrapper):

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 from smbus2 import i2c_msg, SMBus
+import time
 
 from revvy.mcu.rrrc_control import RevvyTransportBase, RevvyControl, BootloaderControl
 from revvy.mcu.rrrc_transport import RevvyTransportInterface, RevvyTransport, TransportException
@@ -34,6 +35,7 @@ class RevvyTransportI2C(RevvyTransportBase):
 
     def __init__(self, bus):
         self._bus = SMBus(bus)
+        time.sleep(1)
 
     def _bind(self, address):
         return RevvyTransport(RevvyTransportI2CDevice(address, self._bus))

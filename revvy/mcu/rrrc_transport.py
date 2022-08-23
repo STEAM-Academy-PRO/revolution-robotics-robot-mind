@@ -142,8 +142,9 @@ class ResponseHeader(NamedTuple):
         try:
             header_bytes = data[0:4]
             if crc7(header_bytes) != data[4]:
-                raise ValueError('Header checksum mismatch')
-
+                # print("data:", data, header_bytes, data[4], crc7(header_bytes))
+                # raise ValueError('Header checksum mismatch')
+                return 0
             status, _payload_length, _payload_checksum = struct.unpack('<BBH', header_bytes)
             return ResponseHeader(status=ResponseStatus(status),
                                   payload_length=_payload_length,
@@ -166,7 +167,7 @@ class Response(NamedTuple):
 
 class RevvyTransport:
     _mutex = Lock()  # we only have a single I2C interface
-    timeout = 5  # [seconds] how long the slave is allowed to respond with "busy"
+    timeout = 75  # [seconds] how long the slave is allowed to respond with "busy"
 
     def __init__(self, transport: RevvyTransportInterface):
         self._transport = transport
@@ -185,6 +186,8 @@ class RevvyTransport:
         """
         with self._mutex:
             # create commands in advance, they can be reused in case of an error
+            # if command != 60 and command != 9:
+            #     print("command:", command, "payload:", payload)
             command_start = Command.start(command, payload)
             command_get_result = None
 
@@ -208,6 +211,7 @@ class RevvyTransport:
                     # return a result even in case of an error, except when we know we have to resend
                     if header.status != ResponseStatus.Error_CommandIntegrityError:
                         response_payload = self._read_payload(header)
+                        # print("command: ", command, "response_payload:", response_payload)
                         return Response(header.status, response_payload)
             except TimeoutError:
                 return Response(ResponseStatus.Error_Timeout, b'')
@@ -231,6 +235,7 @@ class RevvyTransport:
 
         if not header:
             raise BrokenPipeError('Read response header: Retry limit reached')
+
         return header
 
     def _read_payload(self, header: ResponseHeader, retries=5) -> bytes:
@@ -254,11 +259,13 @@ class RevvyTransport:
 
             # make sure we read the same response data we expect
             if not header.is_same_as(response_header):
-                raise ValueError('Read payload: Unexpected header received')
+                # raise ValueError('Read payload: Unexpected header received')
+                return 0
 
             # make sure data is intact
             if not header.validate_payload(response_payload):
-                raise ValueError('Read payload: payload contents invalid')
+                # raise ValueError('Read payload: payload contents invalid')
+                return 0
 
             return response_payload
 

@@ -91,6 +91,7 @@ class LongMessageCharacteristic(Characteristic):
 
             else:
                 result = self._translate_result(self._handler.handle_write(data[0], data[1:]))
+                print("my result:", result)
 
         except LongMessageError:
             print(traceback.format_exc())
@@ -215,26 +216,29 @@ class LiveMessageService(BlenoPrimaryService):
         self._message_handler = callback
 
     def simple_control_callback(self, data):
+        # print("simpleControl data:", data)
         analog_values = data[1:11]
         button_values = bits_to_bool_list(data[11:15])
 
         message_handler = self._message_handler
+        # print("simpleControl message_handler", message_handler)
         if message_handler:
             message_handler(RemoteControllerCommand(analog=analog_values, buttons=button_values))
         return True
 
     def update_sensor(self, sensor, value):
         if 0 < sensor <= len(self._sensor_characteristics):
+            # print("simpleControl update sensor:", sensor, value)
             self._sensor_characteristics[sensor - 1].update(value)
 
     def update_motor(self, motor, power, speed, position):
         if 0 < motor <= len(self._motor_characteristics):
+            # print("simpleControl update motor:", motor, power, speed, position)
             data = list(struct.pack(">flb", speed, position, power))
             self._motor_characteristics[motor - 1].update(data)
 
+
 # Device Information Service
-
-
 class ReadOnlyCharacteristic(Characteristic):
     def __init__(self, uuid, value):
         super().__init__({

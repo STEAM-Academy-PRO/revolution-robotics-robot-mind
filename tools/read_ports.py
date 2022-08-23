@@ -13,7 +13,8 @@ if __name__ == "__main__":
         'Ultrasonic': Sensors.Ultrasonic,
         'Button':     Sensors.BumperSwitch,
         'EV3':        Sensors.EV3,
-        'EV3_Color':  Sensors.EV3_Color
+        'EV3_Color':  Sensors.EV3_Color,
+        'Softeq_CS':  Sensors.SofteqCS,
     }
 
     parser = argparse.ArgumentParser()
@@ -76,7 +77,7 @@ if __name__ == "__main__":
 
             if sensor_data_changed:
                 sensor_data[0] = round(robot.time(), 2)
-                print(pattern.format(*sensor_data))
+                print("\nread_ports  80:", pattern.format(*sensor_data), "\n")
 
         def sensor_value_changed(idx, value):
             global sensor_data_changed

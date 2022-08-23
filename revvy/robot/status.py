@@ -85,6 +85,7 @@ class RobotStatusIndicator:
 
     @controller_status.setter
     def controller_status(self, value):
+        print("\ncontroller status!!!", value, "\n")
         if value != self._controller_status:
             self._log(f'Controller: {self._controller_status} -> {value}')
             self._controller_status = value

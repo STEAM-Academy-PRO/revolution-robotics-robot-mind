@@ -207,13 +207,13 @@ class DifferentialDrivetrain:
         self._apply_release()
 
     def set_speeds(self, left, right, power_limit=None):
-        self._log('set speeds')
+        self._log(f'set speeds: {left}  {right}  {power_limit}')
         self._abort_controller()
 
         self._apply_speeds(left, right, power_limit)
 
     def set_speed(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM):
-        self._log("set speed")
+        self._log(f"set speed: {direction}  {speed} {unit_speed}")
         self._abort_controller()
         multipliers = {
             MotorConstants.DIRECTION_FWD: 1,
@@ -226,7 +226,7 @@ class DifferentialDrivetrain:
         self._apply_speeds(left_speed, right_speed, power)
 
     def drive(self, direction, rotation, unit_rotation, speed, unit_speed):
-        self._log("drive")
+        self._log(f"drive: {direction} {rotation} {unit_rotation} {speed} {unit_speed}")
         self._abort_controller()
 
         multipliers = {
