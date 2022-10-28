@@ -42,8 +42,9 @@ Only the packages located under `~/RevvyFramework/user/packages` can be modified
  - Check out the sources in a directory of your choice.
  - Create a python virtual environment in the source directory by running `python -m venv venv`
  - Active the virtual environment by running `.\venv\Scripts\activate`
- - Install the required packages by running `pip install -r install/requirements.txt` and `pip install -r install/requirements_test.txt`
- - Run `nose2 -B` to see if the included tests pass.
+ - To run unit tests:
+   - Install the required packages by running `pip install -r install/requirements_test.txt`
+   - Run `nose2 -B` to see if the included tests pass.
 
 # Creating and installing an update package
 To package the framework for installation, do the following:
@@ -51,5 +52,6 @@ To package the framework for installation, do the following:
  - Run `python -m dev_tools.create_package`
  - The resulting files can be found in `install`
  - Copy the `framework.meta` and `framework.data` files into the `~/RevvyFramework/user/data/ble` folder on the robot as `2.meta` and `2.data`.
+ - `framework-<version>.tar.gz` is the update package that can be uploaded using the mobile app.
  - To install the new package, restart the framework service, or stop it and start the framework manually as described above.
  - Please note that the installation process can take up to about 5 minutes.
