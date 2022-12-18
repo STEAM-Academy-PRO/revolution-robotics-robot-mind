@@ -56,7 +56,26 @@ def extract_asset_longmessage(storage, asset_dir):
 
         message_data = storage.get_long_message(LongMessageType.ASSET_DATA)
         with tarfile.open(fileobj=io.StringIO(message_data), mode="r|gz") as tar:
-            tar.extractall(path=asset_dir)
+            def is_within_directory(directory, target):
+                
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+            
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+                
+                return prefix == abs_directory
+            
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+            
+                for member in tar.getmembers():
+                    member_path = os.path.join(path, member.name)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Attempted Path Traversal in Tar File")
+            
+                tar.extractall(path, members, numeric_owner=numeric_owner) 
+                
+            
+            safe_extract(tar, path=asset_dir)
 
         with open(os.path.join(asset_dir, '.hash'), 'w') as asset_hash_file:
             asset_hash_file.write(asset_status.md5)
