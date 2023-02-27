@@ -58,6 +58,7 @@ class RemoteControlConfig:
     def __init__(self):
         self.analog = []
         self.buttons = [None] * 32
+        self.variable_slots = []
 
 
 class ConfigError(Exception):
@@ -66,7 +67,7 @@ class ConfigError(Exception):
 
 class RobotConfig:
     @staticmethod
-    def create_runnable(script):
+    def create_runnable(script, script_num):
         try:
             script_name = dict_get_first(script, ['builtinScriptName', 'builtinscriptname'])
             _log(f'Use builtin script: {script_name}')
@@ -84,7 +85,7 @@ class RobotConfig:
 
                 code = code.replace('import time\n', '')
 
-                return str_to_func(code)
+                return str_to_func(code, script_num)
 
             except KeyError as e:
                 raise KeyError('Neither builtinScriptName, nor pythonCode is present for a script') from e
@@ -104,10 +105,15 @@ class RobotConfig:
             raise ConfigError('Received configuration is missing required parts') from e
 
         try:
+            config.background_initial_state = dict_get_first(json_config, ['initialState', 'initialstate'])
+        except KeyError:
+            pass
+
+        try:
             i = 0
             for script in blockly_list:
                 _log(f'Processing script #{i}')
-                runnable = RobotConfig.create_runnable(script)
+                runnable = RobotConfig.create_runnable(script, i)
 
                 assignments = script['assignments']
                 # script names are mostly relevant for logging
@@ -120,6 +126,15 @@ class RobotConfig:
                             'channels': analog_assignment['channels'],
                             'script': ScriptDescriptor(script_name, runnable, priority)})
                         i += 1
+
+                if 'variableSlots' in assignments:
+                    for variable_assignments in assignments['variableSlots']:
+                        variable_slot = variable_assignments['slot']
+                        variable_name = variable_assignments['variable']
+                        config.controller.variable_slots.append({'slot': variable_slot,
+                                                                 'variable': variable_name,
+                                                                 'script': i,
+                                                                 })
 
                 if 'buttons' in assignments:
                     for button_assignment in assignments['buttons']:
@@ -165,11 +180,9 @@ class RobotConfig:
             sensors = robot_config.get('sensors', []) if type(robot_config) is dict else []
             print(sensors)
             for sensor in sensors:
-                # print(sensor)
                 if not sensor:
                     sensor = {'type': 0}
 
-                # print(sensor_types)
                 sensor_type = sensor_types[sensor['type']]
 
                 if sensor_type is not None:
@@ -189,6 +202,7 @@ class RobotConfig:
         self.drivetrain = {'left': [], 'right': []}
         self.controller = RemoteControlConfig()
         self.background_scripts = []
+        self.background_initial_state = 'running'
 
 
 empty_robot_config = RobotConfig()

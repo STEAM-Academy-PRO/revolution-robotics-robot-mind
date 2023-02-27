@@ -54,8 +54,11 @@ class PortCollection:
 
     def __getitem__(self, item):
         if type(item) is str:
-            item = self._alias_map[item]
-
+            if item in self._alias_map.keys():
+                item = self._alias_map[item]
+            else:
+                key_list = self._alias_map.keys()
+                print("available keys: ", key_list)
         return self._ports[item - 1]
 
     def __iter__(self):
@@ -138,6 +141,7 @@ class PortInstance:
             self._driver.uninitialize()
         self._driver = self._configurator(self, config)
         self._config_changed_callbacks(self, config)
+        # print('   conf', config)
 
         return self._driver
 

@@ -188,7 +188,7 @@ def read_json(filename):
         return json.load(f)
 
 
-def str_to_func(code):
+def str_to_func(code, script_id=None):
     """Take python code as string and create a callable functions
     The function arguments will be injected into the code as global variables
 
@@ -198,5 +198,18 @@ def str_to_func(code):
     Called with something
     """
     def wrapper(**kwargs):
+        kwargs['script_id'] = script_id
+
+        list_slots = kwargs.get('list_slots', [])
+
+        def ReportVariableChanged(name, value, scr_id=script_id, ls=list_slots):
+            for variable_slot in ls:
+                if variable_slot.script_id is scr_id:
+                    if variable_slot.name is name:
+                        variable_slot.value = value
+
+        kwargs['ReportVariableChanged'] = ReportVariableChanged
+
         exec(code, kwargs)
+
     return wrapper
