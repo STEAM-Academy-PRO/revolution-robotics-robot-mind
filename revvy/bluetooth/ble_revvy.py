@@ -9,6 +9,7 @@ from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
 from revvy.utils.functions import bits_to_bool_list
 from revvy.robot.remote_controller import RemoteControllerCommand
 from revvy.utils.logger import get_logger
+from revvy.scripting.variables import Variable, VariableSlot
 
 
 class BleService(BlenoPrimaryService):
@@ -91,7 +92,6 @@ class LongMessageCharacteristic(Characteristic):
 
             else:
                 result = self._translate_result(self._handler.handle_write(data[0], data[1:]))
-                print("my result:", result)
 
         except LongMessageError:
             print(traceback.format_exc())
@@ -172,6 +172,55 @@ class BrainToMobileFunctionCharacteristic(Characteristic):
             callback(value)
 
 
+class RelativeFunctionCharacteristic(Characteristic):
+    def __init__(self, uuid, description, callback):
+        self._value = []
+        self._updateValueCallback = None
+        self._callbackFn = callback
+        super().__init__({
+            'uuid': uuid,
+            'properties': ['read', 'notify', 'write'],
+            'value': None,
+            'descriptors': [
+                Descriptor({
+                    'uuid': '2901',
+                    'value': description
+                }),
+            ]
+        })
+
+    def onReadRequest(self, offset, callback):
+        if offset:
+            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
+        else:
+            callback(Characteristic.RESULT_SUCCESS, self._value)
+
+    def onSubscribe(self, max_value_size, update_value_callback):
+        self._updateValueCallback = update_value_callback
+
+    def onUnsubscribe(self):
+        self._updateValueCallback = None
+
+    def update(self, value):
+        self._value = value
+
+        callback = self._updateValueCallback
+        if callback:
+            callback(value)
+
+    def onWriteRequest(self, data, offset, without_response, callback):
+        if offset:
+            callback(Characteristic.RESULT_ATTR_NOT_LONG)
+        # elif not (self._minLength <= len(data) <= self._maxLength):
+        #     callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
+        elif self._callbackFn(data):
+            callback(Characteristic.RESULT_SUCCESS)
+        else:
+            callback(Characteristic.RESULT_UNLIKELY_ERROR)
+
+class StateControlCharacteristic(RelativeFunctionCharacteristic):
+    pass
+
 class SensorCharacteristic(BrainToMobileFunctionCharacteristic):
     def update(self, value):
         # FIXME: prefix with data length is probably unnecessary
@@ -182,9 +231,38 @@ class MotorCharacteristic(BrainToMobileFunctionCharacteristic):
     pass
 
 
+class GyroCharacteristic(BrainToMobileFunctionCharacteristic):
+    pass
+
+class TimerCharacteristic(BrainToMobileFunctionCharacteristic):
+    pass
+
+
+class ReadVariableCharacteristic(BrainToMobileFunctionCharacteristic):
+    pass
+
+
 class LiveMessageService(BlenoPrimaryService):
     def __init__(self):
         self._message_handler = None
+
+        self._read_variable_characteristic = [
+            ReadVariableCharacteristic('d4ad2a7b-57be-4803-8df0-6807073961ad', b'Variable Slots')
+        ]
+
+        self._gyro_characteristic = [
+            GyroCharacteristic('d5bd4300-7c49-4108-8500-8716ffd39de8', b'Gyro'),
+        ]
+
+        self._timer_characteristic = [
+            TimerCharacteristic('c0e913da-5fdd-4a17-90b4-47758d449306', b'Timer'),
+        ]
+
+        self._state_control_characteristic = [
+            RelativeFunctionCharacteristic(
+                '53881a54-d519-40f7-8cbf-d43ced67f315', b'State Control', self.state_control_callback
+            )
+        ]
 
         self._sensor_characteristics = [
             SensorCharacteristic('135032e6-3e86-404f-b0a9-953fd46dcb17', b'Sensor 1'),
@@ -202,13 +280,21 @@ class LiveMessageService(BlenoPrimaryService):
             MotorCharacteristic('8e4c474f-188e-4d2a-910a-cf66f674f569', b'Motor 6'),
         ]
 
+        self._buf_gyro = b'\xff'
+        self._buf_script_variables = b'\xff'
+        self._buf_timer = b'\xff'
+
         super().__init__({
             'uuid':            'd2d5558c-5b9d-11e9-8647-d663bd873d93',
             'characteristics': [
                 MobileToBrainFunctionCharacteristic('7486bec3-bb6b-4abd-a9ca-20adc281a0a4', 20, 20, b'simpleControl',
                                                     self.simple_control_callback),
                 *self._sensor_characteristics,
-                *self._motor_characteristics
+                *self._motor_characteristics,
+                *self._gyro_characteristic,
+                *self._read_variable_characteristic,
+                *self._state_control_characteristic,
+                *self._timer_characteristic,
             ]
         })
 
@@ -216,27 +302,69 @@ class LiveMessageService(BlenoPrimaryService):
         self._message_handler = callback
 
     def simple_control_callback(self, data):
-        # print("simpleControl data:", data)
         analog_values = data[1:11]
         button_values = bits_to_bool_list(data[11:15])
 
         message_handler = self._message_handler
-        # print("simpleControl message_handler", message_handler)
         if message_handler:
-            message_handler(RemoteControllerCommand(analog=analog_values, buttons=button_values))
+            message_handler(RemoteControllerCommand(analog=analog_values,
+                                                    buttons=button_values,
+                                                    background_command=None))
+        return True
+
+    def state_control_callback(self, data):
+        background_control_command = int.from_bytes(data[2:], byteorder='big')
+        message_handler = self._message_handler
+        if message_handler:
+            message_handler(RemoteControllerCommand(analog=b'\x7f\x7f\x00\x00\x00\x00\x00\x00\x00\x00',
+                                                    buttons=[False]*32,
+                                                    background_command=background_control_command))
         return True
 
     def update_sensor(self, sensor, value):
         if 0 < sensor <= len(self._sensor_characteristics):
-            # print("simpleControl update sensor:", sensor, value)
             self._sensor_characteristics[sensor - 1].update(value)
 
     def update_motor(self, motor, power, speed, position):
         if 0 < motor <= len(self._motor_characteristics):
-            # print("simpleControl update motor:", motor, power, speed, position)
             data = list(struct.pack(">flb", speed, position, power))
             self._motor_characteristics[motor - 1].update(data)
 
+    def update_gyro(self, vector_list):
+        if type(vector_list) is list:
+            buf = struct.pack('%sf' % len(vector_list), *vector_list)
+            if self._buf_gyro is not buf:
+                self._buf_gyro = buf
+                self._gyro_characteristic[0].update(self._buf_gyro)
+
+    def update_timer(self, data):
+        buf = list(struct.pack(">bf", 4, data))
+        if self._buf_timer != buf:
+            self._buf_timer = buf
+            self._timer_characteristic[0].update(self._buf_timer)
+
+    def update_script_variable(self, script_variables: VariableSlot):
+        variable_values = []
+        mask = 0
+        i = 0
+        for _ in script_variables.get_variables():
+            variable_values.append(_.value)
+            if _.name is not 'NaN':
+                mask = mask | (1 << i)
+                i = i + 1
+
+        num_variables = len(variable_values)
+        if num_variables == 4:
+            buf = struct.pack('{}B'.format(1), mask) +\
+                  struct.pack('%sf' % len(variable_values), *variable_values)
+
+            if self._buf_script_variables is not buf:
+                self._buf_script_variables = buf
+                self._read_variable_characteristic[0].update(self._buf_script_variables)
+
+    def update_state_control(self, state):
+        data = list(struct.pack(">bl", 4, state))
+        self._state_control_characteristic[0].update(data)
 
 # Device Information Service
 class ReadOnlyCharacteristic(Characteristic):
@@ -368,6 +496,8 @@ class CustomBatteryLevelCharacteristic(Characteristic):
         self._updateValueCallback = None
 
     def update_value(self, value):
+        if self._value == value:   # don't update if there is no change
+            return
         self._value = value
 
         update_value_callback = self._updateValueCallback

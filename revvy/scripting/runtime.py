@@ -33,11 +33,12 @@ class ScriptHandle:
         self.sleep = self._default_sleep
         self._thread = ThreadWrapper(self._run, f'ScriptThread: {name}')
         self.log = get_logger(f'Script: {name}')
-
         self.stop = self._thread.stop
         self.cleanup = self._thread.exit
         self.on_stopped = self._thread.on_stopped
         self.on_stopping = self._thread.on_stop_requested
+        self.pause = self._thread.pause_thread
+        self.resume = self._thread.resume_thread
 
         assert(callable(script))
 
@@ -109,7 +110,6 @@ class ScriptManager:
         if script.name in self._scripts:
             self._log(f'Stopping {script.name} before overriding')
             self._scripts[script.name].cleanup()
-            # print(script.name, script.runnable, script.priority)
 
         self._log(f'New script: {script.name}')
         script_handle = ScriptHandle(self, script.runnable, script.name, self._globals)
@@ -132,3 +132,21 @@ class ScriptManager:
     def stop_all_scripts(self):
         for script in self._scripts.values():
             script.stop()
+
+    def start_all_scripts(self):
+        for script in self._scripts.values():
+            script.start()
+
+    def reset_all_scripts(self):
+        self.stop_all_scripts()
+        time.sleep(1)
+        self.start_all_scripts()
+
+    def pause_all_scripts(self):
+        for script in self._scripts.values():
+            script.pause()
+
+
+    def resume_all_scripts(self):
+        for script in self._scripts.values():
+            script.resume()

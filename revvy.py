@@ -150,9 +150,8 @@ class LongMessageImplementation:
             #          '{"pythonCode": "d2hpbGUgVHJ1ZToKICBpZiAocm9ib3Quc2Vuc29yc1siZGlzdGFuY2UiXS5yZWFkKCkpIDwgMTU6CiAgICByb2JvdC5kcml2ZShkaXJlY3Rpb249TW90b3IuRElSRUNUSU9OX0JBQ0ssIHJvdGF0aW9uPTEsIHVuaXRfcm90YXRpb249TW90b3IuVU5JVF9TRUMsIHNwZWVkPTEwMCwgdW5pdF9zcGVlZD1Nb3Rvci5VTklUX1NQRUVEX1JQTSkKICAgIHJvYm90LnR1cm4oZGlyZWN0aW9uPU1vdG9yLkRJUkVDVElPTl9SSUdIVCwgcm90YXRpb249MjIuNSwgdW5pdF9yb3RhdGlvbj1Nb3Rvci5VTklUX1RVUk5fQU5HTEUsIHNwZWVkPTc1LCB1bml0X3NwZWVkPU1vdG9yLlVOSVRfU1BFRURfUlBNKQogIGVsc2U6CiAgICByb2JvdC5kcml2ZXRyYWluLnNldF9zcGVlZChkaXJlY3Rpb249TW90b3IuRElSRUNUSU9OX0ZXRCwgc3BlZWQ9NDAsIHVuaXRfc3BlZWQ9TW90b3IuVU5JVF9TUEVFRF9SUE0pCiAgdGltZS5zbGVlcCgwLjA1KSAgIyBhbGxvdyBvdGhlciB0aHJlYWRzIHRvIHJ1bg==",' \
             #          '"assignments": {"buttons": [{"id": 5, "priority": 4}]}}, ' \
             #          '{"builtinScriptName": "drive_joystick", "assignments": {"analog": [{"channels": [0, 1], "priority": 1}]}},' \
-            #          '{"builtinScriptName": "algorithm", ' \
+            #          '{"pythonCode": "cm9ib3QucGxheV90dW5lKCdiZWxsJykKbGluZV9jb2xvciA9ICdibHVlJwpiYXNlX2NvbG9yLCBiYWNrZ3JvdW5kX2NvbG9yLCBsaW5lX2NvbG9yX25hbWUgPSByb2JvdC5zZWFyY2hfbGluZShsaW5lX2NvbG9yKQp0aW1lLnNsZWVwKDAuNCkKcm9ib3QucGxheV90dW5lKCdjYXQnKQ==", ' \
             #          '"assignments": {"buttons": [{"id": 0, "priority": 2}]}}]}'
-            #         # drive_line
             # print(string)
 
             try:

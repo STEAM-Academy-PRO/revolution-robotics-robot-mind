@@ -41,9 +41,11 @@ class RobotBLEController:
         self._robot = robot
         self._ble = revvy_ble
         self._sw_version = sw_version
+        self.need_print = 1
 
         self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
         self._background_fns = []
+        # self._background_controlled_scripts = []
 
         rc = RemoteController()
         rcs = RemoteControllerScheduler(rc)
@@ -66,6 +68,8 @@ class RobotBLEController:
         revvy_ble.on_connection_changed(self._on_connection_changed)
 
         self._scripts = ScriptManager(self)
+        self._background_controlled_scripts = ScriptManager(self)
+        self._autonomous = 0;
         self._config = empty_robot_config
 
         self._status_code = RevvyStatusCode.OK
@@ -81,15 +85,44 @@ class RobotBLEController:
             self._ble['battery_service'].characteristic('main_battery').update_value(self._robot.battery.main)
             self._ble['battery_service'].characteristic('motor_battery').update_value(self._robot.battery.motor)
 
+            self._remote_controller.timer_increment()
+            live_service = self._ble['live_message_service']
+            vector_list = [
+                getattr(self._robot.imu.rotation, 'x'),
+                getattr(self._robot.imu.rotation, 'y'),
+                getattr(self._robot.imu.rotation, 'z'),
+            ]
+            live_service.update_gyro(vector_list)
+            live_service.update_script_variable(self._robot.script_variables)
+            live_service.update_state_control(self.remote_controller.background_control_state)
+
+            live_service.update_timer(self._remote_controller.processing_time)
+
+            if self.need_print:
+                self.need_print = 0
+
             fns, self._background_fns = self._background_fns, []
 
+            # print(self.)
             if fns:
+                print(self._background_fns)
                 for i, fn in enumerate(fns):
                     self._log(f'Running {i}/{len(fns)} background functions')
-                    print("     fn:   ", fn)
                     fn()
 
                 self._log('Background functions finished')
+
+            if self._autonomous == 'ready':
+                val = self.remote_controller.control_button_pressed
+                if val == 2:
+                    self._background_controlled_scripts.start_all_scripts()
+                elif val == 3:
+                    self._background_controlled_scripts.pause_all_scripts()
+                elif val == 1:
+                    self._background_controlled_scripts.stop_all_scripts()
+                elif val == 4:
+                    self._background_controlled_scripts.resume_all_scripts()
+
         except TransportException:
             self._log(traceback.format_exc())
             self.exit(RevvyStatusCode.ERROR)
@@ -208,27 +241,24 @@ class RobotBLEController:
     def _apply_new_configuration(self, config):
         # apply new configuration
         self._log('Applying new configuration')
-        print("config:", config)
+        self.robot.script_variables.clear()
+        list_assigned_slots = []
 
         live_service = self._ble['live_message_service']
 
         # set up motors
         for motor in self._robot.motors:
-            print("motor", config.motors[motor.id])
             motor.configure(config.motors[motor.id])
             motor.on_status_changed.add(lambda p: live_service.update_motor(p.id, p.power, p.speed, p.pos))
 
         for motor_id in config.drivetrain['left']:
-            print("drivetrain_l", config.drivetrain['left'])
             self._robot.drivetrain.add_left_motor(self._robot.motors[motor_id])
 
         for motor_id in config.drivetrain['right']:
-            print("drivetrain_r", config.drivetrain['right'])
             self._robot.drivetrain.add_right_motor(self._robot.motors[motor_id])
 
         # set up sensors
         for sensor in self._robot.sensors:
-            print("sensor", config.sensors[sensor.id])
             sensor.configure(config.sensors[sensor.id])
             sensor.on_status_changed.add(lambda p: live_service.update_sensor(p.id, p.raw_value))
 
@@ -237,22 +267,46 @@ class RobotBLEController:
 
         # set up remote controller
         for analog in config.controller.analog:
-            print("analog", analog)
             script_handle = self._scripts.add_script(analog['script'])
             self._remote_controller.on_analog_values(analog['channels'], partial(start_analog_script, script_handle))
 
         for button, script in enumerate(config.controller.buttons):
-            if button < 7:
-                print("button", button)
-                print("script", script)
             if script:
                 script_handle = self._scripts.add_script(script)
+
+                for variable_slot in config.controller.variable_slots:
+                    self._robot.script_variables.one_variable(variable_slot['slot']).name = variable_slot['variable']
+                    self._robot.script_variables.one_variable(variable_slot['slot']).value = 0.0
+                    self._robot.script_variables.one_variable(variable_slot['slot']).script_id = variable_slot['script']
+                    list_assigned_slots.append(self._robot.script_variables.one_variable(variable_slot['slot']))
+                script_handle.assign('list_slots', list_assigned_slots)
                 self._remote_controller.on_button_pressed(button, script_handle.start)
 
         # start background scripts
-        for script in config.background_scripts:
-            script_handle = self._scripts.add_script(script)
-            script_handle.start()
+        if config.background_initial_state == 'running':
+            self._autonomous = config.background_initial_state
+            for script in config.background_scripts:
+                script_handle = self._scripts.add_script(script)
+                for variable_slot in config.controller.variable_slots:
+                    self._robot.script_variables.one_variable(variable_slot['slot']).name = variable_slot['variable']
+                    self._robot.script_variables.one_variable(variable_slot['slot']).value = 0.0
+                    self._robot.script_variables.one_variable(variable_slot['slot']).script_id = variable_slot['script']
+                    list_assigned_slots.append(self._robot.script_variables.one_variable(variable_slot['slot']))
+                script_handle.assign('list_slots', list_assigned_slots)
+                script_handle.start()
+
+        if config.background_initial_state == 'ready':
+            self._autonomous = config.background_initial_state
+            self.remote_controller.reset_background_control_state()
+            for script in config.background_scripts:
+                script_handle = self._background_controlled_scripts.add_script(script)
+                for variable_slot in config.controller.variable_slots:
+                    self._robot.script_variables.one_variable(variable_slot['slot']).name = variable_slot['variable']
+                    self._robot.script_variables.one_variable(variable_slot['slot']).value = 0.0
+                    self._robot.script_variables.one_variable(variable_slot['slot']).script_id = variable_slot['script']
+                    list_assigned_slots.append(self._robot.script_variables.one_variable(variable_slot['slot']))
+                script_handle.assign('list_slots', list_assigned_slots)
+                self._background_controlled_scripts.assign('list_slots', list_assigned_slots)
 
     def _configure(self, config):
 
@@ -285,7 +339,6 @@ class RobotBLEController:
     def _ping_robot(self, timeout=0):
         stopwatch = Stopwatch()
         retry_ping = True
-        print("_______________________ping_robot____________________________")
         while retry_ping:
             retry_ping = False
             try:

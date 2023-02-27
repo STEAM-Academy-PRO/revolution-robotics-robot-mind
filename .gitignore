@@ -4,6 +4,7 @@
 /install/*.tar.gz
 /install/*.data
 /install/*.meta
+/install/packages
 
 .coverage
 manifest.json

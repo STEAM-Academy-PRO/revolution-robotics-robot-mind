@@ -20,6 +20,7 @@ from revvy.utils.assets import Assets
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.version import Version
+from revvy.scripting.variables import Variable, VariableSlot
 
 
 class Robot(RobotInterface):
@@ -38,6 +39,8 @@ class Robot(RobotInterface):
         self._assets.add_source(os.path.join('data', 'assets'))
 
         self._log = get_logger('Robot')
+
+        self._script_variables = VariableSlot(4)
 
     def __enter__(self):
         self._comm_interface = self._bus_factory()
@@ -108,6 +111,10 @@ class Robot(RobotInterface):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._comm_interface.close()
+
+    @property
+    def script_variables(self):
+        return self._script_variables
 
     @property
     def assets(self):

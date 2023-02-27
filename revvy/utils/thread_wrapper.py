@@ -24,6 +24,7 @@ class ThreadWrapper:
     RUNNING = 2
     STOPPING = 3
     EXITED = 4
+    PAUSED = 5
 
     def __init__(self, func, name="WorkerThread"):
         self._log = get_logger(f'ThreadWrapper [{name}]')
@@ -33,6 +34,8 @@ class ThreadWrapper:
         self._func = func
         self._stopped_callbacks = []
         self._stop_requested_callbacks = []
+        self._pause_flag = Event()
+        self._pause_flag.set()
         self._control = Event()  # used to wake up thread function when it is stopped
         self._stop_event = Event()  # used to signal thread function that it should stop
         self._thread_stopped_event = Event()  # caller can wait for thread to stop after calling stop()
@@ -43,7 +46,6 @@ class ThreadWrapper:
         self._thread = Thread(target=self._thread_func, args=(), daemon=True)
         self._thread.start()
 
-
     def _wait_for_start(self):
         self._control.wait()
         self._control.clear()
@@ -53,7 +55,7 @@ class ThreadWrapper:
     # noinspection PyBroadException
     def _thread_func(self):
         try:
-            ctx = ThreadContext(self, self._stop_event)
+            ctx = ThreadContext(self, self._stop_event, self._pause_flag)
             while self._wait_for_start():
                 try:
                     self._enter_started()
@@ -134,6 +136,7 @@ class ThreadWrapper:
 
                         self._state = ThreadWrapper.STOPPING
                         self._stop_event.set()
+                        self._pause_flag.set()
                         call_callbacks = True
                     else:
                         call_callbacks = False
@@ -171,10 +174,18 @@ class ThreadWrapper:
         else:
             self._stop_requested_callbacks.append(callback)
 
+    def pause_thread(self):
+        self._log('pause thread')
+        self._pause_flag.clear()
+
+    def resume_thread(self):
+        self._log('resume thread')
+        self._pause_flag.set()
 
 class ThreadContext:
-    def __init__(self, thread: ThreadWrapper, stop_event: Event):
+    def __init__(self, thread: ThreadWrapper, stop_event: Event, pause_event: Event):
         self._stop_event = stop_event
+        self._pause_event = pause_event
 
         self.stop = thread.stop
         self.on_stopped = thread.on_stop_requested
@@ -182,6 +193,7 @@ class ThreadContext:
     def sleep(self, s):
         if self._stop_event.wait(s):
             raise InterruptedError
+        self._pause_event.wait()
 
     @property
     def stop_requested(self):
