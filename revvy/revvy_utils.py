@@ -212,6 +212,7 @@ class RobotBLEController:
 
     def _on_controller_lost(self):
         self._log('Remote controller lost')
+        self._remote_controller.reset_background_functions()
         if self._robot.status.controller_status != RemoteControllerStatus.NotConnected:
             self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
             self.configure(None)
