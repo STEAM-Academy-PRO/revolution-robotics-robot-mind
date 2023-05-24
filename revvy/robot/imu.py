@@ -59,5 +59,5 @@ class IMU:
     def update_orientation_data(self, data):
         values = struct.unpack('<fff', data)
         self._orientation = Orientation3D(*values)
-        print('update_orientation_data', values)
+        # print('update_orientation_data', values)
 
