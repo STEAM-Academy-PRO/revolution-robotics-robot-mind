@@ -17,10 +17,8 @@ class McuStatusUpdater:
         "sensor_3": 8,
         "sensor_4": 9,
         "battery": 10,
-        "axl": 11,
-        "gyro": 12,
-        "yaw": 13,
-        "reset": 14
+        "gyro": 11,
+        "reset": 12
     }
     """Class to read status from the MCU
 

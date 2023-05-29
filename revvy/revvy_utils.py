@@ -88,9 +88,9 @@ class RobotBLEController:
             self._remote_controller.timer_increment()
             live_service = self._ble['live_message_service']
             vector_list = [
-                getattr(self._robot.imu.rotation, 'x'),
-                getattr(self._robot.imu.rotation, 'y'),
-                getattr(self._robot.imu.rotation, 'z'),
+                self._robot.imu.orientation.pitch,
+                self._robot.imu.orientation.roll,
+                self._robot.imu.orientation.yaw
             ]
             live_service.update_gyro(vector_list)
             live_service.update_script_variable(self._robot.script_variables)

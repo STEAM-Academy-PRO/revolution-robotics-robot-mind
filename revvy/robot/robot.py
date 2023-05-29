@@ -186,9 +186,7 @@ class Robot(RobotInterface):
             self._battery = BatteryStatus(chargerStatus=main_status, main=main_percentage, motor=motor_percentage)
 
         self._status_updater.enable_slot("battery", _process_battery_slot)
-        self._status_updater.enable_slot("axl", self._imu.update_axl_data)
         self._status_updater.enable_slot("gyro", self._imu.update_gyro_data)
-        self._status_updater.enable_slot("yaw", self._imu.update_yaw_angles)
         # TODO: do something useful with the reset signal
         self._status_updater.enable_slot("reset", lambda _: self._log('MCU reset detected'))
 

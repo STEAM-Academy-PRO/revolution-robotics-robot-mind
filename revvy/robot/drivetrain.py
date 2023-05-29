@@ -104,7 +104,7 @@ class DifferentialDrivetrain:
 
     @property
     def yaw(self):
-        return self._imu.yaw_angle
+        return self._imu.orientation.yaw
 
     @property
     def motors(self):
