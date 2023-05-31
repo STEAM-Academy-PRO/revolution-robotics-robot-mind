@@ -254,6 +254,10 @@ class LiveMessageService(BlenoPrimaryService):
             GyroCharacteristic('d5bd4300-7c49-4108-8500-8716ffd39de8', b'Gyro'),
         ]
 
+        self._orientation_characteristic = [
+            GyroCharacteristic('4337a7c2-cae9-4c88-8908-8810ee013fcb', b'Orientation')
+        ]
+
         self._timer_characteristic = [
             TimerCharacteristic('c0e913da-5fdd-4a17-90b4-47758d449306', b'Timer'),
         ]
@@ -281,6 +285,7 @@ class LiveMessageService(BlenoPrimaryService):
         ]
 
         self._buf_gyro = b'\xff'
+        self._buf_orientation = b'\xff'
         self._buf_script_variables = b'\xff'
         self._buf_timer = b'\xff'
 
@@ -292,6 +297,7 @@ class LiveMessageService(BlenoPrimaryService):
                 *self._sensor_characteristics,
                 *self._motor_characteristics,
                 *self._gyro_characteristic,
+                *self._orientation_characteristic,
                 *self._read_variable_characteristic,
                 *self._state_control_characteristic,
                 *self._timer_characteristic,
@@ -336,6 +342,13 @@ class LiveMessageService(BlenoPrimaryService):
             if self._buf_gyro is not buf:
                 self._buf_gyro = buf
                 self._gyro_characteristic[0].update(self._buf_gyro)
+
+    def update_orientation(self, vector_list):
+        if type(vector_list) is list:
+            buf = struct.pack('%sf' % len(vector_list), *vector_list)
+            if self._buf_orientation is not buf:
+                self._buf_orientation = buf
+                self._orientation_characteristic[0].update(self._buf_orientation)
 
     def update_timer(self, data):
         buf = list(struct.pack(">bf", 4, data))

@@ -6,12 +6,14 @@ import struct
 from revvy.robot.ports.common import FunctionAggregator
 
 Vector3D = collections.namedtuple('Vector3D', ['x', 'y', 'z'])
+Orientation3D = collections.namedtuple('Orientation3D', ['pitch', 'roll', 'yaw'])
 
 
 class IMU:
     def __init__(self):
         self._acceleration = Vector3D(0, 0, 0)
         self._rotation = Vector3D(0, 0, 0)
+        self._orientation = Orientation3D(0, 0, 0)
         self._yaw_angle = 0
         self._relative_yaw_angle = 0
 
@@ -33,6 +35,10 @@ class IMU:
     def rotation(self):
         return self._rotation
 
+    @property
+    def orientation(self):
+        return self._orientation
+
     @staticmethod
     def _read_vector(data, lsb_value):
         (x, y, z) = struct.unpack('<hhh', data)
@@ -49,3 +55,9 @@ class IMU:
     def update_gyro_data(self, data):
         self._rotation = self._read_vector(data, 0.035*1.03)
         # print('update_gyro_data', data, self._rotation)
+
+    def update_orientation_data(self, data):
+        values = struct.unpack('<fff', data)
+        self._orientation = Orientation3D(*values)
+        print('update_orientation_data', values)
+

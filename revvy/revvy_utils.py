@@ -92,6 +92,12 @@ class RobotBLEController:
                 getattr(self._robot.imu.rotation, 'y'),
                 getattr(self._robot.imu.rotation, 'z'),
             ]
+            vector_orientation = [
+                getattr(self._robot.imu.orientation, 'pitch'),
+                getattr(self._robot.imu.orientation, 'roll'),
+                getattr(self._robot.imu.orientation, 'yaw'),
+            ]
+            live_service.update_orientation(vector_orientation)
             live_service.update_gyro(vector_list)
             live_service.update_script_variable(self._robot.script_variables)
             live_service.update_state_control(self.remote_controller.background_control_state)
