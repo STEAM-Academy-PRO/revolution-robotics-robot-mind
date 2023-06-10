@@ -56,3 +56,4 @@ class RevvyControl:
         self.error_memory_read_errors = ErrorMemory_ReadErrors(transport)
         self.error_memory_clear = ErrorMemory_Clear(transport)
         self.error_memory_test = ErrorMemory_TestError(transport)
+        self.orientation_reset = IMUOrientationEstimator_Reset_Command(transport)

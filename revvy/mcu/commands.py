@@ -70,6 +70,11 @@ class PingCommand(Command):
     def command_id(self): return 0x00
 
 
+class IMUOrientationEstimator_Reset_Command(Command):
+    @property
+    def command_id(self): return 0x41
+
+
 class ReadVersionCommand(Command, ABC):
     def parse_response(self, payload):
         try:
