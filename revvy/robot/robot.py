@@ -197,6 +197,7 @@ class Robot(RobotInterface):
         self._motor_ports.reset()
         self._sensor_ports.reset()
         self._sound.reset_volume()
+        self._robot_control.orientation_reset()
 
         self._status.robot_status = RobotStatus.NotConfigured
         self._status.update()
