@@ -65,31 +65,36 @@ class ConfigError(Exception):
     pass
 
 
+def dict_get_by_keys(s, keys):
+    for k in keys:
+        if k in s:
+            return s[k]
+    return None
+
+
+def get_runnable_from_script(s, script_id):
+    builtin_script_name = dict_get_by_keys(s,
+        ['builtinScriptName', 'builtinscriptname'])
+    result = builtin_scripts.setdefault(builtin_script_name, None)
+    if result:
+        _log(f'Use builtin script: {builtin_script_name}')
+        return result
+
+    embedded_script = dict_get_by_keys(s,
+        ['pythonCode', 'pythoncode'])
+
+    if not embedded_script:
+        _log('\'builtinScriptName\' or \'pythonCode\' not found in script')
+        return None
+
+    python_code = b64_decode_str(embedded_script)
+    _log(f'Use python code as script: {python_code}')
+
+    python_code = python_code.replace('import time\n', '')
+    return str_to_func(python_code, script_id)
+
+
 class RobotConfig:
-    @staticmethod
-    def create_runnable(script, script_num):
-        try:
-            script_name = dict_get_first(script, ['builtinScriptName', 'builtinscriptname'])
-            _log(f'Use builtin script: {script_name}')
-
-            try:
-                return builtin_scripts[script_name]
-            except KeyError as e:
-                raise KeyError(f'Builtin script "{script_name}" does not exist') from e
-
-        except KeyError:
-            try:
-                source_b64_encoded = dict_get_first(script, ['pythonCode', 'pythoncode'])
-                code = b64_decode_str(source_b64_encoded)
-                _log(f'Use python code as script: {code}')
-
-                code = code.replace('import time\n', '')
-
-                return str_to_func(code, script_num)
-
-            except KeyError as e:
-                raise KeyError('Neither builtinScriptName, nor pythonCode is present for a script') from e
-
     @staticmethod
     def from_string(config_string):
         try:
@@ -98,51 +103,50 @@ class RobotConfig:
             raise ConfigError('Received configuration is not a valid json string') from e
 
         config = RobotConfig()
-        try:
-            robot_config = dict_get_first(json_config, ['robotConfig', 'robotconfig'])
-            blockly_list = dict_get_first(json_config, ['blocklyList', 'blocklylist'])
-        except KeyError as e:
+        robot_config = dict_get_by_keys(json_config, ['robotConfig', 'robotconfig'])
+        blockly_list = dict_get_by_keys(json_config, ['blocklyList', 'blocklylist'])
+        if not all([robot_config, blockly_list]):
             raise ConfigError('Received configuration is missing required parts') from e
 
-        try:
-            config.background_initial_state = dict_get_first(json_config, ['initialState', 'initialstate'])
-        except KeyError:
-            pass
+        initial_state = dict_get_by_keys(json_config,
+            ['initialState', 'initialstate'])
+        if initial_state:
+            config.background_initial_state = initial_state
 
         try:
             i = 0
             for script in blockly_list:
                 _log(f'Processing script #{i}')
-                runnable = RobotConfig.create_runnable(script, i)
+                runnable = get_runnable_from_script(script, i)
+                if not runnable:
+                    raise KeyError(f'No code in script {script}')
 
                 assignments = script['assignments']
                 # script names are mostly relevant for logging
-                if 'analog' in assignments:
-                    for analog_assignment in assignments['analog']:
-                        channels = ', '.join(map(str, analog_assignment['channels']))
-                        script_name = f'[script {i}] analog channels {channels}'
-                        priority = analog_assignment['priority']
-                        config.controller.analog.append({
-                            'channels': analog_assignment['channels'],
-                            'script': ScriptDescriptor(script_name, runnable, priority)})
-                        i += 1
+                for analog_assignment in assignments.setdefault('analog', []):
+                    channels = ', '.join(map(str, analog_assignment['channels']))
+                    script_name = f'[script {i}] analog channels {channels}'
+                    priority = analog_assignment['priority']
+                    config.controller.analog.append(
+                            {
+                        'channels': analog_assignment['channels'],
+                        'script': ScriptDescriptor(script_name, runnable, priority)})
+                    i += 1
 
-                if 'variableSlots' in assignments:
-                    for variable_assignments in assignments['variableSlots']:
-                        variable_slot = variable_assignments['slot']
-                        variable_name = variable_assignments['variable']
-                        config.controller.variable_slots.append({'slot': variable_slot,
-                                                                 'variable': variable_name,
-                                                                 'script': i,
-                                                                 })
+                for variable_assignments in assignments.setdefault('variableSlots', []):
+                    variable_slot = variable_assignments['slot']
+                    variable_name = variable_assignments['variable']
+                    config.controller.variable_slots.append({'slot': variable_slot,
+                                                             'variable': variable_name,
+                                                             'script': i,
+                                                             })
 
-                if 'buttons' in assignments:
-                    for button_assignment in assignments['buttons']:
-                        button_id = button_assignment['id']
-                        script_name = f'[script {i}] button {button_id}'
-                        priority = button_assignment['priority']
-                        config.controller.buttons[button_id] = ScriptDescriptor(script_name, runnable, priority)
-                        i += 1
+                for button_assignment in assignments.setdefault('buttons', []):
+                    button_id = button_assignment['id']
+                    script_name = f'[script {i}] button {button_id}'
+                    priority = button_assignment['priority']
+                    config.controller.buttons[button_id] = ScriptDescriptor(script_name, runnable, priority)
+                    i += 1
 
                 if 'background' in assignments:
                     script_name = f'[script {i}] background'
