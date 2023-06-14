@@ -65,6 +65,7 @@ class RobotBLEController:
         }
 
         revvy_ble['live_message_service'].register_message_handler(rcs.data_ready)
+        revvy_ble['live_message_service'].register_on_joystick_action(rc.on_joystick_action)
         revvy_ble.on_connection_changed(self._on_connection_changed)
 
         self._scripts = ScriptManager(self)

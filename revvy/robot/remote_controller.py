@@ -30,6 +30,23 @@ class RemoteController:
         self._processing_time = 0.0
         self._previous_time = None
 
+        # Joystick mode opposed to autonomous mode
+        # Difference matters for the processing_time (aka the 'global timer'),
+        # as for in simple joystick mode, processing time should not start until
+        # the user presses something on a joystick, therefore we have to
+        # know the difference in code
+        self._joystick_mode = False
+
+    def on_joystick_action(self):
+        # This is a one shot action to detect first joystick input
+        # over one entire contoller (play) session
+        if self._joystick_mode:
+            return
+
+        self._joystick_mode = True
+        self._processing = True
+        self._previous_time = time.time()
+
     def reset_background_control_state(self):
         self._background_control_state = 1
 
@@ -40,8 +57,9 @@ class RemoteController:
 
         self._buttonActions = [None] * 32
         self._processing = False
-        # self._processing_time = 0.0
+        self._processing_time = 0.0
         self._previous_time = None
+        self._joystick_mode = False
 
         for handler in self._buttonHandlers:
             handler.handle(1)
@@ -72,16 +90,17 @@ class RemoteController:
 
     def on_button_pressed(self, button, action: callable):
         self._buttonActions[button] = action
-        self._processing = True
 
     def on_analog_values(self, channels, action):
         self._analogActions.append((channels, action))
-        self._processing = True
 
     def start_background_functions(self):
         self._background_control_state = 2
         self._control_button_pressed = 2
-        self._processing = True
+        if not self._joystick_mode:
+            self._processing = True
+            self._processing_time = 0.0
+            self._previous_time = time.time()
 
     def reset_background_functions(self):
         self._background_control_state = 1
@@ -93,6 +112,7 @@ class RemoteController:
     def pause_background_functions(self):
         self._background_control_state = 3
         self._control_button_pressed = 3
+        self.timer_increment()
         self._processing = False
         self._previous_time = None
 
@@ -100,17 +120,13 @@ class RemoteController:
         self._background_control_state = 2
         self._control_button_pressed = 4
         self._processing = True
-
+        self._previous_time = time.time()
 
     def timer_increment(self):
         if self._processing:
             current_time = time.time()
-            if self._previous_time is not None:
-                self._processing_time = self._processing_time + \
-                                        (current_time - self._previous_time)
-                self._previous_time = current_time
-            else:
-                self._previous_time = current_time
+            self._processing_time += current_time - self._previous_time
+            self._previous_time = current_time
 
     @property
     def processing_time(self):

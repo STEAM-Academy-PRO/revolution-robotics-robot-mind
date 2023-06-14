@@ -246,6 +246,11 @@ class LiveMessageService(BlenoPrimaryService):
     def __init__(self):
         self._message_handler = None
 
+        # on_joystick_action is a callback that should run when LiveMessageService
+        # detects that joystick action is received from mobile app over a curtain
+        # characteristic
+        self._on_joystick_action = None
+
         self._read_variable_characteristic = [
             ReadVariableCharacteristic('d4ad2a7b-57be-4803-8df0-6807073961ad', b'Variable Slots')
         ]
@@ -307,9 +312,40 @@ class LiveMessageService(BlenoPrimaryService):
     def register_message_handler(self, callback):
         self._message_handler = callback
 
+    def register_on_joystick_action(self, callback):
+        self._on_joystick_action = callback
+
     def simple_control_callback(self, data):
+        # Simple control callback is run each time new controller data
+        # representing full state of joystick is sent over a BLE characteristic
+        # Analog values: X and Y axes of a joystick, mapped to 0-255, where 127
+        # is the middle value representing joystick axis in neutral state.
+
+        def joystick_axis_is_neutral(value):
+            # value is in 1 byte range 0-255, with 127 being the middle position
+            # of a joystick along that axis
+            return value == 127
+
+        def joystick_xy_is_moved(analog_values):
+            if len(analog_values) < 2:
+                return False
+
+            x_value = analog_values[0]
+            y_value = analog_values[1]
+            for v in [x_value, y_value]:
+                if not joystick_axis_is_neutral(v):
+                    return True
+            return False
+
         analog_values = data[1:11]
         button_values = bits_to_bool_list(data[11:15])
+
+        joystick_xy_action = joystick_xy_is_moved(analog_values)
+        joystick_button_action = any(button_values)
+
+        # First user input action triggers global timer
+        if joystick_xy_action or joystick_button_action:
+            self._on_joystick_action()
 
         message_handler = self._message_handler
         if message_handler:
