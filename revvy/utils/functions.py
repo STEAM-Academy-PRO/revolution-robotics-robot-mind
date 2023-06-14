@@ -188,6 +188,13 @@ def read_json(filename):
         return json.load(f)
 
 
+def slots_find_variable(slots, script_id, name):
+    for s in slots:
+        if s.script_id == script_id and s.name == name:
+            return s
+    return None
+
+
 def str_to_func(code, script_id=None):
     """Take python code as string and create a callable functions
     The function arguments will be injected into the code as global variables
@@ -202,11 +209,12 @@ def str_to_func(code, script_id=None):
 
         list_slots = kwargs.get('list_slots', [])
 
-        def ReportVariableChanged(name, value, scr_id=script_id, ls=list_slots):
-            for variable_slot in ls:
-                if variable_slot.script_id is scr_id:
-                    if variable_slot.name is name:
-                        variable_slot.value = value
+        def ReportVariableChanged(var_name, value, script_id=script_id, ls=list_slots):
+            v = slots_find_variable(ls, script_id, var_name)
+            if not v:
+                print(f'ReportVariableChanged: variable "{var_name}" not found')
+                return
+            v.value = value
 
         kwargs['ReportVariableChanged'] = ReportVariableChanged
 
