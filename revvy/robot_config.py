@@ -65,31 +65,36 @@ class ConfigError(Exception):
     pass
 
 
+def dict_get_by_keys(s, keys):
+    for k in keys:
+        if k in s:
+            return s[k]
+    return None
+
+
+def get_runnable_from_script(s, script_id):
+    builtin_script_name = dict_get_by_keys(s,
+        ['builtinScriptName', 'builtinscriptname'])
+    result = builtin_scripts.setdefault(builtin_script_name, None)
+    if result:
+        _log(f'Use builtin script: {builtin_script_name}')
+        return result
+
+    embedded_script = dict_get_by_keys(s,
+        ['pythonCode', 'pythoncode'])
+
+    if not embedded_script:
+        _log('\'builtinScriptName\' or \'pythonCode\' not found in script')
+        return None
+
+    python_code = b64_decode_str(embedded_script)
+    _log(f'Use python code as script: {python_code}')
+
+    python_code = python_code.replace('import time\n', '')
+    return str_to_func(python_code, script_id)
+
+
 class RobotConfig:
-    @staticmethod
-    def create_runnable(script, script_num):
-        try:
-            script_name = dict_get_first(script, ['builtinScriptName', 'builtinscriptname'])
-            _log(f'Use builtin script: {script_name}')
-
-            try:
-                return builtin_scripts[script_name]
-            except KeyError as e:
-                raise KeyError(f'Builtin script "{script_name}" does not exist') from e
-
-        except KeyError:
-            try:
-                source_b64_encoded = dict_get_first(script, ['pythonCode', 'pythoncode'])
-                code = b64_decode_str(source_b64_encoded)
-                _log(f'Use python code as script: {code}')
-
-                code = code.replace('import time\n', '')
-
-                return str_to_func(code, script_num)
-
-            except KeyError as e:
-                raise KeyError('Neither builtinScriptName, nor pythonCode is present for a script') from e
-
     @staticmethod
     def from_string(config_string):
         try:
@@ -113,7 +118,9 @@ class RobotConfig:
             i = 0
             for script in blockly_list:
                 _log(f'Processing script #{i}')
-                runnable = RobotConfig.create_runnable(script, i)
+                runnable = get_runnable_from_script(script, i)
+                if not runnable:
+                    raise KeyError(f'No code in script {script}')
 
                 assignments = script['assignments']
                 # script names are mostly relevant for logging
