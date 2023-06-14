@@ -103,16 +103,15 @@ class RobotConfig:
             raise ConfigError('Received configuration is not a valid json string') from e
 
         config = RobotConfig()
-        try:
-            robot_config = dict_get_first(json_config, ['robotConfig', 'robotconfig'])
-            blockly_list = dict_get_first(json_config, ['blocklyList', 'blocklylist'])
-        except KeyError as e:
+        robot_config = dict_get_by_keys(json_config, ['robotConfig', 'robotconfig'])
+        blockly_list = dict_get_by_keys(json_config, ['blocklyList', 'blocklylist'])
+        if not all([robot_config, blockly_list]):
             raise ConfigError('Received configuration is missing required parts') from e
 
-        try:
-            config.background_initial_state = dict_get_first(json_config, ['initialState', 'initialstate'])
-        except KeyError:
-            pass
+        initial_state = dict_get_by_keys(json_config,
+            ['initialState', 'initialstate'])
+        if initial_state:
+            config.background_initial_state = initial_state
 
         try:
             i = 0
