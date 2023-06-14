@@ -204,9 +204,11 @@ def str_to_func(code, script_id=None):
 
         def ReportVariableChanged(name, value, scr_id=script_id, ls=list_slots):
             for variable_slot in ls:
-                if variable_slot.script_id is scr_id:
-                    if variable_slot.name is name:
+                if variable_slot.script_id == scr_id:
+                    if variable_slot.name == name:
                         variable_slot.value = value
+                        return
+            print(f'ReportVariableChanged: variable "{name}" not found')
 
         kwargs['ReportVariableChanged'] = ReportVariableChanged
 
