@@ -1,87 +1,63 @@
 class Variable(object):
-    def __init__(self, name, value: float):
-        self._name = name
-        self._value = value
-        self._on_variable_changed = True
-        self._script_id = None
+    def __init__(self):
+        self.__script = None
+        self.__name = None
+        self.__value = 0.0
 
-    @property
-    def script_id(self):
-        return self._script_id
+    def __get_string_description(self):
+        return 'var:script:"{}",name:"{}",val:"{}"'.format(
+            self.__script,
+            self.__name,
+            self.__value)
 
-    @script_id.setter
-    def script_id(self, new_id):
-        self._script_id = new_id
+    def __repr__(self):
+        return self.__get_string_description()
 
-    @property
-    def on_variable_changed(self):
-        return self._on_variable_changed
+    def __str__(self):
+        return self.__get_string_description()
 
-    @on_variable_changed.setter
-    def on_variable_changed(self, val):
-        self._on_variable_changed = val
+    def init(self, script, name, value):
+        self.__script = script
+        self.__name = name
+        self.__value = value
 
-    @property
-    def name(self):
-        return self._name
+    def get_script(self):
+        return self.__script
 
-    @name.setter
-    def name(self, new_name):
-        self._name = new_name
+    def get_name(self):
+        return self.__name
 
-    @property
-    def value(self) -> float:
-        return self._value
+    def get_value(self):
+        return self.__value
 
-    @value.setter
-    def value(self, new_value: float):
-        self._value = new_value
+    def set_value(self, v):
+        self.__value = v
 
-    @property
-    def conv_to_dict(self):
-        return {self._name: self.value}
+    def is_valid(self):
+        return self.__name is not None
 
 
-class VariableSlot(object):
-    def __init__(self, max_num):
-        self._max_num = max_num
-        self._variables = [
-            Variable('NaN', 0.0),
-            Variable('NaN', 0.0),
-            Variable('NaN', 0.0),
-            Variable('NaN', 0.0),
-        ]
+class ScriptvarsStorage(object):
+    def __init__(self):
+        self.__v = {}
 
-    def one_variable(self, num):
-        return self._variables[num]
+    def __iter__(self):
+        return iter(sorted(self.__v.items()))
 
-    def get_variable(self, name):
-        for variable in self._variables:
-            if variable.name is name:
-                return variable
-        return None
+    def __next__(self):
+        return next(self)
 
-    def set_variable(self, name, value):
-        is_new = True
-        for variable in self._variables:
-            if variable.name is name:
-                if variable.value is not value:
-                    variable.on_variable_changed = True
-                variable.value = value
-                is_new = False
+    def __get_string_description(self):
+        return 'var_storage(' + str(self.__v) + ')'
 
-        if is_new:
-            self.add_variable(Variable(name, value))
+    def __repr__(self):
+        return self.__get_string_description()
 
-    def add_variable(self, variable: Variable):
-        self._variables.append(variable)
+    def __str__(self):
+        return self.__get_string_description()
 
-    def get_variables(self):
-        return self._variables
+    def get_by_slot(self, slot):
+        return self.__v.setdefault(slot, Variable())
 
-    def clear(self):
-        self._variables.clear()
-        self._variables.append(Variable('NaN', 0.0))
-        self._variables.append(Variable('NaN', 0.0))
-        self._variables.append(Variable('NaN', 0.0))
-        self._variables.append(Variable('NaN', 0.0))
+    def reset(self):
+        self.__v = {}
