@@ -9,7 +9,6 @@ from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
 from revvy.utils.functions import bits_to_bool_list
 from revvy.robot.remote_controller import RemoteControllerCommand
 from revvy.utils.logger import get_logger
-from revvy.scripting.variables import Variable, VariableSlot
 
 
 class BleService(BlenoPrimaryService):
@@ -392,13 +391,17 @@ class LiveMessageService(BlenoPrimaryService):
             self._buf_timer = buf
             self._timer_characteristic[0].update(self._buf_timer)
 
-    def update_script_variable(self, script_variables: VariableSlot):
+    def update_script_variable(self, script_variables):
+        # By characteristic protocol - maximum slots in BLE message is 4
+        MAX_VARIABLE_SLOTS = 4
+
         variable_values = []
         mask = 0
         i = 0
-        for _ in script_variables.get_variables():
-            variable_values.append(_.value)
-            if _.name is not 'NaN':
+        for slot_idx in range(MAX_VARIABLE_SLOTS):
+            var = script_variables.get_variable(slot_idx)
+            variable_values.append(var.get_value())
+            if var.is_valid() and var.is_set():
                 mask = mask | (1 << i)
                 i = i + 1
 
