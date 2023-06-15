@@ -188,10 +188,10 @@ def read_json(filename):
         return json.load(f)
 
 
-def slots_find_variable(slots, script_id, name):
-    for s in slots:
-        if s.script_id == script_id and s.name == name:
-            return s
+def slots_find_variable(scriptvars, script_idx, name):
+    for scriptvar in scriptvars:
+        if scriptvar.get_script() == script_idx and scriptvar.get_name() == name:
+            return scriptvar
     return None
 
 
@@ -209,12 +209,11 @@ def str_to_func(code, script_id=None):
 
         list_slots = kwargs.get('list_slots', [])
 
-        def ReportVariableChanged(var_name, value, script_id=script_id, ls=list_slots):
-            v = slots_find_variable(ls, script_id, var_name)
-            if not v:
-                print(f'ReportVariableChanged: variable "{var_name}" not found')
+        def ReportVariableChanged(name, value, script_idx=script_id, scriptvars=list_slots):
+            scriptvar = slots_find_variable(scriptvars, script_idx, name)
+            if not scriptvar:
                 return
-            v.value = value
+            scriptvar.set_value(value)
 
         kwargs['ReportVariableChanged'] = ReportVariableChanged
 

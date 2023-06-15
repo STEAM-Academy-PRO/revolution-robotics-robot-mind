@@ -57,7 +57,7 @@ class PortConfig:
 class RemoteControlConfig:
     def __init__(self):
         self.analog = []
-        self.buttons = [None] * 32
+        self.buttons = {}
         self.variable_slots = []
 
 
@@ -72,7 +72,7 @@ def dict_get_by_keys(s, keys):
     return None
 
 
-def get_runnable_from_script(s, script_id):
+def get_runnable_from_script(s, script_idx):
     builtin_script_name = dict_get_by_keys(s,
         ['builtinScriptName', 'builtinscriptname'])
     result = builtin_scripts.setdefault(builtin_script_name, None)
@@ -91,7 +91,63 @@ def get_runnable_from_script(s, script_id):
     _log(f'Use python code as script: {python_code}')
 
     python_code = python_code.replace('import time\n', '')
-    return str_to_func(python_code, script_id)
+    return str_to_func(python_code, script_idx)
+
+
+def make_script_name_common(script_idx, assignment_type, detail):
+    return 'script_{}_{}_{}'.format(
+        script_idx, assignment_type, detail)
+
+
+def make_analog_script_name(a, script_idx):
+    detail = 'channels_' + '_'.join(map(str, a['channels']))
+    return make_script_name_common(script_idx, 'analog', detail)
+
+
+def make_button_script_name(script_idx, button_idx):
+    return make_script_name_common(script_idx,
+        'button', f'{button_idx}')
+
+
+def robot_config_process_script(config, script, script_idx):
+    _log(f'Processing script #{script_idx}')
+    runnable = get_runnable_from_script(script, script_idx)
+    if not runnable:
+        raise KeyError(f'No code in script {script}')
+
+    assignments = script.setdefault('assignments', None)
+    if not assignments:
+        raise KeyError(f'No assignments in script {script}')
+
+
+    for a in assignments.setdefault('analog', []):
+        script_name = make_analog_script_name(a, script_idx)
+        priority = a['priority']
+        script_desc = ScriptDescriptor(script_name, runnable, priority)
+        config.controller.analog.append({
+            'channels': a['channels'],
+            'script': script_desc
+        })
+
+    for v in assignments.setdefault('variableSlots', []):
+        config.controller.variable_slots.append({
+            'slot': v['slot'],
+            'name': v['variable'],
+            'script': script_idx,
+        })
+
+    for b in assignments.setdefault('buttons', []):
+        button_idx = b['id']
+        script_name = make_button_script_name(script_idx, button_idx)
+        priority = b['priority']
+        script_desc = ScriptDescriptor(script_name, runnable, priority)
+        config.controller.buttons[button_idx] = script_desc
+
+    if 'background' in assignments:
+        script_name = make_script_name_common(script_idx, "backgroud", "0")
+        priority = assignments['background']
+        script_desc = ScriptDescriptor(script_name, runnable, priority)
+        config.background_scripts.append(script_desc)
 
 
 class RobotConfig:
@@ -103,10 +159,15 @@ class RobotConfig:
             raise ConfigError('Received configuration is not a valid json string') from e
 
         config = RobotConfig()
-        robot_config = dict_get_by_keys(json_config, ['robotConfig', 'robotconfig'])
-        blockly_list = dict_get_by_keys(json_config, ['blocklyList', 'blocklylist'])
-        if not all([robot_config, blockly_list]):
-            raise ConfigError('Received configuration is missing required parts') from e
+        robot_config_keys = ['robotConfig', 'robotconfig']
+        robot_config = dict_get_by_keys(json_config, robot_config_keys)
+        if robot_config is None:
+            raise ConfigError(f'Config missing any of these keys: {robot_config_keys}')
+
+        blockly_list_keys = ['blocklyList', 'blocklylist']
+        blockly_list = dict_get_by_keys(json_config, blockly_list_keys)
+        if blockly_list is None:
+            raise ConfigError(f'Config missing any of these keys: {blockly_list_keys}')
 
         initial_state = dict_get_by_keys(json_config,
             ['initialState', 'initialstate'])
@@ -114,45 +175,8 @@ class RobotConfig:
             config.background_initial_state = initial_state
 
         try:
-            i = 0
-            for script in blockly_list:
-                _log(f'Processing script #{i}')
-                runnable = get_runnable_from_script(script, i)
-                if not runnable:
-                    raise KeyError(f'No code in script {script}')
-
-                assignments = script['assignments']
-                # script names are mostly relevant for logging
-                for analog_assignment in assignments.setdefault('analog', []):
-                    channels = ', '.join(map(str, analog_assignment['channels']))
-                    script_name = f'[script {i}] analog channels {channels}'
-                    priority = analog_assignment['priority']
-                    config.controller.analog.append(
-                            {
-                        'channels': analog_assignment['channels'],
-                        'script': ScriptDescriptor(script_name, runnable, priority)})
-                    i += 1
-
-                for variable_assignments in assignments.setdefault('variableSlots', []):
-                    variable_slot = variable_assignments['slot']
-                    variable_name = variable_assignments['variable']
-                    config.controller.variable_slots.append({'slot': variable_slot,
-                                                             'variable': variable_name,
-                                                             'script': i,
-                                                             })
-
-                for button_assignment in assignments.setdefault('buttons', []):
-                    button_id = button_assignment['id']
-                    script_name = f'[script {i}] button {button_id}'
-                    priority = button_assignment['priority']
-                    config.controller.buttons[button_id] = ScriptDescriptor(script_name, runnable, priority)
-                    i += 1
-
-                if 'background' in assignments:
-                    script_name = f'[script {i}] background'
-                    priority = assignments['background']
-                    config.background_scripts.append(ScriptDescriptor(script_name, runnable, priority))
-                    i += 1
+            for script_idx, script in enumerate(blockly_list):
+                 robot_config_process_script(config, script, script_idx)
         except (TypeError, IndexError, KeyError, ValueError) as e:
             raise ConfigError('Failed to decode received controller configuration') from e
 

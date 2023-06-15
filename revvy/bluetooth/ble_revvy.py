@@ -3,13 +3,15 @@
 import os
 import struct
 import traceback
+import copy
 
 from pybleno import Bleno, BlenoPrimaryService, Characteristic, Descriptor
 from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
 from revvy.utils.functions import bits_to_bool_list
 from revvy.robot.remote_controller import RemoteControllerCommand
 from revvy.utils.logger import get_logger
-from revvy.scripting.variables import Variable, VariableSlot
+from revvy.scripting.variables import Variable, ScriptvarsStorage
+
 
 
 class BleService(BlenoPrimaryService):
@@ -242,6 +244,29 @@ class ReadVariableCharacteristic(BrainToMobileFunctionCharacteristic):
     pass
 
 
+# By characteristic protocol - maximum slots in BLE message is 4
+MAX_VARIABLE_SLOTS = 4
+
+# Message format is:
+# [1BYTE:MASK][4BYTES:VALUE0,4BYTES:VALUE1,4BYTES:VALUE2,4BYTES:VALUE3]
+# MASK is a bitmask with 4 lsb bits showing which values are have valid
+# data
+def changed_slots_to_msg(changed_scriptvars):
+    mask = 0
+    valuebuf = b''
+
+    for i in range(MAX_VARIABLE_SLOTS):
+        if i in changed_scriptvars.keys():
+            value = changed_scriptvars[i]
+            mask = mask | (1 << i)
+        else:
+            value = 0.0
+        valuebuf += struct.pack('f', value)
+
+    maskbuf = struct.pack('B', mask)
+    return maskbuf + valuebuf
+
+
 class LiveMessageService(BlenoPrimaryService):
     def __init__(self):
         self._message_handler = None
@@ -291,7 +316,7 @@ class LiveMessageService(BlenoPrimaryService):
 
         self._buf_gyro = b'\xff'
         self._buf_orientation = b'\xff'
-        self._buf_script_variables = b'\xff'
+        self.__old_scriptvars = ScriptvarsStorage()
         self._buf_timer = b'\xff'
 
         super().__init__({
@@ -392,24 +417,36 @@ class LiveMessageService(BlenoPrimaryService):
             self._buf_timer = buf
             self._timer_characteristic[0].update(self._buf_timer)
 
-    def update_script_variable(self, script_variables: VariableSlot):
-        variable_values = []
-        mask = 0
-        i = 0
-        for _ in script_variables.get_variables():
-            variable_values.append(_.value)
-            if _.name is not 'NaN':
-                mask = mask | (1 << i)
-                i = i + 1
+    def scriptvar_has_changed(self, scriptvar, slot):
+            new_value = scriptvar.get_value()
+            old_value = self.__old_scriptvars.get_by_slot(slot).get_value()
+            return new_value != old_value
 
-        num_variables = len(variable_values)
-        if num_variables == 4:
-            buf = struct.pack('{}B'.format(1), mask) +\
-                  struct.pack('%sf' % len(variable_values), *variable_values)
+    def get_changed_scriptvars(self, new_scriptvars):
+        result = {}
+        for slot in range(MAX_VARIABLE_SLOTS):
+            v = new_scriptvars.get_by_slot(slot)
+            if not v.is_valid():
+                continue
 
-            if self._buf_script_variables is not buf:
-                self._buf_script_variables = buf
-                self._read_variable_characteristic[0].update(self._buf_script_variables)
+            if self.scriptvar_has_changed(v, slot):
+               result[slot] = v.get_value()
+
+        return result
+
+    def update_script_variable(self, new_scriptvars):
+        scriptvars = copy.deepcopy(new_scriptvars)
+
+        # Which slots have actually changed values?
+        changed_scriptvars = self.get_changed_scriptvars(scriptvars)
+        self.__old_scriptvars = scriptvars
+        if not changed_scriptvars:
+            return
+
+        # Form a message of all changed slots since previous time
+        msg = changed_slots_to_msg(changed_scriptvars)
+        print('scriptvars', changed_scriptvars, msg)
+        self._read_variable_characteristic[0].update(msg)
 
     def update_state_control(self, state):
         data = list(struct.pack(">bl", 4, state))
