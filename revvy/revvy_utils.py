@@ -246,20 +246,17 @@ class RobotBLEController:
         self._robot.reset()
 
     def _apply_new_configuration(self, config):
-        # apply new configuration
         self._log('Applying new configuration')
-        self.robot.script_variables.clear()
+        self._robot.script_variables.reset()
 
         live_service = self._ble['live_message_service']
 
         # Initialize variable slots from config
         scriptvars = []
         for varconf in config.controller.variable_slots:
-            slot = varconf['slot']
-            v = self._robot.script_variables.one_variable(slot)
-            v.name = varconf['variable']
-            v.value = 0.0
-            v.script_id = varconf['script']
+            slot_idx =  varconf['slot']
+            v = self._robot.script_variables.get_variable(slot_idx)
+            v.init(varconf['script'], varconf['variable'], 0.0)
             scriptvars.append(v)
 
         self._background_controlled_scripts.assign('list_slots', scriptvars)

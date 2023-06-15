@@ -185,9 +185,9 @@ def str_to_func(code, script_id=None):
 
         def ReportVariableChanged(name, value, scr_id=script_id, ls=list_slots):
             for variable_slot in ls:
-                if variable_slot.script_id == scr_id:
-                    if variable_slot.name == name:
-                        variable_slot.value = value
+                if variable_slot.get_script() == scr_id:
+                    if variable_slot.get_name() == name:
+                        variable_slot.set_value(value)
                         return
             print(f'ReportVariableChanged: variable "{name}" not found')
 
