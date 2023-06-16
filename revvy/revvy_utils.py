@@ -44,8 +44,7 @@ class RobotBLEController:
         self.need_print = 1
 
         self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
-        self._background_fns = []
-        # self._background_controlled_scripts = []
+        self.__run_in_bg_requests = []
 
         rc = RemoteController()
         rcs = RemoteControllerScheduler(rc)
@@ -69,14 +68,31 @@ class RobotBLEController:
         revvy_ble.on_connection_changed(self._on_connection_changed)
 
         self._scripts = ScriptManager(self)
-        self._background_controlled_scripts = ScriptManager(self)
-        self._autonomous = 0;
+        self.__background_scripts = ScriptManager(self)
         self._config = empty_robot_config
 
         self._status_code = RevvyStatusCode.OK
         self.exited = Event()
 
         self.start_remote_controller = self._remote_controller_thread.start
+
+    def process_run_in_bg_requests(self):
+        functions = self.__run_in_bg_requests
+        self.__run_in_bg_requests = []
+        for i, f in enumerate(functions):
+            self._log(f'Running {i}/{len(functions)} background functions')
+            f()
+
+    def process_autonomous_requests(self):
+        req = self.remote_controller.fetch_autonomous_requests()
+        if req.is_start_pending():
+            self.__background_scripts.start_all_scripts()
+        elif req.is_pause_pending():
+            self.__background_scripts.pause_all_scripts()
+        elif req.is_stop_pending():
+            self.__background_scripts.stop_all_scripts()
+        elif req.is_resume_pending():
+            self.__background_scripts.resume_all_scripts()
 
     def _update(self):
         # noinspection PyBroadException
@@ -108,27 +124,8 @@ class RobotBLEController:
             if self.need_print:
                 self.need_print = 0
 
-            fns, self._background_fns = self._background_fns, []
-
-            # print(self.)
-            if fns:
-                print(self._background_fns)
-                for i, fn in enumerate(fns):
-                    self._log(f'Running {i}/{len(fns)} background functions')
-                    fn()
-
-                self._log('Background functions finished')
-
-            if self._autonomous == 'ready':
-                val = self.remote_controller.control_button_pressed
-                if val == 2:
-                    self._background_controlled_scripts.start_all_scripts()
-                elif val == 3:
-                    self._background_controlled_scripts.pause_all_scripts()
-                elif val == 1:
-                    self._background_controlled_scripts.stop_all_scripts()
-                elif val == 4:
-                    self._background_controlled_scripts.resume_all_scripts()
+            self.process_run_in_bg_requests()
+            self.process_autonomous_requests()
 
         except TransportException:
             self._log(traceback.format_exc())
@@ -199,7 +196,7 @@ class RobotBLEController:
     def run_in_background(self, callback):
         if callable(callback):
             self._log('Registering new background function')
-            self._background_fns.append(callback)
+            self.__run_in_bg_requests.append(callback)
         else:
             raise ValueError('callback is not callable')
 
@@ -219,7 +216,6 @@ class RobotBLEController:
 
     def _on_controller_lost(self):
         self._log('Remote controller lost')
-        self._remote_controller.reset_background_functions()
         if self._robot.status.controller_status != RemoteControllerStatus.NotConnected:
             self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
             self.configure(None)
@@ -261,6 +257,8 @@ class RobotBLEController:
             v.init(varconf['script'], varconf['name'], 0.0)
             scriptvars.append(v)
 
+        self.__background_scripts.assign('list_slots', scriptvars)
+
         # set up motors
         for motor in self._robot.motors:
             motor.configure(config.motors[motor.id])
@@ -292,19 +290,12 @@ class RobotBLEController:
                 script_handle.assign('list_slots', scriptvars)
                 self._remote_controller.on_button_pressed(button, script_handle.start)
 
-        if config.background_initial_state in ['running', 'ready']:
-            self._autonomous = config.background_initial_state
-
-        # start background scripts
         for script in config.background_scripts:
-            script_handle = self._scripts.add_script(script)
-            script_handle.assign('list_slots', scriptvars)
+            self.__background_scripts.add_script(script)
 
-            if config.background_initial_state == 'running':
-                script_handle.start()
-            elif config.background_initial_state == 'ready':
-                self.remote_controller.reset_background_control_state()
-                self._background_controlled_scripts.assign('list_slots', scriptvars)
+        if config.background_initial_state == 'running':
+                self.__background_scripts.start_all_scripts()
+
 
     def _configure(self, config):
 

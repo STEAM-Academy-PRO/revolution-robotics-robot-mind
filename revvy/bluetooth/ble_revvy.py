@@ -449,7 +449,7 @@ class LiveMessageService(BlenoPrimaryService):
         self._read_variable_characteristic[0].update(msg)
 
     def update_state_control(self, state):
-        data = list(struct.pack(">bl", 4, state))
+        data = list(struct.pack(">bl", 4, state.get_numeric()))
         self._state_control_characteristic[0].update(data)
 
 # Device Information Service

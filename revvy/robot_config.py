@@ -171,8 +171,13 @@ class RobotConfig:
 
         initial_state = dict_get_by_keys(json_config,
             ['initialState', 'initialstate'])
+
         if initial_state:
             config.background_initial_state = initial_state
+        else:
+            # If 'initialState' is not set, default is 'running' which will start all
+            # background scripts at the start of play session.
+            config.background_initial_state = 'running'
 
         try:
             for script_idx, script in enumerate(blockly_list):
@@ -230,7 +235,7 @@ class RobotConfig:
         self.drivetrain = {'left': [], 'right': []}
         self.controller = RemoteControlConfig()
         self.background_scripts = []
-        self.background_initial_state = 'running'
+        self.background_initial_state = None
 
 
 empty_robot_config = RobotConfig()

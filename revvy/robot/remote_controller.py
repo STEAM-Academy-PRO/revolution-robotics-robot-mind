@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 import time
+import copy
 
 from collections import namedtuple
 from threading import Event
@@ -11,11 +12,84 @@ from revvy.utils.logger import get_logger
 
 RemoteControllerCommand = namedtuple('RemoteControllerCommand', ['analog', 'buttons', 'background_command'])
 
+AUTONOMOUS_MODE_REQUEST_NONE   = 0
+AUTONOMOUS_MODE_REQUEST_STOP   = 1
+AUTONOMOUS_MODE_REQUEST_START  = 2
+AUTONOMOUS_MODE_REQUEST_PAUSE  = 3
+AUTONOMOUS_MODE_REQUEST_RESUME = 4
+
+class AutonomousModeRequest:
+    def __init__(self):
+        self.__state = AUTONOMOUS_MODE_REQUEST_NONE
+
+    def set_start_request(self):
+        self.__state = AUTONOMOUS_MODE_REQUEST_START
+
+    def set_stop_request(self):
+        self.__state = AUTONOMOUS_MODE_REQUEST_STOP
+
+    def set_pause_request(self):
+        self.__state = AUTONOMOUS_MODE_REQUEST_PAUSE
+
+    def set_resume_request(self):
+        self.__state = AUTONOMOUS_MODE_REQUEST_RESUME
+
+    def is_start_pending(self):
+        return self.__state == AUTONOMOUS_MODE_REQUEST_START
+
+    def is_stop_pending(self):
+        return self.__state == AUTONOMOUS_MODE_REQUEST_STOP
+
+    def is_pause_pending(self):
+        return self.__state == AUTONOMOUS_MODE_REQUEST_PAUSE
+
+    def is_resume_pending(self):
+        return self.__state == AUTONOMOUS_MODE_REQUEST_RESUME
+
+    def clear_pending(self):
+        return self.__state == AUTONOMOUS_MODE_REQUEST_NONE
+
+
+BACKGROUND_CONTROL_STATE_STOPPED = 1
+BACKGROUND_CONTROL_STATE_RUNNING = 2
+BACKGROUND_CONTROL_STATE_PAUSED  = 3
+
+class BackgroundControlState:
+    def __init__(self):
+        self.__state = BACKGROUND_CONTROL_STATE_STOPPED
+
+    def __state_to_str(self):
+        if self.__state == BACKGROUND_CONTROL_STATE_STOPPED:
+            return 'bg_state:stopped'
+        if self.__state == BACKGROUND_CONTROL_STATE_RUNNING:
+            return 'bg_state:running'
+        if self.__state == BACKGROUND_CONTROL_STATE_PAUSED:
+            return 'bg_state:paused'
+        return 'bg_state:undefined'
+
+    def __str__(self):
+        return self.__state_to_str()
+
+    def __repr__(self):
+        return self.__state_to_str()
+
+    def set_stopped(self):
+        self.__state = BACKGROUND_CONTROL_STATE_STOPPED
+
+    def set_paused(self):
+        self.__state = BACKGROUND_CONTROL_STATE_PAUSED
+
+    def set_running(self):
+        self.__state = BACKGROUND_CONTROL_STATE_RUNNING
+
+    def get_numeric(self):
+        return self.__state
+
 
 class RemoteController:
     def __init__(self):
-        self._background_control_state = 1
-        self._control_button_pressed = 0
+        self._background_control_state = BackgroundControlState()
+        self.__autonomous_mode_rq = AutonomousModeRequest()
         self._log = get_logger('RemoteController')
 
         self._analogActions = []  # ([channel], callback) pairs
@@ -47,9 +121,6 @@ class RemoteController:
         self._processing = True
         self._previous_time = time.time()
 
-    def reset_background_control_state(self):
-        self._background_control_state = 1
-
     def reset(self):
         self._log('RemoteController: reset')
         self._analogActions.clear()
@@ -65,29 +136,50 @@ class RemoteController:
         for handler in self._buttonHandlers:
             handler.handle(1)
 
-    def tick(self, message: RemoteControllerCommand):
-        # handle analog channels
-        if message.analog != self._analogStates:
-            previous_analog_states, self._analogStates = self._analogStates, message.analog
-            for channels, action in self._analogActions:
+    def process_bg_command(self, command):
+        if not command:
+            return
+
+        commands = BleProto.Autonomous.Command
+        command_functions = {
+            commands.START : self.on_bg_command_start,
+            commands.PAUSE : self.on_bg_command_pause,
+            commands.RESUME: self.on_bg_command_resume,
+            commands.RESET : self.on_bg_command_reset
+        }
+        if command in command_functions:
+            command_functions[command]()
+
+    def process_analog_command(self, analog_cmd):
+        if analog_cmd == self._analogStates:
+            return
+
+        previous_analog_states = self._analogStates
+        self._analogStates = analog_cmd
+        for channels, action in self._analogActions:
+            try:
                 try:
-                    try:
-                        changed = any(previous_analog_states[x] != message.analog[x] for x in channels)
-                    except IndexError:
-                        changed = True
-
-                    if changed:
-                        action([message.analog[x] for x in channels])
+                    changed = any(previous_analog_states[x] != analog_cmd[x] for x in channels)
                 except IndexError:
-                    # looks like an action was registered for an analog channel that we didn't receive
-                    self._log(f'Skip analog handler for channels {", ".join(map(str, channels))}')
+                    changed = True
 
-        # handle button presses
-        for handler, button, action in zip(self._buttonHandlers, message.buttons, self._buttonActions):
+                if changed:
+                    action([analog_cmd[x] for x in channels])
+            except IndexError:
+                # looks like an action was registered for an analog channel that we didn't receive
+                self._log(f'Skip analog handler for channels {", ".join(map(str, channels))}')
+
+    def process_button_command(self, button_cmd):
+        for handler, button, action in zip(self._buttonHandlers, button_cmd, self._buttonActions):
             pressed = handler.handle(button)
             if pressed == 1 and action:
                 # noinspection PyCallingNonCallable
                 action()
+
+    def process_msg(self, msg):
+        self.process_bg_command(msg.background_command)
+        self.process_analog_command(msg.analog)
+        self.process_button_command(msg.buttons)
 
     def on_button_pressed(self, button, action: callable):
         self._buttonActions[button] = action
@@ -95,31 +187,31 @@ class RemoteController:
     def on_analog_values(self, channels, action):
         self._analogActions.append((channels, action))
 
-    def start_background_functions(self):
-        self._background_control_state = 2
-        self._control_button_pressed = 2
+    def on_bg_command_start(self):
+        self._background_control_state.set_running()
+        self.__autonomous_mode_rq.set_start_request()
         if not self._joystick_mode:
             self._processing = True
             self._processing_time = 0.0
             self._previous_time = time.time()
 
-    def reset_background_functions(self):
-        self._background_control_state = 1
-        self._control_button_pressed = 1
+    def on_bg_command_reset(self):
+        self._background_control_state.set_stopped()
+        self.__autonomous_mode_rq.set_stop_request()
         self._processing = False
         self._processing_time = 0.0
         self._previous_time = None
 
-    def pause_background_functions(self):
-        self._background_control_state = 3
-        self._control_button_pressed = 3
+    def on_bg_command_pause(self):
+        self._background_control_state.set_paused()
+        self.__autonomous_mode_rq.set_pause_request()
         self.timer_increment()
         self._processing = False
         self._previous_time = None
 
-    def resume_background_functions(self):
-        self._background_control_state = 2
-        self._control_button_pressed = 4
+    def on_bg_command_resume(self):
+        self._background_control_state.set_running()
+        self.__autonomous_mode_rq.set_resume_request()
         self._processing = True
         self._previous_time = time.time()
 
@@ -137,13 +229,19 @@ class RemoteController:
     def background_control_state(self):
         return self._background_control_state
 
-    @property
-    def control_button_pressed(self):
-        if self._control_button_pressed:
-            val = self._control_button_pressed
-            self._control_button_pressed = 0
-            return val
-        return 0
+    def fetch_autonomous_requests(self):
+        result = copy.copy(self.__autonomous_mode_rq)
+        self.__autonomous_mode_rq.clear_pending()
+        return result
+
+
+class BleProto:
+    class Autonomous:
+        class Command:
+            START  = 10
+            PAUSE  = 11
+            RESUME = 12
+            RESET  = 13
 
 
 class RemoteControllerScheduler:
@@ -162,15 +260,7 @@ class RemoteControllerScheduler:
     def data_ready(self, message: RemoteControllerCommand):
         self._message = message
         self._data_ready_event.set()
-        if self._message.background_command is not None:
-            if self._message.background_command == 10:
-                self._controller.start_background_functions()
-            if self._message.background_command == 11:
-                self._controller.pause_background_functions()
-            if self._message.background_command == 12:
-                self._controller.resume_background_functions()
-            if self._message.background_command == 13:
-                self._controller.reset_background_functions()
+
 
     def _wait_for_message(self, ctx, wait_time):
         timeout = not self._data_ready_event.wait(wait_time)
@@ -192,11 +282,11 @@ class RemoteControllerScheduler:
             if self._controller_detected_callback:
                 self._controller_detected_callback()
 
-            self._controller.tick(self._message)
+            self._controller.process_msg(self._message)
 
             # wait for the other messages
             while self._wait_for_message(ctx, self.message_max_period):
-                self._controller.tick(self._message)
+                self._controller.process_msg(self._message)
 
         if not ctx.stop_requested:
             if self._controller_lost_callback:
