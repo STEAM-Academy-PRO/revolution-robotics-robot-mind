@@ -140,6 +140,7 @@ class RemoteController:
         self._buttonActions = [None] * 32
         self._processing = False
         self._processing_time = 0.0
+        self._background_control_state.set_stopped()
         self._previous_time = None
         self._joystick_mode = False
 
