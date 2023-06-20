@@ -47,7 +47,7 @@ class AutonomousModeRequest:
         return self.__state == AUTONOMOUS_MODE_REQUEST_RESUME
 
     def clear_pending(self):
-        return self.__state == AUTONOMOUS_MODE_REQUEST_NONE
+        self.__state = AUTONOMOUS_MODE_REQUEST_NONE
 
 
 BACKGROUND_CONTROL_STATE_STOPPED = 1
