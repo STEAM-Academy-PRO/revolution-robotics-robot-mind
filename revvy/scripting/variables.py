@@ -44,6 +44,10 @@ class Variable(object):
     def is_valid(self):
         return self.__name is not None
 
+    def reset_value(self):
+      self.__value = None
+      self.__is_set = None
+
 
 class ScriptvarsStorage(object):
     def __init__(self):

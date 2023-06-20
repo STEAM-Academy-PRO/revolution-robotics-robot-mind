@@ -76,6 +76,13 @@ class ScriptHandle:
             self.log("Script finished")
             self.sleep = self._default_sleep
 
+    def reset_variables(self):
+      self._log('reset_variables')
+      if 'list_slots' in self._globals:
+          for var in self._globals['list_slots']:
+            self._log(f'resetting_variable: {var}')
+            var.reset_value()
+
     def start(self, **kwargs):
         if not kwargs:
             self._inputs = self._globals
@@ -131,16 +138,12 @@ class ScriptManager:
 
     def stop_all_scripts(self):
         for script in self._scripts.values():
-            script.stop()
+            script.stop().wait()
+            script.reset_variables()
 
     def start_all_scripts(self):
         for script in self._scripts.values():
             script.start()
-
-    def reset_all_scripts(self):
-        self.stop_all_scripts()
-        time.sleep(1)
-        self.start_all_scripts()
 
     def pause_all_scripts(self):
         for script in self._scripts.values():
