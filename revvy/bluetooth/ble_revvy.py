@@ -244,29 +244,6 @@ class ReadVariableCharacteristic(BrainToMobileFunctionCharacteristic):
     pass
 
 
-# By characteristic protocol - maximum slots in BLE message is 4
-MAX_VARIABLE_SLOTS = 4
-
-# Message format is:
-# [1BYTE:MASK][4BYTES:VALUE0,4BYTES:VALUE1,4BYTES:VALUE2,4BYTES:VALUE3]
-# MASK is a bitmask with 4 lsb bits showing which values are have valid
-# data
-def changed_slots_to_msg(changed_scriptvars):
-    mask = 0
-    valuebuf = b''
-
-    for i in range(MAX_VARIABLE_SLOTS):
-        if i in changed_scriptvars.keys():
-            value = changed_scriptvars[i]
-            mask = mask | (1 << i)
-        else:
-            value = 0.0
-        valuebuf += struct.pack('f', value)
-
-    maskbuf = struct.pack('B', mask)
-    return maskbuf + valuebuf
-
-
 class LiveMessageService(BlenoPrimaryService):
     def __init__(self):
         self._message_handler = None
@@ -417,35 +394,41 @@ class LiveMessageService(BlenoPrimaryService):
             self._buf_timer = buf
             self._timer_characteristic[0].update(self._buf_timer)
 
-    def scriptvar_has_changed(self, scriptvar, slot):
-            new_value = scriptvar.get_value()
-            old_value = self.__old_scriptvars.get_by_slot(slot).get_value()
-            return new_value != old_value
+    def update_script_variable(self, current_scriptvars):
+        # By characteristic protocol - maximum slots in BLE message is 4
+        MAX_VARIABLE_SLOTS = 4
 
-    def get_changed_scriptvars(self, new_scriptvars):
-        result = {}
-        for slot in range(MAX_VARIABLE_SLOTS):
-            v = new_scriptvars.get_by_slot(slot)
-            if not v.is_valid():
-                continue
+        # Message format is:
+        # offset:  0    1  2  3  4    5  6  7  8    9  10 11 12   13 14 15 16
+        # values:  0A | BB BB BB BB | CC CC CC CC | DD DD DD DD | EE EE EE EE
+        # A - bitmask consists of 4 bits. if bit is set - value has been set
+        #     by scripts. If bit is not set - value has never been changed yet,
+        #     due to script not run at all, or script has not yet set the value
+        #     and ReportVariableChanged has not been called for this slot
 
-            if self.scriptvar_has_changed(v, slot):
-               result[slot] = v.get_value()
+        # BB - float value for Slot 1
+        # CC - float value for Slot 2
+        # DD - float value for Slot 3
+        # EE - float value for Slot 4
 
-        return result
+        # In the end the user of this packet receives info about 4 slots, current
+        # value of each slot, has the value in this slot been set at least once
 
-    def update_script_variable(self, new_scriptvars):
-        scriptvars = copy.deepcopy(new_scriptvars)
+        mask = 0
+        valuebuf = b''
 
-        # Which slots have actually changed values?
-        changed_scriptvars = self.get_changed_scriptvars(scriptvars)
-        self.__old_scriptvars = scriptvars
-        if not changed_scriptvars:
-            return
+        for i in range(MAX_VARIABLE_SLOTS):
+            v = current_scriptvars.get_by_slot(i)
+            if v.is_valid() and v.value_is_set():
+                value = v.get_value()
+                mask = mask | (1 << i)
+            else:
+                value = 0.0
+            valuebuf += struct.pack('f', value)
 
-        # Form a message of all changed slots since previous time
-        msg = changed_slots_to_msg(changed_scriptvars)
-        print('scriptvars', changed_scriptvars, msg)
+        maskbuf = struct.pack('B', mask)
+        msg = maskbuf + valuebuf
+        # print('scriptvars', msg)
         self._read_variable_characteristic[0].update(msg)
 
     def update_state_control(self, state):

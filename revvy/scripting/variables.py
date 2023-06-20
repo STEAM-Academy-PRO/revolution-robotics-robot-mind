@@ -2,7 +2,8 @@ class Variable(object):
     def __init__(self):
         self.__script = None
         self.__name = None
-        self.__value = 0.0
+        self.__value = None
+        self.__is_set = False
 
     def __get_string_description(self):
         return 'var:script:"{}",name:"{}",val:"{}"'.format(
@@ -32,7 +33,14 @@ class Variable(object):
 
     def set_value(self, v):
         self.__value = v
+        self.__is_set = True
 
+    # Value has been set by ReportVariableChanged
+    def value_is_set(self):
+        return self.__is_set
+
+    # Is a valid assinged slot value. Slot might also be not assigned to
+    # any value
     def is_valid(self):
         return self.__name is not None
 
