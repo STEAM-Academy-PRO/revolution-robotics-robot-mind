@@ -72,6 +72,21 @@ def dict_get_first(dictionary, keys):
     return None
 
 
+def make_script_name_common(script_idx, assignment_type, detail):
+    return 'script_{}_{}_{}'.format(
+        script_idx, assignment_type, detail)
+
+
+def make_analog_script_name(analog, script_idx):
+    detail = 'channels_' + '_'.join(map(str, analog['channels']))
+    return make_script_name_common(script_idx, 'analog', detail)
+
+
+def make_button_script_name(script_idx, button_idx):
+    return make_script_name_common(script_idx,
+        'button', f'{button_idx}')
+
+
 class RobotConfig:
     @staticmethod
     def create_runnable(script, script_num):
@@ -101,31 +116,33 @@ class RobotConfig:
         assignments = script['assignments']
         # script names are mostly relevant for logging
         for analog_assignment in assignments.setdefault('analog', []):
-            channels = ', '.join(map(str, analog_assignment['channels']))
-            script_name = f'[script {script_idx}] analog channels {channels}'
+            script_name = make_analog_script_name(analog_assignment, script_idx)
             priority = analog_assignment['priority']
+            script_desc = ScriptDescriptor(script_name, runnable, priority)
             config.controller.analog.append({
                 'channels': analog_assignment['channels'],
-                'script': ScriptDescriptor(script_name, runnable, priority)})
+                'script': script_desc
+            })
 
         for variable_assignments in assignments.setdefault('variableSlots', []):
-            variable_slot = variable_assignments['slot']
-            variable_name = variable_assignments['variable']
-            config.controller.variable_slots.append({'slot': variable_slot,
-                                                     'variable': variable_name,
-                                                     'script': script_idx,
-                                                     })
+            config.controller.variable_slots.append({
+                'slot': variable_assignments['slot'],
+                'variable': variable_assignments['variable'],
+                'script': script_idx
+            })
 
         for button_assignment in assignments.setdefault('buttons', []):
-            button_id = button_assignment['id']
-            script_name = f'[script {script_idx}] button {button_id}'
+            button_idx = button_assignment['id']
+            script_name = make_button_script_name(script_idx, button_idx)
             priority = button_assignment['priority']
-            config.controller.buttons[button_id] = ScriptDescriptor(script_name, runnable, priority)
+            script_desc = ScriptDescriptor(script_name, runnable, priority)
+            config.controller.buttons[button_idx] = script_desc
 
         if 'background' in assignments:
-            script_name = f'[script {script_idx}] background'
+            script_name = make_script_name_common(script_idx, "backgroud", "0")
             priority = assignments['background']
-            config.background_scripts.append(ScriptDescriptor(script_name, runnable, priority))
+            script_desc = ScriptDescriptor(script_name, runnable, priority)
+            config.background_scripts.append(script_desc)
 
     @staticmethod
     def from_string(config_string):
