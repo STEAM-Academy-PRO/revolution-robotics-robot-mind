@@ -123,32 +123,29 @@ class RobotConfig:
 
                 assignments = script['assignments']
                 # script names are mostly relevant for logging
-                if 'analog' in assignments:
-                    for analog_assignment in assignments['analog']:
-                        channels = ', '.join(map(str, analog_assignment['channels']))
-                        script_name = f'[script {i}] analog channels {channels}'
-                        priority = analog_assignment['priority']
-                        config.controller.analog.append({
-                            'channels': analog_assignment['channels'],
-                            'script': ScriptDescriptor(script_name, runnable, priority)})
-                        i += 1
+                for analog_assignment in assignments.setdefault('analog', []):
+                    channels = ', '.join(map(str, analog_assignment['channels']))
+                    script_name = f'[script {i}] analog channels {channels}'
+                    priority = analog_assignment['priority']
+                    config.controller.analog.append({
+                        'channels': analog_assignment['channels'],
+                        'script': ScriptDescriptor(script_name, runnable, priority)})
+                    i += 1
 
-                if 'variableSlots' in assignments:
-                    for variable_assignments in assignments['variableSlots']:
-                        variable_slot = variable_assignments['slot']
-                        variable_name = variable_assignments['variable']
-                        config.controller.variable_slots.append({'slot': variable_slot,
-                                                                 'variable': variable_name,
-                                                                 'script': i,
-                                                                 })
+                for variable_assignments in assignments.setdefault('variableSlots', []):
+                    variable_slot = variable_assignments['slot']
+                    variable_name = variable_assignments['variable']
+                    config.controller.variable_slots.append({'slot': variable_slot,
+                                                             'variable': variable_name,
+                                                             'script': i,
+                                                             })
 
-                if 'buttons' in assignments:
-                    for button_assignment in assignments['buttons']:
-                        button_id = button_assignment['id']
-                        script_name = f'[script {i}] button {button_id}'
-                        priority = button_assignment['priority']
-                        config.controller.buttons[button_id] = ScriptDescriptor(script_name, runnable, priority)
-                        i += 1
+                for button_assignment in assignments.setdefault('buttons', []):
+                    button_id = button_assignment['id']
+                    script_name = f'[script {i}] button {button_id}'
+                    priority = button_assignment['priority']
+                    config.controller.buttons[button_id] = ScriptDescriptor(script_name, runnable, priority)
+                    i += 1
 
                 if 'background' in assignments:
                     script_name = f'[script {i}] background'
