@@ -45,7 +45,6 @@ class RobotBLEController:
 
         self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
         self._background_fns = []
-        # self._background_controlled_scripts = []
 
         rc = RemoteController()
         rcs = RemoteControllerScheduler(rc)
@@ -70,7 +69,7 @@ class RobotBLEController:
 
         self._scripts = ScriptManager(self)
         self._background_controlled_scripts = ScriptManager(self)
-        self._autonomous = 0;
+        self._autonomous = 0
         self._config = empty_robot_config
 
         self._status_code = RevvyStatusCode.OK
@@ -250,9 +249,20 @@ class RobotBLEController:
         # apply new configuration
         self._log('Applying new configuration')
         self.robot.script_variables.clear()
-        list_assigned_slots = []
 
         live_service = self._ble['live_message_service']
+
+        # Initialize variable slots from config
+        scriptvars = []
+        for varconf in config.controller.variable_slots:
+            slot = varconf['slot']
+            v = self._robot.script_variables.one_variable(slot)
+            v.name = varconf['variable']
+            v.value = 0.0
+            v.script_id = varconf['script']
+            scriptvars.append(v)
+
+        self._background_controlled_scripts.assign('list_slots', scriptvars)
 
         # set up motors
         for motor in self._robot.motors:
@@ -281,40 +291,17 @@ class RobotBLEController:
         for button, script in enumerate(config.controller.buttons):
             if script:
                 script_handle = self._scripts.add_script(script)
-
-                for variable_slot in config.controller.variable_slots:
-                    self._robot.script_variables.one_variable(variable_slot['slot']).name = variable_slot['variable']
-                    self._robot.script_variables.one_variable(variable_slot['slot']).value = 0.0
-                    self._robot.script_variables.one_variable(variable_slot['slot']).script_id = variable_slot['script']
-                    list_assigned_slots.append(self._robot.script_variables.one_variable(variable_slot['slot']))
-                script_handle.assign('list_slots', list_assigned_slots)
+                script_handle.assign('list_slots', scriptvars)
                 self._remote_controller.on_button_pressed(button, script_handle.start)
 
-        # start background scripts
-        if config.background_initial_state == 'running':
-            self._autonomous = config.background_initial_state
-            for script in config.background_scripts:
-                script_handle = self._scripts.add_script(script)
-                for variable_slot in config.controller.variable_slots:
-                    self._robot.script_variables.one_variable(variable_slot['slot']).name = variable_slot['variable']
-                    self._robot.script_variables.one_variable(variable_slot['slot']).value = 0.0
-                    self._robot.script_variables.one_variable(variable_slot['slot']).script_id = variable_slot['script']
-                    list_assigned_slots.append(self._robot.script_variables.one_variable(variable_slot['slot']))
-                script_handle.assign('list_slots', list_assigned_slots)
-                script_handle.start()
+        self._autonomous = config.background_initial_state
 
-        if config.background_initial_state == 'ready':
-            self._autonomous = config.background_initial_state
-            self.remote_controller.reset_background_control_state()
-            for script in config.background_scripts:
-                script_handle = self._background_controlled_scripts.add_script(script)
-                for variable_slot in config.controller.variable_slots:
-                    self._robot.script_variables.one_variable(variable_slot['slot']).name = variable_slot['variable']
-                    self._robot.script_variables.one_variable(variable_slot['slot']).value = 0.0
-                    self._robot.script_variables.one_variable(variable_slot['slot']).script_id = variable_slot['script']
-                    list_assigned_slots.append(self._robot.script_variables.one_variable(variable_slot['slot']))
-                script_handle.assign('list_slots', list_assigned_slots)
-                self._background_controlled_scripts.assign('list_slots', list_assigned_slots)
+        for script in config.background_scripts:
+            self._background_controlled_scripts.add_script(script)
+
+        self.remote_controller.reset_background_control_state()
+        if config.background_initial_state == 'running':
+            self._background_controlled_scripts.start_all_scripts()
 
     def _configure(self, config):
 
