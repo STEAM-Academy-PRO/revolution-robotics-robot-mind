@@ -94,6 +94,40 @@ class RobotConfig:
         return str_to_func(code, script_num)
 
     @staticmethod
+    def process_script(config, script, script_idx):
+        _log(f'Processing script #{script_idx}')
+        runnable = RobotConfig.create_runnable(script, script_idx)
+
+        assignments = script['assignments']
+        # script names are mostly relevant for logging
+        for analog_assignment in assignments.setdefault('analog', []):
+            channels = ', '.join(map(str, analog_assignment['channels']))
+            script_name = f'[script {script_idx}] analog channels {channels}'
+            priority = analog_assignment['priority']
+            config.controller.analog.append({
+                'channels': analog_assignment['channels'],
+                'script': ScriptDescriptor(script_name, runnable, priority)})
+
+        for variable_assignments in assignments.setdefault('variableSlots', []):
+            variable_slot = variable_assignments['slot']
+            variable_name = variable_assignments['variable']
+            config.controller.variable_slots.append({'slot': variable_slot,
+                                                     'variable': variable_name,
+                                                     'script': script_idx,
+                                                     })
+
+        for button_assignment in assignments.setdefault('buttons', []):
+            button_id = button_assignment['id']
+            script_name = f'[script {script_idx}] button {button_id}'
+            priority = button_assignment['priority']
+            config.controller.buttons[button_id] = ScriptDescriptor(script_name, runnable, priority)
+
+        if 'background' in assignments:
+            script_name = f'[script {script_idx}] background'
+            priority = assignments['background']
+            config.background_scripts.append(ScriptDescriptor(script_name, runnable, priority))
+
+    @staticmethod
     def from_string(config_string):
         try:
             json_config = json.loads(config_string)
@@ -116,42 +150,8 @@ class RobotConfig:
             config.background_initial_state = initial_state
 
         try:
-            i = 0
-            for script in blockly_list:
-                _log(f'Processing script #{i}')
-                runnable = RobotConfig.create_runnable(script, i)
-
-                assignments = script['assignments']
-                # script names are mostly relevant for logging
-                for analog_assignment in assignments.setdefault('analog', []):
-                    channels = ', '.join(map(str, analog_assignment['channels']))
-                    script_name = f'[script {i}] analog channels {channels}'
-                    priority = analog_assignment['priority']
-                    config.controller.analog.append({
-                        'channels': analog_assignment['channels'],
-                        'script': ScriptDescriptor(script_name, runnable, priority)})
-                    i += 1
-
-                for variable_assignments in assignments.setdefault('variableSlots', []):
-                    variable_slot = variable_assignments['slot']
-                    variable_name = variable_assignments['variable']
-                    config.controller.variable_slots.append({'slot': variable_slot,
-                                                             'variable': variable_name,
-                                                             'script': i,
-                                                             })
-
-                for button_assignment in assignments.setdefault('buttons', []):
-                    button_id = button_assignment['id']
-                    script_name = f'[script {i}] button {button_id}'
-                    priority = button_assignment['priority']
-                    config.controller.buttons[button_id] = ScriptDescriptor(script_name, runnable, priority)
-                    i += 1
-
-                if 'background' in assignments:
-                    script_name = f'[script {i}] background'
-                    priority = assignments['background']
-                    config.background_scripts.append(ScriptDescriptor(script_name, runnable, priority))
-                    i += 1
+            for script_idx, script in enumerate(blockly_list):
+                RobotConfig.process_script(config, script, script_idx)
         except (TypeError, IndexError, KeyError, ValueError) as e:
             raise ConfigError('Failed to decode received controller configuration') from e
 
