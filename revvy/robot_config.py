@@ -5,7 +5,7 @@ from json import JSONDecodeError
 
 from revvy.robot.configurations import Motors, Sensors
 from revvy.scripting.runtime import ScriptDescriptor
-from revvy.utils.functions import b64_decode_str, dict_get_first, str_to_func
+from revvy.utils.functions import b64_decode_str, str_to_func
 from revvy.scripting.builtin_scripts import builtin_scripts
 from revvy.utils.logger import get_logger
 
@@ -65,30 +65,33 @@ class ConfigError(Exception):
     pass
 
 
+def dict_get_first(dictionary, keys):
+    for key in keys:
+        if key in dictionary:
+            return dictionary[key]
+    return None
+
+
 class RobotConfig:
     @staticmethod
     def create_runnable(script, script_num):
-        try:
-            script_name = dict_get_first(script, ['builtinScriptName', 'builtinscriptname'])
+        script_name = dict_get_first(script, ['builtinScriptName', 'builtinscriptname'])
+        if script_name:
+            if script_name not in builtin_scripts:
+                raise KeyError(f'Builtin script "{script_name}" does not exist')
+
             _log(f'Use builtin script: {script_name}')
+            return builtin_scripts[script_name]
 
-            try:
-                return builtin_scripts[script_name]
-            except KeyError as e:
-                raise KeyError(f'Builtin script "{script_name}" does not exist') from e
+        source_b64_encoded = dict_get_first(script, ['pythonCode', 'pythoncode'])
+        if not source_b64_encoded:
+            raise KeyError('Neither builtinScriptName, nor pythonCode is present for a script')
 
-        except KeyError:
-            try:
-                source_b64_encoded = dict_get_first(script, ['pythonCode', 'pythoncode'])
-                code = b64_decode_str(source_b64_encoded)
-                _log(f'Use python code as script: {code}')
+        code = b64_decode_str(source_b64_encoded)
+        _log(f'Use python code as script: {code}')
 
-                code = code.replace('import time\n', '')
-
-                return str_to_func(code, script_num)
-
-            except KeyError as e:
-                raise KeyError('Neither builtinScriptName, nor pythonCode is present for a script') from e
+        code = code.replace('import time\n', '')
+        return str_to_func(code, script_num)
 
     @staticmethod
     def from_string(config_string):
@@ -98,16 +101,19 @@ class RobotConfig:
             raise ConfigError('Received configuration is not a valid json string') from e
 
         config = RobotConfig()
-        try:
-            robot_config = dict_get_first(json_config, ['robotConfig', 'robotconfig'])
-            blockly_list = dict_get_first(json_config, ['blocklyList', 'blocklylist'])
-        except KeyError as e:
-            raise ConfigError('Received configuration is missing required parts') from e
+        robot_config_keys = ['robotConfig', 'robotconfig']
+        robot_config = dict_get_first(json_config, robot_config_keys)
+        if not robot_config:
+            raise ConfigError(f'One of these keys must be in config: {robot_config_keys}')
 
-        try:
-            config.background_initial_state = dict_get_first(json_config, ['initialState', 'initialstate'])
-        except KeyError:
-            pass
+        blockly_list_keys = ['blocklyList', 'blocklylist']
+        blockly_list = dict_get_first(json_config, blockly_list_keys)
+        if not blockly_list:
+            raise ConfigError(f'One of these keys must be in config: {blockly_list_keys}')
+
+        initial_state = dict_get_first(json_config, ['initialState', 'initialstate'])
+        if initial_state:
+            config.background_initial_state = initial_state
 
         try:
             i = 0
