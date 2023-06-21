@@ -152,25 +152,6 @@ def bits_to_bool_list(byte_list):
     return [is_bit_set(b, bit) for b in byte_list for bit in range(8)]
 
 
-def dict_get_first(dictionary: dict, keys: list):
-    """
-    Read a value from a dictionary, using multiple possible keys
-
-    >>> dict_get_first({'a': 'foo', 'b': 'bar', 'c': 'foobar'}, ['b', 'c'])
-    'bar'
-    >>> dict_get_first({'a': 'foo', 'b': 'bar', 'c': 'foobar'}, ['d', 'c'])
-    'foobar'
-    >>> dict_get_first({'a': 'foo', 'b': 'bar', 'c': 'foobar'}, ['e', 'f'])
-    Traceback (most recent call last):
-    ...
-    KeyError: 'e, f'
-    """
-    for key in keys:
-        with suppress(KeyError):
-            return dictionary[key]
-    raise KeyError(', '.join(keys))
-
-
 # noinspection SpellCheckingInspection
 def bytestr_hash(byte_str) -> str:
     hash_fn = hashlib.md5()
