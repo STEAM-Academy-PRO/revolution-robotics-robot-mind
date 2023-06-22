@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 import time
+import copy
 
 from collections import namedtuple
 from threading import Event
@@ -10,6 +11,44 @@ from revvy.utils.thread_wrapper import ThreadWrapper, ThreadContext
 from revvy.utils.logger import get_logger
 
 RemoteControllerCommand = namedtuple('RemoteControllerCommand', ['analog', 'buttons', 'background_command'])
+
+
+class AutonomousModeRequest:
+    NONE   = 0
+    STOP   = 1
+    START  = 2
+    PAUSE  = 3
+    RESUME = 4
+
+    def __init__(self):
+        self.__state = AutonomousModeRequest.NONE
+
+    def set_start_request(self):
+        self.__state = AutonomousModeRequest.START
+
+    def set_stop_request(self):
+        self.__state = AutonomousModeRequest.STOP
+
+    def set_pause_request(self):
+        self.__state = AutonomousModeRequest.PAUSE
+
+    def set_resume_request(self):
+        self.__state = AutonomousModeRequest.RESUME
+
+    def is_start_pending(self):
+        return self.__state == AutonomousModeRequest.START
+
+    def is_stop_pending(self):
+        return self.__state == AutonomousModeRequest.STOP
+
+    def is_pause_pending(self):
+        return self.__state == AutonomousModeRequest.PAUSE
+
+    def is_resume_pending(self):
+        return self.__state == AutonomousModeRequest.RESUME
+
+    def clear_pending(self):
+        self.__state = AutonomousModeRequest.NONE
 
 
 class BackgroundControlState:
@@ -51,7 +90,7 @@ class BackgroundControlState:
 class RemoteController:
     def __init__(self):
         self._background_control_state = BackgroundControlState()
-        self._control_button_pressed = 0
+        self._control_button_pressed = AutonomousModeRequest()
         self._log = get_logger('RemoteController')
 
         self._analogActions = []  # ([channel], callback) pairs
@@ -132,7 +171,7 @@ class RemoteController:
 
     def start_background_functions(self):
         self._background_control_state.set_running()
-        self._control_button_pressed = 2
+        self._control_button_pressed.set_start_request()
         if not self._joystick_mode:
             self._processing = True
             self._processing_time = 0.0
@@ -140,21 +179,21 @@ class RemoteController:
 
     def reset_background_functions(self):
         self._background_control_state.set_stopped()
-        self._control_button_pressed = 1
+        self._control_button_pressed.set_stop_request()
         self._processing = False
         self._processing_time = 0.0
         self._previous_time = None
 
     def pause_background_functions(self):
         self._background_control_state.set_paused()
-        self._control_button_pressed = 3
+        self._control_button_pressed.set_pause_request()
         self.timer_increment()
         self._processing = False
         self._previous_time = None
 
     def resume_background_functions(self):
         self._background_control_state.set_running()
-        self._control_button_pressed = 4
+        self._control_button_pressed.set_resume_request()
         self._processing = True
         self._previous_time = time.time()
 
@@ -173,12 +212,10 @@ class RemoteController:
         return self._background_control_state.get_numeric()
 
     @property
-    def control_button_pressed(self):
-        if self._control_button_pressed:
-            val = self._control_button_pressed
-            self._control_button_pressed = 0
-            return val
-        return 0
+    def fetch_autonomous_requests(self):
+        result = copy.copy(self._control_button_pressed)
+        self._control_button_pressed.clear_pending()
+        return result
 
 
 class RemoteControllerScheduler:
