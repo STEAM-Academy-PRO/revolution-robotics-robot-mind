@@ -12,9 +12,45 @@ from revvy.utils.logger import get_logger
 RemoteControllerCommand = namedtuple('RemoteControllerCommand', ['analog', 'buttons', 'background_command'])
 
 
+class BackgroundControlState:
+    STOPPED = 1
+    RUNNING = 2
+    PAUSED  = 3
+
+    def __init__(self):
+        self.__state = BackgroundControlState.STOPPED
+
+    def __state_to_str(self):
+        if self.__state == BackgroundControlState.STOPPED:
+            return 'bg_state:stopped'
+        if self.__state == BackgroundControlState.RUNNING:
+            return 'bg_state:running'
+        if self.__state == BackgroundControlState.PAUSED:
+            return 'bg_state:paused'
+        return 'bg_state:undefined'
+
+    def __str__(self):
+        return self.__state_to_str()
+
+    def __repr__(self):
+        return self.__state_to_str()
+
+    def set_stopped(self):
+        self.__state = BackgroundControlState.STOPPED
+
+    def set_paused(self):
+        self.__state = BackgroundControlState.PAUSED
+
+    def set_running(self):
+        self.__state = BackgroundControlState.RUNNING
+
+    def get_numeric(self):
+        return self.__state
+
+
 class RemoteController:
     def __init__(self):
-        self._background_control_state = 1
+        self._background_control_state = BackgroundControlState()
         self._control_button_pressed = 0
         self._log = get_logger('RemoteController')
 
@@ -48,7 +84,7 @@ class RemoteController:
         self._previous_time = time.time()
 
     def reset_background_control_state(self):
-        self._background_control_state = 1
+        self._background_control_state.set_stopped()
 
     def reset(self):
         self._log('RemoteController: reset')
@@ -95,7 +131,7 @@ class RemoteController:
         self._analogActions.append((channels, action))
 
     def start_background_functions(self):
-        self._background_control_state = 2
+        self._background_control_state.set_running()
         self._control_button_pressed = 2
         if not self._joystick_mode:
             self._processing = True
@@ -103,21 +139,21 @@ class RemoteController:
             self._previous_time = time.time()
 
     def reset_background_functions(self):
-        self._background_control_state = 1
+        self._background_control_state.set_stopped()
         self._control_button_pressed = 1
         self._processing = False
         self._processing_time = 0.0
         self._previous_time = None
 
     def pause_background_functions(self):
-        self._background_control_state = 3
+        self._background_control_state.set_paused()
         self._control_button_pressed = 3
         self.timer_increment()
         self._processing = False
         self._previous_time = None
 
     def resume_background_functions(self):
-        self._background_control_state = 2
+        self._background_control_state.set_running()
         self._control_button_pressed = 4
         self._processing = True
         self._previous_time = time.time()
@@ -134,7 +170,7 @@ class RemoteController:
 
     @property
     def background_control_state(self):
-        return self._background_control_state
+        return self._background_control_state.get_numeric()
 
     @property
     def control_button_pressed(self):
