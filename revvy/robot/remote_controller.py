@@ -211,7 +211,6 @@ class RemoteController:
     def background_control_state(self):
         return self._background_control_state.get_numeric()
 
-    @property
     def fetch_autonomous_requests(self):
         result = copy.copy(self._control_button_pressed)
         self._control_button_pressed.clear_pending()
