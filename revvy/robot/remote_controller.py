@@ -156,30 +156,36 @@ class RemoteController:
         elif cmd == BleAutonomousCmd.RESET:
             self.reset_background_functions()
 
-    def tick(self, message: RemoteControllerCommand):
-        self.process_background_command(message.background_command)
-        # handle analog channels
-        if message.analog != self._analogStates:
-            previous_analog_states, self._analogStates = self._analogStates, message.analog
-            for channels, action in self._analogActions:
+    def process_analog_command(self, analog_cmd):
+        if analog_cmd == self._analogStates:
+            return
+
+        previous_analog_states = self._analogStates
+        self._analogStates = analog_cmd
+        for channels, action in self._analogActions:
+            try:
                 try:
-                    try:
-                        changed = any(previous_analog_states[x] != message.analog[x] for x in channels)
-                    except IndexError:
-                        changed = True
-
-                    if changed:
-                        action([message.analog[x] for x in channels])
+                    changed = any(previous_analog_states[x] != analog_cmd[x] for x in channels)
                 except IndexError:
-                    # looks like an action was registered for an analog channel that we didn't receive
-                    self._log(f'Skip analog handler for channels {", ".join(map(str, channels))}')
+                    changed = True
 
-        # handle button presses
-        for handler, button, action in zip(self._buttonHandlers, message.buttons, self._buttonActions):
+                if changed:
+                    action([analog_cmd[x] for x in channels])
+            except IndexError:
+                # looks like an action was registered for an analog channel that we didn't receive
+                self._log(f'Skip analog handler for channels {", ".join(map(str, channels))}')
+
+    def process_button_command(self, button_cmd):
+        for handler, button, action in zip(self._buttonHandlers, button_cmd, self._buttonActions):
             pressed = handler.handle(button)
             if pressed == 1 and action:
                 # noinspection PyCallingNonCallable
                 action()
+
+    def tick(self, msg):
+        self.process_background_command(msg.background_command)
+        self.process_analog_command(msg.analog)
+        self.process_button_command(msg.buttons)
 
     def on_button_pressed(self, button, action: callable):
         self._buttonActions[button] = action
