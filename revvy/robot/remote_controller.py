@@ -13,6 +13,13 @@ from revvy.utils.logger import get_logger
 RemoteControllerCommand = namedtuple('RemoteControllerCommand', ['analog', 'buttons', 'background_command'])
 
 
+class BleAutonomousCmd:
+    START  = 10
+    PAUSE  = 11
+    RESUME = 12
+    RESET  = 13
+
+
 class AutonomousModeRequest:
     NONE   = 0
     STOP   = 1
@@ -139,7 +146,18 @@ class RemoteController:
         for handler in self._buttonHandlers:
             handler.handle(1)
 
+    def process_background_command(self, cmd):
+        if cmd == BleAutonomousCmd.START:
+            self.start_background_functions()
+        elif cmd == BleAutonomousCmd.PAUSE:
+            self.pause_background_functions()
+        elif cmd == BleAutonomousCmd.RESUME:
+            self.resume_background_functions()
+        elif cmd == BleAutonomousCmd.RESET:
+            self.reset_background_functions()
+
     def tick(self, message: RemoteControllerCommand):
+        self.process_background_command(message.background_command)
         # handle analog channels
         if message.analog != self._analogStates:
             previous_analog_states, self._analogStates = self._analogStates, message.analog
@@ -233,15 +251,6 @@ class RemoteControllerScheduler:
     def data_ready(self, message: RemoteControllerCommand):
         self._message = message
         self._data_ready_event.set()
-        if self._message.background_command is not None:
-            if self._message.background_command == 10:
-                self._controller.start_background_functions()
-            if self._message.background_command == 11:
-                self._controller.pause_background_functions()
-            if self._message.background_command == 12:
-                self._controller.resume_background_functions()
-            if self._message.background_command == 13:
-                self._controller.reset_background_functions()
 
     def _wait_for_message(self, ctx, wait_time):
         timeout = not self._data_ready_event.wait(wait_time)
