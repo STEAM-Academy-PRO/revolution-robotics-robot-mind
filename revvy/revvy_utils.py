@@ -77,6 +77,19 @@ class RobotBLEController:
 
         self.start_remote_controller = self._remote_controller_thread.start
 
+    def process_autonomous_requests(self):
+        if self._autonomous == 'ready':
+            req = self.remote_controller.fetch_autonomous_requests()
+            if req.is_start_pending():
+                self._background_controlled_scripts.start_all_scripts()
+            elif req.is_pause_pending():
+                self._background_controlled_scripts.pause_all_scripts()
+            elif req.is_stop_pending():
+                self._background_controlled_scripts.stop_all_scripts()
+            elif req.is_resume_pending():
+                self._background_controlled_scripts.resume_all_scripts()
+
+
     def _update(self):
         # noinspection PyBroadException
         try:
@@ -118,16 +131,7 @@ class RobotBLEController:
 
                 self._log('Background functions finished')
 
-            if self._autonomous == 'ready':
-                val = self.remote_controller.control_button_pressed
-                if val == 2:
-                    self._background_controlled_scripts.start_all_scripts()
-                elif val == 3:
-                    self._background_controlled_scripts.pause_all_scripts()
-                elif val == 1:
-                    self._background_controlled_scripts.stop_all_scripts()
-                elif val == 4:
-                    self._background_controlled_scripts.resume_all_scripts()
+            self.process_autonomous_requests()
 
         except TransportException:
             self._log(traceback.format_exc())
