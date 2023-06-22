@@ -182,7 +182,7 @@ class RemoteController:
                 # noinspection PyCallingNonCallable
                 action()
 
-    def tick(self, msg):
+    def process_control_message(self, msg):
         self.process_background_command(msg.background_command)
         self.process_analog_command(msg.analog)
         self.process_button_command(msg.buttons)
@@ -278,11 +278,11 @@ class RemoteControllerScheduler:
             if self._controller_detected_callback:
                 self._controller_detected_callback()
 
-            self._controller.tick(self._message)
+            self._controller.process_control_message(self._message)
 
             # wait for the other messages
             while self._wait_for_message(ctx, self.message_max_period):
-                self._controller.tick(self._message)
+                self._controller.process_control_message(self._message)
 
         if not ctx.stop_requested:
             if self._controller_lost_callback:
