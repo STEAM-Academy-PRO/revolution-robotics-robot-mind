@@ -395,24 +395,38 @@ class LiveMessageService(BlenoPrimaryService):
         # By characteristic protocol - maximum slots in BLE message is 4
         MAX_VARIABLE_SLOTS = 4
 
-        variable_values = []
+        # Message format:
+        # offset:  0    1  2  3  4    5  6  7  8    9  10 11 12   13 14 15 16
+        # values:  0A | BB BB BB BB | CC CC CC CC | DD DD DD DD | EE EE EE EE
+        # A - bitmask consists of 4 bits. if bit is set - value has been set
+        #     by scripts. If bit is not set - value has never been changed yet,
+        #     due to script not run at all, or script has not yet set the value
+        #     and ReportVariableChanged has not been called for this slot
+
+        # BB - float value for Slot 1
+        # CC - float value for Slot 2
+        # DD - float value for Slot 3
+        # EE - float value for Slot 4
+
+        # In the end the user of this packet receives info about 4 slots, current
+        # value of each slot, has the value in this slot been set at least once
+
         mask = 0
-        i = 0
+        valuebuf = b''
+
         for slot_idx in range(MAX_VARIABLE_SLOTS):
-            var = script_variables.get_variable(slot_idx)
-            variable_values.append(var.get_value())
-            if var.is_valid() and var.is_set():
-                mask = mask | (1 << i)
-                i = i + 1
+            v = script_variables.get_variable(slot_idx)
+            if v.is_valid() and v.value_is_set():
+                value = v.get_value()
+                mask = mask | (1 << slot_idx)
+            else:
+                value = 0.0
+            valuebuf += struct.pack('f', value)
 
-        num_variables = len(variable_values)
-        if num_variables == 4:
-            buf = struct.pack('{}B'.format(1), mask) +\
-                  struct.pack('%sf' % len(variable_values), *variable_values)
-
-            if self._buf_script_variables is not buf:
-                self._buf_script_variables = buf
-                self._read_variable_characteristic[0].update(self._buf_script_variables)
+        maskbuf = struct.pack('B', mask)
+        msg = maskbuf + valuebuf
+        # print('scriptvars', msg)
+        self._read_variable_characteristic[0].update(msg)
 
     def update_state_control(self, state):
         data = list(struct.pack(">bl", 4, state))
