@@ -137,11 +137,6 @@ class ScriptManager:
         for script in self._scripts.values():
             script.start()
 
-    def reset_all_scripts(self):
-        self.stop_all_scripts()
-        time.sleep(1)
-        self.start_all_scripts()
-
     def pause_all_scripts(self):
         for script in self._scripts.values():
             script.pause()
