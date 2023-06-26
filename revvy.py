@@ -9,7 +9,7 @@ import traceback
 from contextlib import suppress
 from functools import partial
 
-from revvy.revvy_utils import RobotBLEController, RevvyStatusCode
+from revvy.robot_manager import RobotBLEController, RevvyStatusCode
 from revvy.robot.robot import Robot
 from revvy.robot.led_ring import RingLed
 from revvy.robot.status import RobotStatus
