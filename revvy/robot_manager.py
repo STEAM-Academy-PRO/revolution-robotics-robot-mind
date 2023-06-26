@@ -174,7 +174,7 @@ class RobotManager:
 
         self.run_in_background(update)
 
-    def start(self):
+    def robot_start(self):
         self._log('start')
         if self._robot.status.robot_status == RobotStatus.StartingUp:
             self._log('Waiting for MCU')
@@ -193,7 +193,7 @@ class RobotManager:
 
             self._ble.start()
             self._robot.status.robot_status = RobotStatus.NotConfigured
-            self.configure(None, partial(self._robot.play_tune, 'robot2'))
+            self.robot_configure(None, partial(self._robot.play_tune, 'robot2'))
 
     def run_in_background(self, callback):
         if callable(callback):
@@ -207,7 +207,7 @@ class RobotManager:
         if not is_connected:
             self._robot.status.controller_status = RemoteControllerStatus.NotConnected
             self._robot.play_tune('disconnect')
-            self.configure(None)
+            self.robot_configure(None)
         else:
             self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
             self._robot.play_tune('bell')
@@ -220,12 +220,12 @@ class RobotManager:
         self._log('Remote controller lost')
         if self._robot.status.controller_status != RemoteControllerStatus.NotConnected:
             self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
-            self.configure(None)
+            self.robot_configure(None)
 
-    def configure(self, config, after=None):
+    def robot_configure(self, config, after=None):
         self._log('Request configuration')
         if self._robot.status.robot_status != RobotStatus.Stopped:
-            self.run_in_background(partial(self._configure, config))
+            self.run_in_background(partial(self._robot_configure, config))
             if callable(after):
                 self.run_in_background(after)
 
@@ -299,7 +299,7 @@ class RobotManager:
         if config.background_initial_state == 'running':
             self._background_controlled_scripts.start_all_scripts()
 
-    def _configure(self, config):
+    def _robot_configure(self, config):
 
         is_default_config = not config and self._robot.status.robot_status != RobotStatus.Stopped
 
@@ -318,7 +318,7 @@ class RobotManager:
         else:
             self._robot.status.robot_status = RobotStatus.Configured
 
-    def stop(self):
+    def robot_stop(self):
         self._robot.status.controller_status = RemoteControllerStatus.NotConnected
         self._robot.status.robot_status = RobotStatus.Stopped
         self._remote_controller_thread.exit()
