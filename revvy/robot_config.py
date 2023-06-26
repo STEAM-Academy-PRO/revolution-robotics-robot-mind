@@ -65,13 +65,6 @@ class ConfigError(Exception):
     pass
 
 
-def dict_get_first(dictionary, keys):
-    for key in keys:
-        if key in dictionary:
-            return dictionary[key]
-    return None
-
-
 def make_script_name_common(script_idx, assignment_type, detail):
     return 'script_{}_{}_{}'.format(
         script_idx, assignment_type, detail)
@@ -87,10 +80,42 @@ def make_button_script_name(script_idx, button_idx):
         'button', f'{button_idx}')
 
 
+def json_get_field(obj, keys, optional, value_type=None):
+    is_found = False
+    value = None
+
+    for key in keys:
+        if key in obj:
+            is_found = True
+            value = obj[key]
+            break
+
+    if not is_found:
+        if optional:
+            return None
+
+        raise ConfigError(
+            'Mandatory config field missing: key(s):{}, type:{}'.format(
+                keys, value_type))
+
+    # value_type omitted, check not required
+    if value_type is None:
+        return value
+
+    if isinstance(value, value_type):
+        return value
+
+    raise ConfigError(
+        'Wrong config field type: key(s):{}, type:{}, required:{}'.format(
+            keys, value_type))
+
+
 class RobotConfig:
     @staticmethod
     def create_runnable(script, script_num):
-        script_name = dict_get_first(script, ['builtinScriptName', 'builtinscriptname'])
+        script_name = json_get_field(script,
+            ['builtinScriptName', 'builtinscriptname'], optional=True)
+
         if script_name:
             if script_name not in builtin_scripts:
                 raise KeyError(f'Builtin script "{script_name}" does not exist')
@@ -98,11 +123,13 @@ class RobotConfig:
             _log(f'Use builtin script: {script_name}')
             return builtin_scripts[script_name]
 
-        source_b64_encoded = dict_get_first(script, ['pythonCode', 'pythoncode'])
-        if not source_b64_encoded:
+        source_b64 = json_get_field(script, ['pythonCode', 'pythoncode'],
+            optional=True)
+
+        if not source_b64:
             raise KeyError('Neither builtinScriptName, nor pythonCode is present for a script')
 
-        code = b64_decode_str(source_b64_encoded)
+        code = b64_decode_str(source_b64)
         _log(f'Use python code as script: {code}')
 
         code = code.replace('import time\n', '')
@@ -152,17 +179,15 @@ class RobotConfig:
             raise ConfigError('Received configuration is not a valid json string') from e
 
         config = RobotConfig()
-        robot_config_keys = ['robotConfig', 'robotconfig']
-        robot_config = dict_get_first(json_config, robot_config_keys)
-        if not robot_config:
-            raise ConfigError(f'One of these keys must be in config: {robot_config_keys}')
+        robot_config = json_get_field(json_config,
+            ['robotConfig', 'robotconfig'], optional=False, value_type=dict)
 
-        blockly_list_keys = ['blocklyList', 'blocklylist']
-        blockly_list = dict_get_first(json_config, blockly_list_keys)
-        if not blockly_list:
-            raise ConfigError(f'One of these keys must be in config: {blockly_list_keys}')
+        blockly_list = json_get_field(json_config,
+            ['blocklyList', 'blocklylist'], optional=True, value_type=list)
 
-        initial_state = dict_get_first(json_config, ['initialState', 'initialstate'])
+        initial_state = json_get_field(json_config,
+            ['initialState', 'initialstate'], optional=True, value_type=str)
+
         if initial_state:
             config.background_initial_state = initial_state
         else:
