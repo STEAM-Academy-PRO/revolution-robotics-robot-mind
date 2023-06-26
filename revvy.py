@@ -9,7 +9,7 @@ import traceback
 from contextlib import suppress
 from functools import partial
 
-from revvy.robot_manager import RobotBLEController, RevvyStatusCode
+from revvy.robot_manager import RobotManager, RevvyStatusCode
 from revvy.robot.robot import Robot
 from revvy.robot.led_ring import RingLed
 from revvy.robot.status import RobotStatus
@@ -64,8 +64,8 @@ def extract_asset_longmessage(storage, asset_dir):
 
 class LongMessageImplementation:
     # TODO: this, together with the other long message classes is probably a lasagna worth simplifying
-    def __init__(self, robot_manager: RobotBLEController, storage: LongMessageStorage, asset_dir, ignore_config):
-        self._robot = robot_manager
+    def __init__(self, robot_manager: RobotManager, storage: LongMessageStorage, asset_dir, ignore_config):
+        self._robot_manager = robot_manager
         self._ignore_config = ignore_config
         self._asset_dir = asset_dir
         self._progress = None
@@ -80,10 +80,10 @@ class LongMessageImplementation:
 
         message_type = message.message_type
         if message_type == LongMessageType.FRAMEWORK_DATA:
-            self._progress = ProgressIndicator(self._robot.robot.led, message.total_chunks, 0x00FF00, 0xFF00FF)
+            self._progress = ProgressIndicator(self._robot_manager.robot.led, message.total_chunks, 0x00FF00, 0xFF00FF)
         else:
             self._progress = None
-            self._robot.robot.status.robot_status = RobotStatus.Configuring
+            self._robot_manager.robot.status.robot_status = RobotStatus.Configuring
 
     def on_upload_progress(self, message: ReceivedLongMessage):
         """Indicate long message download progress"""
@@ -109,7 +109,8 @@ class LongMessageImplementation:
             if not message.is_valid:
                 self._log('Firmware update cancelled')
                 self._progress = None
-                self._robot.run_in_background(partial(self._robot.robot.led.start_animation, RingLed.BreathingGreen))
+                self._robot_manager.run_in_background(
+                    partial(self._robot_manager.robot.led.start_animation, RingLed.BreathingGreen))
         else:
             # don't schedule on background, the robot will be restarted before setting the LEDs
             if self._progress:
@@ -127,13 +128,13 @@ class LongMessageImplementation:
 
             def start_script():
                 self._log("Starting new test script")
-                handle = self._robot._scripts.add_script(script_descriptor)
-                handle.on_stopped(partial(self._robot.configure, None))
+                handle = self._robot_manager._scripts.add_script(script_descriptor)
+                handle.on_stopped(partial(self._robot_manager.configure, None))
 
                 # start can't run in on_stopped handler because overwriting script causes deadlock
-                self._robot.run_in_background(handle.start)
+                self._robot_manager.run_in_background(handle.start)
 
-            self._robot.configure(empty_robot_config, start_script)
+            self._robot_manager.configure(empty_robot_config, start_script)
 
         elif message_type == LongMessageType.CONFIGURATION_DATA:
             message_data = message.data.decode()
@@ -161,14 +162,14 @@ class LongMessageImplementation:
                 if self._ignore_config:
                     self._log('New configuration ignored')
                 else:
-                    self._robot.configure(parsed_config, self._robot.start_remote_controller)
+                    self._robot_manager.configure(parsed_config, self._robot_manager.start_remote_controller)
             except ConfigError:
                 self._log(traceback.format_exc())
 
         elif message_type == LongMessageType.FRAMEWORK_DATA:
-            self._robot.robot.status.robot_status = RobotStatus.Updating
+            self._robot_manager.robot.status.robot_status = RobotStatus.Updating
             self._progress.set_indeterminate()
-            self._robot.request_update()
+            self._robot_manager.request_update()
 
         elif message_type == LongMessageType.ASSET_DATA:
             extract_asset_longmessage(self._storage, self._asset_dir)
@@ -237,7 +238,7 @@ if __name__ == "__main__":
         robot.assets.add_source(writeable_assets_dir)
 
         long_message_handler = LongMessageHandler(long_message_storage)
-        robot_manager = RobotBLEController(robot, sw_version, RevvyBLE(device_name, serial, long_message_handler))
+        robot_manager = RobotManager(robot, sw_version, RevvyBLE(device_name, serial, long_message_handler))
 
         lmi = LongMessageImplementation(robot_manager, long_message_storage, writeable_assets_dir, False)
         long_message_handler.on_upload_started(lmi.on_upload_started)

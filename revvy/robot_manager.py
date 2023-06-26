@@ -29,7 +29,7 @@ class RevvyStatusCode(enum.IntEnum):
     UPDATE_REQUEST = 3
 
 
-class RobotBLEController:
+class RobotManager:
 
     # FIXME: revvy_ble intentionally doesn't have a type hint at this moment because it breaks tests right now
     def __init__(self, robot: Robot, sw_version, revvy_ble):
