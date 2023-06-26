@@ -129,12 +129,13 @@ class LongMessageImplementation:
             def start_script():
                 self._log("Starting new test script")
                 handle = self._robot_manager._scripts.add_script(script_descriptor)
-                handle.on_stopped(partial(self._robot_manager.configure, None))
+                on_script_stopped_fn = partial(self._robot_manager.robot_configure, None)
+                handle.on_stopped(on_script_stopped_fn)
 
                 # start can't run in on_stopped handler because overwriting script causes deadlock
                 self._robot_manager.run_in_background(handle.start)
 
-            self._robot_manager.configure(empty_robot_config, start_script)
+            self._robot_manager.robot_configure(empty_robot_config, start_script)
 
         elif message_type == LongMessageType.CONFIGURATION_DATA:
             message_data = message.data.decode()
@@ -162,7 +163,8 @@ class LongMessageImplementation:
                 if self._ignore_config:
                     self._log('New configuration ignored')
                 else:
-                    self._robot_manager.configure(parsed_config, self._robot_manager.start_remote_controller)
+                    self._robot_manager.robot_configure(parsed_config,
+                        self._robot_manager.start_remote_controller)
             except ConfigError:
                 self._log(traceback.format_exc())
 
@@ -248,7 +250,7 @@ if __name__ == "__main__":
 
         # noinspection PyBroadException
         try:
-            robot_manager.start()
+            robot_manager.robot_start()
 
             print("Press Enter to exit")
             input()
@@ -265,7 +267,7 @@ if __name__ == "__main__":
             ret_val = RevvyStatusCode.ERROR
         finally:
             print('stopping')
-            robot_manager.stop()
+            robot_manager.robot_stop()
 
     print('terminated.')
     sys.exit(ret_val)
