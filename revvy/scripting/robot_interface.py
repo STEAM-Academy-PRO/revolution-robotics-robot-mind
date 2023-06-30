@@ -4,17 +4,41 @@ import time
 
 from functools import partial
 from math import sqrt
+from enum import Enum
 
 from revvy.robot.configurations import Motors, Sensors
 from revvy.robot.led_ring import RingLed
 from revvy.robot.ports.motor import MotorConstants
 from revvy.robot.sound import Sound
 from revvy.scripting.resource import Resource
-from revvy.scripting.color_functions import rgb_to_hsv_grey, detect_line_background_colors
+from revvy.scripting.color_functions import rgb_to_hsv_gray,\
+    detect_line_background_colors, ColorDataUndefined, color_name_to_rgb
+
 from revvy.utils.functions import hex2rgb
 from revvy.robot.ports.common import PortInstance, PortCollection
 
 from revvy.utils.functions import map_values
+
+
+class RGBChannelSensor(Enum):
+  FRONT     = 0
+  LEFT      = 1
+  RIGHT     = 2
+  REAR      = 3
+  UNDEFINED = 4
+
+class UserScriptRGBChannel(Enum):
+  FRONT = 1
+  RIGHT = 2
+  LEFT  = 3
+  REAR  = 4
+
+
+def user_to_sensor_channel(user_channel):
+  for i in UserScriptRGBChannel:
+    if i.value == user_channel:
+      return i
+  return RGBChannelSensor.UNDEFINED
 
 
 class ResourceWrapper:
@@ -100,6 +124,21 @@ class SensorPortWrapper(Wrapper):
         return self._sensor.value
 
 
+def color_string_to_rgb(color_string):
+    """ Interface can accept colot_string in several formats
+    this can be a hex value like #or actual color name like 'red' or 'black'"""
+
+    result = color_name_to_rgb(color_string)
+    if result:
+        return result
+
+    if color_string.startswith('#'):
+        return hex2rgb(color_string)
+
+    print(f'Color string format not recognised: {color_string}')
+    return None
+
+
 class RingLedWrapper(Wrapper):
     """Wrapper class to expose LED ring to user scripts"""
 
@@ -116,13 +155,16 @@ class RingLedWrapper(Wrapper):
         self.using_resource(partial(self._ring_led.start_animation, scenario))
 
     def set(self, leds: list, color):
+        # print(f'RingLedWrapper: set leds:{leds}, color:{color}')
         def out_of_range(led_idx):
             return not 0 < led_idx <= len(self._user_leds)
 
         if any(map(out_of_range, leds)):
             raise IndexError(f'Led index must be between 1 and {len(self._user_leds)}')
 
-        rgb = hex2rgb(color)
+        rgb = color_string_to_rgb(color)
+        # print(f'color_string_to_rgb: {color}->{rgb}')
+
         for idx in leds:
             self._user_leds[idx - 1] = rgb
 
@@ -438,7 +480,7 @@ class RobotWrapper(RobotInterface):
         while count < count_time:
             count += 1
             res = self._sensors["color_sensor"].read()
-            sensors = [rgb_to_hsv_grey(*_) for _ in struct.iter_unpack("<BBB", res)]
+            sensors = [rgb_to_hsv_gray(*_) for _ in struct.iter_unpack("<BBB", res)]
             base_color_, background_color_, line_name_, background_name_, i, colors_grey, colors = \
                 detect_line_background_colors(sensors)
             if base_color < background_color:
@@ -473,7 +515,7 @@ class RobotWrapper(RobotInterface):
         when finished color sensor should be at the center of line (left color == right color)"""
 
         res = self._sensors["color_sensor"].read()
-        sensors_data = [rgb_to_hsv_grey(*_) for _ in struct.iter_unpack("<BBB", res)]
+        sensors_data = [rgb_to_hsv_gray(*_) for _ in struct.iter_unpack("<BBB", res)]
 
         base_color, background_color, line_name, background_name, i, colors, colors_grey = \
             detect_line_background_colors(sensors_data)
@@ -509,7 +551,7 @@ class RobotWrapper(RobotInterface):
             count += 1
             # get colors
             res = self._sensors["color_sensor"].read()
-            sensors = [rgb_to_hsv_grey(*_) for _ in struct.iter_unpack("<BBB", res)]
+            sensors = [rgb_to_hsv_gray(*_) for _ in struct.iter_unpack("<BBB", res)]
             base_color_, background_color_, line_name_, background_name_, i, colors_grey, colors = \
                 detect_line_background_colors(sensors)
 
@@ -594,63 +636,46 @@ class RobotWrapper(RobotInterface):
             map_values(0, 0, 1, 0, 120))
         return 3
 
-    def read_color(self, channel):
-        color = 'undefined'
+    def debug_print_colors(self, colors):
+        for i, color in enumerate(colors):
+          name = 'noname'
+          for channel in RGBChannelSensor:
+            if i == channel.value:
+              name = color.name
+          h = int(color.hue)
+          s = int(color.saturation)
+          v = int(color.value)
+          print(f'{color.red},{color.green},{color.blue}->{h},{s},{v}:{name}')
+
+    def get_color_by_user_channel(self, user_channel):
+        sensor_channel = user_to_sensor_channel(user_channel)
+        if sensor_channel == RGBChannelSensor.UNDEFINED:
+          return ColorDataUndefined
+
         res = self._sensors["color_sensor"].read()
-        sensors = [rgb_to_hsv_grey(*_) for _ in struct.iter_unpack("<BBB", res)]
-        if channel == 1:
-            color = sensors[0][4]
-        if channel == 2:
-            color = sensors[2][4]
-        if channel == 3:
-            color = sensors[1][4]
-        if channel == 4:
-            color = sensors[3][4]
-        return color
+        sensors_data_raw = list(struct.iter_unpack("<BBB", res))
+        sensors_data_processed = [rgb_to_hsv_gray(*_) for _ in sensors_data_raw]
+        # self.debug_print_colors(sensors_data_processed)
+        return sensors_data_processed[sensor_channel.value]
+
+    def read_color(self, channel):
+        sensor_data = self.get_color_by_user_channel(channel)
+        return sensor_data.name
 
     def read_brightness(self, channel):
-        res = self._sensors["color_sensor"].read()
-        sensors = [rgb_to_hsv_grey(*_) for _ in struct.iter_unpack("<BBB", res)]
-        if channel == 1:
-            return sensors[0][1]
-        if channel == 2:
-            return sensors[2][1]
-        if channel == 3:
-            return sensors[1][1]
-        if channel == 4:
-            return sensors[3][1]
+        color = self.get_color_by_user_channel(channel)
+        return color.value
 
     def read_hue(self, channel):
-        res = self._sensors["color_sensor"].read()
-        sensors = [rgb_to_hsv_grey(*_) for _ in struct.iter_unpack("<BBB", res)]
-        if channel == 1:
-            return sensors[0][0]
-        if channel == 2:
-            return sensors[2][0]
-        if channel == 3:
-            return sensors[1][0]
-        if channel == 4:
-            return sensors[3][0]
+        color = self.get_color_by_user_channel(channel)
+        return color.hue
 
-    def detects_color(self, name_color, channel):
-        res = self._sensors["color_sensor"].read()
-        sensors = [rgb_to_hsv_grey(*_) for _ in struct.iter_unpack("<BBB", res)]
-        color = ''
-        if channel == 1:
-            color = sensors[0][4]
-        if channel == 2:
-            color = sensors[2][4]
-        if channel == 3:
-            color = sensors[1][4]
-        if channel == 4:
-            color = sensors[3][4]
-        if name_color is color:
-            return True
-        return False
+    def detects_color(self, color_name, channel):
+        color = self.get_color_by_user_channel(channel)
+        return color_name == color.name
 
     def hue_convert(self, val):
-        res = self._sensors["color_sensor"].read()
-        sensors = [rgb_to_hsv_grey(*_) for _ in struct.iter_unpack("<BBB", res)]
+        color = self.get_color_by_user_channel(channel)
         return 'not ready'
 
     def stop(self):

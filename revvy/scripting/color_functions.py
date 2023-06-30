@@ -1,32 +1,83 @@
+class ColorData:
+    def __init__(self, r, g, b, h, s, v, gray, name):
+      self.red = r;
+      self.green = g;
+      self.blue = b;
+      self.hue = h;
+      self.saturation = s;
+      self.value = v;
+      self.gray = gray
+      self.name = name
 
 
-def get_color_name(r, g, b):
-    name = 'not_defined'
-    if r < 85 and g < 85 and b < 85:
-        name = 'black'
-        return name
-    if r > 195 and g > 195 and b > 195:
-        name = 'white'
-        return name
-    if r > 110 and g < 120 and b < 120:
-        name = 'red'
-        return name
-    if r < 120 and g > 100 and b < 140:  # b < 120
-        name = 'green'
-        return name
-    if r < 120 < b and g < 120:
-        name = 'blue'
-        return name
-    if r > 180 and g > 180 and b < 160:
-        name = 'yellow'
-        return name
-    if r < 160 and g > 180 and b > 180:
-        name = 'cyan'
-        return name
-    return name
+ColorDataUndefined = ColorData(r=0, g=0, b=0,
+    h=0, s=0, v=0, gray=0, name='undefined')
 
 
-def rgb_to_hsv_grey(red, green, blue):
+color_name_map = {
+    'red'     : 0xff0000,
+    'yellow'  : 0xffff00,
+    'green'   : 0x00ff00,
+    'cyan'    : 0x00ffff,
+    'blue'    : 0x0000ff,
+    'magenta' : 0xff00ff,
+    'black'   : 0x000000,
+    'gray25'  : 0x404040,
+    'gray50'  : 0x7f7f7f,
+    'gray75'  : 0xbfbfbf,
+    'white'   : 0xffffff
+}
+
+
+def color_name_to_rgb(color_name):
+    try:
+        return color_name_map[color_name]
+    except KeyError:
+        return None
+
+
+def hsv_to_color_name(hue, saturation, value):
+    # hue - color component, in range 0-360 (deg)
+    # saturation - from gray to colored, in range 0-100 (%)
+    # value - from black to full color, in range 0-100 (%)
+
+    # If not saturated we go for one of the gray colors
+    if saturation < 14:
+        if value < 10:
+            return 'black'
+        if value <= 25:
+            return 'gray25'
+        if value <= 50:
+            return 'gray50'
+        if value <= 75:
+            return 'gray75'
+        return 'white'
+
+    # If color is saturated, but value is close to black, select black,
+    # without selecting from one of gray colors
+    if value < 10:
+        return 'black'
+
+    # These 6 color names are evenly distrubuted across a color circle
+    # 360 / 6 - gives 60 degrees range for each of the color
+    # 100% red is 0 as well as 360, 100% yellow is 60, green is 120, etc
+    names = ['red', 'yellow', 'green', 'cyan', 'blue', 'magenta']
+    num_steps = len(names)
+    step = int(360 / num_steps)
+
+    # We start from 'red' instead of checking all the time if value is
+    # more than 360 - 60/2
+    for i in range(num_steps):
+        cmp_color = step * (i + 0.5)
+        if hue < cmp_color:
+            return names[i]
+
+    # max cmp_color is 330 (5.5 * 60), if loop is completed, value is
+    # in range [330, 360]
+    return names[0]
+
+
+def rgb_to_hsv_gray(red, green, blue):
     r, g, b = red / 255.0, green / 255.0, blue / 255.0
     grey = 0.299 * red + 0.587 * green + 0.114 * blue
     mx = max(r, g, b)
@@ -47,7 +98,12 @@ def rgb_to_hsv_grey(red, green, blue):
     else:
         s = (df / mx) * 100
     v = mx * 100
-    return round(h, 1), round(s, 1), round(v, 1), round(grey, 1), get_color_name(red, green, blue), (red, green, blue)
+    h = round(h)
+    s = round(s)
+    v = round(v)
+    gray = round(gray)
+    name = hsv_to_color_name(h, s, v)
+    return ColorData(red, green, blue, h, s, v, gray, name)
 
 
 def detect_line_background_colors(sensors):
