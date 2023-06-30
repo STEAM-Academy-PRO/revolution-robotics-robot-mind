@@ -5,8 +5,6 @@ import time
 from math import sqrt, sin, cos, pi, atan2
 
 from revvy.scripting.robot_interface import DriveTrainWrapper, SensorPortWrapper
-from revvy.utils.functions import map_values
-from revvy.scripting.color_functions import rgb_to_hsv_grey, get_color_name, detect_line_background_colors
 
 
 def stick_controller(x, y):
