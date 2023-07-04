@@ -481,7 +481,7 @@ class RobotWrapper(RobotInterface):
             count += 1
             res = self._sensors["color_sensor"].read()
             sensors = [rgb_to_hsv_gray(*_) for _ in struct.iter_unpack("<BBB", res)]
-            base_color_, background_color_, line_name_, background_name_, i, colors_grey, colors = \
+            base_color_, background_color_, line_name_, background_name_, i, colors_gray, colors = \
                 detect_line_background_colors(sensors)
             if base_color < background_color:
                 base_color = min(base_color_, base_color)
@@ -490,7 +490,7 @@ class RobotWrapper(RobotInterface):
                 base_color = max(base_color_, base_color)
                 background_color = min(background_color_, background_color)
 
-            forward, left, right, center = colors_grey
+            forward, left, right, center = colors_gray
             # print("   ", base_color, background_color, "___", forward, left, right, center, "i:", i, colors)
             delta_base_background = abs(background_color - base_color)
             if stop_line:
@@ -517,7 +517,7 @@ class RobotWrapper(RobotInterface):
         res = self._sensors["color_sensor"].read()
         sensors_data = [rgb_to_hsv_gray(*_) for _ in struct.iter_unpack("<BBB", res)]
 
-        base_color, background_color, line_name, background_name, i, colors, colors_grey = \
+        base_color, background_color, line_name, background_name, i, colors, colors_gray = \
             detect_line_background_colors(sensors_data)
 
         status, base_color, background_color, line_color_name, _ = self.rotate_for_search(
@@ -540,7 +540,7 @@ class RobotWrapper(RobotInterface):
         it is function for step 3"""
 
         if base_color == 0 or background_color == 0 or line_name == 'not_defined':
-            print("line_grey:", base_color, "background_grey:", background_color, "line_color_name:", line_name)
+            print("line_gray:", base_color, "background_gray:", background_color, "line_color_name:", line_name)
             return 2
         count = 0
         k_speed = 1 - 0.23 * base_speed
@@ -552,10 +552,10 @@ class RobotWrapper(RobotInterface):
             # get colors
             res = self._sensors["color_sensor"].read()
             sensors = [rgb_to_hsv_gray(*_) for _ in struct.iter_unpack("<BBB", res)]
-            base_color_, background_color_, line_name_, background_name_, i, colors_grey, colors = \
+            base_color_, background_color_, line_name_, background_name_, i, colors_gray, colors = \
                 detect_line_background_colors(sensors)
 
-            forward, left, right, center = colors_grey
+            forward, left, right, center = colors_gray
             forward_name, left_name, right_name, center_name = colors
             print("   ", base_color, background_color, "___", forward, left, right, center, "___", colors)
 
