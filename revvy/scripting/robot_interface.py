@@ -479,8 +479,7 @@ class RobotWrapper(RobotInterface):
         count = 0
         while count < count_time:
             count += 1
-            res = self._sensors["color_sensor"].read()
-            sensors = [rgb_to_hsv_gray(*_) for _ in struct.iter_unpack("<BBB", res)]
+            sensors = self.read_rgb_sensor_data()
             base_color_, background_color_, line_name_, background_name_, i, colors_gray, colors = \
                 detect_line_background_colors(sensors)
             if base_color < background_color:
@@ -514,8 +513,7 @@ class RobotWrapper(RobotInterface):
         """ searches current line and background colors
         when finished color sensor should be at the center of line (left color == right color)"""
 
-        res = self._sensors["color_sensor"].read()
-        sensors_data = [rgb_to_hsv_gray(*_) for _ in struct.iter_unpack("<BBB", res)]
+        sensors_data = self.read_rgb_sensor_data()
 
         base_color, background_color, line_name, background_name, i, colors, colors_gray = \
             detect_line_background_colors(sensors_data)
@@ -550,8 +548,7 @@ class RobotWrapper(RobotInterface):
         while count < count_time:  # 500 800:
             count += 1
             # get colors
-            res = self._sensors["color_sensor"].read()
-            sensors = [rgb_to_hsv_gray(*_) for _ in struct.iter_unpack("<BBB", res)]
+            sensors = self.read_rgb_sensor_data()
             base_color_, background_color_, line_name_, background_name_, i, colors_gray, colors = \
                 detect_line_background_colors(sensors)
 
@@ -647,15 +644,18 @@ class RobotWrapper(RobotInterface):
           v = int(color.value)
           print(f'{color.red},{color.green},{color.blue}->{h},{s},{v}:{name}')
 
+    def read_rgb_sensor_data(self):
+        res = self._sensors["color_sensor"].read()
+        result = [rgb_to_hsv_gray(*_) for _ in struct.iter_unpack("<BBB", res)]
+        # self.debug_print_colors(result)
+        return result
+
     def get_color_by_user_channel(self, user_channel):
         sensor_channel = user_to_sensor_channel(user_channel)
         if sensor_channel == RGBChannelSensor.UNDEFINED:
           return ColorDataUndefined
 
-        res = self._sensors["color_sensor"].read()
-        sensors_data_raw = list(struct.iter_unpack("<BBB", res))
-        sensors_data_processed = [rgb_to_hsv_gray(*_) for _ in sensors_data_raw]
-        # self.debug_print_colors(sensors_data_processed)
+        sensors_data_processed = self.read_rgb_sensor_data()
         return sensors_data_processed[sensor_channel.value]
 
     def read_color(self, channel):
