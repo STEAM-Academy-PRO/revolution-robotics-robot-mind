@@ -79,7 +79,7 @@ def hsv_to_color_name(hue, saturation, value):
 
 def rgb_to_hsv_gray(red, green, blue):
     r, g, b = red / 255.0, green / 255.0, blue / 255.0
-    grey = 0.299 * red + 0.587 * green + 0.114 * blue
+    gray = 0.299 * red + 0.587 * green + 0.114 * blue
     mx = max(r, g, b)
     mn = min(r, g, b)
     df = mx - mn
@@ -108,7 +108,7 @@ def rgb_to_hsv_gray(red, green, blue):
 
 def detect_line_background_colors(sensors):
     res = [[], [], []]  # [H] [S] [V]
-    grey = []
+    gray = []
     name = []
     rgb_val = []
     # print(sensors)
@@ -116,7 +116,7 @@ def detect_line_background_colors(sensors):
         res[0].append(sensor[0])
         res[1].append(sensor[1])
         res[2].append(sensor[2])
-        grey.append(sensor[3])
+        gray.append(sensor[3])
         name.append(sensor[4])
         rgb_val.append(sensor[5])
     # print(res)
@@ -133,19 +133,19 @@ def detect_line_background_colors(sensors):
     #     background = maximum
     #     line = minimum
     # print(i, res[i], )
-    """grey color using at the time of following is most effective,
+    """gray color using at the time of following is most effective,
        in this case we use HSV just for make decision which way be the next"""
-    maxi = max(grey)
-    mini = min(grey)
+    maxi = max(gray)
+    mini = min(gray)
     background = mini
     line = maxi
-    if grey.index(maxi) in (1, 2):
+    if gray.index(maxi) in (1, 2):
         background = maxi
         line = mini
-    background_name = name[grey.index(background)]
-    line_name = name[grey.index(line)]
+    background_name = name[gray.index(background)]
+    line_name = name[gray.index(line)]
 
-    return line, background, line_name, background_name, i, tuple(grey), tuple(name)
+    return line, background, line_name, background_name, i, tuple(gray), tuple(name)
 
 
 def search_lr(colors: tuple, color='', side=''):
