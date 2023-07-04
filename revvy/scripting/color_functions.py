@@ -106,19 +106,20 @@ def rgb_to_hsv_gray(red, green, blue):
     return ColorData(red, green, blue, h, s, v, gray, name)
 
 
-def detect_line_background_colors(sensors):
+def detect_line_background_colors(sensors_data):
     res = [[], [], []]  # [H] [S] [V]
     gray = []
     name = []
     rgb_val = []
     # print(sensors)
-    for sensor in sensors:
-        res[0].append(sensor[0])
-        res[1].append(sensor[1])
-        res[2].append(sensor[2])
-        gray.append(sensor[3])
-        name.append(sensor[4])
-        rgb_val.append(sensor[5])
+    for color_data in sensors_data:
+        res[0].append(color_data.hue)
+        res[1].append(color_data.saturation)
+        res[2].append(color_data.value)
+        gray.append(color_data.gray)
+        name.append(color_data.name)
+        rgb = (color_data.red, color_data.green, color_data.blue)
+        rgb_val.append(rgb)
     # print(res)
     delta = []  # searching of most signed from H S V
     for _ in res:
