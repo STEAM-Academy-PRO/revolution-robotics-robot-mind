@@ -93,7 +93,8 @@ class ReadFirmwareVersionCommand(ReadVersionCommand):
     def command_id(self): return 0x02
 
 
-BatteryStatus = namedtuple('BatteryStatus', ['chargerStatus', 'main', 'motor'])
+BatteryStatus = namedtuple('BatteryStatus',
+    ['chargerStatus', 'motor_battery_present', 'main', 'motor'])
 
 
 class SetMasterStatusCommand(Command):

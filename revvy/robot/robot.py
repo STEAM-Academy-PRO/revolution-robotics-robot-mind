@@ -84,7 +84,7 @@ class Robot(RobotInterface):
 
         self._status = RobotStatusIndicator(self._robot_control)
         self._status_updater = McuStatusUpdater(self._robot_control)
-        self._battery = BatteryStatus(0, 0, 0)
+        self._battery = BatteryStatus(0, 0, 0, 0)
 
         self._imu = IMU()
 
@@ -181,9 +181,12 @@ class Robot(RobotInterface):
 
         def _process_battery_slot(data):
             assert len(data) == 4
-            main_status, main_percentage, _, motor_percentage = data
+            main_status , main_percentage, motor_bat_present, motor_percentage = data
 
-            self._battery = BatteryStatus(chargerStatus=main_status, main=main_percentage, motor=motor_percentage)
+            self._battery = BatteryStatus(chargerStatus=main_status,
+                motor_battery_present=motor_bat_present,
+                main=main_percentage,
+                motor=motor_percentage)
 
         self._status_updater.enable_slot("battery", _process_battery_slot)
         self._status_updater.enable_slot("axl", self._imu.update_axl_data)
