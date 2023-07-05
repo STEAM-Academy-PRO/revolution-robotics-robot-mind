@@ -571,13 +571,42 @@ class CustomBatteryLevelCharacteristic(Characteristic):
             update_value_callback([value])
 
 
+class UnifiedBatteryInfoCharacteristic(CustomBatteryLevelCharacteristic):
+    def update_value(self,
+        core_battery_level,
+        core_battery_status,
+        motor_battery_level,
+        motor_battery_present):
+
+        new_value = struct.pack('BBBB',
+            core_battery_level,
+            core_battery_status,
+            motor_battery_level,
+            motor_battery_present)
+
+ #        print('UnifiedBatteryInfoCharacteristic::update_value',
+ #            core_battery_level,
+ #            core_battery_status,
+ #            motor_battery_level,
+ #            motor_battery_present)
+        if new_value == self._value:
+            return
+
+        self._value = new_value
+
+        if self._updateValueCallback:
+            self._updateValueCallback()
+
+
 class CustomBatteryService(BleService):
     def __init__(self):
-        main = CustomBatteryLevelCharacteristic('2A19', b'Main battery percentage')
+        main_deprecated = CustomBatteryLevelCharacteristic('2A19', b'Main battery percentage')
+        unified_battery_status = UnifiedBatteryInfoCharacteristic('2BED', b'Unified battery staus')
         motor = CustomBatteryLevelCharacteristic('00002a19-0000-1000-8000-00805f9b34fa', b'Motor battery percentage')
 
         super().__init__('180F', {
-            'main_battery': main,
+            'main_battery': main_deprecated,
+            'unified_battery_status': unified_battery_status,
             'motor_battery': motor,
         })
 

@@ -96,13 +96,26 @@ class RobotManager:
             elif req.is_resume_pending():
                 self._background_controlled_scripts.resume_all_scripts()
 
+    def __battery_characterstic(self, name):
+        return self._ble['battery_service'].characteristic(name)
+
+
     def _update(self):
         # noinspection PyBroadException
         try:
             self._robot.update_status()
 
-            self._ble['battery_service'].characteristic('main_battery').update_value(self._robot.battery.main)
-            self._ble['battery_service'].characteristic('motor_battery').update_value(self._robot.battery.motor)
+            self.__battery_characterstic('main_battery').update_value(
+                self._robot.battery.main)
+
+            self.__battery_characterstic('motor_battery').update_value(
+                self._robot.battery.motor)
+
+            self.__battery_characterstic('unified_battery_status').update_value(
+              self._robot.battery.main,
+              self._robot.battery.chargerStatus,
+              self._robot.battery.motor,
+              self._robot.battery.motor_battery_present)
 
             self._remote_controller.timer_increment()
             live_service = self._ble['live_message_service']
