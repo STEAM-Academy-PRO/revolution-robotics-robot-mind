@@ -35,9 +35,17 @@ class UserScriptRGBChannel(Enum):
 
 
 def user_to_sensor_channel(user_channel):
-  for i in UserScriptRGBChannel:
-    if i.value == user_channel:
-      return i
+  mapping = [
+    (UserScriptRGBChannel.FRONT, RGBChannelSensor.FRONT),
+    (UserScriptRGBChannel.LEFT , RGBChannelSensor.LEFT),
+    (UserScriptRGBChannel.RIGHT, RGBChannelSensor.RIGHT),
+    (UserScriptRGBChannel.REAR , RGBChannelSensor.REAR),
+  ]
+  for user, sensor in mapping:
+    if user_channel == user.value:
+      return sensor
+
+  print(f'user_to_sensor_channel: {user_channel}')
   return RGBChannelSensor.UNDEFINED
 
 
