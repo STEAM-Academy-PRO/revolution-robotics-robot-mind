@@ -572,30 +572,32 @@ class CustomBatteryLevelCharacteristic(Characteristic):
 
 
 class UnifiedBatteryInfoCharacteristic(CustomBatteryLevelCharacteristic):
+    def onReadRequest(self, offset, callback):
+        if offset:
+            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
+        else:
+            callback(Characteristic.RESULT_SUCCESS, self._value)
+
     def update_value(self,
         core_battery_level,
         core_battery_status,
         motor_battery_level,
         motor_battery_present):
 
-        new_value = struct.pack('BBBB',
+        new_value = [
             core_battery_level,
             core_battery_status,
             motor_battery_level,
-            motor_battery_present)
+            motor_battery_present
+        ]
 
- #        print('UnifiedBatteryInfoCharacteristic::update_value',
- #            core_battery_level,
- #            core_battery_status,
- #            motor_battery_level,
- #            motor_battery_present)
         if new_value == self._value:
             return
 
         self._value = new_value
 
         if self._updateValueCallback:
-            self._updateValueCallback()
+            self._updateValueCallback(self._value)
 
 
 class CustomBatteryService(BleService):
