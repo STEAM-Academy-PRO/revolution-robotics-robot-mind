@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 import struct
 import time
+import random
 
 from functools import partial
 from math import sqrt
@@ -319,18 +320,20 @@ def wrap_sync_method(owner, method):
 class DriveTrainWrapper(Wrapper):
     def __init__(self, script, drivetrain, resource: ResourceWrapper):
         super().__init__(script, resource)
-        self._drivetrain = drivetrain
+        self.__drivetrain = drivetrain
+        self.turn = wrap_async_method(self, self.__drivetrain.turn)
+        self.drive = wrap_async_method(self, self.__drivetrain.drive)
 
-        self.turn = wrap_async_method(self, drivetrain.turn)
-        self.drive = wrap_async_method(self, drivetrain.drive)
-
-    def log(self, message):
+    def __log(self, message):
         self._script.log("DriveTrain: " + message)
 
     def set_speed(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM):
-        self.log("set_speed")
+        # self.__log("set_speed")
 
         resource = self.try_take_resource()
+        if not resource:
+            self.__log("Drivetrain: failed to get resource")
+            raise Exception()
         if resource:
             try:
                 self._drivetrain.set_speed(direction, speed, unit_speed)
@@ -342,7 +345,7 @@ class DriveTrainWrapper(Wrapper):
         resource = self.try_take_resource()
         if resource:
             try:
-                self._drivetrain.set_speeds(sl, sr)
+                self.__drivetrain.set_speeds(sl, sr)
             finally:
                 if sl == sr == 0:
                     resource.release()
@@ -368,6 +371,251 @@ class SoundWrapper(Wrapper):
     def play_tune(self, name):
         # immediately releases resource after starting the playback
         self.if_resource_available(lambda _: self._play(name))
+
+class RelativeToLineState:
+    def __init__(self, front, rear, left ,right):
+        self.front = front
+        self.rear = rear
+        self.left = left
+        self.right = right
+
+    def __eq__(self, obj):
+        if not isinstance(obj, RelativeToLineState):
+            return False
+
+        return self.front == obj.front and self.rear == obj.rear and self.left == obj.left and self.right == obj.right
+
+
+on_line                   = RelativeToLineState(1, 1, 0, 0)
+on_line_end_soon          = RelativeToLineState(0, 1, 0, 0)
+on_line_near_left         = RelativeToLineState(1, 1, 0, 1)
+on_line_near_right        = RelativeToLineState(1, 1, 1, 0)
+on_line_too_wide          = RelativeToLineState(1, 1, 1, 1)
+on_line_hole              = RelativeToLineState(1, 0, 1, 1)
+on_line_perpendicular     = RelativeToLineState(0, 1, 1, 1)
+on_line_rear_left         = RelativeToLineState(0, 1, 1, 0)
+on_line_rear_right        = RelativeToLineState(0, 1, 0, 1)
+off_line                  = RelativeToLineState(0, 0, 0, 0)
+off_line_near_front       = RelativeToLineState(1, 0, 0, 0)
+off_line_near_front_left  = RelativeToLineState(1, 0, 1, 0)
+off_line_near_front_right = RelativeToLineState(1, 0, 0, 1)
+off_line_near_left        = RelativeToLineState(0, 0, 1, 0)
+off_line_near_right       = RelativeToLineState(0, 0, 0, 1)
+off_line_left_right       = RelativeToLineState(0, 0, 1, 1)
+
+
+class LineDriver:
+    FOLLOW_LINE_RESULT_CONTINUE = 0
+    FOLLOW_LINE_RESULT_LOST     = 1
+    FOLLOW_LINE_RESULT_FINISH   = 2
+    SEARCH_LINE_FORWARD_MOTION = 0
+    SEARCH_LINE_ROTATE_90 = 1
+    def __init__(self, drivetrain, color_reader, line_color):
+        self.__drivetrain = drivetrain
+        self.__color_reader = color_reader
+        self.__line_color = line_color
+        self.__search_line_motion_time = 0
+        self.__search_line_state_duration = 0
+        self.__next_motion_duration = 0
+        self.__prev_current = None
+        self.__show_debug_msg = False
+        self.__do_debug_stops = False
+        self.__base_speed = 20
+        self.__straight_speed_mult = 1.5
+
+    def __log(self, msg):
+        print(f'LineDriver: {msg}')
+
+    def __log_debug(self, msg):
+        if self.__show_debug_msg:
+            self.__log(msg)
+
+    @property
+    def __rgb_front(self):
+        sensors = self.__color_reader.read_rgb_sensor_data()
+        return sensors[RGBChannelSensor.FRONT.value].name
+
+    @property
+    def __rgb_left(self):
+        sensors = self.__color_reader.read_rgb_sensor_data()
+        return sensors[RGBChannelSensor.LEFT.value].name
+
+    @property
+    def __rgb_right(self):
+        sensors = self.__color_reader.read_rgb_sensor_data()
+        return sensors[RGBChannelSensor.RIGHT.value].name
+
+    @property
+    def __rgb_rear(self):
+        sensors = self.__color_reader.read_rgb_sensor_data()
+        return sensors[RGBChannelSensor.REAR.value].name
+
+    def __go_inclined_forward(self, inclination):
+        self.__log_debug('INCLINED_FORWARD')
+        speed_left = speed_right = self.__base_speed * self.__straight_speed_mult
+        if inclination < 0:
+            speed_left -= self.__base_speed * (-inclination)
+        else:
+            speed_right -= self.__base_speed * inclination
+        self.__drivetrain.set_speeds(speed_left, speed_right)
+
+    def __turn_left(self):
+        self.__log_debug('TURN_LEFT')
+        self.__drivetrain.set_speeds(
+          self.__base_speed * -0.25,
+          self.__base_speed)
+
+    def __turn_right(self):
+        self.__log_debug('TURN_RIGHT')
+        self.__drivetrain.set_speeds(
+          self.__base_speed,
+          self.__base_speed * -0.25)
+
+    def __go_straight(self):
+        self.__log_debug('GO_STRAIGHT')
+        speed = self.__base_speed * self.__straight_speed_mult
+        self.__drivetrain.set_speeds(speed, speed)
+
+    def __stop(self):
+        self.__log_debug('STOP')
+        self.__drivetrain.set_speeds(0, 0)
+
+    def stop(self):
+        self.__stop()
+
+    def search_line_start(self):
+        self.__log('search_line_start')
+        self.__state = LineDriver.SEARCH_LINE_ROTATE_90
+        self.__search_line_motion_time = 0
+        self.__search_line_state_duration = 1
+
+    # Returns True if line is found,
+    # False is line is not found
+    def search_line_update(self):
+        front_match = self.__rgb_front == self.__line_color
+        rear_match  = self.__rgb_rear  == self.__line_color
+        left_match  = self.__rgb_left  == self.__line_color
+        right_match = self.__rgb_right == self.__line_color
+        if front_match or rear_match or left_match or right_match:
+            self.__log('search:line_reached')
+            self.__stop()
+            return True
+
+        self.__search_line_motion_time += 1
+        if self.__search_line_motion_time < self.__search_line_state_duration:
+            to_go = self.__search_line_state_duration - self.__search_line_motion_time
+            self.__log_debug(f'search:state_timeout:{to_go}')
+            return False
+
+        self.__search_line_motion_time = 0
+        self.__next_motion_duration += 10
+        if self.__state == LineDriver.SEARCH_LINE_FORWARD_MOTION:
+            self.__log_debug('search::rotate 90')
+            self.__search_line_state_duration = 15
+            self.__state = LineDriver.SEARCH_LINE_ROTATE_90
+            self.__turn_left()
+        elif self.__state == LineDriver.SEARCH_LINE_ROTATE_90:
+            self.__log_debug('search:inclined forward')
+            self.__search_line_state_duration = 40 + self.__next_motion_duration
+            self.__state = LineDriver.SEARCH_LINE_FORWARD_MOTION
+            self.__go_inclined_forward(-0.2)
+        return False
+
+    def follow_line_start(self):
+        self.__log('follow_line_start:START')
+        self.__turn_right()
+
+    def follow_line_update(self):
+        front_match = self.__rgb_front == self.__line_color
+        rear_match  = self.__rgb_rear  == self.__line_color
+        left_match  = self.__rgb_left  == self.__line_color
+        right_match = self.__rgb_right == self.__line_color
+
+        current = RelativeToLineState(front_match, rear_match, left_match, right_match)
+
+        # Function to debug line following algorithm. To use:
+        # 1. in __init__ enable self.__do_debug_stops
+        # 2. and enable self.__show_debug_msg
+        def debug_stop(current, sleep_sec):
+            if not self.__do_debug_stops:
+                return
+
+            if current != self.__prev_current:
+                self.__stop()
+                time.sleep(sleep_sec)
+
+        if current == on_line_end_soon:
+            self.__log('LINE END DETECTED')
+            self.__go_straight()
+            # self.__stop()
+            # Should stop now
+            # return LineDriver.FOLLOW_LINE_RESULT_FINISH
+        elif current == on_line:
+            self.__go_straight()
+        elif current == on_line_hole:
+            self.__log_debug('LINE_HOLE')
+            self.__go_straight()
+        elif current == on_line_near_left:
+            self.__log_debug('NEAR_LEFT')
+            # No need to make full rotation, smooth center out
+            self.__go_inclined_forward(0.2)
+        elif current == on_line_near_right:
+            self.__log_debug('NEAR_RIGHT')
+            # No need to make full rotation, smooth center out
+            self.__go_inclined_forward(-0.2)
+        elif current == on_line_too_wide:
+            self.__log_debug('TOO_WIDE')
+            self.__go_straight()
+        elif current == on_line_rear_left:
+            self.__log_debug('REAR-LEFT')
+            self.__turn_left()
+        elif current == on_line_rear_right:
+            self.__log_debug('REAR-RIGHT')
+            self.__turn_right()
+        elif current == off_line:
+            self.__log_debug('OFF')
+            if self.__prev_current != off_line:
+                if random.random() > 0.5:
+                    self.__turn_left()
+                else:
+                    self.__turn_right()
+            else:
+                self.__stop()
+                return LineDriver.FOLLOW_LINE_RESULT_LOST
+        elif current == off_line_left_right:
+            self.__log_debug('OFF-LEFT-RIGHT')
+            debug_stop(current, 1)
+            self.__turn_left()
+        elif current == on_line_perpendicular:
+            self.__log_debug('OFF-LEFT-RIGHT')
+            debug_stop(current, 1)
+            self.__turn_left()
+        elif current == off_line_near_front:
+            self.__log_debug('OFF-FRONT')
+            debug_stop(current, 1)
+            self.__go_straight()
+        elif current == off_line_near_front_left:
+            self.__log_debug('OFF-FRONT-LEFT')
+            debug_stop(current, 1)
+            self.__go_inclined_forward(0.2)
+        elif current == off_line_near_front_right:
+            self.__log_debug('OFF-FRONT-RIGHT')
+            debug_stop(current, 1)
+            self.__go_inclined_forward(-0.2)
+        elif current == off_line_near_left:
+            self.__log_debug('OFF-LEFT')
+            debug_stop(current, 1)
+            self.__turn_left()
+        elif current == off_line_near_right:
+            self.__log_debug('OFF-RIGHT')
+            debug_stop(current, 1)
+            self.__turn_right()
+        elif current == perpendicular:
+            self.__log_debug('PERPENDICULAR')
+            debug_stop(current, 4)
+            self.__turn_left()
+        self.__prev_current = current
+        return LineDriver.FOLLOW_LINE_RESULT_CONTINUE
 
 
 class RobotInterface:
@@ -517,129 +765,43 @@ class RobotWrapper(RobotInterface):
         time.sleep(0.2)
         return 0, base_color, background_color, None, None
 
-    def search_line(self, val):
-        """ searches current line and background colors
-        when finished color sensor should be at the center of line (left color == right color)"""
+    def search_line(self, line_color):
+        print(f'search_line:line_color={line_color}')
+        line_driver = LineDriver(self._drivetrain, self, line_color)
+        delta_ms = 0.1
+        should_stop = False
+        line_driver.search_line_start()
+        while not should_stop:
+            should_stop = line_driver.search_line_update()
+            time.sleep(delta_ms)
+        print('search_line end')
+        time.sleep(2)
 
-        sensors_data = self.read_rgb_sensor_data()
+    def follow_line(self, line_color, count_time=1000):
+        line_driver = LineDriver(self._drivetrain, self, line_color)
+        delta_ms = 0.01
+        line_driver.follow_line_start()
+        STATE_ON_LINE = 0
+        STATE_OFF_LINE = 1
+        state = STATE_ON_LINE
+        for i in range(count_time):
+            if state == STATE_ON_LINE:
+                result = line_driver.follow_line_update()
+                if result == LineDriver.FOLLOW_LINE_RESULT_FINISH:
+                    break
+                if result == LineDriver.FOLLOW_LINE_RESULT_CONTINUE:
+                    continue
+                if result == LineDriver.FOLLOW_LINE_RESULT_LOST:
+                    line_driver.search_line_start()
+                    state = STATE_OFF_LINE
+            elif state == STATE_OFF_LINE:
+                line_found = line_driver.search_line_update()
+                if line_found:
+                  state = STATE_ON_LINE
+                  line_driver.follow_line_start()
+            time.sleep(delta_ms)
+        line_driver.stop()
 
-        base_color, background_color, line_name, background_name, i, colors, colors_gray = \
-            detect_line_background_colors(sensors_data)
-
-        status, base_color, background_color, line_color_name, _ = self.rotate_for_search(
-            base_color, background_color, 0, 40, 0.03, 0
-        )
-        status, base_color, background_color, line_color_name, _ = self.rotate_for_search(
-            base_color, background_color, 1, 120, 0.03, 0
-        )
-        status, base_color, background_color, line_color_name, _ = self.rotate_for_search(
-            base_color, background_color, 0, 160, 0.03, 1
-        )
-        return base_color, background_color, line_color_name
-
-    def follow_line(self,
-                    base_color=0, background_color=0, line_name='not_defined',
-                    count_time=100, base_speed=0.2,
-                    func_search_lr=None, desired_color='', side='',
-                    ):
-        """ need to set correct line and background colors, this colors we need to get from search_color function
-        it is function for step 3"""
-
-        if base_color == 0 or background_color == 0 or line_name == 'not_defined':
-            print("line_gray:", base_color, "background_gray:", background_color, "line_color_name:", line_name)
-            return 2
-        count = 0
-        k_speed = 1 - 0.23 * base_speed
-        if k_speed > 0.99:
-            k_speed = 0.99
-
-        while count < count_time:  # 500 800:
-            count += 1
-            # get colors
-            sensors = self.read_rgb_sensor_data()
-            base_color_, background_color_, line_name_, background_name_, i, colors_gray, colors = \
-                detect_line_background_colors(sensors)
-
-            forward, left, right, center = colors_gray
-            forward_name, left_name, right_name, center_name = colors
-            print("   ", base_color, background_color, "___", forward, left, right, center, "___", colors)
-
-            delta_base_background = abs(background_color - base_color)
-            delta = delta_base_background * 1.03
-
-            # check: stop when line loosed and exit from function
-            param = delta_base_background * 0.4
-            if not (abs(base_color - forward) < param or abs(base_color - center) < param
-                    or abs(base_color - right) < param or abs(base_color - left) < param):
-                drivetrain_control.set_speeds(
-                    map_values(0, 0, 1, 0, 120),
-                    map_values(0, 0, 1, 0, 120))
-                print("stop, line loosed")
-                return 1
-
-            # check left/right lines
-            if func_search_lr:
-                if func_search_lr(colors, desired_color, side):
-                    self._drivetrain.set_speeds(
-                        map_values(0, 0, 1, 0, 120),
-                        map_values(0, 0, 1, 0, 120))
-                    print("stop, line found")
-                    return 0
-
-            forward_level = 0.35  # 0.40 good for base_speed = 0.2
-            k_forward = 0
-            temp = abs(forward - base_color) / delta_base_background
-            if temp > 0.25:
-                k_forward = forward_level * temp
-            k_angle = 1.02 + sqrt(delta_base_background / 6.8)  # 7.0 good for base_speed = 0.2
-            sl = base_speed
-            sr = base_speed
-            delta_lr = abs(right - left)
-            k_diff = (1 - k_speed) + k_speed * ((k_angle * sqrt(abs(delta - delta_lr)) + (
-                    delta_base_background - k_angle * sqrt(delta))) / delta)
-
-            if forward_name == line_name:
-                k_forward = 0
-
-            k_diff = k_diff * (1 - k_forward)
-
-            speed_primary = base_speed * k_diff  # * 0.9
-            speed_secondary = base_speed / k_diff
-
-            compare = delta_base_background / 40  # /20  # !!!!!!!!!!
-            if delta_lr > compare:
-                sr = speed_primary
-                sl = speed_secondary
-                if base_color > background_color:
-                    sr = speed_secondary
-                    sl = speed_primary
-                str_turn = "          >>>>>>>>>>>"
-                if right > left:
-                    sl = speed_primary
-                    sr = speed_secondary
-                    if base_color > background_color:
-                        sl = speed_secondary
-                        sr = speed_primary
-                    str_turn = "          <<<<<<<<<<<"
-                print(str_turn)
-            # check overspeed
-            if sl > 1:
-                sl = 0
-                count = count_time
-            if sr > 1:
-                sr = 0
-                count = count_time
-            # set calculated speeds
-            self._drivetrain.set_speeds(
-                map_values(sl, 0, 1, 0, 120),
-                map_values(sr, 0, 1, 0, 120))
-            time.sleep(0.015)
-
-        # stop at end of function
-        self._drivetrain.set_speeds(
-            map_values(0, 0, 1, 0, 120),
-            map_values(0, 0, 1, 0, 120))
-        return 3
 
     def debug_print_colors(self, colors):
         for i, color in enumerate(colors):
