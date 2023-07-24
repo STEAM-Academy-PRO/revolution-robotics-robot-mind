@@ -207,7 +207,7 @@ class DifferentialDrivetrain:
         self._apply_release()
 
     def set_speeds(self, left, right, power_limit=None):
-        self._log(f'set speeds: {left}  {right}  {power_limit}')
+        # self._log(f'set speeds: {left}  {right}  {power_limit}')
         self._abort_controller()
 
         self._apply_speeds(left, right, power_limit)
