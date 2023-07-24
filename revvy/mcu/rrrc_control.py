@@ -36,12 +36,14 @@ class RevvyControl:
         self.set_motor_port_type = SetMotorPortTypeCommand(transport)
         self.set_motor_port_config = SetMotorPortConfigCommand(transport)
         self.set_motor_port_control_value = SetMotorPortControlCommand(transport)
+        self.test_motor_on_port = TestMotorOnPortCommand(transport)
 
         self.get_sensor_port_amount = ReadSensorPortAmountCommand(transport)
         self.get_sensor_port_types = ReadSensorPortTypesCommand(transport)
         self.set_sensor_port_type = SetSensorPortTypeCommand(transport)
         self.write_sensor_port = WriteSensorPortCommand(transport)
         self.read_sensor_info = ReadSensorPortInfoCommand(transport)
+        self.test_sensor_on_port = TestSensorOnPortCommand(transport)
 
         self.ring_led_get_scenario_types = ReadRingLedScenarioTypesCommand(transport)
         self.ring_led_get_led_amount = GetRingLedAmountCommand(transport)
