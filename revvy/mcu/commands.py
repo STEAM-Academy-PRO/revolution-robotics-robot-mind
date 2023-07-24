@@ -182,6 +182,32 @@ class SetMotorPortTypeCommand(SetPortTypeCommand):
     @property
     def command_id(self): return 0x12
 
+class TestSensorOnPortCommand(Command, ABC):
+    @property
+    def command_id(self):
+        return 0x25
+
+    def __call__(self, port, port_type):
+        payload = struct.pack('BB', port, port_type)
+        return self._send((payload))
+
+    def parse_response(self, payload):
+        print(len(payload), payload)
+        return payload
+
+class TestMotorOnPortCommand(Command, ABC):
+    @property
+    def command_id(self):
+        return 0x15
+
+    def __call__(self, port):
+        payload = struct.pack('B', port)
+        return self._send((payload))
+
+    def parse_response(self, payload):
+        print(len(payload), payload)
+        return payload
+
 
 class SetSensorPortTypeCommand(SetPortTypeCommand):
     @property
