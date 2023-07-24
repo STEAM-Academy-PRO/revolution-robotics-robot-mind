@@ -210,7 +210,7 @@ class RevvyTransport:
                     # check result
                     # return a result even in case of an error, except when we know we have to resend
                     if header.status != ResponseStatus.Error_CommandIntegrityError:
-                        response_payload = self._read_payload(header)
+                        response_payload = self._read_payload(header, retries=100)
                         # print("command: ", command, "response_payload:", response_payload)
                         return Response(header.status, response_payload)
             except TimeoutError:
@@ -289,7 +289,7 @@ class RevvyTransport:
         self._transport.write(command)
         self._stopwatch.reset()
         while self._stopwatch.elapsed < self.timeout:
-            response = self._read_response_header()
+            response = self._read_response_header(retries=100)
             if response.status != ResponseStatus.Busy:
                 return response
         raise TimeoutError
