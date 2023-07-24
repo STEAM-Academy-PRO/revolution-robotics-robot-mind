@@ -828,6 +828,10 @@ class RobotWrapper(RobotInterface):
         sensors_data_processed = self.read_rgb_sensor_data()
         return sensors_data_processed[sensor_channel.value]
 
+    def read_saturation(self, channel):
+        sensor_data = self.get_color_by_user_channel(channel)
+        return sensor_data.saturation
+
     def read_color(self, channel):
         sensor_data = self.get_color_by_user_channel(channel)
         return sensor_data.name
