@@ -10,7 +10,7 @@ from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.thread_wrapper import ThreadWrapper, ThreadContext
 from revvy.utils.logger import get_logger
 
-RemoteControllerCommand = namedtuple('RemoteControllerCommand', ['analog', 'buttons', 'background_command'])
+RemoteControllerCommand = namedtuple('RemoteControllerCommand', ['analog', 'buttons', 'background_command', 'next_deadline'])
 
 
 class BleAutonomousCmd:
@@ -118,6 +118,10 @@ class RemoteController:
         # the user presses something on a joystick, therefore we have to
         # know the difference in code
         self._joystick_mode = False
+        self.__next_deadline = MESSAGE_MAX_PERIOD
+
+    def get_next_deadline(self):
+        return self.__next_deadline
 
     def on_joystick_action(self):
         # This is a one shot action to detect first joystick input
@@ -187,6 +191,8 @@ class RemoteController:
         self.process_background_command(msg.background_command)
         self.process_analog_command(msg.analog)
         self.process_button_command(msg.buttons)
+        if msg.next_deadline is not None:
+            self.__next_deadline = msg.next_deadline
 
     def on_button_pressed(self, button, action: callable):
         self._buttonActions[button] = action
@@ -242,11 +248,11 @@ class RemoteController:
         return result
 
 
+FIRST_MESSAGE_TIMEOUT = 5
+MESSAGE_MAX_PERIOD = 1
+
+
 class RemoteControllerScheduler:
-
-    first_message_timeout = 5
-    message_max_period = 1
-
     def __init__(self, rc: RemoteController):
         self._controller = rc
         self._data_ready_event = Event()
@@ -274,7 +280,7 @@ class RemoteControllerScheduler:
 
         # wait for first message
         stopwatch = Stopwatch()
-        if self._wait_for_message(ctx, self.first_message_timeout):
+        if self._wait_for_message(ctx, FIRST_MESSAGE_TIMEOUT):
             self._log(f"Time to first message: {stopwatch.elapsed}s")
             if self._controller_detected_callback:
                 self._controller_detected_callback()
@@ -282,7 +288,7 @@ class RemoteControllerScheduler:
             self._controller.process_control_message(self._message)
 
             # wait for the other messages
-            while self._wait_for_message(ctx, self.message_max_period):
+            while self._wait_for_message(ctx, self._controller.get_next_deadline()):
                 self._controller.process_control_message(self._message)
 
         if not ctx.stop_requested:

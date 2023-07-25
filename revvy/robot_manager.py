@@ -30,8 +30,6 @@ class RevvyStatusCode(enum.IntEnum):
 
 
 class RobotManager:
-
-    # FIXME: revvy_ble intentionally doesn't have a type hint at this moment because it breaks tests right now
     def __init__(self, robot: Robot, sw_version, revvy_ble):
         self._log = get_logger('RobotManager')
         self._log('init')
@@ -76,6 +74,9 @@ class RobotManager:
         self.exited = Event()
 
         self.start_remote_controller = self._remote_controller_thread.start
+        self.__session_id = 0
+        live_service = self._ble['live_message_service']
+        live_service.update_session_id(0xffffffff)
 
     def process_run_in_bg_requests(self):
         functions = self._background_fns
@@ -230,13 +231,19 @@ class RobotManager:
         self._robot.status.controller_status = RemoteControllerStatus.Controlled
 
     def _on_controller_lost(self):
+        live_service = self._ble['live_message_service']
+        live_service.update_session_id(0)
         self._log('Remote controller lost')
         if self._robot.status.controller_status != RemoteControllerStatus.NotConnected:
             self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
             self.robot_configure(None)
 
     def robot_configure(self, config, after=None):
+        self.__session_id += 1
         self._log('Request configuration')
+        if config is not None:
+            live_service.update_session_id(self.__session_id)
+
         if self._robot.status.robot_status != RobotStatus.Stopped:
             self.run_in_background(partial(self._robot_configure, config))
             if callable(after):
