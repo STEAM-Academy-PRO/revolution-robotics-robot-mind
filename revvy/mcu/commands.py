@@ -182,6 +182,40 @@ class SetMotorPortTypeCommand(SetPortTypeCommand):
     @property
     def command_id(self): return 0x12
 
+class TestSensorOnPortResult:
+    def __init__(self, result_code):
+        self.__result_code = result_code
+
+    def __stringify(self):
+        if self.__result_code == 0:
+            return 'NOT_CONNECTED'
+        if self.__result_code == 1:
+            return 'CONNECTED'
+        if self.__result_code == 2:
+            return 'UNKNOWN'
+        if self.__result_code == 3:
+            return 'ERROR'
+        return "INVALID"
+
+    def __str__(self):
+        return self.__stringify()
+
+    def __repr__(self):
+        return self.__stringify()
+
+    def is_not_connected(self):
+        return self.__result_code == 0
+
+    def is_connected(self):
+        return self.__result_code == 1
+
+    def is_unknown(self):
+        return self.__result_code == 2
+
+    def is_error(self):
+        return self.__result_code == 3
+
+
 class TestSensorOnPortCommand(Command, ABC):
     @property
     def command_id(self):
@@ -189,11 +223,16 @@ class TestSensorOnPortCommand(Command, ABC):
 
     def __call__(self, port, port_type):
         payload = struct.pack('BB', port, port_type)
+        print('TestSensorOnPortCommand::port={}, type={}, payload={}'.format(
+            port,port_type, payload))
         return self._send((payload))
 
     def parse_response(self, payload):
-        print(len(payload), payload)
-        return payload
+        response = struct.unpack('b', payload)[0]
+        response = TestSensorOnPortResult(response)
+        print('TestSensorOnPortCommand:resp: {},{}'.format(
+          payload, response))
+        return response
 
 class TestMotorOnPortCommand(Command, ABC):
     @property
@@ -202,11 +241,14 @@ class TestMotorOnPortCommand(Command, ABC):
 
     def __call__(self, port):
         payload = struct.pack('B', port)
+        print(f'TestMotorOnPortCommand::port={port}, payload={payload}')
         return self._send((payload))
 
     def parse_response(self, payload):
-        print(len(payload), payload)
-        return payload
+        motor_is_present = struct.unpack('b', payload) != 0
+        print('TestMotorOnPortCommand:resp: raw: {}, result={}'.format(
+          payload, motor_is_present))
+        return motor_is_present
 
 
 class SetSensorPortTypeCommand(SetPortTypeCommand):
