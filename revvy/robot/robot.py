@@ -22,6 +22,22 @@ from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.version import Version
 from revvy.scripting.variables import Variable, VariableSlot
 
+SENSOR_ON_PORT_NOT_PRESENT = 0
+SENSOR_ON_PORT_DISTANCE = 1
+SENSOR_ON_PORT_BUTTON = 2
+SENSOR_ON_PORT_INVALID = 3
+SENSOR_ON_PORT_RGB = 4
+SENSOR_ON_PORT_UNKNOWN = 0xff
+
+def to_sensor_type_index(expected_sensor):
+    if expected_sensor == SENSOR_ON_PORT_BUTTON:
+        return 1
+    if expected_sensor == SENSOR_ON_PORT_DISTANCE:
+        return 2
+    if expected_sensor == SENSOR_ON_PORT_RGB:
+        return 3
+    return None
+
 
 class Robot(RobotInterface):
     @staticmethod
@@ -41,6 +57,7 @@ class Robot(RobotInterface):
         self._log = get_logger('Robot')
 
         self._script_variables = VariableSlot(4)
+        self.__validate_config_done_cb = None
 
     def __enter__(self):
         self._comm_interface = self._bus_factory()
@@ -173,6 +190,45 @@ class Robot(RobotInterface):
 
     def time(self):
         return self._stopwatch.elapsed
+
+    def set_validate_config_done_cb(self, cb):
+        self.__validate_config_done_cb = cb
+
+    def __validate_one_sensor_port(self, sensor_idx, expected_type):
+        port_type = to_sensor_type_index(expected_type)
+        if port_type is None:
+            return SENSOR_ON_PORT_UNKNOWN
+
+        result = self._robot_control.test_sensor_on_port(sensor_idx + 1,
+            port_type + 1)
+
+        if result.is_connected():
+            return expected_type
+
+        if result.is_not_connected():
+            return SENSOR_ON_PORT_NOT_PRESENT
+
+        if result.is_error():
+            return SENSOR_ON_PORT_INVALID
+
+        return SENSOR_ON_PORT_UNKNOWN
+
+    def validate_config(self, motors, sensors):
+        print('validate_config', motors, sensors)
+        success = True
+        motors_result = []
+        for i, m in enumerate(motors):
+            motor_is_present = False
+            if m:
+                # motor_is_present = self._robot_control.test_motor_on_port(i + 1)
+                motor_is_present = True
+            motors_result.append(motor_is_present)
+
+        sensors_result = []
+        for i, expected_type in enumerate(sensors):
+            tested_type = self.__validate_one_sensor_port(i, expected_type)
+            sensors_result.append(tested_type)
+        self.__validate_config_done_cb(success, motors_result, sensors_result)
 
     def reset(self):
         self._log('reset()')

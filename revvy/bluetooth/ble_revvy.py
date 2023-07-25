@@ -106,6 +106,60 @@ class LongMessageService(BlenoPrimaryService):
                 LongMessageCharacteristic(handler),
             ]})
 
+VALIDATE_CONFIG_STATE_UNKNOWN = 0
+VALIDATE_CONFIG_STATE_IN_PROGRESS = 1
+VALIDATE_CONFIG_STATE_DONE = 2
+NUM_MOTOR_PORTS = 6
+NUM_SENSOR_PORTS = 4
+
+class ValidateConfigCharacteristic(Characteristic):
+    def __init__(self, uuid, description, callback):
+        self._on_write_callback = callback
+        self._value = struct.pack('<I', 0)
+        self._state = VALIDATE_CONFIG_STATE_UNKNOWN
+        super().__init__({
+            'uuid':        uuid,
+            'properties':  ['write', 'read'],
+            'value':       None,
+            'descriptors': [
+                Descriptor({
+                    'uuid':  '2901',
+                    'value': description
+                }),
+            ]
+        })
+
+    def onWriteRequest(self, data, offset, without_response, callback):
+        print(f'validate_config::onWriteRequest: {data} at {offset}')
+        if offset:
+            callback(Characteristic.RESULT_ATTR_NOT_LONG)
+        elif len(data) != 5:
+            print('validate_config::onWriteRequest::wrong length')
+            callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
+        elif self._on_write_callback(data):
+            callback(Characteristic.RESULT_SUCCESS)
+        else:
+            callback(Characteristic.RESULT_UNLIKELY_ERROR)
+
+    def onReadRequest(self, offset, callback):
+        print('validate_config::onReadRequest')
+        if offset:
+            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
+        else:
+            callback(Characteristic.RESULT_SUCCESS, self._value)
+
+    def get_state(self):
+        return self._state
+
+    def update_validate_config_result(self, state, motors_bitmask, sensor0, sensor1,
+        sensor2, sensor3):
+
+        self._state = state
+        self._value = struct.pack('BBBBBB', state, motors_bitmask, sensor0,
+            sensor1, sensor2, sensor3)
+
+        print('validate_config::update:', self._value)
+
 
 class MobileToBrainFunctionCharacteristic(Characteristic):
     def __init__(self, uuid, min_length, max_length, description, callback):
@@ -269,11 +323,12 @@ class ReadVariableCharacteristic(BrainToMobileFunctionCharacteristic):
 class LiveMessageService(BlenoPrimaryService):
     def __init__(self):
         self._message_handler = None
+        self.__validate_config_req_cb = None
 
         # on_joystick_action is a callback that should run when LiveMessageService
         # detects that joystick action is received from mobile app over a curtain
         # characteristic
-        self._on_joystick_action = None
+        self.__joystick_action_cb = None
 
         self._read_variable_characteristic = [
             ReadVariableCharacteristic('d4ad2a7b-57be-4803-8df0-6807073961ad', b'Variable Slots')
@@ -317,6 +372,10 @@ class LiveMessageService(BlenoPrimaryService):
             '7486bec3-bb6b-4abd-a9ca-20adc281a0a4', 20, 20, b'simpleControl',
              self.simple_control_callback)
 
+        self._validate_config_charateristic = ValidateConfigCharacteristic(
+            'ad635567-07a7-4c8a-8765-d504dac7c86f', b'Validate configuration',
+             self.validate_config_callback)
+
         self._buf_gyro = b'\xff'
         self._buf_orientation = b'\xff'
         self._buf_script_variables = b'\xff'
@@ -325,6 +384,7 @@ class LiveMessageService(BlenoPrimaryService):
         super().__init__({
             'uuid':            'd2d5558c-5b9d-11e9-8647-d663bd873d93',
             'characteristics': [self._mobile_to_brain,
+                self._validate_config_charateristic,
                 *self._sensor_characteristics,
                 *self._motor_characteristics,
                 *self._gyro_characteristic,
@@ -335,11 +395,60 @@ class LiveMessageService(BlenoPrimaryService):
             ]
         })
 
-    def register_message_handler(self, callback):
-        self._message_handler = callback
+    def set_periodic_control_msg_cb(self, callback):
+        self.__periodic_control_msg_cb = callback
 
-    def register_on_joystick_action(self, callback):
-        self._on_joystick_action = callback
+    def set_joystick_action_cb(self, callback):
+        self.__joystick_action_cb = callback
+
+    def set_validate_config_req_cb(self, callback):
+        self.__validate_config_req_cb = callback
+
+    def validate_config_callback(self, data):
+        motor_bitmask, sensor0, sensor1, sensor2, sensor3 = \
+            struct.unpack('BBBBB', data)
+
+        current_state = self._validate_config_charateristic.get_state()
+        if current_state == VALIDATE_CONFIG_STATE_IN_PROGRESS:
+            return False
+
+        motors = [(motor_bitmask >> i) & 1 for i in range(NUM_MOTOR_PORTS)]
+
+        fn = self.__validate_config_req_cb
+        fn(motors, [sensor0, sensor1, sensor2, sensor3])
+
+        self._validate_config_charateristic.update_validate_config_result(
+          VALIDATE_CONFIG_STATE_IN_PROGRESS, motor_bitmask, sensor0, sensor1,
+          sensor2, sensor3)
+
+        print('validate_config_callback: ', data)
+        return True
+
+    def set_validation_result(self, success: bool,
+        motors: list, sensors: list):
+
+        valitation_state = VALIDATE_CONFIG_STATE_UNKNOWN
+        if success:
+            valitation_state = VALIDATE_CONFIG_STATE_DONE
+
+        if len(motors) != NUM_MOTOR_PORTS:
+            print('set_validation_result::invalid motors response: ', motors)
+
+        motor_bitmask = 0
+        for i in range(max(NUM_MOTOR_PORTS, len(motors))):
+            motor_bit = 0
+            if isinstance(motors[i], bool):
+                motor_bit = motors[i]
+            motor_bitmask |= motor_bit << i
+
+        if len(sensors) == NUM_SENSOR_PORTS:
+            s0, s1, s2, s3 = sensors
+        else:
+            s0 = s1 = s2 = s3 = False
+
+        self._validate_config_charateristic.update_validate_config_result(
+          valitation_state, motor_bitmask, s0, s1, s2, s3)
+
 
     def simple_control_callback(self, data):
         # Simple control callback is run each time new controller data
@@ -375,9 +484,9 @@ class LiveMessageService(BlenoPrimaryService):
 
         # First user input action triggers global timer
         if joystick_xy_action or joystick_button_action:
-            self._on_joystick_action()
+            self.__joystick_action_cb()
 
-        message_handler = self._message_handler
+        message_handler = self.__periodic_control_msg_cb
         if message_handler:
             message_handler(RemoteControllerCommand(analog=analog_values,
                                                     buttons=button_values,
@@ -387,7 +496,7 @@ class LiveMessageService(BlenoPrimaryService):
 
     def state_control_callback(self, data):
         background_control_command = int.from_bytes(data[2:], byteorder='big')
-        message_handler = self._message_handler
+        message_handler = self.__periodic_control_msg_cb
         if message_handler:
             message_handler(RemoteControllerCommand(analog=b'\x7f\x7f\x00\x00\x00\x00\x00\x00\x00\x00',
                                                     buttons=[False]*32,

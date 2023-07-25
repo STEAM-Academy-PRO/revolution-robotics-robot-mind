@@ -37,6 +37,7 @@ class RobotManager:
 
         self._configuring = False
         self._robot = robot
+        self._robot.set_validate_config_done_cb(self.__on_validate_config_done)
         self._ble = revvy_ble
         self._sw_version = sw_version
         self.need_print = 1
@@ -61,8 +62,10 @@ class RobotManager:
             **{f'sensor_{port.id}': Resource(f'Sensor {port.id}') for port in self._robot.sensors}
         }
 
-        revvy_ble['live_message_service'].register_message_handler(rcs.data_ready)
-        revvy_ble['live_message_service'].register_on_joystick_action(rc.on_joystick_action)
+        revvy_ble['live_message_service'].set_periodic_control_msg_cb(rcs.data_ready)
+        revvy_ble['live_message_service'].set_joystick_action_cb(rc.on_joystick_action)
+        revvy_ble['live_message_service'].set_validate_config_req_cb(self.__on_validate_config_requested)
+
         revvy_ble.on_connection_changed(self._on_connection_changed)
 
         self._scripts = ScriptManager(self)
@@ -77,6 +80,14 @@ class RobotManager:
         self.__session_id = 0
         live_service = self._ble['live_message_service']
         live_service.update_session_id(0xffffffff)
+
+    def __on_validate_config_requested(self, motors, sensors):
+        self.run_in_background(partial(self._robot.validate_config, motors, sensors))
+        print(f'__on_validate_config_requested: motors={motors}, sensors={sensors}')
+
+    def __on_validate_config_done(self, success, motors, sensors):
+        live_service = self._ble['live_message_service']
+        live_service.set_validation_result(success, motors, sensors)
 
     def process_run_in_bg_requests(self):
         functions = self._background_fns
@@ -242,6 +253,7 @@ class RobotManager:
         self.__session_id += 1
         self._log('Request configuration')
         if config is not None:
+            live_service = self._ble['live_message_service']
             live_service.update_session_id(self.__session_id)
 
         if self._robot.status.robot_status != RobotStatus.Stopped:
