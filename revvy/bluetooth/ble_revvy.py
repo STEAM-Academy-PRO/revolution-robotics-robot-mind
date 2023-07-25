@@ -112,9 +112,10 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
         self._callbackFn = callback
         self._minLength = min_length
         self._maxLength = max_length
+        self._value = struct.pack('<I', 0)
         super().__init__({
             'uuid':        uuid,
-            'properties':  ['write'],
+            'properties':  ['write', 'read', 'notify'],
             'value':       None,
             'descriptors': [
                 Descriptor({
@@ -123,8 +124,10 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
                 }),
             ]
         })
+        self._update_value_callback = None
 
     def onWriteRequest(self, data, offset, without_response, callback):
+        print('mobile_to_brain::onWriteRequest')
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
         elif not (self._minLength <= len(data) <= self._maxLength):
@@ -133,6 +136,28 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
             callback(Characteristic.RESULT_SUCCESS)
         else:
             callback(Characteristic.RESULT_UNLIKELY_ERROR)
+
+    def onReadRequest(self, offset, callback):
+        print('mobile_to_brain::onReadRequest')
+        if offset:
+            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
+        else:
+            callback(Characteristic.RESULT_SUCCESS, self._value)
+
+    def onSubscribe(self, max_value_size, update_value_callback):
+        print('mobile_to_brain::onSubscribe')
+        self._update_value_callback = update_value_callback
+
+    def onUnsubscribe(self):
+        print('mobile_to_brain::onUnsubscribe')
+        self._update_value_callback = None
+
+    def update(self, value):
+        print('mobile_to_brain::update:', value)
+        self._value = value
+
+        if self._update_value_callback:
+            self._update_value_callback(value)
 
 
 class BrainToMobileFunctionCharacteristic(Characteristic):
@@ -288,6 +313,10 @@ class LiveMessageService(BlenoPrimaryService):
             MotorCharacteristic('8e4c474f-188e-4d2a-910a-cf66f674f569', b'Motor 6'),
         ]
 
+        self._mobile_to_brain = MobileToBrainFunctionCharacteristic(
+            '7486bec3-bb6b-4abd-a9ca-20adc281a0a4', 20, 20, b'simpleControl',
+             self.simple_control_callback)
+
         self._buf_gyro = b'\xff'
         self._buf_orientation = b'\xff'
         self._buf_script_variables = b'\xff'
@@ -295,9 +324,7 @@ class LiveMessageService(BlenoPrimaryService):
 
         super().__init__({
             'uuid':            'd2d5558c-5b9d-11e9-8647-d663bd873d93',
-            'characteristics': [
-                MobileToBrainFunctionCharacteristic('7486bec3-bb6b-4abd-a9ca-20adc281a0a4', 20, 20, b'simpleControl',
-                                                    self.simple_control_callback),
+            'characteristics': [self._mobile_to_brain,
                 *self._sensor_characteristics,
                 *self._motor_characteristics,
                 *self._gyro_characteristic,
@@ -336,7 +363,11 @@ class LiveMessageService(BlenoPrimaryService):
                     return True
             return False
 
-        analog_values = data[1:11]
+        analog_values = data[1:7]
+        deadline_packed = data[7:11]
+        print(deadline_packed, len(deadline_packed))
+        next_deadline = struct.unpack('<I', deadline_packed)[0]
+        print(deadline_packed, next_deadline, data)
         button_values = bits_to_bool_list(data[11:15])
 
         joystick_xy_action = joystick_xy_is_moved(analog_values)
@@ -350,7 +381,8 @@ class LiveMessageService(BlenoPrimaryService):
         if message_handler:
             message_handler(RemoteControllerCommand(analog=analog_values,
                                                     buttons=button_values,
-                                                    background_command=None))
+                                                    background_command=None,
+                                                    next_deadline=next_deadline))
         return True
 
     def state_control_callback(self, data):
@@ -359,7 +391,8 @@ class LiveMessageService(BlenoPrimaryService):
         if message_handler:
             message_handler(RemoteControllerCommand(analog=b'\x7f\x7f\x00\x00\x00\x00\x00\x00\x00\x00',
                                                     buttons=[False]*32,
-                                                    background_command=background_control_command))
+                                                    background_command=background_control_command,
+                                                    next_deadline=None))
         return True
 
     def update_sensor(self, sensor, value):
@@ -370,6 +403,11 @@ class LiveMessageService(BlenoPrimaryService):
         if 0 < motor <= len(self._motor_characteristics):
             data = list(struct.pack(">flb", speed, position, power))
             self._motor_characteristics[motor - 1].update(data)
+
+    def update_session_id(self, value):
+        print('update_session_id:', value)
+        data = list(struct.pack('<I', value))
+        self._mobile_to_brain.update(data)
 
     def update_gyro(self, vector_list):
         if type(vector_list) is list:
