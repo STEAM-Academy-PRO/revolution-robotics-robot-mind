@@ -242,7 +242,7 @@ class TestMotorOnPortCommand(Command, ABC):
         return self._send((payload))
 
     def parse_response(self, payload):
-        motor_is_present = struct.unpack('b', payload) != 0
+        motor_is_present = struct.unpack('b', payload)[0] != 0
         return motor_is_present
 
 
