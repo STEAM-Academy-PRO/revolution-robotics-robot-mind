@@ -223,8 +223,6 @@ class TestSensorOnPortCommand(Command, ABC):
 
     def __call__(self, port, port_type):
         payload = struct.pack('BB', port, port_type)
-        print('TestSensorOnPortCommand::port={}, type={}, payload={}'.format(
-            port,port_type, payload))
         return self._send((payload))
 
     def parse_response(self, payload):
@@ -241,13 +239,10 @@ class TestMotorOnPortCommand(Command, ABC):
 
     def __call__(self, port):
         payload = struct.pack('B', port)
-        print(f'TestMotorOnPortCommand::port={port}, payload={payload}')
         return self._send((payload))
 
     def parse_response(self, payload):
         motor_is_present = struct.unpack('b', payload) != 0
-        print('TestMotorOnPortCommand:resp: raw: {}, result={}'.format(
-          payload, motor_is_present))
         return motor_is_present
 
 

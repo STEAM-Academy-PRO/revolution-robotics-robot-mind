@@ -130,7 +130,6 @@ class ValidateConfigCharacteristic(Characteristic):
         })
 
     def onWriteRequest(self, data, offset, without_response, callback):
-        print(f'validate_config::onWriteRequest: {data} at {offset}')
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
         elif len(data) != 5:
@@ -181,7 +180,6 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
         self._update_value_callback = None
 
     def onWriteRequest(self, data, offset, without_response, callback):
-        print('mobile_to_brain::onWriteRequest')
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
         elif not (self._minLength <= len(data) <= self._maxLength):
@@ -192,22 +190,18 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
             callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
     def onReadRequest(self, offset, callback):
-        print('mobile_to_brain::onReadRequest')
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
     def onSubscribe(self, max_value_size, update_value_callback):
-        print('mobile_to_brain::onSubscribe')
         self._update_value_callback = update_value_callback
 
     def onUnsubscribe(self):
-        print('mobile_to_brain::onUnsubscribe')
         self._update_value_callback = None
 
     def update(self, value):
-        print('mobile_to_brain::update:', value)
         self._value = value
 
         if self._update_value_callback:
@@ -421,7 +415,6 @@ class LiveMessageService(BlenoPrimaryService):
           VALIDATE_CONFIG_STATE_IN_PROGRESS, motor_bitmask, sensor0, sensor1,
           sensor2, sensor3)
 
-        print('validate_config_callback: ', data)
         return True
 
     def set_validation_result(self, success: bool,
@@ -474,9 +467,7 @@ class LiveMessageService(BlenoPrimaryService):
 
         analog_values = data[1:7]
         deadline_packed = data[7:11]
-        print(deadline_packed, len(deadline_packed))
         next_deadline = struct.unpack('<I', deadline_packed)[0]
-        print(deadline_packed, next_deadline, data)
         button_values = bits_to_bool_list(data[11:15])
 
         joystick_xy_action = joystick_xy_is_moved(analog_values)
