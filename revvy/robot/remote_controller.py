@@ -266,7 +266,12 @@ class RemoteControllerScheduler:
         self._data_ready_event.set()
 
     def _wait_for_message(self, ctx, wait_time):
-        timeout = not self._data_ready_event.wait(wait_time)
+        # Wait time is in the middle of integration, we have to have default
+        # behavior for mobile versions that will have zeroes in deadline field
+        # Previous expectation was 200ms
+        wait_time_default = 0.2
+        timeout_sec = wait_time if wait_time else wait_time_default
+        timeout = not self._data_ready_event.wait(timeout_sec)
         self._data_ready_event.clear()
 
         return not (timeout or ctx.stop_requested)
