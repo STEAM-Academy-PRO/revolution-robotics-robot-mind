@@ -233,7 +233,9 @@ class Robot(RobotInterface):
             elif should_check_port:
                 status_string = 'detached'
 
-            self._log('Motor port "M{motor_port} check result:{status_string}')
+            self._log('Motor port "M{} check result:{}'.format(motor_port_num,
+                status_string))
+
             motors_result.append(motor_is_present)
 
         sensors_result = []
