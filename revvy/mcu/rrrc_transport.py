@@ -5,6 +5,7 @@ import binascii
 from enum import Enum
 from threading import Lock
 from typing import NamedTuple
+import time
 
 from revvy.utils.functions import retry
 from revvy.utils.stopwatch import Stopwatch
@@ -106,6 +107,7 @@ class Command:
         >>> Command.get_result(2)
         bytearray(b'\\x02\\x02\\x00\\xff\\xff=')
         """
+        time.sleep(0.1)
         return Command.create(Command.OpGetResult, command)
 
     @staticmethod
