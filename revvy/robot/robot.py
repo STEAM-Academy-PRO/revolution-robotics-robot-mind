@@ -239,8 +239,9 @@ class Robot(RobotInterface):
             motors_result.append(motor_is_present)
 
         sensors_result = []
-        for i, expected_type in enumerate(sensors):
-            tested_type = self.__validate_one_sensor_port(i, expected_type)
+        for sensor_idx, sensor_expected_type in enumerate(sensors):
+            tested_type = self.__validate_one_sensor_port(sensor_idx,
+                sensor_expected_type)
             sensors_result.append(tested_type)
         self.__validate_config_done_cb(success, motors_result, sensors_result)
 
