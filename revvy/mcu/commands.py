@@ -238,12 +238,12 @@ class TestMotorOnPortCommand(Command, ABC):
     def command_id(self):
         return 0x15
 
-    def __call__(self, port):
+    def __call__(self, port, test_intensity):
         # For test motor on port GetResult transfer phase should start
         # after a small delay (I2C BUG workaround), other commands should
         # behave as before
         get_result_delay = 0.2
-        payload = struct.pack('B', port)
+        payload = struct.pack('BB', port, test_intensity)
         return self._send((payload), get_result_delay)
 
     def parse_response(self, payload):
