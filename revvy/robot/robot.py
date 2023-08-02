@@ -200,7 +200,7 @@ class Robot(RobotInterface):
             return SENSOR_ON_PORT_UNKNOWN
 
         result = self._robot_control.test_sensor_on_port(sensor_idx + 1,
-            port_type + 1)
+            port_type)
 
         if result.is_connected():
             return expected_type
@@ -251,7 +251,7 @@ class Robot(RobotInterface):
 
         def _process_battery_slot(data):
             assert len(data) == 4
-            main_status , main_percentage, motor_bat_present, motor_percentage = data
+            main_status, main_percentage, motor_bat_present, motor_percentage = data
 
             self._battery = BatteryStatus(chargerStatus=main_status,
                 motor_battery_present=motor_bat_present,
