@@ -225,7 +225,7 @@ class Robot(RobotInterface):
             motor_is_present = False
             if should_check_port:
                 motor_is_present = self._robot_control.test_motor_on_port(
-                    motor_port_num)
+                    motor_port_num, 60)
 
             status_string = 'unchecked'
             if motor_is_present:
