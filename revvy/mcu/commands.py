@@ -37,13 +37,14 @@ class Command:
         else:
             raise ValueError(f'Command status: "{response.status}" with payload: {repr(response.payload)}')
 
-    def _send(self, payload=b''):
+    def _send(self, payload=b'', get_result_delay=None):
         """
         Send the command with the given payload and process the response
 
         @type payload: iterable
         """
-        response = self._transport.send_command(self._command_byte, payload)
+        response = self._transport.send_command(self._command_byte,
+            payload, get_result_delay)
 
         try:
             return self._process(response)
@@ -238,8 +239,12 @@ class TestMotorOnPortCommand(Command, ABC):
         return 0x15
 
     def __call__(self, port):
+        # For test motor on port GetResult transfer phase should start
+        # after a small delay (I2C BUG workaround), other commands should
+        # behave as before
+        get_result_delay = 0.2
         payload = struct.pack('B', port)
-        return self._send((payload))
+        return self._send((payload), get_result_delay)
 
     def parse_response(self, payload):
         motor_is_present = struct.unpack('b', payload)[0] != 0

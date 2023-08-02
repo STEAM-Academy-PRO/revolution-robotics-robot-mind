@@ -107,7 +107,6 @@ class Command:
         >>> Command.get_result(2)
         bytearray(b'\\x02\\x02\\x00\\xff\\xff=')
         """
-        time.sleep(0.1)
         return Command.create(Command.OpGetResult, command)
 
     @staticmethod
@@ -175,7 +174,7 @@ class RevvyTransport:
         self._transport = transport
         self._stopwatch = Stopwatch()
 
-    def send_command(self, command, payload=b'') -> Response:
+    def send_command(self, command, payload=b'', get_result_delay=None) -> Response:
         """
         Send a command and get the result.
 
@@ -205,8 +204,12 @@ class RevvyTransport:
                         if not command_get_result:
                             command_get_result = Command.get_result(command)
 
+                        if get_result_delay:
+                            time.sleep(get_result_delay)
                         header = self._send_command(command_get_result)
                         while header.status == ResponseStatus.Pending:
+                            if get_result_delay:
+                                time.sleep(get_result_delay)
                             header = self._send_command(command_get_result)
 
                     # check result
