@@ -132,7 +132,7 @@ class ValidateConfigCharacteristic(Characteristic):
     def onWriteRequest(self, data, offset, without_response, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
-        elif len(data) != 5:
+        elif len(data) != 7:
             print('validate_config::onWriteRequest::wrong length')
             callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
         elif self._on_write_callback(data):
@@ -399,8 +399,9 @@ class LiveMessageService(BlenoPrimaryService):
         self.__validate_config_req_cb = callback
 
     def validate_config_callback(self, data):
-        motor_bitmask, sensor0, sensor1, sensor2, sensor3 = \
-            struct.unpack('BBBBB', data)
+        motor_bitmask, sensor0, sensor1, sensor2, sensor3, \
+        motor_load_power, threshold = \
+            struct.unpack('BBBBBBB', data)
 
         current_state = self._validate_config_charateristic.get_state()
         if current_state == VALIDATE_CONFIG_STATE_IN_PROGRESS:
@@ -409,7 +410,8 @@ class LiveMessageService(BlenoPrimaryService):
         motors = [(motor_bitmask >> i) & 1 for i in range(NUM_MOTOR_PORTS)]
 
         fn = self.__validate_config_req_cb
-        fn(motors, [sensor0, sensor1, sensor2, sensor3])
+        fn(motors, [sensor0, sensor1, sensor2, sensor3], motor_load_power,
+            threshold)
 
         self._validate_config_charateristic.update_validate_config_result(
           VALIDATE_CONFIG_STATE_IN_PROGRESS, motor_bitmask, sensor0, sensor1,
