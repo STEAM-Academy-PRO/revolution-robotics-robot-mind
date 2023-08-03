@@ -213,9 +213,9 @@ class Robot(RobotInterface):
 
         return SENSOR_ON_PORT_UNKNOWN
 
-    def validate_config(self, motors, sensors):
-        self._log('config validation request, motors={}, sensors={}'.format(
-            motors, sensors))
+    def validate_config(self, motors, sensors, motor_load_power, threshold):
+        self._log('validate req: motors={}, sensors={},pwr:{},sen:{}'.format(
+            motors, sensors, motor_load_power, threshold))
 
         success = True
         motors_result = []
@@ -223,9 +223,13 @@ class Robot(RobotInterface):
             motor_port_num = motor_port_idx + 1
             self._log(f'checking motor at port "M{motor_port_num}"')
             motor_is_present = False
+            if not motor_load_power:
+                motor_load_power = 60
+            if not threshold:
+                threshold = 10
             if should_check_port:
                 motor_is_present = self._robot_control.test_motor_on_port(
-                    motor_port_num, 60)
+                    motor_port_num, motor_load_power, threshold)
 
             status_string = 'unchecked'
             if motor_is_present:

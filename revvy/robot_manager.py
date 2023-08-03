@@ -81,9 +81,12 @@ class RobotManager:
         live_service = self._ble['live_message_service']
         live_service.update_session_id(0xffffffff)
 
-    def __on_validate_config_requested(self, motors, sensors):
-        self.run_in_background(partial(self._robot.validate_config, motors, sensors))
-        print(f'__on_validate_config_requested: motors={motors}, sensors={sensors}')
+    def __on_validate_config_requested(self, motors, sensors, motor_load_power,
+        threshold):
+        self.run_in_background(partial(self._robot.validate_config, motors,
+            sensors, motor_load_power, threshold))
+        print('Validation request: motors={}, sensors={},pwr:{},sen:{}'.format(
+            motors, sensors, motor_load_power, threshold))
 
     def __on_validate_config_done(self, success, motors, sensors):
         live_service = self._ble['live_message_service']
