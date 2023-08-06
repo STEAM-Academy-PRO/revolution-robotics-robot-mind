@@ -768,22 +768,24 @@ class RobotWrapper(RobotInterface):
     def search_line(self, line_color):
         print(f'search_line:line_color={line_color}')
         line_driver = LineDriver(self._drivetrain, self, line_color)
-        delta_ms = 0.1
+        delta_seconds = 0.1
         should_stop = False
         line_driver.search_line_start()
         while not should_stop:
             should_stop = line_driver.search_line_update()
-            time.sleep(delta_ms)
+            time.sleep(delta_seconds)
         print('search_line end')
         time.sleep(2)
 
     def follow_line(self, line_color, count_time=1000):
         line_driver = LineDriver(self._drivetrain, self, line_color)
-        delta_ms = 0.01
+        # interval is 10ms
+        delta_seconds = 0.01
         line_driver.follow_line_start()
         STATE_ON_LINE = 0
         STATE_OFF_LINE = 1
         state = STATE_ON_LINE
+        off_line_count = 0
         for i in range(count_time):
             if state == STATE_ON_LINE:
                 result = line_driver.follow_line_update()
@@ -795,11 +797,19 @@ class RobotWrapper(RobotInterface):
                     line_driver.search_line_start()
                     state = STATE_OFF_LINE
             elif state == STATE_OFF_LINE:
+                # Check if we are too long being off line we need to assume
+                # line is over and stop. We give 500ms for that
+                off_line_count += 1
+                if off_line_count > 50:
+                    break
+
                 line_found = line_driver.search_line_update()
                 if line_found:
+                  off_line_count = 0
                   state = STATE_ON_LINE
                   line_driver.follow_line_start()
-            time.sleep(delta_ms)
+
+            time.sleep(delta_seconds)
         line_driver.stop()
 
 
