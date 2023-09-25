@@ -69,7 +69,7 @@ class RobotManager:
         revvy_ble.on_connection_changed(self._on_connection_changed)
 
         self._scripts = ScriptManager(self)
-        self._background_controlled_scripts = ScriptManager(self)
+        self._bg_controlled_scripts = ScriptManager(self)
         self._autonomous = 0
         self._config = empty_robot_config
 
@@ -103,13 +103,13 @@ class RobotManager:
         if self._autonomous == 'ready':
             req = self.remote_controller.fetch_autonomous_requests()
             if req.is_start_pending():
-                self._background_controlled_scripts.start_all_scripts()
+                self._bg_controlled_scripts.start_all_scripts()
             elif req.is_pause_pending():
-                self._background_controlled_scripts.pause_all_scripts()
+                self._bg_controlled_scripts.pause_all_scripts()
             elif req.is_stop_pending():
-                self._background_controlled_scripts.stop_all_scripts()
+                self._bg_controlled_scripts.stop_all_scripts()
             elif req.is_resume_pending():
-                self._background_controlled_scripts.resume_all_scripts()
+                self._bg_controlled_scripts.resume_all_scripts()
 
     def __battery_characterstic(self, name):
         return self._ble['battery_service'].characteristic(name)
@@ -293,7 +293,7 @@ class RobotManager:
             v.init(varconf['script'], varconf['variable'], 0.0)
             scriptvars.append(v)
 
-        self._background_controlled_scripts.assign('list_slots', scriptvars)
+        self._bg_controlled_scripts.assign('list_slots', scriptvars)
 
         # set up motors
         for motor in self._robot.motors:
@@ -328,11 +328,11 @@ class RobotManager:
         self._autonomous = config.background_initial_state
 
         for script in config.background_scripts:
-            self._background_controlled_scripts.add_script(script)
+            self._bg_controlled_scripts.add_script(script)
 
         self.remote_controller.reset_background_control_state()
         if config.background_initial_state == 'running':
-            self._background_controlled_scripts.start_all_scripts()
+            self._bg_controlled_scripts.start_all_scripts()
 
     def _robot_configure(self, config):
 
