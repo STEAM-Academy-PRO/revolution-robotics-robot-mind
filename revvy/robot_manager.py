@@ -265,9 +265,10 @@ class RobotManager:
                 self.run_in_background(after)
 
     def _reset_configuration(self):
-        self._scripts.reset()
-        self._scripts.assign('Motor', MotorConstants)
-        self._scripts.assign('RingLed', RingLed)
+        for scr in [self._scripts, self._bg_controlled_scripts]:
+            scr.reset()
+            scr.assign('Motor', MotorConstants)
+            scr.assign('RingLed', RingLed)
 
         self._remote_controller_thread.stop().wait()
 
