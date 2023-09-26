@@ -170,6 +170,11 @@ class DifferentialDrivetrain:
                 controller.update()
 
     def _apply_release(self):
+        # this runs as a callback to Awaiter.finish() or cancel(), in both
+        # cases controller should be cleaned up, else _on_motor_status_changed
+        # will continue to use controller.update, see above, making the program
+        # leave long after it is actually finished
+        self._controller = None
         commands = itertools.chain(
             *(motor.create_set_power_command(0) for motor in self._left_motors),
             *(motor.create_set_power_command(0) for motor in self._right_motors)
