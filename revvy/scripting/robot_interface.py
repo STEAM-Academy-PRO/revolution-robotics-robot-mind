@@ -138,7 +138,7 @@ def color_string_to_rgb(color_string):
     this can be a hex value like #or actual color name like 'red' or 'black'"""
 
     result = color_name_to_rgb(color_string)
-    if result:
+    if result is not None:
         return result
 
     if color_string.startswith('#'):
