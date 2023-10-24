@@ -22,9 +22,7 @@ color_name_map = {
     'blue'    : 0x0000ff,
     'magenta' : 0xff00ff,
     'black'   : 0x000000,
-    'gray25'  : 0x404040,
-    'gray50'  : 0x7f7f7f,
-    'gray75'  : 0xbfbfbf,
+    'gray'    : 0x7f7f7f,
     'white'   : 0xffffff
 }
 
@@ -43,19 +41,15 @@ def hsv_to_color_name(hue, saturation, value):
 
     # If not saturated we go for one of the gray colors
     if saturation < 14:
-        if value < 10:
-            return 'black'
-        if value <= 25:
-            return 'gray25'
         if value <= 50:
-            return 'gray50'
+            return 'black'
         if value <= 75:
-            return 'gray75'
+            return 'gray'
         return 'white'
 
     # If color is saturated, but value is close to black, select black,
     # without selecting from one of gray colors
-    if value < 10:
+    if value < 30:
         return 'black'
 
     # These 6 color names are evenly distrubuted across a color circle
