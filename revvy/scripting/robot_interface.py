@@ -777,7 +777,7 @@ class RobotWrapper(RobotInterface):
         print('search_line end')
         time.sleep(2)
 
-    def follow_line(self, line_color, count_time=1000):
+    def follow_line(self, line_color, count_time=10000):
         line_driver = LineDriver(self._drivetrain, self, line_color)
         # interval is 10ms
         delta_seconds = 0.01
