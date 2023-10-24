@@ -67,4 +67,4 @@ class VariableSlot(object):
         return self.__v[slot_idx]
 
     def reset(self):
-        self.__v = [Variable()] * len(self.__v)
+        self.__v = [Variable() for _ in range(len(self.__v))]
