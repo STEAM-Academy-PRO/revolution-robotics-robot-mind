@@ -826,6 +826,10 @@ class RobotWrapper(RobotInterface):
 
     def read_rgb_sensor_data(self):
         res = self._sensors["color_sensor"].read()
+        n = len(res)
+        if n % 3:
+            padding = 3 - n % 3
+            res += b'\0' * padding
         result = [rgb_to_hsv_gray(*_) for _ in struct.iter_unpack("<BBB", res)]
         # self.debug_print_colors(result)
         return result
