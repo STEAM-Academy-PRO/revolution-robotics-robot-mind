@@ -1,5 +1,8 @@
 {
-    "python.pythonPath": "venv\\Scripts\\python.exe",
+    "python.pythonPath": {
+        "windows": "venv\\Scripts\\python.exe",
+        "linux": "venv/bin/python"
+    },
     "cortex-debug.armToolchainPath.windows": "C:/Program Files (x86)/GNU Arm Embedded Toolchain/10 2021.10/bin",
     "editor.formatOnSave": false
 }

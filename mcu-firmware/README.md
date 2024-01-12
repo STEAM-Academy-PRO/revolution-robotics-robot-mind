@@ -16,7 +16,7 @@ portable and testable. Due to time and resource constraints, this goal has not b
 The other substantial part of the firmware is the code provided by Atmel/Microchip. Some of their SDK is used as-is, but other parts, for example the
 SERCOM codes have been modified, replaced or removed from the package.
 
-The application code contains error logging. Log entries are made on hard fault exceptions and assert failures (in debug configration). To read and clear
+The application code contains error logging. Log entries are made on hard fault exceptions and assert failures (in debug configuration). To read and clear
 log entries, you can use the provided tools in the RevvyFirmware repository.
 
 
@@ -45,17 +45,21 @@ Building the firmware
  - SEGGER J-Link drivers (optional for debugging)
 
 ### Instructions for Microsoft Windows:
- - Download and install version 9-2019-q4-major of the ARM GCC toolchain from https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads.
- - Make sure the folder containin the compiler binaries are included in your Path.
- - Download the binary and dependencies from http://gnuwin32.sourceforge.net/packages/make.htm
-   - Extract the downloaded directories to a place of your choice. (For example, C:\gnu\make)
-   - Add the bin folder of the extracted archive to your Path.
- - If you intend to debug the firmware using a J-Link probe, download and install the SEGGER J-Link drivers from https://www.segger.com/downloads/jlink/
+ - ~~Download and install version 9-2019-q4-major of the ARM GCC toolchain from https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads~~.
+   - Linux: `sudo apt install build-essential gcc-arm-none-eabi`
+   - Windows: [download & install](https://dev.to/gamegods3/how-to-install-gcc-in-windows-10-the-easier-way-422j)
+     - Download the binary and dependencies from http://gnuwin32.sourceforge.net/packages/make.htm
+     - Extract the downloaded directories to a place of your choice. (For example, C:\gnu\make)
+     - Add the bin folder of the extracted archive to your Path.
+     - Make sure the folder contains the compiler binaries are included in your Path.
+ - To debug the firmware using a J-Link probe, download and install [SEGGER J-Link drivers](https://www.segger.com/downloads/jlink/)
 
 ### Create python virtual environment and install requirements
  - open a command line in the project directory
- - Run command `python -m venv venv` to create new virtual environment in the `venv` directory
- - Activate virtual environment by running `.\venv\Scripts\activate`
+ - Run command `[python -m venv venv](https://www.segger.com/downloads/jlink/)` to create new virtual environment in the `venv` directory
+ - Activate virtual environment by running
+   - Windows: `.\venv\Scripts\activate`
+   - Linux: `source ./venv/bin/activate`
  - Run command `pip install -r tools/requirements.txt`
 
 ### Install the firmware on a working robot:
