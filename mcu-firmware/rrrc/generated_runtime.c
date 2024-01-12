@@ -315,6 +315,7 @@ void RestartManager_RebootToBootloader_async_call_Update(void)
     /* Begin User Code Section: RestartManager/RebootToBootloader:update Start */
 
     /* End User Code Section: RestartManager/RebootToBootloader:update Start */
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     AsyncCommand_t command = RestartManager_RebootToBootloader_async_call_command;
     RestartManager_RebootToBootloader_async_call_command = AsyncCommand_None;
@@ -323,7 +324,7 @@ void RestartManager_RebootToBootloader_async_call_Update(void)
     {
         case AsyncCommand_Start:
             RestartManager_RebootToBootloader_async_call_state = AsyncOperationState_Busy;
-            __enable_irq();
+            __set_PRIMASK(primask);
 
             RestartManager_Run_RebootToBootloader();
 
@@ -331,12 +332,12 @@ void RestartManager_RebootToBootloader_async_call_Update(void)
             break;
 
         case AsyncCommand_Cancel:
-            __enable_irq();
+            __set_PRIMASK(primask);
             RestartManager_RebootToBootloader_async_call_state = AsyncOperationState_Idle;
             break;
 
         default:
-            __enable_irq();
+            __set_PRIMASK(primask);
             break;
     }
     /* Begin User Code Section: RestartManager/RebootToBootloader:update End */
@@ -349,6 +350,7 @@ void SensorPortHandler_Configure_async_call_Update(void)
     /* Begin User Code Section: SensorPortHandler/Configure:update Start */
 
     /* End User Code Section: SensorPortHandler/Configure:update Start */
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     AsyncCommand_t command = SensorPortHandler_Configure_async_call_command;
     SensorPortHandler_Configure_async_call_command = AsyncCommand_None;
@@ -357,7 +359,7 @@ void SensorPortHandler_Configure_async_call_Update(void)
     {
         case AsyncCommand_Start:
             SensorPortHandler_Configure_async_call_state = AsyncOperationState_Busy;
-            __enable_irq();
+            __set_PRIMASK(primask);
 
             SensorPortHandler_Run_Configure(
                 SensorPortHandler_Configure_async_call_argument_port_idx,
@@ -368,12 +370,12 @@ void SensorPortHandler_Configure_async_call_Update(void)
             break;
 
         case AsyncCommand_Cancel:
-            __enable_irq();
+            __set_PRIMASK(primask);
             SensorPortHandler_Configure_async_call_state = AsyncOperationState_Idle;
             break;
 
         default:
-            __enable_irq();
+            __set_PRIMASK(primask);
             break;
     }
     /* Begin User Code Section: SensorPortHandler/Configure:update End */
@@ -386,6 +388,7 @@ void MotorPortHandler_SetPortType_async_call_Update(void)
     /* Begin User Code Section: MotorPortHandler/SetPortType:update Start */
 
     /* End User Code Section: MotorPortHandler/SetPortType:update Start */
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     AsyncCommand_t command = MotorPortHandler_SetPortType_async_call_command;
     MotorPortHandler_SetPortType_async_call_command = AsyncCommand_None;
@@ -394,7 +397,7 @@ void MotorPortHandler_SetPortType_async_call_Update(void)
     {
         case AsyncCommand_Start:
             MotorPortHandler_SetPortType_async_call_state = AsyncOperationState_Busy;
-            __enable_irq();
+            __set_PRIMASK(primask);
 
             MotorPortHandler_Run_SetPortType(
                 MotorPortHandler_SetPortType_async_call_argument_port_idx,
@@ -405,12 +408,12 @@ void MotorPortHandler_SetPortType_async_call_Update(void)
             break;
 
         case AsyncCommand_Cancel:
-            __enable_irq();
+            __set_PRIMASK(primask);
             MotorPortHandler_SetPortType_async_call_state = AsyncOperationState_Idle;
             break;
 
         default:
-            __enable_irq();
+            __set_PRIMASK(primask);
             break;
     }
     /* Begin User Code Section: MotorPortHandler/SetPortType:update End */
@@ -423,6 +426,7 @@ void MotorPortHandler_Configure_async_call_Update(void)
     /* Begin User Code Section: MotorPortHandler/Configure:update Start */
 
     /* End User Code Section: MotorPortHandler/Configure:update Start */
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     AsyncCommand_t command = MotorPortHandler_Configure_async_call_command;
     MotorPortHandler_Configure_async_call_command = AsyncCommand_None;
@@ -431,7 +435,7 @@ void MotorPortHandler_Configure_async_call_Update(void)
     {
         case AsyncCommand_Start:
             MotorPortHandler_Configure_async_call_state = AsyncOperationState_Busy;
-            __enable_irq();
+            __set_PRIMASK(primask);
 
             MotorPortHandler_Run_Configure(
                 MotorPortHandler_Configure_async_call_argument_port_idx,
@@ -442,12 +446,12 @@ void MotorPortHandler_Configure_async_call_Update(void)
             break;
 
         case AsyncCommand_Cancel:
-            __enable_irq();
+            __set_PRIMASK(primask);
             MotorPortHandler_Configure_async_call_state = AsyncOperationState_Idle;
             break;
 
         default:
-            __enable_irq();
+            __set_PRIMASK(primask);
             break;
     }
     /* Begin User Code Section: MotorPortHandler/Configure:update End */
@@ -923,6 +927,7 @@ void SensorPortHandler_SetPortType_async_call_Update(void)
     /* Begin User Code Section: SensorPortHandler/SetPortType:update Start */
 
     /* End User Code Section: SensorPortHandler/SetPortType:update Start */
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     AsyncCommand_t command = SensorPortHandler_SetPortType_async_call_command;
     SensorPortHandler_SetPortType_async_call_command = AsyncCommand_None;
@@ -931,7 +936,7 @@ void SensorPortHandler_SetPortType_async_call_Update(void)
     {
         case AsyncCommand_Start:
             SensorPortHandler_SetPortType_async_call_state = AsyncOperationState_Busy;
-            __enable_irq();
+            __set_PRIMASK(primask);
 
             AsyncResult_t result = SensorPortHandler_AsyncRunnable_SetPortType(command,
                 SensorPortHandler_SetPortType_async_call_argument_port_idx,
@@ -955,7 +960,7 @@ void SensorPortHandler_SetPortType_async_call_Update(void)
         case AsyncCommand_None:
             if (SensorPortHandler_SetPortType_async_call_state == AsyncOperationState_Busy)
             {
-                __enable_irq();
+                __set_PRIMASK(primask);
 
                 AsyncResult_t result = SensorPortHandler_AsyncRunnable_SetPortType(command,
                 SensorPortHandler_SetPortType_async_call_argument_port_idx,
@@ -977,14 +982,14 @@ void SensorPortHandler_SetPortType_async_call_Update(void)
             }
             else
             {
-                __enable_irq();
+                __set_PRIMASK(primask);
             }
             break;
 
         case AsyncCommand_Cancel:
             if (SensorPortHandler_SetPortType_async_call_state == AsyncOperationState_Busy)
             {
-                __enable_irq();
+                __set_PRIMASK(primask);
                 (void) SensorPortHandler_AsyncRunnable_SetPortType(AsyncCommand_Cancel,
                 SensorPortHandler_SetPortType_async_call_argument_port_idx,
                 SensorPortHandler_SetPortType_async_call_argument_port_type,
@@ -992,13 +997,13 @@ void SensorPortHandler_SetPortType_async_call_Update(void)
             }
             else
             {
-                __enable_irq();
+                __set_PRIMASK(primask);
             }
             SensorPortHandler_SetPortType_async_call_state = AsyncOperationState_Idle;
             break;
 
         default:
-            __enable_irq();
+            __set_PRIMASK(primask);
             ASSERT(0);
             break;
     }
@@ -1015,11 +1020,12 @@ AsyncOperationState_t CommWrapper_SensorPorts_Async_SetPortType_Call(uint8_t por
     /* End User Code Section: CommWrapper_SensorPorts/SetPortType:async_call Start */
     AsyncOperationState_t returned_state = AsyncOperationState_Busy;
     SensorPortHandler_SetPortType_async_call_command = AsyncCommand_None;
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     if (SensorPortHandler_SetPortType_async_call_state == AsyncOperationState_Idle || SensorPortHandler_SetPortType_async_call_state == AsyncOperationState_Done)
     {
         SensorPortHandler_SetPortType_async_call_state = AsyncOperationState_Started;
-        __enable_irq();
+        __set_PRIMASK(primask);
 
         SensorPortHandler_SetPortType_async_call_argument_port_idx = port_idx;
         SensorPortHandler_SetPortType_async_call_argument_port_type = port_type;
@@ -1029,7 +1035,7 @@ AsyncOperationState_t CommWrapper_SensorPorts_Async_SetPortType_Call(uint8_t por
     }
     else
     {
-        __enable_irq();
+        __set_PRIMASK(primask);
     }
     return returned_state;
     /* Begin User Code Section: CommWrapper_SensorPorts/SetPortType:async_call End */
@@ -1043,6 +1049,7 @@ AsyncOperationState_t CommWrapper_SensorPorts_Async_SetPortType_GetResult(bool* 
 
     /* End User Code Section: CommWrapper_SensorPorts/SetPortType:get_result Start */
     AsyncOperationState_t returned_state;
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     switch (SensorPortHandler_SetPortType_async_call_state)
     {
@@ -1052,17 +1059,17 @@ AsyncOperationState_t CommWrapper_SensorPorts_Async_SetPortType_GetResult(bool* 
                 *result = SensorPortHandler_SetPortType_async_call_argument_result;
             }
             SensorPortHandler_SetPortType_async_call_state = AsyncOperationState_Idle;
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = AsyncOperationState_Done;
             break;
 
         case AsyncOperationState_Started:
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = AsyncOperationState_Busy;
             break;
 
         default:
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = SensorPortHandler_SetPortType_async_call_state;
             break;
     }
@@ -1090,11 +1097,12 @@ AsyncOperationState_t CommWrapper_SensorPorts_Async_SetPortConfig_Call(uint8_t p
     /* End User Code Section: CommWrapper_SensorPorts/SetPortConfig:async_call Start */
     AsyncOperationState_t returned_state = AsyncOperationState_Busy;
     SensorPortHandler_Configure_async_call_command = AsyncCommand_None;
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     if (SensorPortHandler_Configure_async_call_state == AsyncOperationState_Idle || SensorPortHandler_Configure_async_call_state == AsyncOperationState_Done)
     {
         SensorPortHandler_Configure_async_call_state = AsyncOperationState_Started;
-        __enable_irq();
+        __set_PRIMASK(primask);
 
         SensorPortHandler_Configure_async_call_argument_port_idx = port_idx;
         SensorPortHandler_Configure_async_call_argument_configuration = configuration;
@@ -1104,7 +1112,7 @@ AsyncOperationState_t CommWrapper_SensorPorts_Async_SetPortConfig_Call(uint8_t p
     }
     else
     {
-        __enable_irq();
+        __set_PRIMASK(primask);
     }
     return returned_state;
     /* Begin User Code Section: CommWrapper_SensorPorts/SetPortConfig:async_call End */
@@ -1118,6 +1126,7 @@ AsyncOperationState_t CommWrapper_SensorPorts_Async_SetPortConfig_GetResult(bool
 
     /* End User Code Section: CommWrapper_SensorPorts/SetPortConfig:get_result Start */
     AsyncOperationState_t returned_state;
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     switch (SensorPortHandler_Configure_async_call_state)
     {
@@ -1127,17 +1136,17 @@ AsyncOperationState_t CommWrapper_SensorPorts_Async_SetPortConfig_GetResult(bool
                 *result = SensorPortHandler_Configure_async_call_argument_result;
             }
             SensorPortHandler_Configure_async_call_state = AsyncOperationState_Idle;
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = AsyncOperationState_Done;
             break;
 
         case AsyncOperationState_Started:
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = AsyncOperationState_Busy;
             break;
 
         default:
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = SensorPortHandler_Configure_async_call_state;
             break;
     }
@@ -1163,6 +1172,7 @@ void SensorPortHandler_TestSensorOnPort_async_call_Update(void)
     /* Begin User Code Section: SensorPortHandler/TestSensorOnPort:update Start */
 
     /* End User Code Section: SensorPortHandler/TestSensorOnPort:update Start */
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     AsyncCommand_t command = SensorPortHandler_TestSensorOnPort_async_call_command;
     SensorPortHandler_TestSensorOnPort_async_call_command = AsyncCommand_None;
@@ -1171,7 +1181,7 @@ void SensorPortHandler_TestSensorOnPort_async_call_Update(void)
     {
         case AsyncCommand_Start:
             SensorPortHandler_TestSensorOnPort_async_call_state = AsyncOperationState_Busy;
-            __enable_irq();
+            __set_PRIMASK(primask);
 
             AsyncResult_t result = SensorPortHandler_AsyncRunnable_TestSensorOnPort(command,
                 SensorPortHandler_TestSensorOnPort_async_call_argument_port_idx,
@@ -1195,7 +1205,7 @@ void SensorPortHandler_TestSensorOnPort_async_call_Update(void)
         case AsyncCommand_None:
             if (SensorPortHandler_TestSensorOnPort_async_call_state == AsyncOperationState_Busy)
             {
-                __enable_irq();
+                __set_PRIMASK(primask);
 
                 AsyncResult_t result = SensorPortHandler_AsyncRunnable_TestSensorOnPort(command,
                 SensorPortHandler_TestSensorOnPort_async_call_argument_port_idx,
@@ -1217,14 +1227,14 @@ void SensorPortHandler_TestSensorOnPort_async_call_Update(void)
             }
             else
             {
-                __enable_irq();
+                __set_PRIMASK(primask);
             }
             break;
 
         case AsyncCommand_Cancel:
             if (SensorPortHandler_TestSensorOnPort_async_call_state == AsyncOperationState_Busy)
             {
-                __enable_irq();
+                __set_PRIMASK(primask);
                 (void) SensorPortHandler_AsyncRunnable_TestSensorOnPort(AsyncCommand_Cancel,
                 SensorPortHandler_TestSensorOnPort_async_call_argument_port_idx,
                 SensorPortHandler_TestSensorOnPort_async_call_argument_port_type,
@@ -1232,13 +1242,13 @@ void SensorPortHandler_TestSensorOnPort_async_call_Update(void)
             }
             else
             {
-                __enable_irq();
+                __set_PRIMASK(primask);
             }
             SensorPortHandler_TestSensorOnPort_async_call_state = AsyncOperationState_Idle;
             break;
 
         default:
-            __enable_irq();
+            __set_PRIMASK(primask);
             ASSERT(0);
             break;
     }
@@ -1255,11 +1265,12 @@ AsyncOperationState_t CommWrapper_SensorPorts_Async_TestSensorOnPort_Call(uint8_
     /* End User Code Section: CommWrapper_SensorPorts/TestSensorOnPort:async_call Start */
     AsyncOperationState_t returned_state = AsyncOperationState_Busy;
     SensorPortHandler_TestSensorOnPort_async_call_command = AsyncCommand_None;
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     if (SensorPortHandler_TestSensorOnPort_async_call_state == AsyncOperationState_Idle || SensorPortHandler_TestSensorOnPort_async_call_state == AsyncOperationState_Done)
     {
         SensorPortHandler_TestSensorOnPort_async_call_state = AsyncOperationState_Started;
-        __enable_irq();
+        __set_PRIMASK(primask);
 
         SensorPortHandler_TestSensorOnPort_async_call_argument_port_idx = port_idx;
         SensorPortHandler_TestSensorOnPort_async_call_argument_port_type = port_type;
@@ -1269,7 +1280,7 @@ AsyncOperationState_t CommWrapper_SensorPorts_Async_TestSensorOnPort_Call(uint8_
     }
     else
     {
-        __enable_irq();
+        __set_PRIMASK(primask);
     }
     return returned_state;
     /* Begin User Code Section: CommWrapper_SensorPorts/TestSensorOnPort:async_call End */
@@ -1283,6 +1294,7 @@ AsyncOperationState_t CommWrapper_SensorPorts_Async_TestSensorOnPort_GetResult(T
 
     /* End User Code Section: CommWrapper_SensorPorts/TestSensorOnPort:get_result Start */
     AsyncOperationState_t returned_state;
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     switch (SensorPortHandler_TestSensorOnPort_async_call_state)
     {
@@ -1292,17 +1304,17 @@ AsyncOperationState_t CommWrapper_SensorPorts_Async_TestSensorOnPort_GetResult(T
                 *result = SensorPortHandler_TestSensorOnPort_async_call_argument_result;
             }
             SensorPortHandler_TestSensorOnPort_async_call_state = AsyncOperationState_Idle;
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = AsyncOperationState_Done;
             break;
 
         case AsyncOperationState_Started:
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = AsyncOperationState_Busy;
             break;
 
         default:
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = SensorPortHandler_TestSensorOnPort_async_call_state;
             break;
     }
@@ -1330,11 +1342,12 @@ AsyncOperationState_t CommWrapper_MotorPorts_Async_SetPortType_Call(uint8_t port
     /* End User Code Section: CommWrapper_MotorPorts/SetPortType:async_call Start */
     AsyncOperationState_t returned_state = AsyncOperationState_Busy;
     MotorPortHandler_SetPortType_async_call_command = AsyncCommand_None;
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     if (MotorPortHandler_SetPortType_async_call_state == AsyncOperationState_Idle || MotorPortHandler_SetPortType_async_call_state == AsyncOperationState_Done)
     {
         MotorPortHandler_SetPortType_async_call_state = AsyncOperationState_Started;
-        __enable_irq();
+        __set_PRIMASK(primask);
 
         MotorPortHandler_SetPortType_async_call_argument_port_idx = port_idx;
         MotorPortHandler_SetPortType_async_call_argument_port_type = port_type;
@@ -1344,7 +1357,7 @@ AsyncOperationState_t CommWrapper_MotorPorts_Async_SetPortType_Call(uint8_t port
     }
     else
     {
-        __enable_irq();
+        __set_PRIMASK(primask);
     }
     return returned_state;
     /* Begin User Code Section: CommWrapper_MotorPorts/SetPortType:async_call End */
@@ -1358,6 +1371,7 @@ AsyncOperationState_t CommWrapper_MotorPorts_Async_SetPortType_GetResult(bool* r
 
     /* End User Code Section: CommWrapper_MotorPorts/SetPortType:get_result Start */
     AsyncOperationState_t returned_state;
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     switch (MotorPortHandler_SetPortType_async_call_state)
     {
@@ -1367,17 +1381,17 @@ AsyncOperationState_t CommWrapper_MotorPorts_Async_SetPortType_GetResult(bool* r
                 *result = MotorPortHandler_SetPortType_async_call_argument_result;
             }
             MotorPortHandler_SetPortType_async_call_state = AsyncOperationState_Idle;
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = AsyncOperationState_Done;
             break;
 
         case AsyncOperationState_Started:
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = AsyncOperationState_Busy;
             break;
 
         default:
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = MotorPortHandler_SetPortType_async_call_state;
             break;
     }
@@ -1403,6 +1417,7 @@ void MotorPortHandler_TestMotorOnPort_async_call_Update(void)
     /* Begin User Code Section: MotorPortHandler/TestMotorOnPort:update Start */
 
     /* End User Code Section: MotorPortHandler/TestMotorOnPort:update Start */
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     AsyncCommand_t command = MotorPortHandler_TestMotorOnPort_async_call_command;
     MotorPortHandler_TestMotorOnPort_async_call_command = AsyncCommand_None;
@@ -1411,7 +1426,7 @@ void MotorPortHandler_TestMotorOnPort_async_call_Update(void)
     {
         case AsyncCommand_Start:
             MotorPortHandler_TestMotorOnPort_async_call_state = AsyncOperationState_Busy;
-            __enable_irq();
+            __set_PRIMASK(primask);
 
             AsyncResult_t result = MotorPortHandler_AsyncRunnable_TestMotorOnPort(command,
                 MotorPortHandler_TestMotorOnPort_async_call_argument_port_idx,
@@ -1436,7 +1451,7 @@ void MotorPortHandler_TestMotorOnPort_async_call_Update(void)
         case AsyncCommand_None:
             if (MotorPortHandler_TestMotorOnPort_async_call_state == AsyncOperationState_Busy)
             {
-                __enable_irq();
+                __set_PRIMASK(primask);
 
                 AsyncResult_t result = MotorPortHandler_AsyncRunnable_TestMotorOnPort(command,
                 MotorPortHandler_TestMotorOnPort_async_call_argument_port_idx,
@@ -1459,14 +1474,14 @@ void MotorPortHandler_TestMotorOnPort_async_call_Update(void)
             }
             else
             {
-                __enable_irq();
+                __set_PRIMASK(primask);
             }
             break;
 
         case AsyncCommand_Cancel:
             if (MotorPortHandler_TestMotorOnPort_async_call_state == AsyncOperationState_Busy)
             {
-                __enable_irq();
+                __set_PRIMASK(primask);
                 (void) MotorPortHandler_AsyncRunnable_TestMotorOnPort(AsyncCommand_Cancel,
                 MotorPortHandler_TestMotorOnPort_async_call_argument_port_idx,
                 MotorPortHandler_TestMotorOnPort_async_call_argument_test_power,
@@ -1475,13 +1490,13 @@ void MotorPortHandler_TestMotorOnPort_async_call_Update(void)
             }
             else
             {
-                __enable_irq();
+                __set_PRIMASK(primask);
             }
             MotorPortHandler_TestMotorOnPort_async_call_state = AsyncOperationState_Idle;
             break;
 
         default:
-            __enable_irq();
+            __set_PRIMASK(primask);
             ASSERT(0);
             break;
     }
@@ -1498,11 +1513,12 @@ AsyncOperationState_t CommWrapper_MotorPorts_Async_TestMotorOnPort_Call(uint8_t 
     /* End User Code Section: CommWrapper_MotorPorts/TestMotorOnPort:async_call Start */
     AsyncOperationState_t returned_state = AsyncOperationState_Busy;
     MotorPortHandler_TestMotorOnPort_async_call_command = AsyncCommand_None;
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     if (MotorPortHandler_TestMotorOnPort_async_call_state == AsyncOperationState_Idle || MotorPortHandler_TestMotorOnPort_async_call_state == AsyncOperationState_Done)
     {
         MotorPortHandler_TestMotorOnPort_async_call_state = AsyncOperationState_Started;
-        __enable_irq();
+        __set_PRIMASK(primask);
 
         MotorPortHandler_TestMotorOnPort_async_call_argument_port_idx = port_idx;
         MotorPortHandler_TestMotorOnPort_async_call_argument_test_power = test_power;
@@ -1513,7 +1529,7 @@ AsyncOperationState_t CommWrapper_MotorPorts_Async_TestMotorOnPort_Call(uint8_t 
     }
     else
     {
-        __enable_irq();
+        __set_PRIMASK(primask);
     }
     return returned_state;
     /* Begin User Code Section: CommWrapper_MotorPorts/TestMotorOnPort:async_call End */
@@ -1527,6 +1543,7 @@ AsyncOperationState_t CommWrapper_MotorPorts_Async_TestMotorOnPort_GetResult(boo
 
     /* End User Code Section: CommWrapper_MotorPorts/TestMotorOnPort:get_result Start */
     AsyncOperationState_t returned_state;
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     switch (MotorPortHandler_TestMotorOnPort_async_call_state)
     {
@@ -1536,17 +1553,17 @@ AsyncOperationState_t CommWrapper_MotorPorts_Async_TestMotorOnPort_GetResult(boo
                 *result = MotorPortHandler_TestMotorOnPort_async_call_argument_result;
             }
             MotorPortHandler_TestMotorOnPort_async_call_state = AsyncOperationState_Idle;
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = AsyncOperationState_Done;
             break;
 
         case AsyncOperationState_Started:
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = AsyncOperationState_Busy;
             break;
 
         default:
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = MotorPortHandler_TestMotorOnPort_async_call_state;
             break;
     }
@@ -1574,11 +1591,12 @@ AsyncOperationState_t CommWrapper_MotorPorts_Async_SetPortConfig_Call(uint8_t po
     /* End User Code Section: CommWrapper_MotorPorts/SetPortConfig:async_call Start */
     AsyncOperationState_t returned_state = AsyncOperationState_Busy;
     MotorPortHandler_Configure_async_call_command = AsyncCommand_None;
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     if (MotorPortHandler_Configure_async_call_state == AsyncOperationState_Idle || MotorPortHandler_Configure_async_call_state == AsyncOperationState_Done)
     {
         MotorPortHandler_Configure_async_call_state = AsyncOperationState_Started;
-        __enable_irq();
+        __set_PRIMASK(primask);
 
         MotorPortHandler_Configure_async_call_argument_port_idx = port_idx;
         MotorPortHandler_Configure_async_call_argument_configuration = configuration;
@@ -1588,7 +1606,7 @@ AsyncOperationState_t CommWrapper_MotorPorts_Async_SetPortConfig_Call(uint8_t po
     }
     else
     {
-        __enable_irq();
+        __set_PRIMASK(primask);
     }
     return returned_state;
     /* Begin User Code Section: CommWrapper_MotorPorts/SetPortConfig:async_call End */
@@ -1602,6 +1620,7 @@ AsyncOperationState_t CommWrapper_MotorPorts_Async_SetPortConfig_GetResult(bool*
 
     /* End User Code Section: CommWrapper_MotorPorts/SetPortConfig:get_result Start */
     AsyncOperationState_t returned_state;
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     switch (MotorPortHandler_Configure_async_call_state)
     {
@@ -1611,17 +1630,17 @@ AsyncOperationState_t CommWrapper_MotorPorts_Async_SetPortConfig_GetResult(bool*
                 *result = MotorPortHandler_Configure_async_call_argument_result;
             }
             MotorPortHandler_Configure_async_call_state = AsyncOperationState_Idle;
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = AsyncOperationState_Done;
             break;
 
         case AsyncOperationState_Started:
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = AsyncOperationState_Busy;
             break;
 
         default:
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = MotorPortHandler_Configure_async_call_state;
             break;
     }
@@ -1660,11 +1679,12 @@ AsyncOperationState_t CommWrapper_Bootloader_Async_RebootToBootloader_Call(void)
     /* End User Code Section: CommWrapper_Bootloader/RebootToBootloader:async_call Start */
     AsyncOperationState_t returned_state = AsyncOperationState_Busy;
     RestartManager_RebootToBootloader_async_call_command = AsyncCommand_None;
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     if (RestartManager_RebootToBootloader_async_call_state == AsyncOperationState_Idle || RestartManager_RebootToBootloader_async_call_state == AsyncOperationState_Done)
     {
         RestartManager_RebootToBootloader_async_call_state = AsyncOperationState_Started;
-        __enable_irq();
+        __set_PRIMASK(primask);
 
 
         returned_state = AsyncOperationState_Started;
@@ -1672,7 +1692,7 @@ AsyncOperationState_t CommWrapper_Bootloader_Async_RebootToBootloader_Call(void)
     }
     else
     {
-        __enable_irq();
+        __set_PRIMASK(primask);
     }
     return returned_state;
     /* Begin User Code Section: CommWrapper_Bootloader/RebootToBootloader:async_call End */
@@ -1686,22 +1706,23 @@ AsyncOperationState_t CommWrapper_Bootloader_Async_RebootToBootloader_GetResult(
 
     /* End User Code Section: CommWrapper_Bootloader/RebootToBootloader:get_result Start */
     AsyncOperationState_t returned_state;
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     switch (RestartManager_RebootToBootloader_async_call_state)
     {
         case AsyncOperationState_Done:
             RestartManager_RebootToBootloader_async_call_state = AsyncOperationState_Idle;
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = AsyncOperationState_Done;
             break;
 
         case AsyncOperationState_Started:
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = AsyncOperationState_Busy;
             break;
 
         default:
-            __enable_irq();
+            __set_PRIMASK(primask);
             returned_state = RestartManager_RebootToBootloader_async_call_state;
             break;
     }
