@@ -18,18 +18,45 @@ Some sound effects (bell, duck, lion and engine revving sounds) in the assets di
  - Save the connection for later use. Enter a name under Saved Sessions and press Save.
  - Press Open to connect.
  - If asked, accept the fingerprint.
- - Enter 123 when prompted for password.
+ - Enter `123` when prompted for password.
  - To access the filesystem, use WinSCP or the SecureFTP TotalCommander plugin.
+
+## Linux
+### Cable
+- figure out the IP address (TODO: fix auto dhcp IP address or document enable Bonjour service for linux)
+- `ssh pi@some.ip`
+### Wifi
+- remove SD card from brain, insert to laptop
+- edit `wpa_supplicant.conf` on the boot partition with the following content with your wifi router data:
+```
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=GB
+
+network={
+     ssid="your_network_name"
+     psk="your_wifi_password"
+     key_mgmt=WPA-PSK
+}
+```
+- place back SD card to brain, start the brain
+- find the Pi on the network:
+- `arp | grep -v incomplete` or `nmap -sn $(ip route | awk '/default/ {print $3}')/24 -p 22`
+- `ssh pi@found-ip` use `123` as password
+- mount the file system to your local drive!
+- ease your way in with `ssh-copy-id pi@found-ip` so you do not need a password.
+
 
 # How to start/stop/restart the framework service.
 After startup, the framework service is already running. If you want to modify it, or run a tool script or other scripts that work with the framework, you'll need to stop the service before starting your script, or restart it after a modification.
 
 To control the framework service, use these commands:
- - Stop: `sudo systemctl stop revvy`
- - Start: `sudo systemctl start revvy`
+ - Stop: `sudo systemctl stop revvy` or `stop`
+ - Start: `sudo systemctl start revvy` or `start`
  - Restart: `sudo systemctl restart revvy`
+ - Debug: `debug`
 
-If you want to start the framework, but not the service (for example, you want to observe console output), enter the framework directory by running `cd RevvyFramework` and start by executing `python3 launch_revvy.py`. To exit, press Enter.
+If you want to start the framework, but not the service (for example, you want to observe console output), enter the framework directory by running `cd RevvyFramework` and start by executing `python3 launch_revvy.py`. To exit, press Enter. (`debug`)
 
 # About the integrity protection and modifications
 After startup the framework scans for unintended modifications in the source code. This is done by comparing the checksum of the individual files to those contained in the `manifest.json` file. If a file is not listed in the manifest, it is ignored. If a checksum does not match, the framework exits and if possible, an older one is then started.
@@ -41,7 +68,9 @@ Only the packages located under `~/RevvyFramework/user/packages` can be modified
 # Preparing the environment for framework development
  - Check out the sources in a directory of your choice.
  - Create a python virtual environment in the source directory by running `python -m venv venv`
- - Active the virtual environment by running `.\venv\Scripts\activate`
+ - Active the virtual environment by running
+   - Windows: `.\venv\Scripts\activate`
+   - Linux: `source ./venv/bin/activate`
  - To run unit tests:
    - Install the required packages by running `pip install -r install/requirements_test.txt`
    - Run `nose2 -B` to see if the included tests pass.
@@ -55,3 +84,26 @@ To package the framework for installation, do the following:
  - `framework-<version>.tar.gz` is the update package that can be uploaded using the mobile app.
  - To install the new package, restart the framework service, or stop it and start the framework manually as described above.
  - Please note that the installation process can take up to about 5 minutes.
+
+# Recommended Dev Env
+
+Use VSCode, open this folder.
+Create a `target` file and add the IP address of the brain. (bonjour: `raspberrypi.local` or e.g. `192.168.0.123` for wifi)
+
+# Debugging
+- from this dir, run `./debug`
+- for attaching debugger, run `./debug 1`
+- When says: Waiting for debugger, run 
+- configure your `launch.json` to the proper IP
+
+```json
+{
+  "name": "Attach PI Debugger",
+  "type": "python",
+  "request": "attach",
+  "connect": {
+    "host": "192.168.0.X",
+    "port": 5678
+  }
+}
+```

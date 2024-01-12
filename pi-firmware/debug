@@ -1,0 +1,40 @@
+#!/bin/bash
+
+python -m dev_tools.create_package
+
+# This is the version that it will be mapped to.
+VERSION="0.1.$(echo "$(<"version")" | tr -d '[:space:]')"
+
+# Define source and destination folders
+LOCAL_SOURCE_FOLDER="./"
+USER="pi"
+HOST="$(<"target")"
+
+### TODO: make this UNIVERSAL
+REMOTE_DESTINATION_FOLDER="/home/pi/RevvyFramework/user/packages/"
+
+echo "$USER@$HOST:$REMOTE_DESTINATION_FOLDER"
+
+PACKAGE_FILENAME="framework-$VERSION"
+TARGET_FOLDER_NAME="revvy-$VERSION"
+PACKAGE_SOURCE="install/$PACKAGE_FILENAME.tar.gz"
+
+# Rsync command with SSH
+# PARAMS="-avu --inplace --delete -e "ssh" $PACKAGE_SOURCE "$USER@$HOST:$REMOTE_DESTINATION_FOLDER""
+# echo $PARAMS
+# rsync $PARAMS
+TARGET="/home/pi/RevvyFramework/user/packages/$TARGET_FOLDER_NAME/"
+
+NAT_IP=$(ip route get 1 | awk '{print $7}')
+DEBUG_PORT=5678
+
+# For debug mode, run ./debug 1
+if [ "$1" -eq 1 ]; then
+    RUNNER="-m debugpy --listen 0.0.0.0:$DEBUG_PORT --wait-for-client"
+fi
+
+ssh $USER@$HOST "mkdir -p $TARGET && tar -xzvf - -C $TARGET && \
+    cd $TARGET && stop; killall python3; echo "Waiting for Debugger to connect on $NAT_IP:$DEBUG_PORT" && \
+    python3 $RUNNER ./revvy.py" < $PACKAGE_SOURCE
+##
+#ssh $USER@$HOST "cd Revvy python -m debugpy --listen 5678 --wait-for-client ./revvy.py"
