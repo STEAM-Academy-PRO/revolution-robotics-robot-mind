@@ -99,7 +99,7 @@ static bool BumperSwitch_TestSensorOnPort(SensorPort_t *port, SensorOnPortStatus
   return true;
 }
 
-static const SensorLibrary_t sensor_library_bumper_switch = 
+const SensorLibrary_t sensor_library_bumper_switch = 
 {
     .name                = "BumperSwitch",
     .Init                = &BumperSwitch_Init,

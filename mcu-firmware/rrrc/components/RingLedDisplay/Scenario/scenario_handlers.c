@@ -41,9 +41,9 @@ static void traffic_light(void* data);
 
 static uint32_t time_data;
 
-static const indication_handler_t startup_indicator_scenario = { .init = &init_time, .handler = &startup_indicator, .DeInit = NULL, .userData = &time_data };
+const indication_handler_t startup_indicator_scenario = { .init = &init_time, .handler = &startup_indicator, .DeInit = NULL, .userData = &time_data };
 
-static const indication_handler_t public_scenario_handlers[8] = 
+const indication_handler_t public_scenario_handlers[8] = 
 {
     { .init = NULL,                .handler = &ledRingOffWriter,    .DeInit = NULL, .userData = NULL },
     { .init = NULL,                .handler = &ledRingFrameWriter,  .DeInit = NULL, .userData = NULL },

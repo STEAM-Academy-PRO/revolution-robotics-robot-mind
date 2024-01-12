@@ -114,7 +114,7 @@ static bool DebugRTC_TestSensorOnPort(SensorPort_t *port, SensorOnPortStatus_t *
   return true;
 }
 
-static const SensorLibrary_t sensor_library_debug_rtc =
+const SensorLibrary_t sensor_library_debug_rtc =
 {
     .name                = "DebugRTC",
     .Init                = &DebugRTC_Init,

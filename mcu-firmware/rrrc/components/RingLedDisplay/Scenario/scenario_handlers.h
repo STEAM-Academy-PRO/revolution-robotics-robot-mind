@@ -13,7 +13,7 @@ typedef struct
     void* userData;
 } indication_handler_t;
 
-static const indication_handler_t public_scenario_handlers[8];
-static const indication_handler_t startup_indicator_scenario;
+const indication_handler_t public_scenario_handlers[8];
+const indication_handler_t startup_indicator_scenario;
 
 #endif /* SCENARIO_HANDLERS_H_ */

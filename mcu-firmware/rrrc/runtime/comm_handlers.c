@@ -17,7 +17,7 @@ static Comm_Status_t CommWrapper_IMUOrientationEstimator_Reset_Start(ConstByteAr
     return Comm_Status_Ok;
 }
 
-static const Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT] =
+const Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT] =
 {
     /* other commands */
     [0x00u] = { .Start = &PingMessageHandler_Start, .GetResult = NULL, .Cancel = NULL },

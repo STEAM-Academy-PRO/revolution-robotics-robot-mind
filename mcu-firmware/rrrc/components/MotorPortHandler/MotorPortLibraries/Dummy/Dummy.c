@@ -59,7 +59,7 @@ MotorLibraryStatus_t Dummy_CreateDriveRequest(const MotorPort_t* motorPort, cons
     return MotorLibraryStatus_Ok;
 }
 
-static const MotorLibrary_t motor_library_dummy =
+const MotorLibrary_t motor_library_dummy =
 {
     .name                = "NotConfigured",
     .Init                = &Dummy_Init,
