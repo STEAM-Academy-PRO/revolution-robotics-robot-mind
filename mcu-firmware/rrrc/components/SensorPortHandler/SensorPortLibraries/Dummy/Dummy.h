@@ -3,6 +3,6 @@
 
 #include "../SensorPortLibrary.h"
 
-const SensorLibrary_t sensor_library_dummy;
+static const SensorLibrary_t sensor_library_dummy;
 
 #endif /* SENSOR_PORT_LIBRARY_DUMMY_H_ */

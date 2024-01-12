@@ -3,6 +3,6 @@
 
 #include "../SensorPortLibrary.h"
 
-const SensorLibrary_t sensor_library_ev3;
+static const SensorLibrary_t sensor_library_ev3;
 
 #endif /* EV3_H_ */

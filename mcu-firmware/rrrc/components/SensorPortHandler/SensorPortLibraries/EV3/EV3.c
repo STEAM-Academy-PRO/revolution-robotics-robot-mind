@@ -595,7 +595,7 @@ static bool EV3_TestSensorOnPort(SensorPort_t *port, SensorOnPortStatus_t *resul
   return true;
 }
 
-const SensorLibrary_t sensor_library_ev3 =
+static const SensorLibrary_t sensor_library_ev3 =
 {
     .name                = "EV3",
     .Init                = &EV3_Init,

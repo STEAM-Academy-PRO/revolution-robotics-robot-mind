@@ -274,7 +274,7 @@ test_completed:
   return true;
 }
 
-const SensorLibrary_t sensor_library_hc_sr04 = {
+static const SensorLibrary_t sensor_library_hc_sr04 = {
     .name = "HC_SR04",
     .Init = &HC_SR04_Init,
     .DeInit = &HC_SR04_DeInit,
