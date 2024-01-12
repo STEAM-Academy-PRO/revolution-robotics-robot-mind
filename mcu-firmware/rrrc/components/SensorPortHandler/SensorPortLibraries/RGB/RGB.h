@@ -11,6 +11,6 @@
 
 #include "../SensorPortLibrary.h"
 
-const SensorLibrary_t sensor_library_rgb;
+static const SensorLibrary_t sensor_library_rgb;
 
 #endif /* SENSOR_LIB_COLOR_SENSOR_H_ */
