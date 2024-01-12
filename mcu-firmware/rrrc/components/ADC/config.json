@@ -1,0 +1,51 @@
+{
+    "name": "ADC",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "ADC.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "Voltage_t": {
+            "aliases": "float"
+        },
+        "Current_t": {
+            "aliases": "float"
+        }
+    },
+    "runnables": {
+        "OnInit": {
+            "return_type": "void",
+            "arguments": {}
+        },
+        "Update": {
+            "return_type": "void",
+            "arguments": {}
+        }
+    },
+    "ports": {
+        "Sensor_ADC": {
+            "port_type": "WriteIndexedData",
+            "data_type": "uint8_t",
+            "count": 4
+        },
+        "MotorCurrent": {
+            "port_type": "WriteIndexedData",
+            "data_type": "Current_t",
+            "count": 6
+        },
+        "MainBatteryVoltage": {
+            "port_type": "WriteData",
+            "data_type": "Voltage_t"
+        },
+        "MotorBatteryVoltage": {
+            "port_type": "WriteData",
+            "data_type": "Voltage_t"
+        },
+        "InitDoneISR": {
+            "port_type": "Event"
+        }
+    }
+}

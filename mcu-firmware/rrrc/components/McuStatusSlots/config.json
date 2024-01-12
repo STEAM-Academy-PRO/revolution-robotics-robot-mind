@@ -1,0 +1,86 @@
+{
+    "name": "McuStatusSlots",
+    "version": "1.0.0",
+    "requires": {
+        "BatteryCharger": "[1.0.0,",
+        "McuStatusCollector": "[1.0.0,"
+    },
+    "source_files": [
+        "McuStatusSlots.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "IMU_RawSample_t": {
+            "type": "struct",
+            "fields": {
+                "x": "int16_t",
+                "y": "int16_t",
+                "z": "int16_t"
+            }
+        }
+    },
+    "runnables": {
+        "Reset": {},
+        "Update": {},
+        "UpdateSensorPort": {
+            "arguments": {
+                "port": "uint8_t",
+                "data": "ByteArray_t"
+            }
+        },
+        "UpdateMotorPort": {
+            "arguments": {
+                "port": "uint8_t",
+                "data": "ByteArray_t"
+            }
+        }
+    },
+    "ports": {
+        "SlotData": {
+            "port_type": "WriteIndexedData",
+            "data_type": "SlotData_t",
+            "count": 16
+        },
+        "MainBatteryLevel": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "uint8_t"
+        },
+        "MotorBatteryLevel": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "uint8_t"
+        },
+        "MainBatteryStatus": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "ChargerState_t"
+        },
+        "MotorBatteryPresent": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "bool"
+        },
+        "Acceleration": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "IMU_RawSample_t"
+        },
+        "AngularSpeeds": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "IMU_RawSample_t"
+        },
+        "YawAngle": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "float"
+        },
+        "Orientation": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "Orientation3D_t"
+        }
+    }
+}

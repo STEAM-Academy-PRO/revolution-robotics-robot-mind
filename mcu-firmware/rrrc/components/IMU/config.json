@@ -1,0 +1,67 @@
+{
+    "name": "IMU",
+    "version": "1.0.0",
+    "requires": {
+        "ErrorStorage": "[1.0.0, 2.0.0)"
+    },
+    "source_files": [
+        "IMU.c",
+        "imu_ll.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "IMU_RawSample_t": {
+            "type": "struct",
+            "fields": {
+                "x": "int16_t",
+                "y": "int16_t",
+                "z": "int16_t"
+            }
+        },
+        "Vector3D_t": {
+            "type": "struct",
+            "fields": {
+                "x": "float",
+                "y": "float",
+                "z": "float"
+            }
+        }
+    },
+    "runnables": {
+        "OnInit": {},
+        "OnUpdate": {}
+    },
+    "ports": {
+        "LogError": {
+            "port_type": "ServerCall",
+            "arguments": {
+                "data": {
+                    "data_type": "ErrorInfo_t",
+                    "direction": "in"
+                }
+            }
+        },
+        "SampleTime": {
+            "port_type": "Constant",
+            "data_type": "float",
+            "value": "1.0f / 416.0f"
+        },
+        "AccelerometerSample": {
+            "port_type": "WriteData",
+            "data_type": "Vector3D_t"
+        },
+        "GyroscopeSample": {
+            "port_type": "WriteData",
+            "data_type": "Vector3D_t"
+        },
+        "RawAccelerometerSample": {
+            "port_type": "WriteData",
+            "data_type": "IMU_RawSample_t"
+        },
+        "RawGyroscopeSample": {
+            "port_type": "WriteData",
+            "data_type": "IMU_RawSample_t"
+        }
+    }
+}

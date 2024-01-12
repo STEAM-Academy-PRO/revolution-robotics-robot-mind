@@ -1,0 +1,82 @@
+{
+    "configurations": [
+        {
+            "name": "ARM Debug",
+            "includePath": [
+                "${workspaceFolder}",
+                "${workspaceFolder}/rrrc",
+                "${workspaceFolder}/Config",
+                "${workspaceFolder}/Atmel/hal/include",
+                "${workspaceFolder}/Atmel/hal/utils/include",
+                "${workspaceFolder}/Atmel/hpl/adc",
+                "${workspaceFolder}/Atmel/hpl/cmcc",
+                "${workspaceFolder}/Atmel/hpl/core",
+                "${workspaceFolder}/Atmel/hpl/dmac",
+                "${workspaceFolder}/Atmel/hpl/eic",
+                "${workspaceFolder}/Atmel/hpl/gclk",
+                "${workspaceFolder}/Atmel/hpl/mclk",
+                "${workspaceFolder}/Atmel/hpl/osc32kctrl",
+                "${workspaceFolder}/Atmel/hpl/oscctrl",
+                "${workspaceFolder}/Atmel/hpl/pm",
+                "${workspaceFolder}/Atmel/hpl/port",
+                "${workspaceFolder}/Atmel/hpl/rtc",
+                "${workspaceFolder}/Atmel/hpl/sercom",
+                "${workspaceFolder}/Atmel/hpl/systick",
+                "${workspaceFolder}/Atmel/hpl/tc",
+                "${workspaceFolder}/Atmel/hri",
+                "${workspaceFolder}/Atmel/samd51a/include",
+                "${workspaceFolder}/third_party",
+                "${workspaceFolder}/third_party/CMSIS/Include",
+                "${workspaceFolder}/third_party/FreeRTOSV10.0.0",
+                "${workspaceFolder}/third_party/FreeRTOSV10.0.0/Source/include",
+                "${workspaceFolder}/third_party/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM4F"
+            ],
+            "defines": [
+                "DEBUG",
+                "__SAMD51P19A__",
+                "COMPATIBLE_HW_VERSIONS=2"
+            ],
+            "cStandard": "c99",
+            "cppStandard": "c++17"
+        },
+        {
+            "name": "ARM Release",
+            "includePath": [
+                "${workspaceFolder}",
+                "${workspaceFolder}/rrrc",
+                "${workspaceFolder}/Config",
+                "${workspaceFolder}/Atmel/hal/include",
+                "${workspaceFolder}/Atmel/hal/utils/include",
+                "${workspaceFolder}/Atmel/hpl/adc",
+                "${workspaceFolder}/Atmel/hpl/cmcc",
+                "${workspaceFolder}/Atmel/hpl/core",
+                "${workspaceFolder}/Atmel/hpl/dmac",
+                "${workspaceFolder}/Atmel/hpl/eic",
+                "${workspaceFolder}/Atmel/hpl/gclk",
+                "${workspaceFolder}/Atmel/hpl/mclk",
+                "${workspaceFolder}/Atmel/hpl/osc32kctrl",
+                "${workspaceFolder}/Atmel/hpl/oscctrl",
+                "${workspaceFolder}/Atmel/hpl/pm",
+                "${workspaceFolder}/Atmel/hpl/port",
+                "${workspaceFolder}/Atmel/hpl/rtc",
+                "${workspaceFolder}/Atmel/hpl/sercom",
+                "${workspaceFolder}/Atmel/hpl/systick",
+                "${workspaceFolder}/Atmel/hpl/tc",
+                "${workspaceFolder}/Atmel/hri",
+                "${workspaceFolder}/Atmel/samd51a/include",
+                "${workspaceFolder}/third_party",
+                "${workspaceFolder}/third_party/CMSIS/Include",
+                "${workspaceFolder}/third_party/FreeRTOSV10.0.0",
+                "${workspaceFolder}/third_party/FreeRTOSV10.0.0/Source/include",
+                "${workspaceFolder}/third_party/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM4F"
+            ],
+            "defines": [
+                "__SAMD51P19A__",
+                "COMPATIBLE_HW_VERSIONS=2"
+            ],
+            "cStandard": "c99",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}

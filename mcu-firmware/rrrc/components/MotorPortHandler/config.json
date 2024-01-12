@@ -1,0 +1,223 @@
+{
+    "name": "MotorPortHandler",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "MotorPortHandler.c",
+        "MotorPortHandlerInternal.c",
+        "MotorPortLibraries/DcMotor/DcMotor.c",
+        "MotorPortLibraries/Dummy/Dummy.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "gpio_pin_t": {
+            "defined_in": "\"Config/atmel_start_pins.h\"",
+            "default_value": "0u"
+        },
+        "fast_gpio_t": {
+            "defined_in": "\"Config/atmel_start_pins.h\"",
+            "default_value": "{0}"
+        },
+        "MotorPortGpios_t": {
+            "fields": {
+                "led": "gpio_pin_t",
+                "enc0": "fast_gpio_t",
+                "enc1": "fast_gpio_t"
+            }
+        },
+        "MotorPort_t": {
+            "fields": {
+                "port_idx": "uint8_t",
+                "library": "const void*",
+                "libraryData": "void*",
+                "gpio": "MotorPortGpios_t"
+            }
+        },
+        "DriveRequest_RequestType_t": {
+            "type": "enum",
+            "values": [
+                "DriveRequest_RequestType_Speed",
+                "DriveRequest_RequestType_Position",
+                "DriveRequest_RequestType_Power"
+            ],
+            "default_value": "DriveRequest_RequestType_Power"
+        },
+        "DriveRequest_RequestValue_t": {
+            "type": "union",
+            "members": {
+                "speed": "float",
+                "position": "int32_t",
+                "power": "int16_t"
+            },
+            "default_value": {
+                "power": 0
+            }
+        },
+        "DriveRequest_t": {
+            "type": "struct",
+            "fields": {
+                "version": "uint32_t",
+                "power_limit": "float",
+                "speed_limit": "float",
+                "request_type": "DriveRequest_RequestType_t",
+                "request": "DriveRequest_RequestValue_t"
+            }
+        },
+        "Current_t": {
+            "aliases": "float"
+        },
+        "Percentage_t": {
+            "aliases": "float"
+        }
+    },
+    "runnables": {
+        "PortUpdate": {
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                }
+            }
+        },
+        "ReadPortTypes": {
+            "arguments": {
+                "buffer": {
+                    "data_type": "ByteArray_t",
+                    "direction": "out"
+                }
+            }
+        },
+        "SetPortType": {
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "port_type": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "result": {
+                    "data_type": "bool",
+                    "direction": "out"
+                }
+            }
+        },
+        "TestMotorOnPort": {
+            "port_type": "AsyncRunnable",
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "test_power": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "threshold": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "result": {
+                    "data_type": "bool",
+                    "direction": "out"
+                }
+            }
+        },
+        "Configure": {
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "configuration": {
+                    "data_type": "ByteArray_t",
+                    "direction": "in"
+                },
+                "result": {
+                    "data_type": "bool",
+                    "direction": "out"
+                }
+            }
+        },
+        "CreateDriveRequest": {
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "buffer": {
+                    "data_type": "ConstByteArray_t",
+                    "direction": "in"
+                },
+                "request": {
+                    "data_type": "DriveRequest_t",
+                    "direction": "out"
+                }
+            },
+            "return_type": "bool"
+        }
+    },
+    "ports": {
+        "PortConfig": {
+            "port_type": "ReadIndexedValue",
+            "data_type": "MotorPortGpios_t",
+            "count": 6
+        },
+        "PortCount": {
+            "port_type": "WriteData",
+            "data_type": "uint8_t"
+        },
+        "MaxAllowedCurrent": {
+            "port_type": "WriteIndexedData",
+            "data_type": "Current_t",
+            "count": 6
+        },
+        "Allocate": {
+            "port_type": "ServerCall",
+            "return_type": "void*",
+            "arguments": {
+                "size": {
+                    "data_type": "size_t",
+                    "direction": "in"
+                }
+            }
+        },
+        "Free": {
+            "port_type": "ServerCall",
+            "return_type": "void",
+            "arguments": {
+                "ptr": {
+                    "data_type": "void*",
+                    "direction": "inout"
+                }
+            }
+        },
+        "DriveStrength": {
+            "port_type": "WriteIndexedData",
+            "data_type": "int16_t",
+            "count": 6
+        },
+        "DriveRequest": {
+            "port_type": "ReadIndexedValue",
+            "default_value": null,
+            "data_type": "DriveRequest_t",
+            "count": 6
+        },
+        "RelativeMotorCurrent": {
+            "port_type": "ReadIndexedValue",
+            "data_type": "Percentage_t",
+            "count": 6,
+            "default_value": "(Percentage_t) 100.0f"
+        },
+        "UpdatePortStatus": {
+            "port_type": "ServerCall",
+            "return_type": "void",
+            "arguments": {
+                "port": "uint8_t",
+                "data": "ByteArray_t"
+            }
+        }
+    }
+}

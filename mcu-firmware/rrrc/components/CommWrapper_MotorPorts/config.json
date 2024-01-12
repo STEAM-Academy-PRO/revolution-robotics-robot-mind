@@ -1,0 +1,118 @@
+{
+    "name": "CommWrapper_MotorPorts",
+    "version": "1.0.0",
+    "requires": {
+        "MasterCommunication": "[1.0.0, 2.0.0)",
+        "MotorPortHandler": "[1.0.0, 2.0.0)"
+    },
+    "source_files": [
+        "CommWrapper_MotorPorts.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {},
+    "runnables": {
+        "Command_GetPortAmount_Start": "Comm_CommandHandler_Start_t",
+        "Command_GetPortTypes_Start": "Comm_CommandHandler_Start_t",
+        "Command_SetPortType_Start": "Comm_CommandHandler_Start_t",
+        "Command_SetPortType_GetResult": "Comm_CommandHandler_GetResult_t",
+        "Command_SetPortConfig_Start": "Comm_CommandHandler_Start_t",
+        "Command_SetPortConfig_GetResult": "Comm_CommandHandler_GetResult_t",
+        "Command_SetControlValue_Start": "Comm_CommandHandler_Start_t",
+        "Command_TestMotorOnPort_Start": "Comm_CommandHandler_Start_t",
+        "Command_TestMotorOnPort_GetResult": "Comm_CommandHandler_GetResult_t"
+    },
+    "ports": {
+        "ReadPortTypes": {
+            "port_type": "ServerCall",
+            "arguments": {
+                "buffer": {
+                    "data_type": "ByteArray_t",
+                    "direction": "out"
+                }
+            }
+        },
+        "SetPortType": {
+            "port_type": "AsyncServerCall",
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "port_type": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "result": {
+                    "data_type": "bool",
+                    "direction": "out"
+                }
+            }
+        },
+        "SetPortConfig": {
+            "port_type": "AsyncServerCall",
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "configuration": {
+                    "data_type": "ByteArray_t",
+                    "direction": "in"
+                },
+                "result": {
+                    "data_type": "bool",
+                    "direction": "out"
+                }
+            }
+        },
+        "PortCount": {
+            "port_type": "ReadValue",
+            "data_type": "uint8_t"
+        },
+        "TestMotorOnPort": {
+            "port_type": "AsyncServerCall",
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "test_power": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "threshold": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "result": {
+                    "data_type": "bool",
+                    "direction": "out"
+                }
+            }
+        },
+        "CreateDriveRequest": {
+            "port_type": "ServerCall",
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "buffer": {
+                    "data_type": "ConstByteArray_t",
+                    "direction": "in"
+                },
+                "request": {
+                    "data_type": "DriveRequest_t",
+                    "direction": "out"
+                }
+            },
+            "return_type": "bool"
+        },
+        "DriveRequest": {
+            "port_type": "WriteIndexedData",
+            "data_type": "DriveRequest_t",
+            "count": 6
+        }
+    }
+}

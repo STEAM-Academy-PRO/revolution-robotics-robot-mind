@@ -1,0 +1,20 @@
+{
+    "name": "StartupReasonProvider",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "StartupReasonProvider.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {},
+    "runnables": {
+        "OnInit": {}
+    },
+    "ports": {
+        "IsColdStart": {
+            "port_type": "WriteData",
+            "data_type": "bool"
+        }
+    }
+}

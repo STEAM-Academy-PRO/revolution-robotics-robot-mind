@@ -1,0 +1,36 @@
+{
+    "name": "BluetoothStatusObserver",
+    "version": "1.0.0",
+    "requires": {
+        "MasterCommunication": "[1.0.0, 2.0.0)"
+    },
+    "source_files": [
+        "BluetoothStatusObserver.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "BluetoothStatus_t": {
+            "type": "enum",
+            "values": [
+                "BluetoothStatus_Inactive",
+                "BluetoothStatus_NotConnected",
+                "BluetoothStatus_Connected"
+            ],
+            "default_value": "BluetoothStatus_Inactive"
+        }
+    },
+    "runnables": {
+        "OnInit": {
+            "return_type": "void",
+            "arguments": {}
+        },
+        "Command_SetBluetoothStatus_Start": "Comm_CommandHandler_Start_t"
+    },
+    "ports": {
+        "ConnectionStatus": {
+            "port_type": "WriteData",
+            "data_type": "BluetoothStatus_t"
+        }
+    }
+}

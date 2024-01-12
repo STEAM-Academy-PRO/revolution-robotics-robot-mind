@@ -1,0 +1,135 @@
+{
+    "name": "MasterCommunication",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "CommunicationManager.c",
+        "MasterCommunication.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "Comm_Status_t": {
+            "type": "enum",
+            "values": [
+                "Comm_Status_Ok",
+                "Comm_Status_Busy",
+                "Comm_Status_Pending",
+                "Comm_Status_Error_UnknownOperation",
+                "Comm_Status_Error_InvalidOperation",
+                "Comm_Status_Error_CommandIntegrityError",
+                "Comm_Status_Error_PayloadIntegrityError",
+                "Comm_Status_Error_PayloadLengthError",
+                "Comm_Status_Error_UnknownCommand",
+                "Comm_Status_Error_CommandError",
+                "Comm_Status_Error_InternalError"
+            ],
+            "default_value": "Comm_Status_Error_InternalError"
+        },
+        "Comm_CommandHandler_Start_t": {
+            "type": "func_ptr",
+            "return_type": "Comm_Status_t",
+            "arguments": {
+                "commandPayload": {
+                    "data_type": "ConstByteArray_t",
+                    "direction": "in"
+                },
+                "response": {
+                    "data_type": "ByteArray_t",
+                    "direction": "in"
+                },
+                "responseCount": {
+                    "data_type": "uint8_t",
+                    "direction": "out"
+                }
+            }
+        },
+        "Comm_CommandHandler_GetResult_t": {
+            "type": "func_ptr",
+            "return_type": "Comm_Status_t",
+            "arguments": {
+                "response": {
+                    "data_type": "ByteArray_t",
+                    "direction": "in"
+                },
+                "responseCount": {
+                    "data_type": "uint8_t",
+                    "direction": "out"
+                }
+            }
+        },
+        "Comm_CommandHandler_Cancel_t": {
+            "type": "func_ptr",
+            "return_type": "void",
+            "arguments": {}
+        },
+        "Comm_CommandHandler_t": {
+            "type": "struct",
+            "fields": {
+                "Start": "Comm_CommandHandler_Start_t",
+                "GetResult": "Comm_CommandHandler_GetResult_t",
+                "Cancel": "Comm_CommandHandler_Cancel_t"
+            }
+        }
+    },
+    "runnables": {
+        "OnInit": {
+            "arguments": {
+                "commandTable": "Comm_CommandHandler_t",
+                "commandTableSize": "size_t"
+            }
+        },
+        "HandleCommand": {
+            "arguments": {
+                "message": "ConstByteArray_t"
+            }
+        }
+    },
+    "ports": {
+        "SendResponse": {
+            "port_type": "ServerCall",
+            "return_type": "void",
+            "arguments": {
+                "response": "ConstByteArray_t"
+            }
+        },
+        "DefaultResponse": {
+            "port_type": "Constant",
+            "data_type": "ConstByteArray_t",
+            "value": "(ConstByteArray_t) { .bytes = (uint8_t*) &defaultResponse, .count = sizeof(defaultResponse) }"
+        },
+        "LongRxErrorResponse": {
+            "port_type": "Constant",
+            "data_type": "ConstByteArray_t",
+            "value": "(ConstByteArray_t) { .bytes = (uint8_t*) &longRxErrorResponse, .count = sizeof(longRxErrorResponse) }"
+        },
+        "Calculate_CRC7": {
+            "port_type": "ServerCall",
+            "return_type": "uint8_t",
+            "arguments": {
+                "init_value": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "data": {
+                    "data_type": "ConstByteArray_t",
+                    "direction": "in"
+                }
+            }
+        },
+        "Calculate_CRC16": {
+            "port_type": "ServerCall",
+            "return_type": "uint16_t",
+            "arguments": {
+                "init_value": {
+                    "data_type": "uint16_t",
+                    "direction": "in"
+                },
+                "data": {
+                    "data_type": "ConstByteArray_t",
+                    "direction": "in"
+                }
+            }
+        }
+    }
+}

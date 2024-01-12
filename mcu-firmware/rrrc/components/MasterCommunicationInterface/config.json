@@ -1,0 +1,65 @@
+{
+    "name": "MasterCommunicationInterface",
+    "version": "1.0.0",
+    "requires": {
+        "ErrorStorage": "[1.0.0, 2.0.0)"
+    },
+    "source_files": [
+        "i2cHal.c",
+        "MasterCommunicationInterface.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "MasterCommunicationInterface_Config_t": {
+            "type": "struct",
+            "fields": {
+                "default_response": "ConstByteArray_t",
+                "rx_overflow_response": "ConstByteArray_t",
+                "rx_timeout": "uint32_t"
+            }
+        }
+    },
+    "runnables": {
+        "OnInit": {},
+        "SetResponse": {
+            "return_type": "void",
+            "arguments": {
+                "response": "ConstByteArray_t"
+            }
+        }
+    },
+    "ports": {
+        "LogError": {
+            "port_type": "ServerCall",
+            "arguments": {
+                "data": {
+                    "data_type": "ErrorInfo_t",
+                    "direction": "in"
+                }
+            }
+        },
+        "Configuration": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "MasterCommunicationInterface_Config_t"
+        },
+        "DeviceAddress": {
+            "port_type": "ReadValue",
+            "default_value": 0,
+            "data_type": "uint8_t"
+        },
+        "RxTimeout": {
+            "port_type": "Event"
+        },
+        "OnMessageReceived": {
+            "port_type": "Event",
+            "arguments": {
+                "message": "ConstByteArray_t"
+            }
+        },
+        "OnTransmissionComplete": {
+            "port_type": "Event"
+        }
+    }
+}

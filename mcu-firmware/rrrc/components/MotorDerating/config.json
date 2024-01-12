@@ -1,0 +1,77 @@
+{
+    "name": "MotorDerating",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "MotorDerating.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "Temperature_t": {
+            "aliases": "float"
+        },
+        "Percentage_t": {
+            "aliases": "float"
+        },
+        "Current_t": {
+            "aliases": "float"
+        },
+        "MotorDeratingParameters_t": {
+            "type": "struct",
+            "fields": {
+                "MaxSafeTemperature": "Temperature_t",
+                "MaxAllowedTemperature": "Temperature_t"
+            }
+        }
+    },
+    "runnables": {
+        "OnUpdate": {}
+    },
+    "ports": {
+        "MotorTemperature": {
+            "port_type": "ReadIndexedValue",
+            "default_value": "(Temperature_t) 20.0f",
+            "data_type": "Temperature_t",
+            "count": 6
+        },
+        "MotorCurrent": {
+            "port_type": "ReadIndexedValue",
+            "default_value": "(Current_t) 0.0f",
+            "data_type": "Current_t",
+            "count": 6
+        },
+        "MaxMotorCurrent": {
+            "port_type": "ReadIndexedValue",
+            "default_value": "(Current_t) 0.0f",
+            "data_type": "Current_t",
+            "count": 6
+        },
+        "ControlValue": {
+            "port_type": "ReadIndexedValue",
+            "default_value": null,
+            "data_type": "int16_t",
+            "count": 6
+        },
+        "DeratedControlValue": {
+            "port_type": "WriteIndexedData",
+            "data_type": "int16_t",
+            "count": 6
+        },
+        "RelativeMotorCurrent": {
+            "port_type": "WriteIndexedData",
+            "data_type": "Percentage_t",
+            "count": 6
+        },
+        "MaxPowerRatio": {
+            "port_type": "WriteIndexedData",
+            "data_type": "Percentage_t",
+            "count": 6
+        },
+        "Parameters": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "MotorDeratingParameters_t"
+        }
+    }
+}

@@ -1,0 +1,38 @@
+{
+    "name": "BatteryCharger",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "BatteryCharger.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "ChargerState_t": {
+            "type": "enum",
+            "values": [
+                "ChargerState_NotPluggedIn",
+                "ChargerState_Charging",
+                "ChargerState_Charged",
+                "ChargerState_Fault"
+            ],
+            "default_value": "ChargerState_NotPluggedIn"
+        }
+    },
+    "runnables": {
+        "OnInit": {
+            "return_type": "void",
+            "arguments": {}
+        },
+        "Update": {
+            "return_type": "void",
+            "arguments": {}
+        }
+    },
+    "ports": {
+        "ChargerState": {
+            "port_type": "WriteData",
+            "data_type": "ChargerState_t"
+        }
+    }
+}

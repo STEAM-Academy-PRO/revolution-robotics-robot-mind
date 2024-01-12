@@ -1,0 +1,18 @@
+{
+    "name": "WatchdogFeeder",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "WatchdogFeeder.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {},
+    "runnables": {
+        "Feed": {
+            "arguments": {},
+            "return_type": "void"
+        }
+    },
+    "ports": {}
+}

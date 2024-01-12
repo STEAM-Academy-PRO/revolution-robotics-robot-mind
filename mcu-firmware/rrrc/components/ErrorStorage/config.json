@@ -1,0 +1,61 @@
+{
+    "name": "ErrorStorage",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "ErrorStorage.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "ErrorInfo_t": {
+            "defined_in": "\"components/ErrorStorage/ErrorStorageTypes.h\"",
+            "pass_semantic": "pointer",
+            "default_value": "(ErrorInfo_t) { 0 }"
+        }
+    },
+    "runnables": {
+        "OnInit": {
+            "return_type": "void",
+            "arguments": {}
+        },
+        "Store": {
+            "arguments": {
+                "data": {
+                    "data_type": "ErrorInfo_t",
+                    "direction": "in"
+                }
+            }
+        },
+        "Read": {
+            "return_type": "bool",
+            "arguments": {
+                "index": {
+                    "data_type": "uint32_t",
+                    "direction": "in"
+                },
+                "data": {
+                    "data_type": "ErrorInfo_t",
+                    "direction": "out"
+                }
+            }
+        },
+        "Clear": {}
+    },
+    "ports": {
+        "HardwareVersion": {
+            "port_type": "ReadValue",
+            "data_type": "uint32_t",
+            "default_value": "0"
+        },
+        "FirmwareVersion": {
+            "port_type": "ReadValue",
+            "data_type": "uint32_t",
+            "default_value": "0"
+        },
+        "NumberOfStoredErrors": {
+            "port_type": "WriteData",
+            "data_type": "uint32_t"
+        }
+    }
+}

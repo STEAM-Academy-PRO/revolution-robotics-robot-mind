@@ -1,0 +1,30 @@
+os: linux
+dist: xenial
+git:
+  depth: false
+language: c
+before_install:
+  - wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2 -O toolchain.tar.bz2
+install:
+  - pyenv local 3.7
+  - pip3 install --user -r tools/requirements.txt
+  - tar -xjf toolchain.tar.bz2
+  - export PATH="$PATH:$TRAVIS_BUILD_DIR/gcc-arm-none-eabi-9-2019-q4-major/bin"
+  - chmod +x ./tools/commit_firmware.sh
+  - python3 -m tools.gen_version
+  - python3 -m tools.generate_makefile
+  - cglue --generate --cglue-output=rrrc/generated_runtime
+script:
+  - make all
+deploy:
+  skip_cleanup: true
+  provider: script
+  script: bash ./tools/commit_firmware.sh
+  on:
+    branch: master
+    tags: true
+notifications:
+  slack:
+    on_success: change
+    rooms:
+      - revolution-robotics:sXlaetqFuXuT3Vr4atwogEdK

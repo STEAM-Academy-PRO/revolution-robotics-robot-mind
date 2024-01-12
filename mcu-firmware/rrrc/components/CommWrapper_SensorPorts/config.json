@@ -1,0 +1,118 @@
+{
+    "name": "CommWrapper_SensorPorts",
+    "version": "1.0.0",
+    "requires": {
+        "MasterCommunication": "[1.0.0, 2.0.0)"
+    },
+    "source_files": [
+        "CommWrapper_SensorPorts.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "TestSensorOnPortResult_t": {
+            "type": "enum",
+            "values": [
+                "TestSensorOnPortResult_NotPresent",
+                "TestSensorOnPortResult_Present",
+                "TestSensorOnPortResult_Unknown",
+                "TestSensorOnPortResult_Error"
+            ],
+            "default_value": "TestSensorOnPortResult_Unknown"
+        }
+    },
+    "runnables": {
+        "Command_GetPortAmount_Start": "Comm_CommandHandler_Start_t",
+        "Command_GetPortTypes_Start": "Comm_CommandHandler_Start_t",
+        "Command_SetPortType_Start": "Comm_CommandHandler_Start_t",
+        "Command_SetPortType_GetResult": "Comm_CommandHandler_GetResult_t",
+        "Command_SetPortConfig_Start": "Comm_CommandHandler_Start_t",
+        "Command_SetPortConfig_GetResult": "Comm_CommandHandler_GetResult_t",
+        "Command_ReadSensorInfo_Start": "Comm_CommandHandler_Start_t",
+        "Command_TestSensorOnPort_Start": "Comm_CommandHandler_Start_t",
+        "Command_TestSensorOnPort_GetResult": "Comm_CommandHandler_GetResult_t"
+    },
+    "ports": {
+        "ReadPortTypes": {
+            "port_type": "ServerCall",
+            "arguments": {
+                "buffer": {
+                    "data_type": "ByteArray_t",
+                    "direction": "out"
+                }
+            }
+        },
+        "TestSensorOnPort": {
+            "port_type": "AsyncServerCall",
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "port_type": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "result": {
+                    "data_type": "TestSensorOnPortResult_t",
+                    "direction": "out"
+                }
+            }
+        },
+        "SetPortType": {
+            "port_type": "AsyncServerCall",
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "port_type": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "result": {
+                    "data_type": "bool",
+                    "direction": "out"
+                }
+            }
+        },
+        "SetPortConfig": {
+            "port_type": "AsyncServerCall",
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "configuration": {
+                    "data_type": "ByteArray_t",
+                    "direction": "in"
+                },
+                "result": {
+                    "data_type": "bool",
+                    "direction": "out"
+                }
+            }
+        },
+        "PortCount": {
+            "port_type": "ReadValue",
+            "data_type": "uint8_t"
+        },
+        "ReadSensorInfo": {
+            "port_type": "ServerCall",
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "page": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "buffer": {
+                    "data_type": "ByteArray_t",
+                    "direction": "out"
+                }
+            }
+        }
+    }
+}

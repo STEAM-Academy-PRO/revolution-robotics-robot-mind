@@ -1,0 +1,88 @@
+{
+    "name": "RingLedDisplay",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "RingLedDisplay.c",
+        "Scenario/scenario_handlers.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "rgb_t": {
+            "defined_in": "\"utils/color.h\"",
+            "default_value": "(rgb_t){0, 0, 0}"
+        },
+        "RingLedScenario_t": {
+            "type": "enum",
+            "values": [
+                "RingLedScenario_Off",
+                "RingLedScenario_UserFrame",
+                "RingLedScenario_ColorWheel",
+                "RingLedScenario_RainbowFade",
+                "RingLedScenario_BusyIndicator",
+                "RingLedScenario_BreathingGreen",
+                "RingLedScenario_Siren",
+                "RingLedScenario_TrafficLight"
+            ],
+            "default_value": "RingLedScenario_Off"
+        },
+        "MasterStatus_t": {
+            "type": "enum",
+            "values": [
+                "MasterStatus_Unknown",
+                "MasterStatus_NotConfigured",
+                "MasterStatus_Configuring",
+                "MasterStatus_Updating",
+                "MasterStatus_Operational",
+                "MasterStatus_Controlled"
+            ],
+            "default_value": "MasterStatus_Unknown"
+        }
+    },
+    "runnables": {
+        "OnInit": {},
+        "Update": {},
+        "OnMasterStarted": {},
+        "ReadScenarioName": {
+            "return_type": "uint8_t",
+            "arguments": {
+                "scenario": "RingLedScenario_t",
+                "destination": "ByteArray_t"
+            }
+        }
+    },
+    "ports": {
+        "MasterStatus": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "MasterStatus_t"
+        },
+        "Scenario": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "RingLedScenario_t"
+        },
+        "WaitForMasterStartup": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "bool"
+        },
+        "LedColor": {
+            "port_type": "WriteIndexedData",
+            "data_type": "rgb_t",
+            "count": 12
+        },
+        "UserColors": {
+            "port_type": "ReadIndexedValue",
+            "default_value": null,
+            "data_type": "rgb_t",
+            "count": 12
+        },
+        "ExpectedStartupTime": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "uint32_t"
+        }
+    }
+}
