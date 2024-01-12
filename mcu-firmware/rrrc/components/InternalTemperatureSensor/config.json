@@ -1,0 +1,30 @@
+{
+    "name": "InternalTemperatureSensor",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "InternalTemperatureSensor.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {},
+    "runnables": {
+        "Convert": {
+            "arguments": {
+                "tp": {
+                    "data_type": "float",
+                    "direction": "in"
+                },
+                "tc": {
+                    "data_type": "float",
+                    "direction": "in"
+                },
+                "temperature": {
+                    "data_type": "float",
+                    "direction": "out"
+                }
+            }
+        }
+    },
+    "ports": {}
+}

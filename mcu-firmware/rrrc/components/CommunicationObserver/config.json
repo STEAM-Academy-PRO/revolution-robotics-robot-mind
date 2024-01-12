@@ -1,0 +1,38 @@
+{
+    "name": "CommunicationObserver",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "CommunicationObserver.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {},
+    "runnables": {
+        "OnInit": {
+            "return_type": "void",
+            "arguments": {}
+        },
+        "OnMessageMissed": {
+            "return_type": "void",
+            "arguments": {}
+        },
+        "OnMessageReceived": {
+            "return_type": "void",
+            "arguments": {}
+        }
+    },
+    "ports": {
+        "ErrorLimitReached": {
+            "port_type": "Event"
+        },
+        "IsEnabled": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "bool"
+        },
+        "FirstMessageReceived": {
+            "port_type": "Event"
+        }
+    }
+}

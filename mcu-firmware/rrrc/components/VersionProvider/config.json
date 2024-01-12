@@ -1,0 +1,29 @@
+{
+    "name": "VersionProvider",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "VersionProvider.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {},
+    "runnables": {},
+    "ports": {
+        "HardwareVersion": {
+            "port_type": "Constant",
+            "data_type": "uint32_t",
+            "value": "FLASH_HEADER->hw_version"
+        },
+        "FirmwareVersion": {
+            "port_type": "Constant",
+            "data_type": "uint32_t",
+            "value": "FW_VERSION_NUMBER"
+        },
+        "FirmwareVersionString": {
+            "port_type": "Constant",
+            "data_type": "ByteArray_t",
+            "value": "(ByteArray_t) {.bytes = (uint8_t*) FIRMWARE_VERSION_STRING, .count = strlen(FIRMWARE_VERSION_STRING) }"
+        }
+    }
+}

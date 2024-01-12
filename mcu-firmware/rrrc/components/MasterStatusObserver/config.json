@@ -1,0 +1,62 @@
+{
+    "name": "MasterStatusObserver",
+    "version": "1.0.0",
+    "requires": {
+        "MasterCommunication": "[1.0.0, 2.0.0)"
+    },
+    "source_files": [
+        "MasterStatusObserver.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "MasterStatus_t": {
+            "type": "enum",
+            "values": [
+                "MasterStatus_Unknown",
+                "MasterStatus_NotConfigured",
+                "MasterStatus_Configuring",
+                "MasterStatus_Updating",
+                "MasterStatus_Operational",
+                "MasterStatus_Controlled"
+            ],
+            "default_value": "MasterStatus_Unknown"
+        }
+    },
+    "runnables": {
+        "OnInit": {
+            "return_type": "void",
+            "arguments": {}
+        },
+        "Update": {
+            "return_type": "void",
+            "arguments": {}
+        },
+        "Command_SetMasterStatus_Start": "Comm_CommandHandler_Start_t"
+    },
+    "ports": {
+        "MasterStatus": {
+            "port_type": "WriteData",
+            "data_type": "MasterStatus_t"
+        },
+        "IsColdStart": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "bool"
+        },
+        "EnableCommunicationObserver": {
+            "port_type": "WriteData",
+            "data_type": "bool"
+        },
+        "UpdateTimeout": {
+            "port_type": "ReadValue",
+            "default_value": 30000,
+            "data_type": "uint32_t"
+        },
+        "ExpectedStartupTime": {
+            "port_type": "ReadValue",
+            "default_value": 10000,
+            "data_type": "uint32_t"
+        }
+    }
+}

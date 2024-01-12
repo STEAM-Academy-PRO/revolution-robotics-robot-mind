@@ -1,0 +1,8 @@
+# Firmware project artefacts
+Debug/*
+Debug*/*
+Release/*
+.vs/*
+.atmel-start-backup
+jlink.config
+jlink.log

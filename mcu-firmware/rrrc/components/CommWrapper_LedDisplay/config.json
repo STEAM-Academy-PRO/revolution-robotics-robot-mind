@@ -1,0 +1,40 @@
+{
+    "name": "CommWrapper_LedDisplay",
+    "version": "1.0.0",
+    "requires": {
+        "RingLedDisplay": "[1.0.0, 2.0.0)",
+        "MasterCommunication": "[1.0.0, 2.0.0)"
+    },
+    "source_files": [
+        "CommWrapper_LedDisplay.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {},
+    "runnables": {
+        "Reset": {},
+        "Command_GetScenarioTypes_Start": "Comm_CommandHandler_Start_t",
+        "Command_SetScenarioType_Start": "Comm_CommandHandler_Start_t",
+        "Command_GetRingLedAmount_Start": "Comm_CommandHandler_Start_t",
+        "Command_SetUserFrame_Start": "Comm_CommandHandler_Start_t"
+    },
+    "ports": {
+        "Scenario": {
+            "port_type": "WriteData",
+            "data_type": "RingLedScenario_t"
+        },
+        "ReadScenarioName": {
+            "port_type": "ServerCall",
+            "return_type": "uint8_t",
+            "arguments": {
+                "scenario": "RingLedScenario_t",
+                "destination": "ByteArray_t"
+            }
+        },
+        "UserFrame": {
+            "port_type": "WriteIndexedData",
+            "data_type": "rgb_t",
+            "count": 12
+        }
+    }
+}

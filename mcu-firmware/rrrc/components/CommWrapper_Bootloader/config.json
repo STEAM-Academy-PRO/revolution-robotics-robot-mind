@@ -1,0 +1,22 @@
+{
+    "name": "CommWrapper_Bootloader",
+    "version": "1.0.0",
+    "requires": {
+        "MasterCommunication": "[1.0.0, 2.0.0)"
+    },
+    "source_files": [
+        "CommWrapper_Bootloader.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {},
+    "runnables": {
+        "Command_GetOperationMode_Start": "Comm_CommandHandler_Start_t",
+        "Command_RebootToBootloader_Start": "Comm_CommandHandler_Start_t"
+    },
+    "ports": {
+        "RebootToBootloader": {
+            "port_type": "AsyncServerCall"
+        }
+    }
+}

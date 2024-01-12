@@ -1,0 +1,133 @@
+{
+    "name": "ProjectConfiguration",
+    "version": "1.0.0",
+    "requires": {
+        "MotorPortHandler": "[1.0.0, 2.0.0)"
+    },
+    "source_files": [
+        "ProjectConfiguration.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "Voltage_t": {
+            "aliases": "float"
+        },
+        "Temperature_t": {
+            "aliases": "float"
+        },
+        "BatteryConfiguration_t": {
+            "type": "struct",
+            "fields": {
+                "detectionVoltage": "Voltage_t",
+                "minVoltage": "Voltage_t",
+                "maxVoltage": "Voltage_t"
+            }
+        },
+        "MotorThermalParameters_t": {
+            "type": "struct",
+            "fields": {
+                "resistance": "float",
+                "coeff_cooling": "float",
+                "coeff_heating": "float"
+            }
+        },
+        "MotorDeratingParameters_t": {
+            "type": "struct",
+            "fields": {
+                "MaxSafeTemperature": "Temperature_t",
+                "MaxAllowedTemperature": "Temperature_t"
+            }
+        }
+    },
+    "runnables": {},
+    "ports": {
+        "DeviceAddress": {
+            "port_type": "Constant",
+            "data_type": "uint8_t",
+            "value": "0x2D"
+        },
+        "MainBatteryParameters": {
+            "port_type": "Constant",
+            "data_type": "BatteryConfiguration_t",
+            "value": {
+                "detectionVoltage": "2000.0f",
+                "minVoltage": "3300.0f",
+                "maxVoltage": "4100.0f"
+            }
+        },
+        "MotorBatteryParameters": {
+            "port_type": "Constant",
+            "data_type": "BatteryConfiguration_t",
+            "value": {
+                "detectionVoltage": "4000.0f",
+                "minVoltage": "5400.0f",
+                "maxVoltage": "7000.0f"
+            }
+        },
+        "MotorThermalParameters": {
+            "port_type": "Constant",
+            "data_type": "MotorThermalParameters_t",
+            "value": {
+                "resistance": "3.5f",
+                "coeff_cooling": "0.02f",
+                "coeff_heating": "0.2f"
+            }
+        },
+        "MotorDeratingParameters": {
+            "port_type": "Constant",
+            "data_type": "MotorDeratingParameters_t",
+            "value": {
+                "MaxSafeTemperature": "70.0f",
+                "MaxAllowedTemperature": "130.0f"
+            }
+        },
+        "ExpectedStartupTime": {
+            "port_type": "Constant",
+            "data_type": "uint32_t",
+            "value": "35000"
+        },
+        "ExpectedUpdateTime": {
+            "port_type": "Constant",
+            "data_type": "uint32_t",
+            "value": "300000"
+        },
+        "MotorPortGpios": {
+            "port_type": "ConstantArray",
+            "data_type": "MotorPortGpios_t",
+            "value": [
+                {
+                    "led": "M5_GREEN_LED",
+                    "enc0": "M5_ENC_A",
+                    "enc1": "M5_ENC_B"
+                },
+                {
+                    "led": "M4_GREEN_LED",
+                    "enc0": "M4_ENC_A",
+                    "enc1": "M4_ENC_B"
+                },
+                {
+                    "led": "M3_GREEN_LED",
+                    "enc0": "M3_ENC_A",
+                    "enc1": "M3_ENC_B"
+                },
+                {
+                    "led": "M0_GREEN_LED",
+                    "enc0": "M0_ENC_A",
+                    "enc1": "M0_ENC_B"
+                },
+                {
+                    "led": "M1_GREEN_LED",
+                    "enc0": "M1_ENC_A",
+                    "enc1": "M1_ENC_B"
+                },
+                {
+                    "led": "M2_GREEN_LED",
+                    "enc0": "M2_ENC_A",
+                    "enc1": "M2_ENC_B"
+                }
+            ],
+            "count": 6
+        }
+    }
+}

@@ -1,0 +1,30 @@
+{
+    "name": "HighResolutionTimer",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "HighResolutionTimer.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {},
+    "runnables": {
+        "OnInit": {},
+        "GetTickCount": {
+            "return_type": "uint32_t"
+        },
+        "ToMs": {
+            "return_type": "float",
+            "arguments": {
+                "ticks": "uint32_t"
+            }
+        }
+    },
+    "ports": {
+        "TicksInMs": {
+            "port_type": "Constant",
+            "data_type": "uint32_t",
+            "value": "24u"
+        }
+    }
+}

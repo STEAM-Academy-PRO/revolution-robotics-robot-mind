@@ -1,0 +1,32 @@
+{
+    "name": "MemoryAllocator",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "MemoryAllocator.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {},
+    "runnables": {
+        "Allocate": {
+            "return_type": "void*",
+            "arguments": {
+                "size": {
+                    "data_type": "size_t",
+                    "direction": "in"
+                }
+            }
+        },
+        "Free": {
+            "return_type": "void",
+            "arguments": {
+                "ptr": {
+                    "data_type": "void*",
+                    "direction": "inout"
+                }
+            }
+        }
+    },
+    "ports": {}
+}

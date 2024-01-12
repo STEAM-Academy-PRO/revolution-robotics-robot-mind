@@ -1,0 +1,24 @@
+{
+    "name": "HardwareCompatibilityChecker",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "HardwareCompatibilityChecker.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {},
+    "runnables": {
+        "OnInit": {}
+    },
+    "ports": {
+        "OnIncompatibleHardware": {
+            "port_type": "Event"
+        },
+        "HardwareVersion": {
+            "port_type": "ReadValue",
+            "data_type": "uint32_t",
+            "default_value": "0"
+        }
+    }
+}

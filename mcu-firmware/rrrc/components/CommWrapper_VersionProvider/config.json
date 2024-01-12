@@ -1,0 +1,28 @@
+{
+    "name": "CommWrapper_VersionProvider",
+    "version": "1.0.0",
+    "requires": {
+        "VersionProvider": "[1.0.0, 2.0.0)"
+    },
+    "source_files": [
+        "CommWrapper_VersionProvider.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {},
+    "runnables": {
+        "Command_ReadHardwareVersion_Start": "Comm_CommandHandler_Start_t",
+        "Command_ReadFirmwareVersion_Start": "Comm_CommandHandler_Start_t"
+    },
+    "ports": {
+        "HardwareVersion": {
+            "port_type": "ReadValue",
+            "data_type": "uint32_t"
+        },
+        "FirmwareVersionString": {
+            "port_type": "ReadValue",
+            "data_type": "ByteArray_t",
+            "default_value": "(ByteArray_t) {.bytes = (uint8_t*) \"\", .count = 0u }"
+        }
+    }
+}

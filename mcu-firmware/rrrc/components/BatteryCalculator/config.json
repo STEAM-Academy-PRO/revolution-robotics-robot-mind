@@ -1,0 +1,65 @@
+{
+    "name": "BatteryCalculator",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "BatteryCalculator.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "Voltage_t": {
+            "aliases": "float"
+        },
+        "BatteryConfiguration_t": {
+            "type": "struct",
+            "fields": {
+                "detectionVoltage": "Voltage_t",
+                "minVoltage": "Voltage_t",
+                "maxVoltage": "Voltage_t"
+            }
+        }
+    },
+    "runnables": {
+        "OnInit": {},
+        "Update": {}
+    },
+    "ports": {
+        "MainBatteryParameters": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "BatteryConfiguration_t"
+        },
+        "MotorBatteryParameters": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "BatteryConfiguration_t"
+        },
+        "MainBatteryVoltage": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "Voltage_t"
+        },
+        "MotorBatteryVoltage": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "Voltage_t"
+        },
+        "MainBatteryLevel": {
+            "port_type": "WriteData",
+            "data_type": "uint8_t"
+        },
+        "MotorBatteryLevel": {
+            "port_type": "WriteData",
+            "data_type": "uint8_t"
+        },
+        "MotorBatteryPresent": {
+            "port_type": "WriteData",
+            "data_type": "bool"
+        },
+        "MainBatteryLow": {
+            "port_type": "WriteData",
+            "data_type": "bool"
+        }
+    }
+}

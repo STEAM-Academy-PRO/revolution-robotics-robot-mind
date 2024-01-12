@@ -1,0 +1,155 @@
+{
+    "name": "SensorPortHandler",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "SensorPortHandler.c",
+        "SensorPortHandlerInternal.c",
+        "SensorPortLibraries/BumperSwitch/BumperSwitch.c",
+        "SensorPortLibraries/DebugRTC/DebugRTC.c",
+        "SensorPortLibraries/Dummy/Dummy.c",
+        "SensorPortLibraries/HC_SR04/HC_SR04.c",
+        "SensorPortLibraries/EV3/EV3.c",
+        "SensorPortLibraries/EV3/ev3_utils.c",
+        "SensorPortLibraries/RGB/RGB.c",
+        "SensorPortLibraries/SensorPort_I2C.c",
+        "SensorPortLibraries/SensorPort_UART.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {},
+    "runnables": {
+        "PortUpdate": {
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                }
+            }
+        },
+        "ReadPortTypes": {
+            "arguments": {
+                "buffer": {
+                    "data_type": "ByteArray_t",
+                    "direction": "out"
+                }
+            }
+        },
+        "SetPortType": {
+            "port_type": "AsyncRunnable",
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "port_type": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "result": {
+                    "data_type": "bool",
+                    "direction": "out"
+                }
+            }
+        },
+        "TestSensorOnPort": {
+            "port_type": "AsyncRunnable",
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "port_type": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "result": {
+                    "data_type": "TestSensorOnPortResult_t",
+                    "direction": "out"
+                }
+            }
+        },
+        "Configure": {
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "configuration": {
+                    "data_type": "ByteArray_t",
+                    "direction": "in"
+                },
+                "result": {
+                    "data_type": "bool",
+                    "direction": "out"
+                }
+            }
+        },
+        "ReadSensorInfo": {
+            "arguments": {
+                "port_idx": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "page": {
+                    "data_type": "uint8_t",
+                    "direction": "in"
+                },
+                "buffer": {
+                    "data_type": "ByteArray_t",
+                    "direction": "out"
+                }
+            }
+        }
+    },
+    "ports": {
+        "PortCount": {
+            "port_type": "Constant",
+            "data_type": "uint8_t",
+            "value": 4
+        },
+        "Allocate": {
+            "port_type": "ServerCall",
+            "return_type": "void*",
+            "arguments": {
+                "size": {
+                    "data_type": "size_t",
+                    "direction": "in"
+                }
+            }
+        },
+        "Free": {
+            "port_type": "ServerCall",
+            "return_type": "void",
+            "arguments": {
+                "ptr": {
+                    "data_type": "void*",
+                    "direction": "inout"
+                }
+            }
+        },
+        "ReadCurrentTicks": {
+            "port_type": "ServerCall",
+            "return_type": "uint32_t"
+        },
+        "ConvertTicksToMs": {
+            "port_type": "ServerCall",
+            "return_type": "float",
+            "arguments": {
+                "ticks": "uint32_t"
+            }
+        },
+        "AdcData": {
+            "port_type": "ReadIndexedValue",
+            "data_type": "uint8_t",
+            "count": 4
+        },
+        "UpdatePortStatus": {
+            "port_type": "ServerCall",
+            "arguments": {
+                "port": "uint8_t",
+                "data": "ByteArray_t"
+            }
+        }
+    }
+}

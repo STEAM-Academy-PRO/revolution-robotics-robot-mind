@@ -1,0 +1,22 @@
+{
+    "name": "RestartManager",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "RestartManager.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {},
+    "runnables": {
+        "Reset": {
+            "return_type": "void",
+            "arguments": {}
+        },
+        "RebootToBootloader": {
+            "return_type": "void",
+            "arguments": {}
+        }
+    },
+    "ports": {}
+}

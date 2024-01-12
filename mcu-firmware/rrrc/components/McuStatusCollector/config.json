@@ -1,0 +1,50 @@
+{
+    "name": "McuStatusCollector",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "McuStatusCollector.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "SlotData_t": {
+            "type": "struct",
+            "pass_semantic": "value",
+            "fields": {
+                "data": "ByteArray_t",
+                "version": "uint8_t"
+            },
+            "default_value": {
+                "version": "0xFFu"
+            }
+        }
+    },
+    "runnables": {
+        "Reset": {},
+        "Read": {
+            "arguments": {
+                "destination": "ByteArray_t"
+            },
+            "return_type": "uint8_t"
+        },
+        "EnableSlot": {
+            "arguments": {
+                "slot": "uint8_t"
+            }
+        },
+        "DisableSlot": {
+            "arguments": {
+                "slot": "uint8_t"
+            }
+        }
+    },
+    "ports": {
+        "SlotData": {
+            "port_type": "ReadIndexedValue",
+            "default_value": null,
+            "data_type": "SlotData_t",
+            "count": 16
+        }
+    }
+}

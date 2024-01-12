@@ -1,0 +1,70 @@
+{
+    "name": "IMUOrientationEstimator",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "IMUOrientationEstimator.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "Vector3D_t": {
+            "type": "struct",
+            "fields": {
+                "x": "float",
+                "y": "float",
+                "z": "float"
+            }
+        },
+        "Orientation3D_t": {
+            "type": "struct",
+            "fields": {
+                "pitch": "float",
+                "roll": "float",
+                "yaw": "float"
+            }
+        },
+        "Quaternion_t": {
+            "type": "struct",
+            "fields": {
+                "q0": "float",
+                "q1": "float",
+                "q2": "float",
+                "q3": "float"
+            }
+        }
+    },
+    "runnables": {
+        "OnInit": {},
+        "OnUpdate": {}
+    },
+    "ports": {
+        "Acceleration": {
+            "port_type": "ReadQueuedValue",
+            "default_value": null,
+            "data_type": "Vector3D_t"
+        },
+        "AngularSpeeds": {
+            "port_type": "ReadQueuedValue",
+            "default_value": null,
+            "data_type": "Vector3D_t"
+        },
+        "Orientation": {
+            "port_type": "WriteData",
+            "data_type": "Quaternion_t"
+        },
+        "OrientationEuler": {
+            "port_type": "WriteData",
+            "data_type": "Orientation3D_t"
+        },
+        "OrientationEulerDegrees": {
+            "port_type": "WriteData",
+            "data_type": "Orientation3D_t"
+        },
+        "SampleTime": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "float"
+        }
+    }
+}

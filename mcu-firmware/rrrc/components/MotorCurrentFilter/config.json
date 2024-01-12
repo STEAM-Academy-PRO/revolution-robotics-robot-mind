@@ -1,0 +1,38 @@
+{
+    "name": "MotorCurrentFilter",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "MotorCurrentFilter.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "Current_t": {
+            "aliases": "float"
+        }
+    },
+    "runnables": {
+        "OnInit": {
+            "arguments": {},
+            "return_type": "void"
+        },
+        "Update": {
+            "arguments": {},
+            "return_type": "void"
+        }
+    },
+    "ports": {
+        "RawCurrent": {
+            "port_type": "ReadIndexedValue",
+            "default_value": null,
+            "data_type": "Current_t",
+            "count": 6
+        },
+        "FilteredCurrent": {
+            "port_type": "WriteIndexedData",
+            "data_type": "Current_t",
+            "count": 6
+        }
+    }
+}

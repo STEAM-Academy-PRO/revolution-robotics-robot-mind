@@ -1,0 +1,13 @@
+Build/*
++.vs/*
+/.vs/*
+/.idea/
+Makefile
+/**/*.pyc
+/**/*.bak*
+/output/
+/venv/
+jlink.*
+*.atsln
+*.elf
+*.componentinfo.xml

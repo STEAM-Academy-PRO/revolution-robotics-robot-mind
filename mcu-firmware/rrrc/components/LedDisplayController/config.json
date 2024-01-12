@@ -1,0 +1,92 @@
+{
+    "name": "LedDisplayController",
+    "version": "1.0.0",
+    "requires": {
+        "BatteryCharger": "[1.0.0,",
+        "MasterStatusObserver": "[1.0.0,",
+        "BluetoothStatusObserver": "[1.0.0,"
+    },
+    "source_files": [
+        "LedDisplayController.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "rgb_t": {
+            "defined_in": "\"utils/color.h\"",
+            "default_value": "(rgb_t){0, 0, 0}"
+        }
+    },
+    "runnables": {
+        "OnInit": {},
+        "Update": {}
+    },
+    "ports": {
+        "RingLeds": {
+            "port_type": "ReadIndexedValue",
+            "default_value": null,
+            "data_type": "rgb_t",
+            "count": 12
+        },
+        "Leds": {
+            "port_type": "WriteIndexedData",
+            "data_type": "rgb_t",
+            "count": 16
+        },
+        "MainBatteryLevel": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "uint8_t"
+        },
+        "MotorBatteryLevel": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "uint8_t"
+        },
+        "MainBatteryStatus": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "ChargerState_t"
+        },
+        "MainBatteryLow": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "bool"
+        },
+        "MotorBatteryPresent": {
+            "port_type": "ReadValue",
+            "default_value": "false",
+            "data_type": "bool"
+        },
+        "MaxBrightness": {
+            "port_type": "WriteData",
+            "data_type": "uint8_t"
+        },
+        "MasterStatus": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "MasterStatus_t"
+        },
+        "BluetoothStatus": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "BluetoothStatus_t"
+        },
+        "MotorDriveValues": {
+            "port_type": "ReadIndexedValue",
+            "default_value": 0,
+            "data_type": "int16_t",
+            "count": 6
+        },
+        "LowBatteryBrightness": {
+            "port_type": "ReadValue",
+            "default_value": 10,
+            "data_type": "uint8_t"
+        },
+        "DefaultBrightness": {
+            "port_type": "ReadValue",
+            "default_value": 24,
+            "data_type": "uint8_t"
+        }
+    }
+}

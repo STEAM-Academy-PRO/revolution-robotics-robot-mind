@@ -1,0 +1,54 @@
+{
+    "name": "CommWrapper_ErrorStorage",
+    "version": "1.0.0",
+    "requires": {
+        "ErrorStorage": "[1.0.0, 2.0.0)"
+    },
+    "source_files": [
+        "CommWrapper_ErrorStorage.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {},
+    "runnables": {
+        "Command_ReadCount_Start": "Comm_CommandHandler_Start_t",
+        "Command_ReadErrors_Start": "Comm_CommandHandler_Start_t",
+        "Command_ClearMemory_Start": "Comm_CommandHandler_Start_t",
+        "Command_StoreTestError_Start": "Comm_CommandHandler_Start_t"
+    },
+    "ports": {
+        "Read": {
+            "port_type": "ServerCall",
+            "return_type": "bool",
+            "arguments": {
+                "index": {
+                    "data_type": "uint32_t",
+                    "direction": "in"
+                },
+                "error": {
+                    "data_type": "ErrorInfo_t",
+                    "direction": "out"
+                }
+            }
+        },
+        "Store": {
+            "port_type": "ServerCall",
+            "return_type": "void",
+            "arguments": {
+                "error": {
+                    "data_type": "ErrorInfo_t",
+                    "direction": "in"
+                }
+            }
+        },
+        "ClearMemory": {
+            "port_type": "ServerCall",
+            "arguments": {}
+        },
+        "NumberOfStoredErrors": {
+            "port_type": "ReadValue",
+            "data_type": "uint32_t",
+            "default_value": "0u"
+        }
+    }
+}

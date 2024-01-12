@@ -1,0 +1,40 @@
+{
+    "name": "GyroscopeOffsetCompensator",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "GyroscopeOffsetCompensator.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "Vector3D_t": {
+            "type": "struct",
+            "fields": {
+                "x": "float",
+                "y": "float",
+                "z": "float"
+            }
+        }
+    },
+    "runnables": {
+        "OnInit": {},
+        "Update": {}
+    },
+    "ports": {
+        "IsMoving": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "bool"
+        },
+        "AngularSpeeds": {
+            "port_type": "ReadQueuedValue",
+            "default_value": null,
+            "data_type": "Vector3D_t"
+        },
+        "CompensatedAngularSpeeds": {
+            "port_type": "WriteData",
+            "data_type": "Vector3D_t"
+        }
+    }
+}

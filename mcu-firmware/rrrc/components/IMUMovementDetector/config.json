@@ -1,0 +1,40 @@
+{
+    "name": "IMUMovementDetector",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "IMUMovementDetector.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "Vector3D_t": {
+            "type": "struct",
+            "fields": {
+                "x": "float",
+                "y": "float",
+                "z": "float"
+            }
+        }
+    },
+    "runnables": {
+        "OnInit": {},
+        "OnUpdate": {}
+    },
+    "ports": {
+        "IsMoving": {
+            "port_type": "WriteData",
+            "data_type": "bool"
+        },
+        "AngularSpeeds": {
+            "port_type": "ReadQueuedValue",
+            "default_value": null,
+            "data_type": "Vector3D_t"
+        },
+        "Acceleration": {
+            "port_type": "ReadQueuedValue",
+            "default_value": null,
+            "data_type": "Vector3D_t"
+        }
+    }
+}

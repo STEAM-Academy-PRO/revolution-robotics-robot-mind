@@ -1,0 +1,43 @@
+{
+    "name": "CommWrapper_McuStatusCollector",
+    "version": "1.0.0",
+    "requires": {
+        "MasterCommunication": "[1.0.0, 2.0.0)"
+    },
+    "source_files": [
+        "CommWrapper_McuStatusCollector.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {},
+    "runnables": {
+        "Command_Reset_Start": "Comm_CommandHandler_Start_t",
+        "Command_ControlSlot_Start": "Comm_CommandHandler_Start_t",
+        "Command_ReadStatus_Start": "Comm_CommandHandler_Start_t"
+    },
+    "ports": {
+        "Read": {
+            "port_type": "ServerCall",
+            "return_type": "uint8_t",
+            "arguments": {
+                "destination": "ByteArray_t"
+            }
+        },
+        "ResetSlots": {
+            "port_type": "ServerCall",
+            "arguments": {}
+        },
+        "EnableSlot": {
+            "port_type": "ServerCall",
+            "arguments": {
+                "slot": "uint8_t"
+            }
+        },
+        "DisableSlot": {
+            "port_type": "ServerCall",
+            "arguments": {
+                "slot": "uint8_t"
+            }
+        }
+    }
+}
