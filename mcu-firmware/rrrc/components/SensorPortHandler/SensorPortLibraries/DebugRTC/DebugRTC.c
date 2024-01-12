@@ -1,10 +1,3 @@
-/*
- * DebugRTC.c
- *
- * Created: 2019. 07. 25. 14:54:32
- *  Author: D�niel Buga
- */
-
 #include "DebugRTC.h"
 #include "utils.h"
 

@@ -1,9 +1,3 @@
-/*
- * Dummy.c
- *
- * Created: 09/05/2019 16:18:37
- *  Author: D�niel Buga
- */
 #include "Dummy.h"
 
 MotorLibraryStatus_t Dummy_Init(MotorPort_t* motorPort)

@@ -1,11 +1,3 @@
-/*
- * color.h
- *
- * Created: 2019. 04. 18. 14:42:15
- *  Author: Dániel Buga
- */ 
-
-
 #ifndef COLOR_H_
 #define COLOR_H_
 

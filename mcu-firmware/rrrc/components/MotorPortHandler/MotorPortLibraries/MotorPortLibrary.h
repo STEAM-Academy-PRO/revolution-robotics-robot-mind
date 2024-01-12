@@ -1,11 +1,3 @@
-/*
- * MotorPortLibrary.h
- *
- * Created: 09/05/2019 16:07:46
- *  Author: D�niel Buga
- */
-
-
 #ifndef MOTOR_PORT_LIBRARY_H_
 #define MOTOR_PORT_LIBRARY_H_
 

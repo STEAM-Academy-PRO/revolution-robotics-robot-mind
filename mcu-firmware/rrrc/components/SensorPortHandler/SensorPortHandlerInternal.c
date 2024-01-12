@@ -1,9 +1,3 @@
-/*
- * SensorPortHandlerInternal.c
- *
- * Created: 10/05/2019 18:01:33
- *  Author: D�niel Buga
- */ 
 #include "SensorPortHandlerInternal.h"
 #include "atmel_start_pins.h"
 

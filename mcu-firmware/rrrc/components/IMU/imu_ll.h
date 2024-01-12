@@ -1,11 +1,3 @@
-/*
- * imu_ll.h
- *
- * Created: 2019. 08. 12. 18:22:51
- *  Author: Dániel Buga
- */ 
-
-
 #ifndef IMU_LL_H_
 #define IMU_LL_H_
 

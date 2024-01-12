@@ -1,9 +1,3 @@
-/*
- * BumperSwitch.c
- *
- * Created: 10/05/2019 10:49:56
- *  Author: D�niel Buga
- */ 
 #include "BumperSwitch.h"
 
 #include "FreeRTOS.h"
