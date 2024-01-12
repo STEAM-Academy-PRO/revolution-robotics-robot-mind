@@ -54,7 +54,7 @@ LINKER_FLAGS := \\
 ifeq ($(OS),Windows_NT)
 \tSHELL := cmd.exe
 \tMKDIR := md
-\tGCC_BINARY_PREFIX := "C:/Program Files (x86)/GNU Arm Embedded Toolchain/10 2021.10/bin/arm-none-eabi-
+\tGCC_BINARY_PREFIX := "C:/Program Files (x86)/GNU Tools Arm Embedded/9 2019-q4-major/bin/arm-none-eabi-
 \tGCC_BINARY_SUFFIX := .exe"
 else
 \tSHELL := /bin/bash

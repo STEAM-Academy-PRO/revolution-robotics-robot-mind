@@ -1,10 +1,3 @@
-/*
- * imu_ll.c
- *
- * Created: 2019. 08. 12. 18:23:22
- *  Author: Dániel Buga
- */ 
- 
 #include "imu_ll.h"
 
 #include "rrrc_hal.h"

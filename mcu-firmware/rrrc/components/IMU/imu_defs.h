@@ -1,14 +1,3 @@
-/*
- * imu_defs.h
- *
- * Register description of the ST Microelectronics LSM5DS3 IMU.
- * Note: description was mostly done on a need-to-do basis, so registers and fields may be missing.
- *
- * Created: 2019. 08. 14. 11:23:31
- *  Author: D�niel Buga
- */
-
-
 #ifndef LSM6DS3_DEFS_H_
 #define LSM6DS3_DEFS_H_
 

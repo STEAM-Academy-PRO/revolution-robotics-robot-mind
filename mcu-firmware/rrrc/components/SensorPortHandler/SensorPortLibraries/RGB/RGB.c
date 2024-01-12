@@ -805,7 +805,7 @@ out_completed:
   return true;
 }
 
-static const SensorLibrary_t sensor_library_rgb = {
+const SensorLibrary_t sensor_library_rgb = {
     .name = "RGB",
     .Init = &ColorSensor_Init,
     .DeInit = &ColorSensor_DeInit,

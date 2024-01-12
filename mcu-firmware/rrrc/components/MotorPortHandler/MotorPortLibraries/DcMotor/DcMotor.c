@@ -631,7 +631,7 @@ MotorLibraryStatus_t DcMotor_CreateDriveRequest(const MotorPort_t* motorPort, co
     }
 }
 
-static const MotorLibrary_t motor_library_dc =
+const MotorLibrary_t motor_library_dc =
 {
     .name                = "DcMotor",
     .Init                = &DcMotor_Init,

@@ -1,9 +1,3 @@
-/*
- * BumperSwitch.c
- *
- * Created: 10/05/2019 10:49:56
- *  Author: D�niel Buga
- */ 
 #include "BumperSwitch.h"
 
 #include "FreeRTOS.h"
@@ -99,7 +93,7 @@ static bool BumperSwitch_TestSensorOnPort(SensorPort_t *port, SensorOnPortStatus
   return true;
 }
 
-static const SensorLibrary_t sensor_library_bumper_switch = 
+const SensorLibrary_t sensor_library_bumper_switch = 
 {
     .name                = "BumperSwitch",
     .Init                = &BumperSwitch_Init,

@@ -1,11 +1,3 @@
-/*
- * converter.h
- *
- * Created: 4/4/2019 2:25:55 PM
- *  Author: Daniel Buga
- */ 
-
-
 #ifndef CONVERTER_H_
 #define CONVERTER_H_
 
