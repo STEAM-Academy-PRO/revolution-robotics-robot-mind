@@ -59,7 +59,7 @@ ifeq ($(OS),Windows_NT)
 else
 \tSHELL := /bin/bash
 \tMKDIR := mkdir -p
-\tGCC_BINARY_PREFIX :=
+\tGCC_BINARY_PREFIX := /usr/share/gcc-arm/gcc-arm-none-eabi-9-2019-q4-major/bin/arm-none-eabi-
 \tGCC_BINARY_SUFFIX :=
 endif
 

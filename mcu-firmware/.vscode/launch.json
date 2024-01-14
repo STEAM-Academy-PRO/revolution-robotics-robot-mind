@@ -30,6 +30,26 @@
             "preLaunchTask": "make debug",
             "runToMain": true,
             "svdFile": "./.vscode/ATSAMD51P19A.svd"
-        }
+        },
+
+        {
+            "preLaunchTask": "prepare debug binary",
+            "type": "probe-rs-debug",
+
+            "runtimeArgs": [
+              "--format", "bin", "--base-address", "0x40000", "dap-server"
+            ],
+
+            "request": "launch",
+            "name": "probe_rs Executable Test",
+            //!MODIFY
+            "chip": "atsamd51p19a",
+            "coreConfigs": [
+              {
+                //!MODIFY
+                "programBinary": "${workspaceRoot}/Build/output/revvy_firmware-0.2.-.bin"
+              }
+            ]
+          }
     ]
 }

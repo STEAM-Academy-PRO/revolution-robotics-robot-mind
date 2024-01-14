@@ -46,7 +46,11 @@ Building the firmware
 
 ### Instructions for Microsoft Windows:
  - ~~Download and install version 9-2019-q4-major of the ARM GCC toolchain from https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads~~.
-   - Linux: `sudo apt install build-essential gcc-arm-none-eabi`
+   - Linux:
+     - Latest gcc does not compile, until fixed, you will need the 
+     - `sudo apt install build-essential`
+     - download and extract `gcc-arm-none-eabi-9-2019-q4-major` from [here](https://developer.arm.com/downloads/-/gnu-rm) to `/usr/share/gcc-arm/gcc-arm-none-eabi-9-2019-q4-major`
+     - add the `bin` folder to your `$PATH` (`.bashrc`) (it's for manual use, this is set in `settings.json`)
    - Windows: [download & install](https://dev.to/gamegods3/how-to-install-gcc-in-windows-10-the-easier-way-422j)
      - Download the binary and dependencies from http://gnuwin32.sourceforge.net/packages/make.htm
      - Extract the downloaded directories to a place of your choice. (For example, C:\gnu\make)
@@ -81,6 +85,13 @@ Building the firmware
 
   - Delete the corresponding lines from the `manifest.json` file in the `~/RevvyFramework/user/packages/<newest>/` folder
   - Restart the framework to install the firmware
+
+#### Linux
+
+- upload MCU bootloader with
+  `probe-rs download ~/Downloads/rrrc_bootloader.bin --chip atsamd51p19a --format bin`
+- upload MCU firmware with
+- `probe-rs download Build/output/revvy_firmware-0.2.-.bin --format bin --chip atsamd51p19a --base-address 0x40000`
 
 ### Debugging
  - Make sure the debug bootloader is installed on the MCU. You can find the compiled bootloaders in the ProductionFiles repository, or the sources in the Bootloader repository.

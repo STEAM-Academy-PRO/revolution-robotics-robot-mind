@@ -6,25 +6,40 @@
         {
             "label": "generate version",
             "type": "shell",
-            "command": "${config:python.pythonPath} -m tools.gen_version",
+            "command": "${config:python.pythonPath.linux} -m tools.gen_version",
+            "windows": {
+                "command": "${config:python.pythonPath.windows} -m tools.gen_version"
+            },
+            "options": {
+                "env": { "PATH": "" }
+            },
             "problemMatcher": []
         },
         {
             "label": "generate makefile",
             "type": "shell",
-            "command": "${config:python.pythonPath} -m tools.generate_makefile --cleanup",
+            "command": "${config:python.pythonPath.linux} -m tools.generate_makefile --cleanup",
+            "windows": {
+                "command": "${config:python.pythonPath.windows} -m "
+            },
             "problemMatcher": []
         },
         {
             "label": "generate runtime",
             "type": "shell",
-            "command": "${config:python.pythonPath} -m cglue.cli --generate --cglue-output=rrrc/generated_runtime --cleanup",
+            "command": "${config:python.pythonPath.linux} -m cglue.cli --generate --cglue-output=rrrc/generated_runtime --cleanup",
+            "windows": {
+                "command": "${config:python.pythonPath.windows} -m "
+            },
             "problemMatcher": []
         },
         {
             "label": "generate documentation",
             "type": "shell",
-            "command": "${config:python.pythonPath} -m tools.generate_component_diagram --ignore-components=Runtime --output=docs/map --display",
+            "command": "${config:python.pythonPath.linux} -m tools.generate_component_diagram --ignore-components=Runtime --output=docs/map --display",
+            "windows": {
+                "command": "${config:python.pythonPath.windows} -m tools.generate_component_diagram --ignore-components=Runtime --output=docs/map --display"
+            },
             "problemMatcher": []
         },
         {
@@ -42,8 +57,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "dependsOn":
-            [
+            "dependsOn": [
                 "generate version",
                 "generate makefile",
                 "generate runtime"
@@ -54,8 +68,7 @@
             "type": "shell",
             "command": "make all config=release",
             "problemMatcher": "$gcc",
-            "dependsOn":
-            [
+            "dependsOn": [
                 "generate version",
                 "generate makefile",
                 "generate runtime"
@@ -64,20 +77,24 @@
         {
             "label": "prepare release binary",
             "type": "shell",
-            "command": "${config:python.pythonPath} -m tools.prepare",
+            "command": "${config:python.pythonPath.linux} -m tools.prepare",
+            "windows": {
+                "command": "${config:python.pythonPath.windows} -m tools.prepare"
+            },
             "problemMatcher": "$gcc",
-            "dependsOn":
-            [
+            "dependsOn": [
                 "make release"
             ]
         },
         {
             "label": "prepare debug binary",
             "type": "shell",
-            "command": "${config:python.pythonPath} -m tools.prepare --debug",
+            "command": "${config:python.pythonPath.linux} -m tools.prepare --debug",
+            "windows": {
+                "command": "${config:python.pythonPath.windows} -m tools.prepare --debug"
+            },
             "problemMatcher": "$gcc",
-            "dependsOn":
-            [
+            "dependsOn": [
                 "make debug"
             ]
         }
