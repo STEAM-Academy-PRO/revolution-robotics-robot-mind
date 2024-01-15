@@ -10,9 +10,6 @@
             "windows": {
                 "command": "${config:python.pythonPath.windows} -m tools.gen_version"
             },
-            "options": {
-                "env": { "PATH": "" }
-            },
             "problemMatcher": []
         },
         {
