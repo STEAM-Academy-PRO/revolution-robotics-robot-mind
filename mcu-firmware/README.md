@@ -35,32 +35,36 @@ When using the provided VS Code tasks, runtime and makefile generation is done a
 Building the firmware
 ---------------------
 
-### Tools required:
+### Tools required
+
  - git
- - ARM GCC,
- - python 3.7
+ - ARM GCC
  - VS Code if you intend to keep your sanity
    - [Cortex-Debug](https://github.com/Marus/cortex-debug) to allow debugging in VS Code
  - python 3.7 or newer
- - SEGGER J-Link drivers (optional for debugging)
 
-### Instructions for Microsoft Windows:
- - ~~Download and install version 9-2019-q4-major of the ARM GCC toolchain from https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads~~.
-   - Linux:
-     - Latest gcc does not compile, until fixed, you will need the 
-     - `sudo apt install build-essential`
-     - download and extract `gcc-arm-none-eabi-9-2019-q4-major` from [here](https://developer.arm.com/downloads/-/gnu-rm) to `/usr/share/gcc-arm/gcc-arm-none-eabi-9-2019-q4-major`
-     - add the `bin` folder to your `$PATH` (`.bashrc`) (it's for manual use, this is set in `settings.json`)
-   - Windows: [download & install](https://dev.to/gamegods3/how-to-install-gcc-in-windows-10-the-easier-way-422j)
-     - Download the binary and dependencies from http://gnuwin32.sourceforge.net/packages/make.htm
-     - Extract the downloaded directories to a place of your choice. (For example, C:\gnu\make)
-     - Add the bin folder of the extracted archive to your Path.
-     - Make sure the folder contains the compiler binaries are included in your Path.
- - To debug the firmware using a J-Link probe, download and install [SEGGER J-Link drivers](https://www.segger.com/downloads/jlink/)
+### Set up compiler (Linux)
+
+> Latest gcc does not compile, until fixed, you will need the `gcc-arm-none-eabi-9-2019-q4-major` version
+
+- `sudo apt install build-essential`
+- Download and extract [`gcc-arm-none-eabi-9-2019-q4-major`](https://developer.arm.com/downloads/-/gnu-rm) to `/usr/share/gcc-arm/gcc-arm-none-eabi-9-2019-q4-major`
+  - Add the `bin` folder to your `$PATH` (`.bashrc`) (it's for manual use, this is set in `settings.json`)
+
+### Set up compiler (Windows)
+
+> Latest gcc does not compile, until fixed, you will need the `gcc-arm-none-eabi-9-2019-q4-major` version
+
+- Download and extract [`gcc-arm-none-eabi-9-2019-q4-major`](https://developer.arm.com/downloads/-/gnu-rm) to `C:\gcc\gcc-arm-none-eabi-9-2019-q4-major`.
+  - Add the `bin` folder to your `$PATH`.
+- Download the `Binaries` and `Dependencies` from http://gnuwin32.sourceforge.net/packages/make.htm
+  - Extract the downloaded directories to a place of your choice. (For example, C:\gnu\make)
+  - Add the bin folder of the extracted archive to your `$PATH`.
+- Use `zadig` to replace the jlink drivers with WinUSB
 
 ### Create python virtual environment and install requirements
  - open a command line in the project directory
- - Run command `[python -m venv venv](https://www.segger.com/downloads/jlink/)` to create new virtual environment in the `venv` directory
+ - Run command `python -m venv venv` to create new virtual environment in the `venv` directory
  - Activate virtual environment by running
    - Windows: `.\venv\Scripts\activate`
    - Linux: `source ./venv/bin/activate`
