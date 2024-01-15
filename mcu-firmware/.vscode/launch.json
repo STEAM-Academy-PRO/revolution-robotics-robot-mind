@@ -2,37 +2,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "cortex-debug",
-            "request": "launch",
-            "servertype": "jlink",
-            "cwd": "${workspaceRoot}",
-            "executable": "./Build/Release/rrrc_samd51.elf",
-            "name": "Release (J-Link)",
-            "device": "ATSAMD51P19",
-            "interface": "swd",
-            "ipAddress": null,
-            "serialNumber": null,
-            "preLaunchTask": "make release",
-            "runToMain": true,
-            "svdFile": "./.vscode/ATSAMD51P19A.svd"
-        },
-        {
-            "type": "cortex-debug",
-            "request": "launch",
-            "servertype": "jlink",
-            "cwd": "${workspaceRoot}",
-            "executable": "./Build/Debug/rrrc_samd51.elf",
-            "name": "Debug (J-Link)",
-            "device": "ATSAMD51P19",
-            "interface": "swd",
-            "ipAddress": null,
-            "serialNumber": null,
-            "preLaunchTask": "make debug",
-            "runToMain": true,
-            "svdFile": "./.vscode/ATSAMD51P19A.svd"
-        },
-
-        {
             "preLaunchTask": "prepare debug binary",
             "type": "probe-rs-debug",
 
