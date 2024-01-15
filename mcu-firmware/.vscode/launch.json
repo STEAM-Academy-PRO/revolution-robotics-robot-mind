@@ -5,19 +5,14 @@
       "preLaunchTask": "prepare debug binary",
       "type": "probe-rs-debug",
       "flashingConfig": {
-        "formatOptions": {
-          "format": "bin",
-          "baseAddress": "0x40000",
-        }
+        "haltAfterReset": true
       },
       "request": "launch",
       "name": "probe_rs Executable Test",
-      //!MODIFY
       "chip": "atsamd51p19a",
       "coreConfigs": [
         {
-          //!MODIFY
-          "programBinary": "${workspaceRoot}/Build/output/revvy_firmware-0.2.-.bin"
+          "programBinary": "${workspaceRoot}/Build/Debug/rrrc_samd51.elf"
         }
       ]
     }
