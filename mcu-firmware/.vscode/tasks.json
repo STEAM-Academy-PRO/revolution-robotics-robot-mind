@@ -17,7 +17,7 @@
             "type": "shell",
             "command": "${config:python.pythonPath.linux} -m tools.generate_makefile --cleanup",
             "windows": {
-                "command": "${config:python.pythonPath.windows} -m "
+                "command": "${config:python.pythonPath.windows} -m tools.generate_makefile --cleanup"
             },
             "problemMatcher": []
         },
@@ -26,7 +26,7 @@
             "type": "shell",
             "command": "${config:python.pythonPath.linux} -m cglue.cli --generate --cglue-output=rrrc/generated_runtime --cleanup",
             "windows": {
-                "command": "${config:python.pythonPath.windows} -m "
+                "command": "${config:python.pythonPath.windows} -m cglue.cli --generate --cglue-output=rrrc/generated_runtime --cleanup"
             },
             "problemMatcher": []
         },
