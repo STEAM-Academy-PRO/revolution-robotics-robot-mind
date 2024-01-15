@@ -9,13 +9,12 @@ VERSION="0.1.$(echo "$(<"version")" | tr -d '[:space:]')"
 LOCAL_SOURCE_FOLDER="./"
 USER="pi"
 
-if [ ! -e "$file_path" ]; then
+if [ ! -e "target" ]; then
     echo "WARNING: No target found! Creating fallback target, raspberrypi.local <- this only works with the bonjour service!"
     echo "rapberrypi.local" > target
     # Continue with your script logic here
 else
-    echo "Error: File not found: $file_path"
-    exit 1  # Exit the script with an error status
+    echo "deploying to $(<"target")"
 fi
 
 HOST="$(<"target")"

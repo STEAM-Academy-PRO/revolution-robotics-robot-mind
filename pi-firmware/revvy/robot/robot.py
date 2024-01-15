@@ -17,7 +17,7 @@ from revvy.robot.status import RobotStatusIndicator, RobotStatus
 from revvy.robot.status_updater import McuStatusUpdater
 from revvy.scripting.robot_interface import RobotInterface
 from revvy.utils.assets import Assets
-from revvy.utils.logger import get_logger
+from revvy.utils.logger import get_logger, LogLevel
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.version import Version
 from revvy.scripting.variables import Variable, VariableSlot
@@ -82,7 +82,15 @@ class Robot(RobotInterface):
                     self._log('Failed to read robot version')
 
         from revvy.firmware_updater import update_firmware
-        update_firmware(os.path.join('data', 'firmware'), self)
+
+        # My MCU got flashed with a wrong version number we have been trying to build.
+        # I went up successfully, however this got an exception.
+        # TODO: either do not fail for debug builds (no parsable version), or just do not fail!
+        try:
+            update_firmware(os.path.join('data', 'firmware'), self)
+        except Exception as e:
+            str_exception = str(e)
+            self._log(f'Firmware update failed! Continuing for now. {str_exception}', LogLevel.WARNING)
 
         # read version again in case it was updated
         self._fw_version = self._robot_control.get_firmware_version()
