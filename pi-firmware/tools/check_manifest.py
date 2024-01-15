@@ -8,7 +8,7 @@ from revvy.utils.functions import file_hash, read_json
 
 
 def check_manifest(manifest_file):
-    print('Checking manifest file: {}'.format(manifest_file))
+    print('[Integrity Checker] Checking manifest file: {}'.format(manifest_file))
 
     manifest = read_json(manifest_file)
     hashes = manifest['files']
@@ -18,7 +18,7 @@ def check_manifest(manifest_file):
         hash_value = file_hash(file)
 
         if hash_value != expected:
-            print('Integrity check failed for {}'.format(file))
+            print('[Integrity Checker] Integrity check failed for {}'.format(file))
             return False
 
     return True

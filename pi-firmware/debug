@@ -45,7 +45,11 @@ fi
 ssh $USER@$HOST "mkdir -p $TARGET && tar -xzvf - -C $TARGET && \
     cd $TARGET && stop; killall python3; \
     echo "--- Waiting for Debugger to connect on $NAT_IP:$DEBUG_PORT ---\n" && \
-    echo "- do not forget to set your launch.json to the proper target! -" \n\n && \
+    echo "- do not forget to set your launch.json to the proper target! -" && \
+    echo "" && \
+    echo "---------------------------------------------------------------" && \
+    echo "---------------------------------------------------------------" && \
+    echo "" && \
     python3 $RUNNER ./revvy.py" < $PACKAGE_SOURCE
 
 

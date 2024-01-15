@@ -20,6 +20,7 @@ from revvy.scripting.runtime import ScriptManager
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.thread_wrapper import periodic
+from revvy.robot.communication import RobotCommunicationInterface
 
 
 class RevvyStatusCode(enum.IntEnum):
@@ -30,15 +31,13 @@ class RevvyStatusCode(enum.IntEnum):
 
 
 class RobotManager:
-    def __init__(self, robot: Robot, sw_version, revvy_ble):
+    def __init__(self, robot: Robot, sw_version):
         self._log = get_logger('RobotManager')
         self._log('init')
         self.needs_interrupting = True
 
         self._configuring = False
         self._robot = robot
-        self._robot.set_validate_config_done_cb(self.__on_validate_config_done)
-        self._ble = revvy_ble
         self._sw_version = sw_version
         self.need_print = 1
 
@@ -49,6 +48,7 @@ class RobotManager:
         rcs = RemoteControllerScheduler(rc)
         rcs.on_controller_detected(self._on_controller_detected)
         rcs.on_controller_lost(self._on_controller_lost)
+        self._remote_controller_scheduler = rcs
 
         self._remote_controller = rc
         self._remote_controller_thread = create_remote_controller_thread(rcs)
@@ -62,12 +62,6 @@ class RobotManager:
             **{f'sensor_{port.id}': Resource(f'Sensor {port.id}') for port in self._robot.sensors}
         }
 
-        revvy_ble['live_message_service'].set_periodic_control_msg_cb(rcs.data_ready)
-        revvy_ble['live_message_service'].set_joystick_action_cb(rc.on_joystick_action)
-        revvy_ble['live_message_service'].set_validate_config_req_cb(self.__on_validate_config_requested)
-
-        revvy_ble.on_connection_changed(self._on_connection_changed)
-
         self._scripts = ScriptManager(self)
         self._bg_controlled_scripts = ScriptManager(self)
         self._autonomous = 0
@@ -78,8 +72,17 @@ class RobotManager:
 
         self.start_remote_controller = self._remote_controller_thread.start
         self.__session_id = 0
-        live_service = self._ble['live_message_service']
-        live_service.update_session_id(0xffffffff)
+
+    def set_control_interface_callbacks(self, robot_interface: RobotCommunicationInterface):
+        self._robot_interface = robot_interface
+
+        self._robot_interface.update_session_id(0xffffffff)
+        self._robot_interface.set_periodic_control_msg_cb(self._remote_controller_scheduler.data_ready)
+        self._robot_interface.set_joystick_action_cb(self._remote_controller.on_joystick_action)
+        self._robot_interface.set_validate_config_req_cb(self.__on_validate_config_requested)
+        self._robot_interface.on_connection_changed(self._on_connection_changed)
+
+        self._robot.set_validate_config_done_cb(self._robot_interface.set_validation_result)
 
     def __on_validate_config_requested(self, motors, sensors, motor_load_power,
         threshold):
@@ -88,9 +91,6 @@ class RobotManager:
         print('Validation request: motors={}, sensors={},pwr:{},sen:{}'.format(
             motors, sensors, motor_load_power, threshold))
 
-    def __on_validate_config_done(self, success, motors, sensors):
-        live_service = self._ble['live_message_service']
-        live_service.set_validation_result(success, motors, sensors)
 
     def process_run_in_bg_requests(self):
         functions = self._background_fns
@@ -112,7 +112,7 @@ class RobotManager:
                 self._bg_controlled_scripts.resume_all_scripts()
 
     def __battery_characterstic(self, name):
-        return self._ble['battery_service'].characteristic(name)
+        return self._robot_interface.battery(name)
 
 
     def _update(self):
@@ -133,7 +133,6 @@ class RobotManager:
               self._robot.battery.motor_battery_present)
 
             self._remote_controller.timer_increment()
-            live_service = self._ble['live_message_service']
             vector_list = [
                 getattr(self._robot.imu.rotation, 'x'),
                 getattr(self._robot.imu.rotation, 'y'),
@@ -144,12 +143,12 @@ class RobotManager:
                 getattr(self._robot.imu.orientation, 'roll'),
                 getattr(self._robot.imu.orientation, 'yaw'),
             ]
-            live_service.update_orientation(vector_orientation)
-            live_service.update_gyro(vector_list)
-            live_service.update_script_variable(self._robot.script_variables)
-            live_service.update_state_control(self.remote_controller.background_control_state)
+            self._robot_interface.update_orientation(vector_orientation)
+            self._robot_interface.update_gyro(vector_list)
+            self._robot_interface.update_script_variable(self._robot.script_variables)
+            self._robot_interface.update_state_control(self.remote_controller.background_control_state)
 
-            live_service.update_timer(self._remote_controller.processing_time)
+            self._robot_interface.update_timer(self._remote_controller.processing_time)
 
             if self.need_print:
                 self.need_print = 0
@@ -212,14 +211,15 @@ class RobotManager:
             except TimeoutError:
                 pass  # FIXME somehow handle a dead MCU
 
-            self._ble['device_information_service'].characteristic('hw_version').update(str(self._robot.hw_version))
-            self._ble['device_information_service'].characteristic('fw_version').update(str(self._robot.fw_version))
-            self._ble['device_information_service'].characteristic('sw_version').update(str(self._sw_version))
+            self._robot_interface.update_characteristic('hw_version', str(self._robot.hw_version))
+            self._robot_interface.update_characteristic('fw_version', str(self._robot.fw_version))
+            self._robot_interface.update_characteristic('sw_version', str(self._sw_version))
 
             # start reader thread
             self._status_update_thread.start()
 
-            self._ble.start()
+            # self._robot_interface.start()
+
             self._robot.status.robot_status = RobotStatus.NotConfigured
             self.robot_configure(None, partial(self._robot.play_tune, 'robot2'))
 
@@ -245,8 +245,7 @@ class RobotManager:
         self._robot.status.controller_status = RemoteControllerStatus.Controlled
 
     def _on_controller_lost(self):
-        live_service = self._ble['live_message_service']
-        live_service.update_session_id(0)
+        self._robot_interface.update_session_id(0)
         self._log('Remote controller lost')
         if self._robot.status.controller_status != RemoteControllerStatus.NotConnected:
             self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
@@ -256,8 +255,7 @@ class RobotManager:
         self.__session_id += 1
         self._log('Request configuration')
         if config is not None:
-            live_service = self._ble['live_message_service']
-            live_service.update_session_id(self.__session_id)
+            self._robot_interface.update_session_id(self.__session_id)
 
         if self._robot.status.robot_status != RobotStatus.Stopped:
             self.run_in_background(partial(self._robot_configure, config))
@@ -284,8 +282,6 @@ class RobotManager:
         self._log('Applying new configuration')
         self._robot.script_variables.reset()
 
-        live_service = self._ble['live_message_service']
-
         # Initialize variable slots from config
         scriptvars = []
         for varconf in config.controller.variable_slots:
@@ -299,7 +295,7 @@ class RobotManager:
         # set up motors
         for motor in self._robot.motors:
             motor.configure(config.motors[motor.id])
-            motor.on_status_changed.add(lambda p: live_service.update_motor(p.id, p.power, p.speed, p.pos))
+            motor.on_status_changed.add(lambda p: self._robot_interface.update_motor(p.id, p.power, p.speed, p.pos))
 
         for motor_id in config.drivetrain['left']:
             self._robot.drivetrain.add_left_motor(self._robot.motors[motor_id])
@@ -310,7 +306,7 @@ class RobotManager:
         # set up sensors
         for sensor in self._robot.sensors:
             sensor.configure(config.sensors[sensor.id])
-            sensor.on_status_changed.add(lambda p: live_service.update_sensor(p.id, p.raw_value))
+            sensor.on_status_changed.add(lambda p: self._robot_interface.update_sensor(p.id, p.raw_value))
 
         def start_analog_script(src, channels):
             src.start(channels=channels)
@@ -358,7 +354,7 @@ class RobotManager:
         self._robot.status.controller_status = RemoteControllerStatus.NotConnected
         self._robot.status.robot_status = RobotStatus.Stopped
         self._remote_controller_thread.exit()
-        self._ble.stop()
+        self._robot_interface.stop()
         self._scripts.reset()
         self._status_update_thread.exit()
         self._robot.stop()

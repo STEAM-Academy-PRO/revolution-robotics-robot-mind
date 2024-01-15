@@ -125,7 +125,7 @@ class RemoteController:
 
     def on_joystick_action(self):
         # This is a one shot action to detect first joystick input
-        # over one entire contoller (play) session
+        # over one entire controller (play) session
         if self._joystick_mode:
             return
 
