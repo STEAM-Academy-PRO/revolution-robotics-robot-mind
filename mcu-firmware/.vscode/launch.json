@@ -1,24 +1,25 @@
 {
-    "version": "0.2.0",
-    "configurations": [
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "preLaunchTask": "prepare debug binary",
+      "type": "probe-rs-debug",
+      "flashingConfig": {
+        "formatOptions": {
+          "format": "bin",
+          "baseAddress": "0x40000",
+        }
+      },
+      "request": "launch",
+      "name": "probe_rs Executable Test",
+      //!MODIFY
+      "chip": "atsamd51p19a",
+      "coreConfigs": [
         {
-            "preLaunchTask": "prepare debug binary",
-            "type": "probe-rs-debug",
-
-            "runtimeArgs": [
-              "--format", "bin", "--base-address", "0x40000", "dap-server"
-            ],
-
-            "request": "launch",
-            "name": "probe_rs Executable Test",
-            //!MODIFY
-            "chip": "atsamd51p19a",
-            "coreConfigs": [
-              {
-                //!MODIFY
-                "programBinary": "${workspaceRoot}/Build/output/revvy_firmware-0.2.-.bin"
-              }
-            ]
-          }
-    ]
+          //!MODIFY
+          "programBinary": "${workspaceRoot}/Build/output/revvy_firmware-0.2.-.bin"
+        }
+      ]
+    }
+  ]
 }
