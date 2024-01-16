@@ -30,7 +30,7 @@ class RobotCommunicationInterface(ABC):
         pass
 
     @abstractmethod
-    def set_validation_result(success, motors, sensors):
+    def set_validation_result(self, success, motors, sensors):
         pass
 
     @abstractmethod
@@ -62,7 +62,7 @@ class RobotCommunicationInterface(ABC):
         pass
 
     @abstractmethod
-    def update_characteristic(name, value):
+    def update_characteristic(self, name, value):
         pass
 
     @abstractmethod

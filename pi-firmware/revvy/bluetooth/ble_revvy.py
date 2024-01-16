@@ -763,7 +763,7 @@ class CustomBatteryService(BleService):
         })
 
 
-class RevvyBLE:
+class RevvyBLE(RobotCommunicationInterface):
     def __init__(self, robot_manager: RobotManager, device_name: Observable, serial, writeable_data_dir, writeable_assets_dir):
         self._deviceName = device_name.get()
         self._robot_manager = robot_manager
