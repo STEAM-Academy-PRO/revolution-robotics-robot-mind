@@ -51,4 +51,32 @@ jobs:
           # cglue --generate --cglue-output=rrrc/generated_runtime
           make all config=debug
 
-  # check-pi-firmware:
+  check-pi-firmware:
+    permissions: read-all
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            pi-firmware:
+              - pi-firmware/**
+              - .github/workflows/pr.yml
+
+      - name: Running checks
+        if: steps.filter.outputs.pi-firmware == 'true'
+        run: |
+          cd pi-firmware
+          pip install -r install/requirements.txt
+          pip install -r install/requirements_test.txt
+          # python -m dev_tools.precommit_pep8 --check-all
+          # timeout 2m nose2 -B
+
+      - name: Assembling package
+        if: steps.filter.outputs.pi-firmware == 'true'
+        run: |
+          cd pi-firmware
+          python -m dev_tools.create_package
