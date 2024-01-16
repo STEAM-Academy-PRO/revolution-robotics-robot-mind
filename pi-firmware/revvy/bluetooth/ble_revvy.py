@@ -5,13 +5,23 @@ import struct
 import traceback
 
 from pybleno import Bleno, BlenoPrimaryService, Characteristic, Descriptor
-from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
+
 from revvy.utils.functions import bits_to_bool_list
-from revvy.robot.remote_controller import RemoteControllerCommand
+from revvy.utils.logger import get_logger, LogLevel
 from revvy.utils.logger import get_logger
+from revvy.utils.file_storage import FileStorage, MemoryStorage
 
+from revvy.robot.remote_controller import RemoteControllerCommand
+from revvy.robot.communication import RobotCommunicationInterface
+from revvy.robot_manager import RobotManager, RevvyStatusCode
 
-class BleService(BlenoPrimaryService):
+from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
+from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage
+from revvy.bluetooth.longmessage import extract_asset_longmessage, LongMessageImplementation
+
+log = get_logger("BLE")
+
+class BleService(BlenoPrimaryService, RobotCommunicationInterface):
     def __init__(self, uuid, characteristics: dict):
 
         self._named_characteristics = characteristics
@@ -93,7 +103,7 @@ class LongMessageCharacteristic(Characteristic):
                 result = self._translate_result(self._handler.handle_write(data[0], data[1:]))
 
         except LongMessageError:
-            print(traceback.format_exc())
+            log(traceback.format_exc())
         finally:
             callback(result)
 
@@ -133,7 +143,7 @@ class ValidateConfigCharacteristic(Characteristic):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
         elif len(data) != 7:
-            print('validate_config::onWriteRequest::wrong length')
+            log('validate_config::onWriteRequest::wrong length')
             callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
         elif self._on_write_callback(data):
             callback(Characteristic.RESULT_SUCCESS)
@@ -141,7 +151,7 @@ class ValidateConfigCharacteristic(Characteristic):
             callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
     def onReadRequest(self, offset, callback):
-        print('validate_config::onReadRequest')
+        log('validate_config::onReadRequest')
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
@@ -157,7 +167,7 @@ class ValidateConfigCharacteristic(Characteristic):
         self._value = struct.pack('BBBBBB', state, motors_bitmask, sensor0,
             sensor1, sensor2, sensor3)
 
-        print('validate_config::update:', self._value)
+        log('validate_config::update:', self._value)
 
 
 class MobileToBrainFunctionCharacteristic(Characteristic):
@@ -427,7 +437,7 @@ class LiveMessageService(BlenoPrimaryService):
             valitation_state = VALIDATE_CONFIG_STATE_DONE
 
         if len(motors) != NUM_MOTOR_PORTS:
-            print('set_validation_result::invalid motors response: ', motors)
+            log('set_validation_result::invalid motors response: ', motors)
 
         motor_bitmask = 0
         for i in range(max(NUM_MOTOR_PORTS, len(motors))):
@@ -507,7 +517,7 @@ class LiveMessageService(BlenoPrimaryService):
             self._motor_characteristics[motor - 1].update(data)
 
     def update_session_id(self, value):
-        print('update_session_id:', value)
+        log('update_session_id:' + str(value))
         data = list(struct.pack('<I', value))
         self._mobile_to_brain.update(data)
 
@@ -565,7 +575,7 @@ class LiveMessageService(BlenoPrimaryService):
 
         maskbuf = struct.pack('B', mask)
         msg = maskbuf + valuebuf
-        # print('scriptvars', msg)
+        # log('scriptvars', msg)
         self._read_variable_characteristic[0].update(msg)
 
     def update_state_control(self, state):
@@ -753,34 +763,64 @@ class CustomBatteryService(BleService):
         })
 
 
-class RevvyBLE:
-    def __init__(self, device_name: Observable, serial, long_message_handler):
+class RevvyBLE(RobotCommunicationInterface):
+    def __init__(self, robot_manager: RobotManager, device_name: Observable, serial, writeable_data_dir, writeable_assets_dir):
         self._deviceName = device_name.get()
+        self._robot_manager = robot_manager
+
         self._log = get_logger('RevvyBLE')
         os.environ["BLENO_DEVICE_NAME"] = self._deviceName
         self._log(f'Initializing BLE with device name {self._deviceName}')
 
         device_name.subscribe(self._device_name_changed)
 
-        dis = RevvyDeviceInformationService(device_name, serial)
-        bas = CustomBatteryService()
-        live = LiveMessageService()
-        long = LongMessageService(long_message_handler)
+
+        ### -----------------------------------------------------
+        ### Long Message Handler for receiving files and configs.
+        ### -----------------------------------------------------
+
+        ble_storage_dir = os.path.join(writeable_data_dir, 'ble')
+
+        ble_storage = FileStorage(ble_storage_dir)
+
+        long_message_storage = LongMessageStorage(ble_storage, MemoryStorage())
+        extract_asset_longmessage(long_message_storage, writeable_assets_dir)
+        self.long_message_handler = LongMessageHandler(long_message_storage)
+
+        lmi = LongMessageImplementation(robot_manager, long_message_storage, writeable_assets_dir, False)
+        self.long_message_handler.on_upload_started(lmi.on_upload_started)
+        self.long_message_handler.on_upload_progress(lmi.on_upload_progress)
+        self.long_message_handler.on_upload_finished(lmi.on_transmission_finished)
+        self.long_message_handler.on_message_updated(lmi.on_message_updated)
+
+        ### -----------------------------------------------------
+        ### Services
+        ### -----------------------------------------------------
+
+
+        self._dis = RevvyDeviceInformationService(device_name, serial)
+        self._bas = CustomBatteryService()
+        self._live = LiveMessageService()
+        self._long = LongMessageService(self.long_message_handler)
+
 
         self._named_services = {
-            'device_information_service': dis,
-            'battery_service': bas,
-            'long_message_service': long,
-            'live_message_service': live
+            'device_information_service': self._dis,
+            'battery_service': self._bas,
+            'long_message_service': self._long,
+            'live_message_service': self._live
         }
 
         self._advertised_uuid_list = [
-            live['uuid']
+            self._live['uuid']
         ]
 
         self._bleno = Bleno()
         self._bleno.on('stateChange', self._on_state_change)
         self._bleno.on('advertisingStart', self._on_advertising_start)
+
+        self._robot_manager.set_control_interface_callbacks(self)
+
 
     def __getitem__(self, item):
         return self._named_services[item]
@@ -823,7 +863,53 @@ class RevvyBLE:
 
     def start(self):
         self._bleno.start()
+        self._robot_manager.robot_start()
 
     def stop(self):
         self._bleno.stopAdvertising()
         self._bleno.disconnect()
+
+
+    def set_periodic_control_msg_cb(self, cb):
+        return self._live.set_periodic_control_msg_cb(cb)
+
+    def set_joystick_action_cb(self, cb):
+        return self._live.set_joystick_action_cb(cb)
+
+    def set_validate_config_req_cb(self, cb):
+        return self._live.set_validate_config_req_cb(cb)
+
+
+    def update_session_id(self, id):
+        return self._live.update_session_id(id)
+
+    def set_validation_result(self, success, motors, sensors):
+        return self._live.set_validation_result(success, motors, sensors)
+
+    def update_orientation(self, vector_orientation):
+        return self._live.update_orientation(vector_orientation)
+
+
+    def update_gyro(self, vector_list):
+        return self._live.update_gyro(vector_list)
+
+    def update_motor(self, id, power, speed, pos):
+        return self._live.update_motor(id, power, speed, pos)
+
+    def update_sensor(self, id, power, speed, pos):
+        return self._live.update_sensor(id, power, speed, pos)
+
+    def update_script_variable(self, script_variables):
+        return self._live.update_script_variable(script_variables)
+
+    def update_state_control(self, control_state):
+        return self._live.update_state_control(control_state)
+
+    def update_timer(self, time):
+        return self._live.update_timer(time)
+
+    def update_characteristic(self, name, value):
+        return self._dis.characteristic(name).update(value)
+
+    def battery(self, name):
+        return self._bas.characteristic(name)

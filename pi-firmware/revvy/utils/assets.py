@@ -29,7 +29,7 @@ class Assets:
                     if asset_name in self._files[category]:
                         self._log(f'{path} shadows asset {asset_name}')
 
-                    self._log(f'New asset: ({category}) {asset_name}', LogLevel.DEBUG)
+                    # self._log(f'New asset: ({category}) {asset_name}', LogLevel.DEBUG)
                     self._files[category][asset_name] = os.path.join(path, asset_path)
         except FileNotFoundError:
             self._log(f'Asset source does not exist: {path}', LogLevel.WARNING)
