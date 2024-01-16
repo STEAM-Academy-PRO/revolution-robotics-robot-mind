@@ -896,8 +896,8 @@ class RevvyBLE(RobotCommunicationInterface):
     def update_motor(self, id, power, speed, pos):
         return self._live.update_motor(id, power, speed, pos)
 
-    def update_sensor(self, id, power, speed, pos):
-        return self._live.update_sensor(id, power, speed, pos)
+    def update_sensor(self, id, raw_value):
+        return self._live.update_sensor(id, raw_value)
 
     def update_script_variable(self, script_variables):
         return self._live.update_script_variable(script_variables)
