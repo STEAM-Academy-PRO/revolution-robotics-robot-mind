@@ -17,7 +17,10 @@ jobs:
   # check-mcu-bootloader:
 
   check-mcu-firmware:
-    permissions: read-all
+    permissions:
+      contents: read # checkout
+      pull-requests: read # paths-filter
+
     runs-on: ubuntu-latest
 
     steps:
@@ -64,7 +67,10 @@ jobs:
           path: mcu-firmware/Build/output/
 
   check-pi-firmware:
-    permissions: read-all
+    permissions:
+      contents: read # checkout
+      pull-requests: read # paths-filter
+
     runs-on: ubuntu-latest
     needs: [check-mcu-firmware]
 
