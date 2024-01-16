@@ -1,0 +1,54 @@
+name: PR checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - main
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+
+jobs:
+  # check-mcu-bootloader:
+
+  check-mcu-firmware:
+    permissions: read-all
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            mcu-firmware:
+              - mcu-firmware/**
+              - .github/workflows/pr.yml
+
+      - name: Install compiler
+        if: steps.filter.outputs.mcu-firmware == 'true'
+        run: |
+          cd /usr/share
+          mkdir gcc-arm
+          cd gcc-arm
+          wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2 -O toolchain.tar.bz2
+          tar -xjf toolchain.tar.bz2
+
+      - name: Build firmware
+        if: steps.filter.outputs.mcu-firmware == 'true'
+        run: |
+          cd mcu-firmware
+          pip install -r tools/requirements.txt
+          python -m tools.gen_version
+          python -m tools.generate_makefile
+          # currently the generated runtime is checked in, so this is not needed
+          # cglue --generate --cglue-output=rrrc/generated_runtime
+          make all config=debug
+
+  # check-pi-firmware:
