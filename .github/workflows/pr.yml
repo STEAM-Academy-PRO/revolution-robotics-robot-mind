@@ -102,7 +102,7 @@ jobs:
 
           # run checks
           # python -m dev_tools.precommit_pep8 --check-all
-          # timeout 2m nose2 -B
+          timeout 5m nose2 -B
 
       # TODO: mcu-firmware should be built for every merge to main to avoid compiling for each PR
       # we want to build packages because sometimes we need to test the whole system before merging
