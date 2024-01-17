@@ -5,7 +5,8 @@
       "preLaunchTask": "prepare debug binary",
       "type": "probe-rs-debug",
       "flashingConfig": {
-        "haltAfterReset": true
+        "haltAfterReset": true,
+        "flashingEnabled": true,
       },
       "request": "launch",
       "name": "probe_rs Executable Test",
