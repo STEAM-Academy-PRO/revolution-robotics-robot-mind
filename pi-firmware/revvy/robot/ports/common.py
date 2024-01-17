@@ -26,7 +26,7 @@ class PortDriver:
         self._driver = driver
         self._port = port
         self._on_status_changed = FunctionAggregator()
-        self.log = get_logger(f'[{driver}]', base=port.log)
+        self.log = get_logger(f'{driver}', base=port.log)
 
     @property
     def driver(self):
@@ -67,14 +67,14 @@ class PortCollection:
 
 class PortHandler:
     def __init__(self, name, interface: RevvyControl, default_driver, amount: int, supported: dict):
-        self._log = get_logger(f"PortHandler[{name}]")
+        self._log = get_logger(["PortHandler", name])
         self._types = supported
         self._port_count = amount
         self._default_driver = default_driver
         self._ports = {i: PortInstance(i, f'{name}Port', interface, self.configure_port) for i in range(1, amount + 1)}
 
         self._log(f'Created handler for {amount} ports')
-        self._log('Supported types:\n  {}'.format("\n  ".join(self.available_types)))
+        self._log('Supported types:\n  {}'.format(", ".join(self.available_types)))
 
     def __getitem__(self, port_idx):
         return self._ports[port_idx]
@@ -99,7 +99,7 @@ class PortHandler:
 
     def configure_port(self, port, config) -> PortDriver:
         if config is None:
-            self._log(f'set port {port.id} to not configured')
+            # self._log(f'set port {port.id} to not configured')
             driver = self._default_driver(port)
 
         else:

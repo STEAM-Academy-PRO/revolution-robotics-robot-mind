@@ -99,14 +99,14 @@ class ScriptManager:
         self._log = get_logger('ScriptManager')
 
     def reset(self):
-        self._log('stopping scripts')
         self.stop_all_scripts()
         for script in self._scripts.values():
             script.cleanup()
 
-        self._log('resetting state')
         self._globals.clear()
         self._scripts.clear()
+
+        self._log('stop all scripts and reset state')
 
     def assign(self, name, value):
         self._globals[name] = value

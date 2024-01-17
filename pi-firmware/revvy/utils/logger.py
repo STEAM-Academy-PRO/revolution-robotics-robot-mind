@@ -1,4 +1,5 @@
 from collections import deque
+import hashlib
 from threading import Lock
 
 from revvy.utils.stopwatch import Stopwatch
@@ -20,6 +21,38 @@ levels = (
     '\x1b[31mError\x1b[0m'
 )
 
+def consistent_hash(text):
+    return int(hashlib.sha1(text.encode("utf-8")).hexdigest(), 16)
+
+color_mapping = {
+    0: '\033[34m',  # Blue
+    1: '\033[35m',  # Magenta
+    2: '\033[36m',  # Cyan
+    3: '\033[90m',  # Bright Black (Dark Gray)
+    4: '\033[91m',  # Bright Red
+    5: '\033[92m',  # Bright Green
+    6: '\033[93m',  # Bright Yellow
+    7: '\033[94m',  # Bright Blue
+    8: '\033[95m',  # Bright Magenta
+    9: '\033[96m'   # Bright Cyan
+}
+
+def hash_to_color(text):
+    """ Simple text hasher for easy module identification on the debug logs """
+    global color_mapping
+    # Get a hash value using the built-in hash function
+    hash_value = consistent_hash(text)
+
+    # Map the hash value to a range suitable for ANSI color codes (0-7)
+    color_code = abs(hash_value) % len(color_mapping)
+
+    reset_color = '\033[0m'
+
+    # Apply the color to the text
+    colored_text = f"{color_mapping[color_code]}{text}{reset_color}"
+
+    return colored_text
+
 
 class BaseLogger:
     def log(self, message, level):
@@ -38,7 +71,7 @@ class Logger(BaseLogger):
 
     def log(self, message, level=LogLevel.INFO):
         if level >= self.minimum_level:
-            message = f'[{self._sw.elapsed:.2f}][{levels[level]}] {message}'
+            message = f'[{self._sw.elapsed:.2f}] [{levels[level]}] {message}'
             print(message)
             self._buffer.append(message + '\n')
 
@@ -50,7 +83,13 @@ class Logger(BaseLogger):
 
 class LogWrapper(BaseLogger):
     def __init__(self, logger: BaseLogger, tag, default_log_level=LogLevel.INFO):
-        self._tag = tag + ': '
+        if isinstance(tag, str):
+            self._tag = '[' + hash_to_color(tag) + '] '
+        elif isinstance(tag, list):
+            self._tag = ''
+            for t in tag:
+                self._tag += '[' + hash_to_color(t) + '] '
+
         self._logger = logger
         self._default_log_level = default_log_level
 

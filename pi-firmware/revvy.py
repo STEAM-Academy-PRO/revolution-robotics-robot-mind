@@ -1,25 +1,34 @@
 #!/usr/bin/python3
+# pylint: disable=missing-module-docstring
+
+""" Main entry point for the revvy service. """
+
 # SPDX-License-Identifier: GPL-3.0-only
+
 import os
 import sys
 import traceback
+# from revvy.api.v1 import Api
 
 from revvy.robot_manager import RobotManager, RevvyStatusCode
 from revvy.robot.robot import Robot
-from revvy.bluetooth.ble_revvy import Observable, RevvyBLE
+from revvy.utils.observable import Observable
+from revvy.bluetooth.ble_revvy import RevvyBLE
 from revvy.utils.error_handler import register_uncaught_exception_handler
-from revvy.utils.file_storage import FileStorage, MemoryStorage, create_unique_file
+from revvy.utils.file_storage import FileStorage, create_unique_file
 from revvy.utils.functions import get_serial, read_json
 from revvy.utils.version import Version
-from revvy.utils.logger import logger, LogLevel
+from revvy.utils.logger import get_logger, logger, LogLevel
 
 from tools.check_manifest import check_manifest
 
+log = get_logger('revvy.py')
 
 if __name__ == "__main__":
     current_installation = os.path.dirname(os.path.realpath(__file__))
     os.chdir(current_installation)
-    print(f'[revvy.py] Revvy run from {current_installation} ({__file__})')
+    log(f'pack: {current_installation}')
+    log(f'file: {__file__}')
 
     # base directories
     writeable_data_dir = os.path.join('..', '..', '..', 'user')
@@ -28,7 +37,7 @@ if __name__ == "__main__":
 
     # self-test
     if not check_manifest('manifest.json'):
-        print('[revvy.py] Revvy not started because manifest is invalid')
+        log('Revvy not started because manifest is invalid')
         sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
 
     register_uncaught_exception_handler()
@@ -46,6 +55,7 @@ if __name__ == "__main__":
         logger.minimum_level = LogLevel.DEBUG
 
     def on_log_flush(buffer):
+        """ Dump flashed framework version"""
         with create_unique_file(os.path.join(data_dir, 'revvy_log')) as file:
             file.write(f"Framework version: {sw_version}-{manifest['branch']}\n")
             file.writelines(buffer)
@@ -64,7 +74,7 @@ if __name__ == "__main__":
     except Exception:
         device_name = f'Revvy_{serial}'
 
-    print(f'[revvy.py] Device name: {device_name}')
+    log(f'Device name: {device_name}')
 
     device_name = Observable(device_name)
     device_name.subscribe(lambda v: device_storage.write('device-name', v.encode("utf-8")))
@@ -78,13 +88,14 @@ if __name__ == "__main__":
         robot_manager = RobotManager(robot, sw_version)
 
         # Receives commands from the control interface, acts on the robot_manager.
-        bluetooth_controller = RevvyBLE(robot_manager, device_name, serial, writeable_data_dir, writeable_assets_dir)
+        bluetooth_controller = RevvyBLE(robot_manager, device_name,
+                                        serial, writeable_data_dir, writeable_assets_dir)
 
         # noinspection PyBroadException
         try:
             bluetooth_controller.start()
 
-            print("[revvy.py] Press Enter to exit")
+            log("Press Enter to exit")
             input()
             # manual exit
             ret_val = RevvyStatusCode.OK
@@ -95,11 +106,11 @@ if __name__ == "__main__":
             # manual exit or update request
             ret_val = robot_manager.status_code
         except Exception:
-            print(traceback.format_exc())
+            log(traceback.format_exc())
             ret_val = RevvyStatusCode.ERROR
         finally:
-            print('stopping')
+            log('stopping')
             robot_manager.robot_stop()
 
-    print('terminated.')
+    log('terminated')
     sys.exit(ret_val)

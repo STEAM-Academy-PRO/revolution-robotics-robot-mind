@@ -229,7 +229,7 @@ class TestSensorOnPortCommand(Command, ABC):
     def parse_response(self, payload):
         response = struct.unpack('b', payload)[0]
         response = TestSensorOnPortResult(response)
-        print('TestSensorOnPortCommand:resp: {},{}'.format(
+        self._log('TestSensorOnPortCommand:resp: {},{}'.format(
           payload, response))
         return response
 

@@ -86,8 +86,8 @@ class RobotManager:
     def __on_validate_config_requested(self, motors, sensors, motor_load_power,
         threshold):
         self.run_in_background(partial(self._robot.validate_config, motors,
-            sensors, motor_load_power, threshold))
-        print('Validation request: motors={}, sensors={},pwr:{},sen:{}'.format(
+            sensors, motor_load_power, threshold), '__on_validate_config_requested')
+        self._log('Validation request: motors={}, sensors={},pwr:{},sen:{}'.format(
             motors, sensors, motor_load_power, threshold))
 
 
@@ -195,7 +195,7 @@ class RobotManager:
             time.sleep(1)
             self.exit(RevvyStatusCode.UPDATE_REQUEST)
 
-        self.run_in_background(update)
+        self.run_in_background(update, 'updater')
 
     def robot_start(self):
         self._log('start')
@@ -219,9 +219,9 @@ class RobotManager:
             self._robot.status.robot_status = RobotStatus.NotConfigured
             self.robot_configure(None, partial(self._robot.play_tune, 'robot2'))
 
-    def run_in_background(self, callback):
+    def run_in_background(self, callback, name=''):
         if callable(callback):
-            self._log('Registering new background function')
+            self._log(f'Registering new background function {name}')
             self._background_fns.append(callback)
         else:
             raise ValueError('callback is not callable')
@@ -254,9 +254,9 @@ class RobotManager:
             self._robot_interface.update_session_id(self.__session_id)
 
         if self._robot.status.robot_status != RobotStatus.Stopped:
-            self.run_in_background(partial(self._robot_configure, config))
+            self.run_in_background(partial(self._robot_configure, config), 'robot_configuration_request')
             if callable(after):
-                self.run_in_background(after)
+                self.run_in_background(after, 'robot_configuration_request - 2')
 
     def _reset_configuration(self):
         for scr in [self._scripts, self._bg_controlled_scripts]:

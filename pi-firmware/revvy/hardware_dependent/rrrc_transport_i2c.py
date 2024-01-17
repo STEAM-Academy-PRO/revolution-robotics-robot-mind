@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
-from smbus2 import i2c_msg, SMBus
 import time
+from smbus2 import i2c_msg, SMBus
 
 from revvy.mcu.rrrc_control import RevvyTransportBase, RevvyControl, BootloaderControl
 from revvy.mcu.rrrc_transport import RevvyTransportInterface, RevvyTransport, TransportException
+from revvy.utils.logger import LogLevel, get_logger
 
+log = get_logger('rrrc_transport_i2c')
 
 class RevvyTransportI2CDevice(RevvyTransportInterface):
     """Low level communication class used to read/write a specific I2C device address"""
@@ -20,6 +22,8 @@ class RevvyTransportI2CDevice(RevvyTransportInterface):
             return read_msg.buf[0:read_msg.len]
         except TypeError as e:
             raise TransportException(f"Error during reading I2C address 0x{self._address:X}") from e
+        except OSError as ex:
+            log(f"Connection to board failed. {ex.strerror}", LogLevel.WARNING)
 
     def write(self, data):
         try:
