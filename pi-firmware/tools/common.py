@@ -16,8 +16,7 @@ def find_files(pathname):
 
 
 def get_version():
-
-    version = os.popen('cat version').read()
+    version = os.popen('git rev-list --count HEAD').read()
     print('version', version)
     version = version.strip()
 
