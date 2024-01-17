@@ -56,11 +56,17 @@ ifeq ($(OS),Windows_NT)
 \tMKDIR := md
 \tGCC_BINARY_PREFIX := "C:/gcc/gcc-arm-none-eabi-9-2019-q4-major/bin/arm-none-eabi-
 \tGCC_BINARY_SUFFIX := .exe"
+\tNULL := nul
+\tDEL := del
+\tTRUE := VER>nul
 else
 \tSHELL := /bin/bash
 \tMKDIR := mkdir -p
 \tGCC_BINARY_PREFIX := /usr/share/gcc-arm/gcc-arm-none-eabi-9-2019-q4-major/bin/arm-none-eabi-
 \tGCC_BINARY_SUFFIX :=
+\tNULL := /dev/null
+\tDEL := rm -rf
+\tTRUE := true
 endif
 
 ifeq ($(config), debug)
@@ -80,33 +86,32 @@ OBJS := $(C_SRCS:%.c=$(OUTPUT_DIR)/%.o)
 DIRS := $(sort $(dir $(OBJS)))
 C_DEPS := $(OBJS:%.o=%.d)
 
-$(DIRS):
-\t-$(MKDIR) "$@"
-
 ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(strip $(C_DEPS)),)
 -include $(C_DEPS)
 endif
 endif
 
-$(OUTPUT_DIR)/%.o: %.c | $(DIRS)
+$(OUTPUT_DIR)/%.o: %.c
 \t@echo Building file: $<
-\t$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) $(INCLUDE_PATHS) $(COMPILE_FLAGS) -MF $(@:%.o=%.d) -MT$(@:%.o=%.d) -MT$(@:%.o=%.o) -o $@ $<
+\t@$(MKDIR) "$(dir $@)" 2>$(NULL) || $(TRUE)
+\t@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) $(INCLUDE_PATHS) $(COMPILE_FLAGS) -MF $(@:%.o=%.d) -MT$(@:%.o=%.d) -MT$(@:%.o=%.o) -o $@ $<
 \t@echo Finished building: $<
 
 $(OUTPUT_FILE).elf: $(OBJS)
 \t@echo Building target: $@
-\t$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) -o$(OUTPUT_FILE).elf $(OBJS) $(LINKER_FLAGS) -Wl,-Map=$(OUTPUT_FILE).map -Wl,--start-group -lm  -Wl,--end-group $(LINK_DIRS) -Wl,--gc-sections
+\t@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) -o$(OUTPUT_FILE).elf $(OBJS) $(LINKER_FLAGS) -Wl,-Map=$(OUTPUT_FILE).map -Wl,--start-group -lm  -Wl,--end-group $(LINK_DIRS) -Wl,--gc-sections
 \t@echo Finished building target: $@
-\t$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -O binary $(OUTPUT_FILE).elf $(OUTPUT_FILE).bin
-\t$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -O ihex -R .eeprom -R .fuse -R .lock -R .signature  $(OUTPUT_FILE).elf $(OUTPUT_FILE).hex
-\t$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -j .eeprom --set-section-flags=.eeprom=alloc,load --change-section-lma .eeprom=0 --no-change-warnings -O binary $(OUTPUT_FILE).elf $(OUTPUT_FILE).eep || exit 0
-\t$(GCC_BINARY_PREFIX)objdump$(GCC_BINARY_SUFFIX) -h -S $(OUTPUT_FILE).elf > $(OUTPUT_FILE).lss
-\t$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -O srec -R .eeprom -R .fuse -R .lock -R .signature  $(OUTPUT_FILE).elf $(OUTPUT_FILE).srec
+\t@$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -O binary $(OUTPUT_FILE).elf $(OUTPUT_FILE).bin
+\t@$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -O ihex -R .eeprom -R .fuse -R .lock -R .signature  $(OUTPUT_FILE).elf $(OUTPUT_FILE).hex
+\t@$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -j .eeprom --set-section-flags=.eeprom=alloc,load --change-section-lma .eeprom=0 --no-change-warnings -O binary $(OUTPUT_FILE).elf $(OUTPUT_FILE).eep
+\t@$(GCC_BINARY_PREFIX)objdump$(GCC_BINARY_SUFFIX) -h -S $(OUTPUT_FILE).elf > $(OUTPUT_FILE).lss
+\t@$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -O srec -R .eeprom -R .fuse -R .lock -R .signature  $(OUTPUT_FILE).elf $(OUTPUT_FILE).srec
 \t$(GCC_BINARY_PREFIX)size$(GCC_BINARY_SUFFIX) $(OUTPUT_FILE).elf
 
 clean:
-\t-rm -rf Build
+\t-@$(DEL) Build 2>$(NULL) || VER>$(NULL)
+\t@echo Removed Build directory
 """
 
 
