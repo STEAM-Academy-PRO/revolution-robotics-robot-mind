@@ -52,7 +52,7 @@ ssh $USER@$HOST "mkdir -p $TARGET && tar -xzf - -C $TARGET --warning=no-timestam
     echo "---------------------------------------------------------------" && \
     echo "---------------------------------------------------------------" && \
     echo "" && \
-    python3 $RUNNER ./revvy.py" < $PACKAGE_SOURCE
+    python3 -u $RUNNER ./revvy.py" < $PACKAGE_SOURCE
 
 
 ##

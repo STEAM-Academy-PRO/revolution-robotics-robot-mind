@@ -233,6 +233,8 @@ class RevvyTransport:
 
         def _read_response_header_once():
             header_bytes = self._transport.read(5)
+            if header_bytes == None:
+                return None
 
             return ResponseHeader.create(header_bytes)
 

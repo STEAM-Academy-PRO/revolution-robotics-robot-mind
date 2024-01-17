@@ -95,7 +95,7 @@ class DcMotorController(PortDriver):
         for x, y in self._port_config.get('linearity', {}).items():
             config += struct.pack('<ff', x, y)
 
-        self.log(f'Sending configuration: {config}')
+        # self.log(f'Sending configuration: {config}')
 
         self._configure(config)
 

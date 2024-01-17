@@ -20,7 +20,7 @@ from revvy.utils.assets import Assets
 from revvy.utils.logger import get_logger, LogLevel
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.version import Version
-from revvy.scripting.variables import Variable, VariableSlot
+from revvy.scripting.variables import VariableSlot
 
 SENSOR_ON_PORT_NOT_PRESENT = 0
 SENSOR_ON_PORT_DISTANCE = 1

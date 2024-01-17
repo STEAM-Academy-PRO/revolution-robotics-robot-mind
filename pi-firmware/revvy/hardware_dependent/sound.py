@@ -23,7 +23,7 @@ class SoundControlBase:
             commands = [commands]
 
         command = '; '.join(commands)
-        return subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+        return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 
     def _run_command_with_callback(self, commands, callback):
         def run_in_thread(args):

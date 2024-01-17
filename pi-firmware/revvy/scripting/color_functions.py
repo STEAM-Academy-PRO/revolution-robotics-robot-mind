@@ -148,6 +148,7 @@ def search_lr(colors: tuple, color='', side=''):
     when founded we stop current line follower and go to the next step"""
     if color == '' or side == '':
         print("color or side aren't sat")
+        
         return False
     forward, left, right, center = colors
     if side == 'left':

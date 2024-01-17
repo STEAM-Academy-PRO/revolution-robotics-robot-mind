@@ -4,7 +4,6 @@ import time
 import random
 
 from functools import partial
-from math import sqrt
 from enum import Enum
 
 from revvy.robot.configurations import Motors, Sensors
@@ -19,7 +18,7 @@ from revvy.utils.functions import hex2rgb
 from revvy.robot.ports.common import PortInstance, PortCollection
 
 from revvy.utils.functions import map_values
-
+from revvy.utils.logger import get_logger
 
 class RGBChannelSensor(Enum):
   FRONT     = 0
@@ -422,9 +421,7 @@ class LineDriver:
         self.__do_debug_stops = False
         self.__base_speed = 20
         self.__straight_speed_mult = 1.5
-
-    def __log(self, msg):
-        print(f'LineDriver: {msg}')
+        self.__log = get_logger('LineDriver')
 
     def __log_debug(self, msg):
         if self.__show_debug_msg:

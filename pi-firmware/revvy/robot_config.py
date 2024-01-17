@@ -9,7 +9,7 @@ from revvy.utils.functions import b64_decode_str, str_to_func
 from revvy.scripting.builtin_scripts import builtin_scripts
 from revvy.utils.logger import get_logger
 
-_log = get_logger('RobotConfig')
+log = get_logger('RobotConfig')
 
 motor_types = [
     None,
@@ -120,7 +120,7 @@ class RobotConfig:
             if script_name not in builtin_scripts:
                 raise KeyError(f'Builtin script "{script_name}" does not exist')
 
-            _log(f'Use builtin script: {script_name}')
+            log(f'Use builtin script: {script_name}')
             return builtin_scripts[script_name]
 
         source_b64 = json_get_field(script, ['pythonCode', 'pythoncode'],
@@ -130,14 +130,14 @@ class RobotConfig:
             raise KeyError('Neither builtinScriptName, nor pythonCode is present for a script')
 
         code = b64_decode_str(source_b64)
-        _log(f'Use python code as script: {code}')
+        log('Use python code as script')
 
         code = code.replace('import time\n', '')
         return str_to_func(code, script_num)
 
     @staticmethod
     def process_script(config, script, script_idx):
-        _log(f'Processing script #{script_idx}')
+        log(f'Processing script #{script_idx}')
         runnable = RobotConfig.create_runnable(script, script_idx)
 
         assignments = script['assignments']
@@ -227,7 +227,6 @@ class RobotConfig:
         try:
             i = 1
             sensors = robot_config.get('sensors', []) if type(robot_config) is dict else []
-            print(sensors)
             for sensor in sensors:
                 if not sensor:
                     sensor = {'type': 0}

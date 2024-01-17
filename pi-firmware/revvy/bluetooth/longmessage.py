@@ -445,7 +445,7 @@ class LongMessageImplementation:
                 self._progress = None
                 ### -------------------------------------------------------------------------!!!
                 self._robot_manager.run_in_background(
-                    partial(self._robot_manager.robot.led.start_animation, RingLed.BreathingGreen))
+                    partial(self._robot_manager.robot.led.start_animation, RingLed.BreathingGreen), 'LongMessageImplementation: on_transmission_finished: Firmware Update cancelled?')
         else:
             # don't schedule on background, the robot will be restarted before setting the LEDs
             if self._progress:
@@ -469,13 +469,13 @@ class LongMessageImplementation:
                 handle.on_stopped(on_script_stopped_fn)
 
                 # start can't run in on_stopped handler because overwriting script causes deadlock
-                self._robot_manager.run_in_background(handle.start)
+                self._robot_manager.run_in_background(handle.start, 'LongMessageImplementation: on_message_updated start_script()')
 
             self._robot_manager.robot_configure(empty_robot_config, start_script)
 
         elif message_type == LongMessageType.CONFIGURATION_DATA:
             message_data = message.data.decode()
-            self._log(f'New configuration: {message_data}')
+            self._log('Got new configuration.')
 
             # string = '{"robotConfig": ' \
             #          '{"motors": [{"name": "drive1", "type": 2, "reversed": 0, "side": 0}, {}, {},{"name": "drive4", "type": 2, "reversed": 0, "side": 1}, {}, {}],' \
@@ -497,7 +497,7 @@ class LongMessageImplementation:
                 # parsed_config = RobotConfig.from_string(string)
 
                 if self._ignore_config:
-                    self._log('New configuration ignored')
+                    self._log('New configuration ignored.')
                 else:
                     ### -------------------------------------------------------------------------!!!
                     self._robot_manager.robot_configure(parsed_config,
