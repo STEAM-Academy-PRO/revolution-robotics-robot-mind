@@ -39,7 +39,6 @@ class RobotManager:
         self._configuring = False
         self._robot = robot
         self._sw_version = sw_version
-        self.need_print = 1
 
         self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
         self._background_fns = []
@@ -149,9 +148,6 @@ class RobotManager:
             self._robot_interface.update_state_control(self.remote_controller.background_control_state)
 
             self._robot_interface.update_timer(self._remote_controller.processing_time)
-
-            if self.need_print:
-                self.need_print = 0
 
             self.process_run_in_bg_requests()
             self.process_autonomous_requests()
