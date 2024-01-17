@@ -33,7 +33,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print('Downloading requirements')
-    os.popen('pip3 download -r install/requirements.txt -d install/packages').read()
+    os.popen('pip3 download -r install/requirements.txt -d install/packages --platform arm --no-deps').read()
 
     if args.dev:
         # generate empty manifest to allow editing files
