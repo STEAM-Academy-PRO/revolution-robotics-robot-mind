@@ -1,0 +1,157 @@
+name: PR checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - main
+  merge_group:
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+
+jobs:
+  # check-mcu-bootloader:
+
+  check-mcu-firmware:
+    permissions:
+      contents: read # checkout
+      pull-requests: read # paths-filter
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # fetch all history so that we can use `git rev-list --count`
+          # TODO add a suffix for branch builds as the commit counter isn't that reliable here
+
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            mcu-firmware:
+              - mcu-firmware/**
+              - pi-firmware/** # FIXME temporary until we devise a strategy to store the mcu-firmware artifacts
+              - .github/workflows/pr.yml
+
+      - name: Install compiler
+        if: steps.filter.outputs.mcu-firmware == 'true'
+        run: |
+          cd /usr/share
+          mkdir gcc-arm
+          cd gcc-arm
+          wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2 -O toolchain.tar.bz2
+          tar -xjf toolchain.tar.bz2
+
+      - name: Build Debug firmware
+        if: steps.filter.outputs.mcu-firmware == 'true'
+        run: |
+          cd mcu-firmware
+          pip install -r tools/requirements.txt
+          python -m tools.gen_version
+          python -m tools.generate_makefile
+          # currently the generated runtime is checked in, so this is not needed
+          # cglue --generate --cglue-output=rrrc/generated_runtime
+          make all config=debug
+          python -m tools.prepare --debug
+
+      - name: Upload artifacts
+        if: steps.filter.outputs.mcu-firmware == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcu-firmware
+          path: mcu-firmware/Build/output/
+
+  check-pi-firmware:
+    permissions:
+      contents: read # checkout
+      pull-requests: read # paths-filter
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            pi-firmware:
+              - pi-firmware/**
+              - .github/workflows/pr.yml
+
+      - name: Running checks
+        if: steps.filter.outputs.pi-firmware == 'true'
+        run: |
+          cd pi-firmware
+
+          # install dependencies
+          pip install -r install/requirements.txt
+          pip install -r install/requirements_test.txt
+
+          # run checks
+          # python -m dev_tools.precommit_pep8 --check-all
+          timeout 5m nose2 -B
+
+  archive-pi-firmware:
+    permissions:
+      contents: read # checkout
+      pull-requests: read # paths-filter
+
+    runs-on: ubuntu-latest
+    needs: [check-mcu-firmware, check-pi-firmware]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # fetch all history so that we can use `git rev-list --count`
+          # TODO add a suffix for branch builds as the commit counter isn't that reliable here
+
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            pi-firmware:
+              - pi-firmware/**
+              - .github/workflows/pr.yml
+
+      - name: Running checks
+        if: steps.filter.outputs.pi-firmware == 'true'
+        run: |
+          cd pi-firmware
+
+          # clean up the firmware directory to avoid stale files
+          rm -rf data/firmware
+
+      # TODO: mcu-firmware should be built for every merge to main to avoid compiling for each PR
+      # we want to build packages because sometimes we need to test the whole system before merging
+
+      - name: Package the newly built mcu-firmware
+        if: |
+          steps.filter.outputs.pi-firmware == 'true' &&
+          needs.check-mcu-firmware.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: mcu-firmware
+          path: pi-firmware/data/firmware
+
+      # at this point, we should have a fresh mcu-firmware in pi-firmware/data/firmware
+
+      - name: Assembling package
+        if: steps.filter.outputs.pi-firmware == 'true'
+        run: |
+          cd pi-firmware
+          python -m dev_tools.create_package
+
+      - name: Upload artifacts
+        if: steps.filter.outputs.pi-firmware == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pi-firmware
+          path: pi-firmware/install/pi-firmware.*
+    

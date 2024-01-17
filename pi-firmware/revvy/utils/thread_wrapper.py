@@ -35,7 +35,7 @@ class ThreadWrapper:
         self._stopped_callbacks = []
         self._stop_requested_callbacks = []
         self._pause_flag = Event()
-        self._pause_flag.set()
+        self._pause_flag.set() # when set, the code can run
         self._control = Event()  # used to wake up thread function when it is stopped
         self._stop_event = Event()  # used to signal thread function that it should stop
         self._thread_stopped_event = Event()  # caller can wait for thread to stop after calling stop()
@@ -83,8 +83,9 @@ class ThreadWrapper:
         with self._lock:
             self._state = ThreadWrapper.STOPPED
             self._thread_running_event.clear()
-            _call_callbacks(self._stopped_callbacks)
             self._thread_stopped_event.set()
+            self._log('call stopped callbacks')
+            _call_callbacks(self._stopped_callbacks)
 
     @property
     def state(self):
@@ -122,7 +123,7 @@ class ThreadWrapper:
     def stop(self):
         with self._interface_lock:
             if self._state in [ThreadWrapper.STOPPING, ThreadWrapper.STOPPED, ThreadWrapper.EXITED]:
-                self._log('stop already called')
+                self._log('stop already called. Currently in state: %s' % self._state)
             else:
                 self._log('stopping')
 
@@ -136,7 +137,7 @@ class ThreadWrapper:
 
                         self._state = ThreadWrapper.STOPPING
                         self._stop_event.set()
-                        self._pause_flag.set()
+                        self.resume_thread()
                         call_callbacks = True
                     else:
                         call_callbacks = False

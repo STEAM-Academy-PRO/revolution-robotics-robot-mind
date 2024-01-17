@@ -43,13 +43,15 @@
             "label": "make clean",
             "type": "shell",
             "command": "make clean",
-            "problemMatcher": "$gcc"
+            "dependsOn": [
+                "generate makefile"
+            ]
         },
         {
             "label": "make debug",
             "type": "shell",
             "command": "make all config=debug",
-            "problemMatcher": "$gcc",
+            "problemMatcher": [],
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -64,7 +66,7 @@
             "label": "make release",
             "type": "shell",
             "command": "make all config=release",
-            "problemMatcher": "$gcc",
+            "problemMatcher": [],
             "dependsOn": [
                 "generate version",
                 "generate makefile",
@@ -78,7 +80,7 @@
             "windows": {
                 "command": "${config:python.pythonPath.windows} -m tools.prepare"
             },
-            "problemMatcher": "$gcc",
+            "problemMatcher": [],
             "dependsOn": [
                 "make release"
             ]
@@ -90,7 +92,7 @@
             "windows": {
                 "command": "${config:python.pythonPath.windows} -m tools.prepare --debug"
             },
-            "problemMatcher": "$gcc",
+            "problemMatcher": [],
             "dependsOn": [
                 "make debug"
             ]

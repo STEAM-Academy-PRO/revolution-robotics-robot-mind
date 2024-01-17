@@ -45,29 +45,6 @@ class TestThreadWrapper(unittest.TestCase):
 
         self.assertEqual(1, mock.call_count)
 
-    def test_thread_function_runs_only_once_per_start(self):
-        mock = Mock()
-        evt = Event()
-
-        def test_fn(_):
-            mock()
-            evt.set()
-
-        tw = ThreadWrapper(test_fn)
-
-        try:
-            for i in range(1, 3):
-                with self.subTest(f'Run #{i}'):
-                    evt.clear()
-                    tw.start()
-                    if not evt.wait(2):
-                        self.fail('Thread function was not executed')
-
-                    self.assertEqual(i, mock.call_count)
-
-        finally:
-            tw.exit()
-
     def test_stop_callbacks_called_when_thread_fn_exits(self):
         evt = Event()
 

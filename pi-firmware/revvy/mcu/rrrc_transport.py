@@ -143,9 +143,8 @@ class ResponseHeader(NamedTuple):
         try:
             header_bytes = data[0:4]
             if crc7(header_bytes) != data[4]:
-                # print("data:", data, header_bytes, data[4], crc7(header_bytes))
-                # raise ValueError('Header checksum mismatch')
-                return 0
+                print("data:", data, header_bytes, data[4], crc7(header_bytes))
+                raise ValueError('Header checksum mismatch')
             status, _payload_length, _payload_checksum = struct.unpack('<BBH', header_bytes)
             return ResponseHeader(status=ResponseStatus(status),
                                   payload_length=_payload_length,
@@ -173,6 +172,7 @@ class RevvyTransport:
     def __init__(self, transport: RevvyTransportInterface):
         self._transport = transport
         self._stopwatch = Stopwatch()
+        self.retry_reads = 100 # 100 seems like an excessive value
 
     def send_command(self, command, payload=b'', get_result_delay=None) -> Response:
         """
@@ -187,8 +187,6 @@ class RevvyTransport:
         """
         with self._mutex:
             # create commands in advance, they can be reused in case of an error
-            # if command != 60 and command != 9:
-            #     print("command:", command, "payload:", payload)
             command_start = Command.start(command, payload)
             command_get_result = None
 
@@ -215,7 +213,7 @@ class RevvyTransport:
                     # check result
                     # return a result even in case of an error, except when we know we have to resend
                     if header.status != ResponseStatus.Error_CommandIntegrityError:
-                        response_payload = self._read_payload(header, retries=100)
+                        response_payload = self._read_payload(header, retries=self.retry_reads)
                         # print("command: ", command, "response_payload:", response_payload)
                         return Response(header.status, response_payload)
             except TimeoutError:

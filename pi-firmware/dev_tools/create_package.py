@@ -67,9 +67,9 @@ if __name__ == "__main__":
     with open('./version', "w") as version_file:
         version_file.write(minor_version)
 
-    package_path = 'install/framework-{}.tar.gz'.format(version)
-    data_path = 'install/framework.data'
-    meta_file = 'install/framework.meta'
+    package_path = 'install/pi-firmware-{}.tar.gz'.format(version)
+    data_path = 'install/pi-firmware.data'
+    meta_file = 'install/pi-firmware.meta'
     create_package(package_sources, package_path)
 
     shutil.copy(package_path, data_path)

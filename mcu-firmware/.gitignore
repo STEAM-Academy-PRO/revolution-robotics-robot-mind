@@ -11,3 +11,4 @@ jlink.*
 *.atsln
 *.elf
 *.componentinfo.xml
+Config/fw_version.h
