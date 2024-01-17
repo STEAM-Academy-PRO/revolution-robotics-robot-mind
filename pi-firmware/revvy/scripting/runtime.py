@@ -40,6 +40,8 @@ class ScriptHandle:
         self.pause = self._thread.pause_thread
         self.resume = self._thread.resume_thread
 
+        self.on_stopped(self.reset_variables)
+
         assert(callable(script))
 
         self.log('Created')
@@ -63,7 +65,7 @@ class ScriptHandle:
                 raise InterruptedError
 
             ctx.terminate = _terminate
-            ctx.terminate_all = self._owner.stop_all_scripts
+            ctx.terminate_all = lambda: self._owner.stop_all_scripts(False)
 
             self.sleep = ctx.sleep
             self.log("Starting script")
@@ -95,7 +97,7 @@ class ScriptManager:
     def __init__(self, robot):
         self._robot = robot
         self._globals = {}
-        self._scripts = {}
+        self._scripts: dict[str, ScriptHandle] = {}
         self._log = get_logger('ScriptManager')
 
     def reset(self):
@@ -136,10 +138,14 @@ class ScriptManager:
     def __getitem__(self, name):
         return self._scripts[name]
 
-    def stop_all_scripts(self):
+    def stop_all_scripts(self, wait=True):
+        events = []
         for script in self._scripts.values():
-            script.stop().wait()
-            script.reset_variables()
+            events.append(script.stop())
+
+        if wait:
+            for event in events:
+                event.wait()
 
     def start_all_scripts(self):
         for script in self._scripts.values():
@@ -148,7 +154,6 @@ class ScriptManager:
     def pause_all_scripts(self):
         for script in self._scripts.values():
             script.pause()
-
 
     def resume_all_scripts(self):
         for script in self._scripts.values():

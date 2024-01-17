@@ -107,7 +107,7 @@ def json_get_field(obj, keys, optional, value_type=None):
 
     raise ConfigError(
         'Wrong config field type: key(s):{}, type:{}, required:{}'.format(
-            keys, value_type))
+            keys, type(value), value_type))
 
 
 class RobotConfig:
@@ -166,7 +166,7 @@ class RobotConfig:
             config.controller.buttons[button_idx] = script_desc
 
         if 'background' in assignments:
-            script_name = make_script_name_common(script_idx, "backgroud", "0")
+            script_name = make_script_name_common(script_idx, "background", "0")
             priority = assignments['background']
             script_desc = ScriptDescriptor(script_name, runnable, priority)
             config.background_scripts.append(script_desc)

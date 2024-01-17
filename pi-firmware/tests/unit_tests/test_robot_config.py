@@ -21,10 +21,10 @@ class TestRobotConfig(unittest.TestCase):
 
         # these should not raise ConfigError
         with self.subTest("Both"):
-            RobotConfig.from_string('{"robotConfig": [], "blocklyList": []}')
+            RobotConfig.from_string('{"robotConfig": {}, "blocklyList": []}')
 
         with self.subTest("Both, lowercase"):
-            RobotConfig.from_string('{"robotconfig": [], "blocklylist": []}')
+            RobotConfig.from_string('{"robotconfig": {}, "blocklylist": []}')
 
     def test_scripts_without_code_or_script_name_fail(self):
         self.assertRaises(ConfigError, lambda: RobotConfig.from_string('''
@@ -45,7 +45,7 @@ class TestRobotConfig(unittest.TestCase):
     def test_scripts_can_be_assigned_to_multiple_buttons(self):
         json = '''
         {
-            "robotConfig": [],
+            "robotConfig": {},
             "blocklyList": [
                 {
                     "pythonCode": "{SOURCE}",
@@ -61,8 +61,8 @@ class TestRobotConfig(unittest.TestCase):
         config = RobotConfig.from_string(json)
 
         script_names = [
-            '[script 0] button 0',
-            '[script 1] button 2'
+            'script_0_button_0',
+            'script_0_button_2'
         ]
 
         self.assertEqual(script_names[0], config.controller.buttons[0].name)
@@ -107,7 +107,7 @@ class TestRobotConfig(unittest.TestCase):
     def test_scripts_can_be_assigned_to_multiple_analog_channels(self):
         json = '''
         {
-            "robotConfig": [],
+            "robotConfig": {},
             "blocklyList": [
                 {
                     "pythonCode": "{SOURCE}",
@@ -123,7 +123,7 @@ class TestRobotConfig(unittest.TestCase):
 
         self.assertEqual(1, len(config.controller.analog))
 
-        script_name = '[script 0] analog channels 0, 1'
+        script_name = 'script_0_analog_channels_0_1'
 
         script_descriptor = config.controller.analog[0]['script']
 
@@ -135,7 +135,7 @@ class TestRobotConfig(unittest.TestCase):
     def test_scripts_can_be_configured_to_run_in_background(self):
         json = '''
         {
-            "robotConfig": [],
+            "robotConfig": {},
             "blocklyList": [
                 {
                     "pythonCode": "{SOURCE}",
@@ -149,7 +149,7 @@ class TestRobotConfig(unittest.TestCase):
 
         self.assertEqual(1, len(config.background_scripts))
 
-        script_name = '[script 0] background'
+        script_name = 'script_0_background_0'
 
         self.assertEqual(script_name, config.background_scripts[0].name)
         self.assertEqual(3, config.background_scripts[0].priority)
@@ -157,7 +157,7 @@ class TestRobotConfig(unittest.TestCase):
     def test_lower_case_pythoncode_is_accepted(self):
         json = '''
         {
-            "robotConfig": [],
+            "robotConfig": {},
             "blocklyList": [
                 {
                     "pythoncode": "{SOURCE}",
@@ -171,7 +171,7 @@ class TestRobotConfig(unittest.TestCase):
 
         self.assertEqual(1, len(config.background_scripts))
 
-        script_name = '[script 0] background'
+        script_name = 'script_0_background_0'
 
         self.assertEqual(script_name, config.background_scripts[0].name)
         self.assertTrue(callable(config.background_scripts[0].runnable))
@@ -180,7 +180,7 @@ class TestRobotConfig(unittest.TestCase):
     def test_builtin_scripts_can_be_referenced(self):
         json = '''
         {
-            "robotConfig": [],
+            "robotConfig": {},
             "blocklyList": [
                 {
                     "builtinScriptName": "drive_2sticks",
@@ -192,7 +192,7 @@ class TestRobotConfig(unittest.TestCase):
         }'''
         config = RobotConfig.from_string(json)
 
-        script_name = '[script 0] analog channels 0, 1'
+        script_name = 'script_0_analog_channels_0_1'
         self.assertEqual(script_name, config.controller.analog[0]['script'].name)
         self.assertTrue(callable(config.controller.analog[0]['script'].runnable))
         self.assertEqual(drive_2sticks, config.controller.analog[0]['script'].runnable)
@@ -200,7 +200,7 @@ class TestRobotConfig(unittest.TestCase):
     def test_lower_case_script_name_is_accepted(self):
         json = '''
         {
-            "robotConfig": [],
+            "robotConfig": {},
             "blocklyList": [
                 {
                     "builtinscriptname": "drive_2sticks",
@@ -212,7 +212,7 @@ class TestRobotConfig(unittest.TestCase):
         }'''
         config = RobotConfig.from_string(json)
 
-        script_name = '[script 0] analog channels 0, 1'
+        script_name = 'script_0_analog_channels_0_1'
         self.assertEqual(script_name, config.controller.analog[0]['script'].name)
         self.assertTrue(callable(config.controller.analog[0]['script'].runnable))
         self.assertEqual(drive_2sticks, config.controller.analog[0]['script'].runnable)
@@ -220,7 +220,7 @@ class TestRobotConfig(unittest.TestCase):
     def test_scripts_can_be_assigned_to_every_type_at_once(self):
         json = '''
         {
-            "robotConfig": [],
+            "robotConfig": {},
             "blocklyList": [
                 {
                     "pythonCode": "{SOURCE}",
@@ -237,9 +237,9 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual(1, len(config.background_scripts))
 
         script_names = [
-            '[script 0] analog channels 0, 1',
-            '[script 1] button 1',
-            '[script 2] background'
+            'script_0_analog_channels_0_1',
+            'script_0_button_1',
+            'script_0_background_0'
         ]
 
         self.assertEqual(script_names[0], config.controller.analog[0]['script'].name)

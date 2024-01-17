@@ -253,8 +253,8 @@ while not ctx.stop_requested:
             sm['test1'].start()
             sm['test2'].start()
 
-            script1_stopped.wait(1)
-            script2_stopped.wait(1)
+            self.assertTrue(script1_stopped.wait(1))
+            self.assertTrue(script2_stopped.wait(1))
 
             # scripts started?
             self.assertEqual(1, mock1.call_count)

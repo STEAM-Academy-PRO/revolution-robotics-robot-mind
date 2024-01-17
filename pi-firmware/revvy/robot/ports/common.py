@@ -58,7 +58,7 @@ class PortCollection:
                 item = self._alias_map[item]
             else:
                 key_list = self._alias_map.keys()
-                print("available keys: ", key_list)
+                raise KeyError(f"key '{item}' not found in alias map. Available keys: {key_list}")
         return self._ports[item - 1]
 
     def __iter__(self):
