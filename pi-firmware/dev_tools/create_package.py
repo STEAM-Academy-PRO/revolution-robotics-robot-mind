@@ -22,7 +22,7 @@ def create_package(sources, output):
             for file in find_files(source):
                 if file.startswith(prefix):
                     filename = file[len(prefix):].replace(path.sep, '/')
-                    print('Add file to package archive: {}'.format(filename))
+                    # print('Add file to package archive: {}'.format(filename))
                     tar.add(file, arcname=filename)
 
 
@@ -32,13 +32,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    print('Downloading requirements')
-    os.popen('pip3 download -r install/requirements.txt -d install/packages --platform arm --no-deps').read()
-
     if args.dev:
-        # generate empty manifest to allow editing files
+        # Generate empty manifest to allow editing files, do not install requirements at every packing.
         manifest_source = []
     else:
+        # Only download python packages on prod build
+        print('Downloading requirements')
+        os.popen('pip3 download -r install/requirements.txt -d install/packages --platform arm --no-deps').read()
+
         manifest_source = [
             'data/',
             'install/requirements.txt',
@@ -60,15 +61,22 @@ if __name__ == "__main__":
         'tools/',
         'manifest.json'
     ]
-    package_path = 'install/framework-{}.tar.gz'.format(manifest['version'].replace('/', '-'))
+
+    version = manifest['version'].replace('/', '-')
+    minor_version = version.split(".")[2]
+    with open('./version', "w") as version_file:
+        version_file.write(minor_version)
+
+    package_path = 'install/framework-{}.tar.gz'.format(version)
     data_path = 'install/framework.data'
     meta_file = 'install/framework.meta'
     create_package(package_sources, package_path)
 
     shutil.copy(package_path, data_path)
 
-    print('Remove downloaded packages')
-    shutil.rmtree('install/packages')
+    if not args.dev:
+        print('Remove downloaded packages')
+        shutil.rmtree('install/packages')
 
     file_hash = file_hash(package_path)
     file_size = os.stat(package_path).st_size
