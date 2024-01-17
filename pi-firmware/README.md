@@ -90,6 +90,10 @@ To package the framework for installation, do the following:
 Use VSCode, open this folder.
 Create a `target` file and add the IP address of the brain. (bonjour: `raspberrypi.local` or e.g. `192.168.0.123` for wifi)
 
+# VSCode setup
+- Enable auto imports in settings: `"python.analysis.autoImportCompletions": true`
+- install recommended extensions!
+
 # Debugging
 - from this dir, run `./debug`
 - for attaching debugger, run `./debug 1`
