@@ -23,7 +23,7 @@ def gen_manifest(sources, output):
             if file.startswith(prefix) and any(file.endswith(ext) for ext in extensions):
                 filename = file[len(prefix):].replace(path.sep, '/')
                 checksum = file_hash(file)
-                print('Add file to manifest: {} (checksum: {})'.format(filename, checksum))
+                # print('Add file to manifest: {} (checksum: {})'.format(filename, checksum))
                 hashes[filename] = checksum
 
     branch, version = get_version()

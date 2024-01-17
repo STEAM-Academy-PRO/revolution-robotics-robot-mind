@@ -9,13 +9,13 @@
             "type": "python",
             "request": "attach",
             "connect": {
-              "host": "192.168.0.136",
+              "host": "192.168.1.242",
               "port": 5678
             },
             "pathMappings": [
                 {
                     "localRoot": "${workspaceFolder}",
-                    "remoteRoot": "/home/pi/RevvyFramework/user/packages/revvy-0.1.1200/"
+                    "remoteRoot": "./"
                 }
             ]
         }
