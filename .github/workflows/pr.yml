@@ -52,7 +52,7 @@ jobs:
         if: steps.filter.outputs.mcu-bootloader == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: mcu-bootloader-debug
+          name: mcu-bootloader
           path: |
             mcu-bootloader/Build/rrrc_samd51.elf
             mcu-bootloader/Build/rrrc_samd51.bin
@@ -104,7 +104,7 @@ jobs:
         if: steps.filter.outputs.mcu-firmware == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: mcu-firmware-debug
+          name: mcu-firmware
           path: mcu-firmware/Build/output/
 
   check-pi-firmware:
@@ -194,4 +194,3 @@ jobs:
         with:
           name: pi-firmware
           path: pi-firmware/install/pi-firmware.*
-    
