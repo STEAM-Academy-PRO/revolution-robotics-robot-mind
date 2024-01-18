@@ -46,7 +46,7 @@ class McuStatusUpdater:
         slot_idx = self.mcu_updater_slots[slot]
         if not self._is_enabled[slot_idx]:
             self._is_enabled[slot_idx] = True
-            self._log(f'enable slot {slot_idx}')
+            # self._log(f'enable slot {slot_idx}')
             self._robot.status_updater_control(slot_idx, True)
         self._handlers[slot_idx] = callback
 

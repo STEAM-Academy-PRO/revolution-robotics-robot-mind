@@ -305,11 +305,11 @@ class RemoteControllerScheduler:
         self._log('exited')
 
     def on_controller_detected(self, callback: callable):
-        self._log('Register controller found handler')
+        # self._log('Register controller found handler')
         self._controller_detected_callback = callback
 
     def on_controller_lost(self, callback: callable):
-        self._log('Register controller lost handler')
+        # self._log('Register controller lost handler')
         self._controller_lost_callback = callback
 
 def create_remote_controller_thread(rcs: RemoteControllerScheduler):
