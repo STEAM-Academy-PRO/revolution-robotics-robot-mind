@@ -64,8 +64,6 @@ if __name__ == "__main__":
 
     version = manifest['version'].replace('/', '-')
     minor_version = version.split(".")[2]
-    with open('./version', "w") as version_file:
-        version_file.write(minor_version)
 
     package_path = 'install/pi-firmware-{}.tar.gz'.format(version)
     data_path = 'install/pi-firmware.data'
