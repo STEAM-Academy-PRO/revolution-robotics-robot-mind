@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "preLaunchTask": "make debug",
+      "type": "probe-rs-debug",
+      "flashingConfig": {
+        "haltAfterReset": true,
+        "flashingEnabled": true,
+      },
+      "request": "launch",
+      "name": "probe_rs Executable Test",
+      "chip": "atsamd51p19a",
+      "coreConfigs": [
+        {
+          "programBinary": "${workspaceRoot}/Build/Debug/rrrc_samd51.elf"
+        }
+      ]
+    }
+  ]
+}

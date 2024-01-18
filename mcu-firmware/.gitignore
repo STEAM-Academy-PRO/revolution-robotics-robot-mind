@@ -5,3 +5,4 @@ Makefile
 /output/
 /venv/
 Config/fw_version.h
+.vscode/settings.json
