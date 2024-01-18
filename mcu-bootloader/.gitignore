@@ -1,8 +1,7 @@
-# Firmware project artefacts
-Debug/*
-Debug*/*
-Release/*
-.vs/*
-.atmel-start-backup
-jlink.config
-jlink.log
+Build/*
+Makefile
+/**/*.pyc
+/**/*.bak*
+/output/
+/venv/
+Config/fw_version.h

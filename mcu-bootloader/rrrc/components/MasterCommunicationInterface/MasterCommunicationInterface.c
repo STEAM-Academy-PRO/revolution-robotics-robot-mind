@@ -2,7 +2,7 @@
  * MasterCommunicationInterface.c
  *
  * Created: 07/05/2019 10:34:21
- *  Author: Dániel Buga
+ *  Author: Dï¿½niel Buga
  */
 
 #include "MasterCommunicationInterface.h"
@@ -20,37 +20,39 @@ static bool messageReceived;
 
 static bool tx_complete = false;
 
-static i2c_hal_descriptor I2C_0;
 const MasterCommunicationInterface_Config_t* config;
 
 //*********************************************************************************************
-static int32_t I2C_0_init(i2c_hal_descriptor* descriptor)
+static int32_t I2C_4_init(uint8_t address)
 {
     hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM2_GCLK_ID_CORE, CONF_GCLK_SERCOM2_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM2_GCLK_ID_SLOW, CONF_GCLK_SERCOM2_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_mclk_set_APBBMASK_SERCOM2_bit(MCLK);
 
-    gpio_set_pin_pull_mode(I2C0_SDApin, GPIO_PULL_OFF);
-    gpio_set_pin_function(I2C0_SDApin, I2C0_SDApin_function);
-    gpio_set_pin_pull_mode(I2C0_SCLpin, GPIO_PULL_OFF);
-    gpio_set_pin_function(I2C0_SCLpin, I2C0_SCLpin_function);
+    gpio_set_pin_pull_mode(I2C4_SDApin, GPIO_PULL_OFF);
+    gpio_set_pin_function(I2C4_SDApin, I2C4_SDApin_function);
+    gpio_set_pin_pull_mode(I2C4_SCLpin, GPIO_PULL_OFF);
+    gpio_set_pin_function(I2C4_SCLpin, I2C4_SCLpin_function);
 
-    return i2c_hal_init(descriptor, I2C0_SERCOM);
+    return i2c_hal_init(I2C4_SERCOM, address);
 }
 
-void i2c_hal_rx_started(i2c_hal_descriptor* descr)
+void i2c_hal_rx_started(void)
 {
     /* setup a default response in case processing is slow */
-    i2c_hal_set_tx_buffer(descr, config->defaultResponseBuffer, config->defaultResponseLength);
+    i2c_hal_set_tx_buffer(config->defaultResponseBuffer, config->defaultResponseLength);
 }
 
-void i2c_hal_rx_complete(i2c_hal_descriptor* descr, const uint8_t* buffer, size_t bufferSize, size_t bytesReceived)
+void i2c_hal_rx_complete(const uint8_t* buffer, size_t bufferSize, size_t bytesReceived)
 {
+    (void) buffer;
+    (void) bufferSize;
+    
     messageReceived = true;
     messageSize = bytesReceived;
 }
 
-void i2c_hal_tx_complete(i2c_hal_descriptor* descr)
+void i2c_hal_tx_complete(void)
 {
     tx_complete = true;
 }
@@ -60,8 +62,8 @@ void MasterCommunicationInterface_Run_OnInit(const MasterCommunicationInterface_
     messageReceived = false;
     config = cfg;
 
-    (void) I2C_0_init(&I2C_0);
-    i2c_hal_receive(&I2C_0, &rxBuffer[0], sizeof(rxBuffer));
+    (void) I2C_4_init(0x2B);
+    i2c_hal_receive();
 }
 
 void MasterCommunicationInterface_Run_Update(void)
@@ -90,6 +92,8 @@ __attribute__((weak))
 void MasterCommunicationInterface_Call_OnMessageReceived(const uint8_t* buffer, size_t bufferSize)
 {
     /* nothing to do */
+    (void) buffer;
+    (void) bufferSize;
 }
 
 __attribute__((weak))
@@ -100,5 +104,5 @@ void MasterCommunicationInterface_Call_OnTransmitComplete(void)
 
 void MasterCommunicationInterface_Run_SetResponse(const uint8_t* buffer, size_t bufferSize)
 {
-    i2c_hal_set_tx_buffer(&I2C_0, buffer, bufferSize);
+    i2c_hal_set_tx_buffer(buffer, bufferSize);
 }

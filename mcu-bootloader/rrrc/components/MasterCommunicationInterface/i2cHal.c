@@ -1,163 +1,172 @@
-/*
- * i2cHal.c
- *
- * Created: 07/05/2019 11:42:39
- *  Author: Dániel Buga
- */ 
-
 #include "i2cHal.h"
 #include "utils_assert.h"
 
 #define I2C_DIR_MASTER_TX  0u
 #define I2C_DIR_MASTER_RX  1u
 
-static void i2c_hal_on_address_matched(struct _i2c_s_async_device *const device, const uint8_t dir);
-static void i2c_hal_on_error(struct _i2c_s_async_device *const device);
-static void i2c_hal_on_rx_done(struct _i2c_s_async_device *const device, const uint8_t data);
-static void i2c_hal_on_tx(struct _i2c_s_async_device *const device);
-static void i2c_hal_on_stop(struct _i2c_s_async_device *const device, const uint8_t dir);
+static const uint8_t empty_tx_buffer[] = { 0xFFu };
 
-int32_t i2c_hal_init(i2c_hal_descriptor* descr, void* hw)
+typedef struct
 {
-    ASSERT(descr && hw );
+    struct _i2c_s_async_device device;
 
-    int32_t result = _i2c_s_async_init(&descr->device, hw);
+    const uint8_t* txBuffer;
+    const uint8_t* txBufferLast;
+
+    const uint8_t*  nextTxBuffer;
+    const uint8_t*  nextTxBufferLast;
+
+    uint8_t         rxBuffer[255 + 6];
+    uint16_t        rxBufferCount;
+} i2c_hal_descriptor;
+
+static i2c_hal_descriptor descriptor;
+
+static void i2c_hal_on_address_matched(const uint8_t dir);
+static void i2c_hal_on_error(void);
+static void i2c_hal_on_stop(const uint8_t dir);
+
+static i2c_hal_descriptor descriptor;
+
+int32_t i2c_hal_init(void* hw, uint8_t address)
+{
+    i2cs_config_t config = {
+        .hw = hw,
+        .ctrl_a = SERCOM_I2CM_CTRLA_MODE(0x04u)
+                | (1u << SERCOM_I2CS_CTRLA_RUNSTDBY_Pos)
+                | SERCOM_I2CS_CTRLA_SDAHOLD(0u)
+                | (0u << SERCOM_I2CS_CTRLA_SEXTTOEN_Pos)
+                | (0u << SERCOM_I2CS_CTRLA_SPEED_Pos)
+                | (0u << SERCOM_I2CS_CTRLA_SCLSM_Pos)
+                | (0u << SERCOM_I2CS_CTRLA_LOWTOUTEN_Pos),
+        .ctrl_b = SERCOM_I2CS_CTRLB_SMEN | SERCOM_I2CS_CTRLB_AMODE(0u),
+        .address = (0u << SERCOM_I2CS_ADDR_GENCEN_Pos)
+                 | (0u << SERCOM_I2CS_ADDR_TENBITEN_Pos)
+                 | SERCOM_I2CS_ADDR_ADDRMASK(0u)
+                 | SERCOM_I2CS_ADDR_ADDR(address)
+    };
+    int32_t result = _i2c_s_async_init(&descriptor.device, &config);
 
     if (result == ERR_NONE)
     {
-        descr->nextTxBuffer = NULL;
-        descr->nextTxBufferSize = 0u;
-        
-        descr->txBuffer = NULL;
-        descr->txBufferSize = 0u;
-        descr->txBufferIndex = 0u;
+        descriptor.nextTxBuffer = empty_tx_buffer;
+        descriptor.nextTxBufferLast = empty_tx_buffer;
 
-        descr->rxBuffer = NULL;
-        descr->rxBufferSize = 0u;
-        descr->rxBufferCount = 0u;
+        descriptor.txBuffer = empty_tx_buffer;
+        descriptor.txBufferLast = empty_tx_buffer;
 
-        result = _i2c_s_async_enable(&descr->device);
-        if (result == ERR_NONE)
-        {
-            descr->device.cb.addrm_cb   = &i2c_hal_on_address_matched;
-            descr->device.cb.error_cb   = &i2c_hal_on_error;
-            descr->device.cb.rx_done_cb = &i2c_hal_on_rx_done;
-            descr->device.cb.tx_cb      = &i2c_hal_on_tx;
-            descr->device.cb.stop_cb    = &i2c_hal_on_stop;
+        descriptor.rxBufferCount = 0u;
 
-            hri_sercomi2cs_set_INTEN_ERROR_bit(descr->device.hw);
-            hri_sercomi2cs_set_INTEN_AMATCH_bit(descr->device.hw);
-            hri_sercomi2cs_set_INTEN_PREC_bit(descr->device.hw);
-            hri_sercomi2cs_set_INTEN_DRDY_bit(descr->device.hw);
-        }
+        descriptor.device.cb.addrm_cb   = &i2c_hal_on_address_matched;
+        descriptor.device.cb.error_cb   = &i2c_hal_on_error;
+        descriptor.device.cb.stop_cb    = &i2c_hal_on_stop;
+
+        hri_sercomi2cs_set_INTEN_ERROR_bit(descriptor.device.hw);
+        hri_sercomi2cs_set_INTEN_AMATCH_bit(descriptor.device.hw);
+        hri_sercomi2cs_set_INTEN_PREC_bit(descriptor.device.hw);
+        hri_sercomi2cs_set_INTEN_DRDY_bit(descriptor.device.hw);
+
+        result = _i2c_s_async_enable(&descriptor.device);
     }
 
     return result;
 }
 
-void i2c_hal_receive(i2c_hal_descriptor* descr, uint8_t* buffer, size_t bufferSize)
+void i2c_hal_receive(void)
 {
     /* set size to 0 to avoid needing a critical section */
-    descr->rxBufferSize = 0u;
-    descr->rxBuffer = buffer;
-    descr->rxBufferCount = 0u;
-    descr->rxBufferSize = bufferSize;
+    descriptor.rxBufferCount = 0u;
 }
 
-void i2c_hal_set_tx_buffer(i2c_hal_descriptor* descr, const uint8_t* buffer, size_t bufferSize)
+void i2c_hal_set_tx_buffer(const uint8_t* buffer, size_t bufferSize)
 {
-    /* set size to 0 to avoid needing a critical section */
-    descr->nextTxBufferSize = 0u;
-    descr->nextTxBuffer = buffer;
-    descr->nextTxBufferSize = bufferSize;
-}
+    if (bufferSize == 0u)
+    {
+        buffer = empty_tx_buffer;
+        bufferSize = ARRAY_SIZE(empty_tx_buffer);
+    }
 
-__attribute__((weak))
-void i2c_hal_rx_started(i2c_hal_descriptor* descr)
-{
-
-}
-
-__attribute__((weak))
-void i2c_hal_rx_complete(i2c_hal_descriptor* descr, const uint8_t* buffer, size_t bufferSize, size_t bytesReceived)
-{
-
-}
-
-__attribute__((weak))
-void i2c_hal_tx_complete(i2c_hal_descriptor* descr)
-{
-
+    __disable_irq();
+    descriptor.nextTxBuffer = buffer;
+    descriptor.nextTxBufferLast = buffer + bufferSize - 1;
+    __enable_irq();
 }
 
 /* interrupt handlers */
-static void i2c_hal_on_address_matched(struct _i2c_s_async_device *const device, const uint8_t dir)
+static void i2c_hal_on_address_matched(const uint8_t dir)
 {
-    i2c_hal_descriptor *descr = CONTAINER_OF(device, i2c_hal_descriptor, device);
     if (dir == I2C_DIR_MASTER_TX)
     {
-        descr->rxBufferCount = 0u;
-        i2c_hal_rx_started(descr);
+        descriptor.rxBufferCount = 0u;
+        i2c_hal_rx_started();
     }
     else
     {
-        descr->txBuffer = descr->nextTxBuffer;
-        descr->txBufferSize = descr->nextTxBufferSize;
-        descr->txBufferIndex = 0u;
+        descriptor.txBuffer = descriptor.nextTxBuffer;
+        descriptor.txBufferLast = descriptor.nextTxBufferLast;
     }
 }
 
-static void i2c_hal_on_error(struct _i2c_s_async_device *const device)
+static void i2c_hal_on_error(void)
 {
     /* ignore for now */
+#if 0
+    i2c_hal_error_occurred();
+#endif
 }
 
-static void i2c_hal_on_rx_done(struct _i2c_s_async_device *const device, const uint8_t data)
+void i2c_hal_on_rx_done(const uint8_t data)
 {
-    i2c_hal_descriptor *descr = CONTAINER_OF(device, i2c_hal_descriptor, device);
-
-    if (descr->rxBufferCount < descr->rxBufferSize)
+    if (descriptor.rxBufferCount < sizeof(descriptor.rxBuffer))
     {
-        descr->rxBuffer[descr->rxBufferCount] = data;
+        descriptor.rxBuffer[descriptor.rxBufferCount] = data;
     }
-    
-    ++descr->rxBufferCount;
+
+    ++descriptor.rxBufferCount;
 }
 
-static void i2c_hal_on_tx(struct _i2c_s_async_device *const device)
+void sercom2_tx_cb(void)
 {
-    i2c_hal_descriptor *descr = CONTAINER_OF(device, i2c_hal_descriptor, device);
+    uint8_t byte = *descriptor.txBuffer;
+    _i2c_s_async_write_byte(&descriptor.device, byte);
 
-    if (descr->txBufferSize == 0u)
+    if (descriptor.txBuffer != descriptor.txBufferLast)
     {
-        /* TODO ??? maybe wait for data? */
-        _i2c_s_async_write_byte(device, 0xFFu);
-    }
-    else
-    {
-        uint8_t byte = descr->txBuffer[descr->txBufferIndex];
-        _i2c_s_async_write_byte(device, byte);
-
-        if (descr->txBufferIndex == descr->txBufferSize - 1u)
-        {
-            descr->txBufferIndex = 0u;
-        }
-        else
-        {
-            ++descr->txBufferIndex;
-        }
+        ++descriptor.txBuffer;
     }
 }
 
-static void i2c_hal_on_stop(struct _i2c_s_async_device *const device, const uint8_t dir)
+static void i2c_hal_on_stop(const uint8_t dir)
 {
-    i2c_hal_descriptor *descr = CONTAINER_OF(device, i2c_hal_descriptor, device);
     if (dir == I2C_DIR_MASTER_TX)
     {
-        i2c_hal_rx_complete(descr, descr->rxBuffer, descr->rxBufferSize, descr->rxBufferCount);
+        i2c_hal_rx_complete(descriptor.rxBuffer, sizeof(descriptor.rxBuffer), descriptor.rxBufferCount);
     }
     else
     {
-        i2c_hal_tx_complete(descr);
+        i2c_hal_tx_complete();
     }
+}
+
+__attribute__((weak))
+void i2c_hal_rx_started(void)
+{
+}
+
+__attribute__((weak))
+void i2c_hal_rx_complete(const uint8_t* buffer, size_t bufferSize, size_t bytesReceived)
+{
+    (void) buffer;
+    (void) bufferSize;
+    (void) bytesReceived;
+}
+
+__attribute__((weak))
+void i2c_hal_tx_complete(void)
+{
+}
+
+__attribute__((weak))
+void i2c_hal_error_occurred(void)
+{
 }

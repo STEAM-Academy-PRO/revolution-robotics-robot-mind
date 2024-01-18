@@ -28,7 +28,6 @@ extern "C" {
 #include <hal_i2c_s_async.h>
 #include <hal_spi_m_dma.h>
 #include <hal_spi_m_sync.h>
-#include <hal_timer.h>
 #include <hpl_tc_base.h>
 
 extern struct flash_descriptor FLASH_0;

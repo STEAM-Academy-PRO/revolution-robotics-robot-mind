@@ -57,7 +57,7 @@ ifeq ($(OS),Windows_NT)
 \tGCC_BINARY_PREFIX := "C:/gcc/gcc-arm-none-eabi-9-2019-q4-major/bin/arm-none-eabi-
 \tGCC_BINARY_SUFFIX := .exe"
 \tNULL := nul
-\tDEL := del
+\tDEL := rmdir /s /q
 \tTRUE := VER>nul
 else
 \tSHELL := /bin/bash
@@ -110,7 +110,7 @@ $(OUTPUT_FILE).elf: $(OBJS)
 \t$(GCC_BINARY_PREFIX)size$(GCC_BINARY_SUFFIX) $(OUTPUT_FILE).elf
 
 clean:
-\t-@$(DEL) Build 2>$(NULL) || VER>$(NULL)
+\t-@$(DEL) Build
 \t@echo Removed Build directory
 """
 
