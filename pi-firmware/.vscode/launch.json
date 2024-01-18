@@ -9,13 +9,13 @@
             "type": "python",
             "request": "attach",
             "connect": {
-              "host": "192.168.1.242",
+              "host": "${config:target}",
               "port": 5678
             },
             "pathMappings": [
                 {
                     "localRoot": "${workspaceFolder}",
-                    "remoteRoot": "./"
+                    "remoteRoot": "."
                 }
             ]
         }
