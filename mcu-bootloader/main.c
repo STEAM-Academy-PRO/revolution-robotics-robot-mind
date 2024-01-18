@@ -127,3 +127,8 @@ void UpdateManager_Write_Progress(uint8_t progress)
         ringLeds[i] = (rgb_t) LED_OFF;
     }
 }
+
+void assert_failed(const char *file, uint32_t line)
+{
+    __BKPT(0);
+}

@@ -15,7 +15,47 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
 
 jobs:
-  # check-mcu-bootloader:
+  check-mcu-bootloader:
+    permissions:
+      contents: read # checkout
+      pull-requests: read # paths-filter
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            mcu-bootloader:
+              - mcu-bootloader/**
+              - .github/workflows/pr.yml
+
+      - name: Install compiler
+        if: steps.filter.outputs.mcu-bootloader == 'true'
+        run: |
+          cd /usr/share
+          mkdir gcc-arm
+          cd gcc-arm
+          wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2 -O toolchain.tar.bz2
+          tar -xjf toolchain.tar.bz2
+
+      - name: Build Debug bootloader
+        if: steps.filter.outputs.mcu-bootloader == 'true'
+        run: |
+          cd mcu-bootloader
+          make config=debug
+
+      - name: Upload artifacts
+        if: steps.filter.outputs.mcu-bootloader == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcu-bootloader
+          path: |
+            mcu-bootloader/Build/rrrc_samd51.elf
+            mcu-bootloader/Build/rrrc_samd51.bin
 
   check-mcu-firmware:
     permissions:
@@ -154,4 +194,3 @@ jobs:
         with:
           name: pi-firmware
           path: pi-firmware/install/pi-firmware.*
-    

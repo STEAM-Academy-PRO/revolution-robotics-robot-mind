@@ -1,14 +1,8 @@
 Build/*
-+.vs/*
-/.vs/*
-/.idea/
 Makefile
 /**/*.pyc
 /**/*.bak*
 /output/
 /venv/
-jlink.*
-*.atsln
-*.elf
-*.componentinfo.xml
 Config/fw_version.h
+.vscode/settings.json

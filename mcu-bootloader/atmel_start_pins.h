@@ -211,11 +211,11 @@
 #define PA13 GPIO(GPIO_PORTA, 13)
 
 //SERCOM2!!
-#define I2C0_SERCOM SERCOM2
-#define I2C0_SDApin	PA12
-#define I2C0_SDApin_function GPIO_PIN_FUNCTION_C
-#define I2C0_SCLpin PA13
-#define I2C0_SCLpin_function GPIO_PIN_FUNCTION_C
+#define I2C4_SERCOM SERCOM2
+#define I2C4_SDApin	PA12
+#define I2C4_SDApin_function GPIO_PIN_FUNCTION_C
+#define I2C4_SCLpin PA13
+#define I2C4_SCLpin_function GPIO_PIN_FUNCTION_C
 
 #define WS2812pin PB29
 #define WS2812pin_function GPIO_PIN_FUNCTION_D
