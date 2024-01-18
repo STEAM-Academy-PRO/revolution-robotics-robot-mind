@@ -17,7 +17,7 @@ from revvy.robot_config import empty_robot_config
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import MotorConstants
 from revvy.scripting.runtime import ScriptManager
-from revvy.utils.logger import get_logger
+from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.thread_wrapper import periodic
 from revvy.robot.communication import RobotCommunicationInterface
@@ -155,6 +155,8 @@ class RobotManager:
         except TransportException:
             self._log(traceback.format_exc())
             self.exit(RevvyStatusCode.ERROR)
+        except BrokenPipeError:
+            self._log("Status Update Error from MCU", LogLevel.WARNING)
         except Exception:
             self._log(traceback.format_exc())
 
@@ -200,13 +202,14 @@ class RobotManager:
     def robot_start(self):
         self._log('start')
         if self._robot.status.robot_status == RobotStatus.StartingUp:
-            self._log('Waiting for MCU')
+            # self._log('Waiting for MCU')
 
             try:
                 self._ping_robot()
             except TimeoutError:
                 pass  # FIXME somehow handle a dead MCU
 
+            self._log('Connection to MCU established')
             self._robot_interface.update_characteristic('hw_version', str(self._robot.hw_version))
             self._robot_interface.update_characteristic('fw_version', str(self._robot.fw_version))
             self._robot_interface.update_characteristic('sw_version', str(self._sw_version))
@@ -214,10 +217,15 @@ class RobotManager:
             # start reader thread
             self._status_update_thread.start()
 
-            # self._robot_interface.start()
-
             self._robot.status.robot_status = RobotStatus.NotConfigured
-            self.robot_configure(None, partial(self._robot.play_tune, 'robot2'))
+
+            # Initial robot reset.
+
+            def boot_up_success():
+                self._robot.play_tune('robot2')
+                self._log('robot first configured with empty configuration object!')
+
+            self.robot_configure(None, boot_up_success)
 
     def run_in_background(self, callback, name=''):
         if callable(callback):
@@ -249,13 +257,13 @@ class RobotManager:
 
     def robot_configure(self, config, after=None):
         self.__session_id += 1
-        self._log('Request configuration')
         if config is not None:
             self._robot_interface.update_session_id(self.__session_id)
 
         if self._robot.status.robot_status != RobotStatus.Stopped:
             self.run_in_background(partial(self._robot_configure, config), 'robot_configuration_request')
             if callable(after):
+                traceback.print_exc()
                 self.run_in_background(after, 'robot_configuration_request - 2')
 
     def _reset_configuration(self):
@@ -275,7 +283,7 @@ class RobotManager:
         self._robot.reset()
 
     def _apply_new_configuration(self, config):
-        self._log('Applying new configuration')
+        # self._log('Applying new configuration')
         self._robot.script_variables.reset()
 
         # Initialize variable slots from config
@@ -341,7 +349,7 @@ class RobotManager:
 
         self._apply_new_configuration(config)
         if is_default_config:
-            self._log('Default configuration applied')
+            # self._log('Default configuration applied')
             self._robot.status.robot_status = RobotStatus.NotConfigured
         else:
             self._robot.status.robot_status = RobotStatus.Configured

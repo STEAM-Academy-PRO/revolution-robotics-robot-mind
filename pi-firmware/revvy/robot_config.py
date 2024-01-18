@@ -178,6 +178,8 @@ class RobotConfig:
         except JSONDecodeError as e:
             raise ConfigError('Received configuration is not a valid json string') from e
 
+        log("\n"+json.dumps(json_config, indent=2))
+
         config = RobotConfig()
         robot_config = json_get_field(json_config,
             ['robotConfig', 'robotconfig'], optional=False, value_type=dict)

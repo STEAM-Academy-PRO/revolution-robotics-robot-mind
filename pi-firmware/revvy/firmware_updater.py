@@ -65,19 +65,24 @@ class McuUpdater:
         mode = self._read_operation_mode()
         #self._log("---mode:" + str(mode) + "\n run finalize")
         self.finalize()
-        self._log("end finalize")
         mode = self._read_operation_mode()
         #self._log("[Firmware Updater] ---mode:" + str(mode))
         if mode == McuOperationMode.APPLICATION:
             fw = self._robot.get_firmware_version()
             if fw != fw_version:  # allow downgrade as well
+                self._log('Firmware version is not latest, updating. {fw}')
                 return True
             elif fw_version.branch == 'stable':
                 return False  # avoid rebooting to bootloader on production robots
             else:
+                self._log('Rebooting the MCU bootloader to check image CRC (Pink LEDs)')
                 self.reboot_to_bootloader()
                 crc = self._bootloader.read_firmware_crc()
-                return crc != fw_crc
+
+                is_crc_different = crc != fw_crc
+                if is_crc_different:
+                    self._log('Firmware CRC check failed! {crc} != {fw_crc}')
+                return is_crc_different
         else:
             # in bootloader mode, probably no firmware, request update
             return True

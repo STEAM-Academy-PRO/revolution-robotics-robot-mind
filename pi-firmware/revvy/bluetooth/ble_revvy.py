@@ -114,8 +114,6 @@ class RevvyBLE(RobotCommunicationInterface):
         self._log(f'on -> advertisingStart: {_result(error)}')
 
         if not error:
-            self._log('setServices')
-
             # noinspection PyShadowingNames
             def on_set_service_error(error):
                 self._log(f'setServices: {_result(error)}')
