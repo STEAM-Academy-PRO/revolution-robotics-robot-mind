@@ -9,3 +9,4 @@ target
 
 .coverage
 manifest.json
+.vscode/settings.json

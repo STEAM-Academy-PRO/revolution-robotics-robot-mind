@@ -3,57 +3,60 @@
 python -m dev_tools.create_package --dev
 
 # This is the version that it will be mapped to.
-VERSION="0.1.$(echo "$(<"version")" | tr -d '[:space:]')"
+VERSION="0.1.$(git rev-list --count HEAD)"
 
 # Define source and destination folders
 LOCAL_SOURCE_FOLDER="./"
 USER="pi"
 
-if [ ! -e "target" ]; then
-    echo "WARNING: No target found! Creating fallback target, raspberrypi.local <- this only works with the bonjour service!"
-    echo "rapberrypi.local" > target
-    # Continue with your script logic here
-else
-    echo "Deploying to $(<"target")"
+# If your local network does not have Bonjour service OR
+# you have multiple devices on the network,
+# just modify the target variable in .vscode/settings.json
+
+# Check if 'settings.json' exists
+if [ ! -f ".vscode/settings.json" ]; then
+    # If not, copy 'settings.example.json' to it's place
+    cp ".vscode/settings.example.json" ".vscode/settings.json"
+    echo "Looks like first run, copied vscode settings.example to settings!"
 fi
 
-HOST="$(<"target")"
-
-### TODO: make this UNIVERSAL
+HOST="$(jq -r '.target' .vscode/settings.json)"
 REMOTE_DESTINATION_FOLDER="/home/pi/RevvyFramework/user/packages/"
 
-echo "$USER@$HOST:$REMOTE_DESTINATION_FOLDER"
-
-PACKAGE_FILENAME="framework-$VERSION"
+PACKAGE_FILENAME="pi-firmware-$VERSION"
 TARGET_FOLDER_NAME="revvy-$VERSION"
 PACKAGE_SOURCE="install/$PACKAGE_FILENAME.tar.gz"
 
-# Rsync command with SSH
-# PARAMS="-avu --inplace --delete -e "ssh" $PACKAGE_SOURCE "$USER@$HOST:$REMOTE_DESTINATION_FOLDER""
-# echo $PARAMS
-# rsync $PARAMS
+# Production directory
 TARGET="/home/pi/RevvyFramework/user/packages/$TARGET_FOLDER_NAME/"
 
-NAT_IP=$(ip route get 1 | awk '{print $7}')
 DEBUG_PORT=5678
+
+
+echo "Deploying to: $USER@$HOST:$TARGET"
+
+# Prod deploy: just start running, do not wait for debugger.
+RUNNER="cd $TARGET && python3 -u ./revvy.py"
 
 # For debug mode, run ./debug 1
 if [ "$#" -ge 1 ] && [ "$1" -eq 1 ]; then
-    RUNNER="-m debugpy --listen 0.0.0.0:$DEBUG_PORT --wait-for-client"
+    RUNNER="cd $TARGET && python3 -u -m debugpy --listen 0.0.0.0:$DEBUG_PORT --wait-for-client ./revvy.py"
 fi
 
 ssh $USER@$HOST "mkdir -p $TARGET && tar -xzf - -C $TARGET --warning=no-timestamp && \
-    cd $TARGET && stop; killall python3; \
-    echo "Files extracted to target folder: $target" && \
-    echo "" && \
-    echo "--- Waiting for Debugger to connect on $NAT_IP:$DEBUG_PORT ---\n" && \
-    echo "- do not forget to set your launch.json to the proper target! -" && \
-    echo "" && \
-    echo "---------------------------------------------------------------" && \
-    echo "---------------------------------------------------------------" && \
-    echo "" && \
-    python3 -u $RUNNER ./revvy.py" < $PACKAGE_SOURCE
+    stop; killall python3; echo "PI: Files extracted to target folder."" < $PACKAGE_SOURCE
 
 
-##
-#ssh $USER@$HOST "cd Revvy python -m debugpy --listen 5678 --wait-for-client ./revvy.py"
+echo ""
+echo "---------------------------------------------------------------"
+echo ""
+
+# On debug, just wait until the port is open, then end script!
+if [ "$#" -ge 1 ] && [ "$1" -eq 1 ]; then
+    echo "Waiting for Debugger to connect on $HOST:$DEBUG_PORT" && \
+    echo "Launch the 'Attach PI Debugger in VSCode!'"
+fi
+
+### Start the deployed script!
+ssh $USER@$HOST "$RUNNER"
+
