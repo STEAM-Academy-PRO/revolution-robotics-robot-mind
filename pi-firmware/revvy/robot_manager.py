@@ -9,6 +9,7 @@ from functools import partial
 from threading import Event
 
 from revvy.mcu.rrrc_transport import TransportException
+from revvy.robot.communication import RobotCommunicationInterface
 from revvy.robot.robot import Robot
 from revvy.robot.remote_controller import RemoteController, RemoteControllerScheduler, create_remote_controller_thread
 from revvy.robot.led_ring import RingLed
@@ -20,7 +21,6 @@ from revvy.scripting.runtime import ScriptManager
 from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.thread_wrapper import periodic
-from revvy.robot.communication import RobotCommunicationInterface
 
 
 class RevvyStatusCode(enum.IntEnum):
@@ -31,13 +31,14 @@ class RevvyStatusCode(enum.IntEnum):
 
 
 class RobotManager:
-    def __init__(self, robot: Robot, sw_version):
+    def __init__(self, sw_version, writeable_assets_dir):
         self._log = get_logger('RobotManager')
         self._log('init')
         self.needs_interrupting = True
 
         self._configuring = False
-        self._robot = robot
+        self._robot = Robot()
+        self._robot.assets.add_source(writeable_assets_dir)
         self._sw_version = sw_version
 
         self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
@@ -72,24 +73,59 @@ class RobotManager:
         self.start_remote_controller = self._remote_controller_thread.start
         self.__session_id = 0
 
-    def set_control_interface_callbacks(self, robot_interface: RobotCommunicationInterface):
-        self._robot_interface = robot_interface
+        self.on_joystick_action = self._remote_controller.on_joystick_action
+        self.on_periodic_control_msg = self._remote_controller_scheduler.data_ready
 
-        self._robot_interface.update_session_id(0xffffffff)
-        self._robot_interface.set_periodic_control_msg_cb(self._remote_controller_scheduler.data_ready)
-        self._robot_interface.set_joystick_action_cb(self._remote_controller.on_joystick_action)
-        self._robot_interface.set_validate_config_req_cb(self.__on_validate_config_requested)
-        self._robot_interface.on_connection_changed(self._on_connection_changed)
+        self._robot_interface = None
 
-        self._robot.set_validate_config_done_cb(self._robot_interface.set_validation_result)
+    def set_communication_interface_callbacks(self, communication_interface: RobotCommunicationInterface):
+        self._robot_interface = communication_interface
 
-    def __on_validate_config_requested(self, motors, sensors, motor_load_power,
-        threshold):
-        self.run_in_background(partial(self._robot.validate_config, motors,
-            sensors, motor_load_power, threshold), '__on_validate_config_requested')
+    def validate_config_async(self, motors, sensors, motor_load_power,
+        threshold, callback):
+        self.run_in_background(partial(self.validate_config, motors,
+            sensors, motor_load_power, threshold, callback), '__on_validate_config_requested')
+
         self._log('Validation request: motors={}, sensors={},pwr:{},sen:{}'.format(
             motors, sensors, motor_load_power, threshold))
 
+
+    def validate_config(self, motors, sensors, motor_load_power, threshold, callback):
+        self._log('validate req: motors={}, sensors={},pwr:{},sen:{}'.format(
+            motors, sensors, motor_load_power, threshold))
+
+        success = True
+        motors_result = []
+        for motor_port_idx, should_check_port in enumerate(motors):
+            motor_port_num = motor_port_idx + 1
+            self._log(f'checking motor at port "M{motor_port_num}"')
+            motor_is_present = False
+            if not motor_load_power:
+                motor_load_power = 60
+            if not threshold:
+                threshold = 10
+            if should_check_port:
+                motor_is_present = self._robot._robot_control.test_motor_on_port(
+                    motor_port_num, motor_load_power, threshold)
+
+            status_string = 'unchecked'
+            if motor_is_present:
+                status_string = 'attached'
+            elif should_check_port:
+                status_string = 'detached'
+
+            self._log('Motor port "M{} check result:{}'.format(motor_port_num,
+                status_string))
+
+            motors_result.append(motor_is_present)
+
+        sensors_result = []
+        for sensor_idx, sensor_expected_type in enumerate(sensors):
+            tested_type = self._robot.__validate_one_sensor_port(sensor_idx,
+                sensor_expected_type)
+            sensors_result.append(tested_type)
+
+        callback(success, motors_result, sensors_result)
 
     def process_run_in_bg_requests(self):
         functions = self._background_fns
@@ -234,7 +270,7 @@ class RobotManager:
         else:
             raise ValueError('callback is not callable')
 
-    def _on_connection_changed(self, is_connected):
+    def on_connection_changed(self, is_connected):
         self._log('Phone connected' if is_connected else 'Phone disconnected')
         if not is_connected:
             self._robot.status.controller_status = RemoteControllerStatus.NotConnected

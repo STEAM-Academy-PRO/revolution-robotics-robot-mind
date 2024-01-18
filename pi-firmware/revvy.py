@@ -8,10 +8,9 @@
 import os
 import sys
 import traceback
-# from revvy.api.v1 import Api
+# from revvy.api.v1 import RobotWebApi
 
 from revvy.robot_manager import RobotManager, RevvyStatusCode
-from revvy.robot.robot import Robot
 from revvy.utils.observable import Observable
 from revvy.bluetooth.ble_revvy import RevvyBLE
 from revvy.utils.error_handler import register_uncaught_exception_handler
@@ -81,36 +80,35 @@ if __name__ == "__main__":
 
     writeable_assets_dir = os.path.join(writeable_data_dir, 'assets')
 
-    with Robot() as robot:
-        robot.assets.add_source(writeable_assets_dir)
+    # Handles robot state
+    robot_manager = RobotManager(sw_version, writeable_assets_dir)
 
-        # Handles robot state
-        robot_manager = RobotManager(robot, sw_version)
+    # Receives commands from the control interface, acts on the robot_manager.
+    bluetooth_controller = RevvyBLE(robot_manager, device_name,
+                                    serial, writeable_data_dir, writeable_assets_dir)
 
-        # Receives commands from the control interface, acts on the robot_manager.
-        bluetooth_controller = RevvyBLE(robot_manager, device_name,
-                                        serial, writeable_data_dir, writeable_assets_dir)
+    # RobotWebApi(robot_manager).run()
 
-        # noinspection PyBroadException
-        try:
-            bluetooth_controller.start()
+    # noinspection PyBroadException
+    try:
+        bluetooth_controller.start()
 
-            log("Press Enter to exit")
-            input()
-            # manual exit
-            ret_val = RevvyStatusCode.OK
-        except EOFError:
-            robot_manager.needs_interrupting = False
-            ret_val = robot_manager.wait_for_exit()
-        except KeyboardInterrupt:
-            # manual exit or update request
-            ret_val = robot_manager.status_code
-        except Exception:
-            log(traceback.format_exc())
-            ret_val = RevvyStatusCode.ERROR
-        finally:
-            log('stopping')
-            robot_manager.robot_stop()
+        log("Press Enter to exit")
+        input()
+        # manual exit
+        ret_val = RevvyStatusCode.OK
+    except EOFError:
+        robot_manager.needs_interrupting = False
+        ret_val = robot_manager.wait_for_exit()
+    except KeyboardInterrupt:
+        # manual exit or update request
+        ret_val = robot_manager.status_code
+    except Exception:
+        log(traceback.format_exc())
+        ret_val = RevvyStatusCode.ERROR
+    finally:
+        log('stopping')
+        robot_manager.robot_stop()
 
     log('terminated')
     sys.exit(ret_val)

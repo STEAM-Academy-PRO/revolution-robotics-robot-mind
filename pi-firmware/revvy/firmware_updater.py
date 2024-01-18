@@ -70,7 +70,7 @@ class McuUpdater:
         if mode == McuOperationMode.APPLICATION:
             fw = self._robot.get_firmware_version()
             if fw != fw_version:  # allow downgrade as well
-                self._log('Firmware version is not latest, updating. {fw}')
+                self._log(f'Firmware version is not latest, updating. {fw}')
                 return True
             elif fw_version.branch == 'stable':
                 return False  # avoid rebooting to bootloader on production robots
