@@ -3,7 +3,7 @@
  *
  * \brief Linker script for running in internal FLASH on the SAMD51P19A
  *
- * Copyright (c) 2018 Microchip Technology Inc.
+ * Copyright (c) 2019 Microchip Technology Inc.
  *
  * \asf_license_start
  *
@@ -35,7 +35,9 @@ SEARCH_DIR(.)
 /* Memory Spaces Definitions */
 MEMORY
 {
-  rom      (rx)  : ORIGIN = 0x00040000, LENGTH = 0x0003E000
+  rom      (rx)  : ORIGIN = 0x00000000, LENGTH = 0x0003C000
+  error    (r)   : ORIGIN = 0x0003C000, LENGTH = 0x00004000
+  app      (r)   : ORIGIN = 0x00040000, LENGTH = 0x0003E000
   ram      (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00030000
   bkupram  (rwx) : ORIGIN = 0x47000000, LENGTH = 0x00002000
   qspi     (rwx) : ORIGIN = 0x04000000, LENGTH = 0x01000000
