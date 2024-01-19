@@ -89,9 +89,9 @@
         "../mcu-common/Atmel/hri",
         "../mcu-common/Atmel/samd51a/include",
         "../mcu-common/CMSIS/Include",
-        "../third_party/FreeRTOSV10.0.0",
-        "../third_party/FreeRTOSV10.0.0/Source/include",
-        "../third_party/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM4F"
+        "third_party/FreeRTOSV10.0.0",
+        "third_party/FreeRTOSV10.0.0/Source/include",
+        "third_party/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM4F"
     ],
     "components": [
         "ADC",
