@@ -21031,7 +21031,7 @@ Copyright (c) 2017 Microchip Technology Inc.
                <description>Host Control 1</description>
                <addressOffset>0x28</addressOffset>
                <size>8</size>
-               <resetValue>0xE00</resetValue>
+               <resetValue>0x00</resetValue>
                <fields>
                   <field>
                      <name>LEDCTRL</name>
@@ -21155,7 +21155,7 @@ Copyright (c) 2017 Microchip Technology Inc.
                <alternateRegister>HC1R</alternateRegister>
                <addressOffset>0x28</addressOffset>
                <size>8</size>
-               <resetValue>0xE00</resetValue>
+               <resetValue>0x00</resetValue>
                <fields>
                   <field>
                      <name>DW</name>
@@ -25364,7 +25364,7 @@ Copyright (c) 2017 Microchip Technology Inc.
                <addressOffset>0xFC</addressOffset>
                <size>16</size>
                <access>read-only</access>
-               <resetValue>0x20000</resetValue>
+               <resetValue>0x0000</resetValue>
                <fields>
                   <field>
                      <name>INTSSL</name>
