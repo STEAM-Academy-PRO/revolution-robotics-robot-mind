@@ -1,5 +1,9 @@
 # Mind of the Robot
 
+## mcu-common
+
+Common hardware abstraction˛code used by mcu-bootloader and mcu-firmware
+
 ## mcu-bootloader
 
 Starts the mcu-firmware and provides an update interface to the carrier board.

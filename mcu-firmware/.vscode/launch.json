@@ -13,7 +13,8 @@
       "chip": "atsamd51p19a",
       "coreConfigs": [
         {
-          "programBinary": "${workspaceRoot}/Build/Debug/rrrc_samd51.elf"
+          "svdFile": "${workspaceRoot}/../mcu-common/Atmel/ATSAMD51P19A.svd",
+          "programBinary": "${workspaceRoot}/Build/Debug/mcu-firmware/rrrc_samd51.elf"
         }
       ]
     }
