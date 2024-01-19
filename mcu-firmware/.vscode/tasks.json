@@ -45,7 +45,8 @@
             "command": "make clean",
             "dependsOn": [
                 "generate makefile"
-            ]
+            ],
+            "problemMatcher": []
         },
         {
             "label": "make debug",
