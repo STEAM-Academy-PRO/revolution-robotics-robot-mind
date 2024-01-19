@@ -107,7 +107,7 @@ LINKER_FLAGS := \
 -mfpu=fpv4-sp-d16 \
 -mcpu=cortex-m4 \
 --specs=nano.specs \
--T../mcu-common/Atmel/Device_Startup/samd51p19a_flash.ld
+-TConfig/samd51p19a_flash.ld
 
 ifeq ($(OS),Windows_NT)
 	SHELL := cmd.exe
