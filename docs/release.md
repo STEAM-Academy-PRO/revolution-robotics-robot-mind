@@ -4,10 +4,10 @@ How to release a new package
 Release a Pi firmware update
 ----------------------------
 
-- be absolutely sure it works
-- create a new tag
-- The CI's [release workflow](ci.md#release) will build a release package
-- CI will upload the package to the appropriate place(s)
+- Be absolutely sure everything works
+- Create a new [**pre-release**](https://github.com/STEAM-Academy-PRO/revolution-robotics-robot-mind/releases/new)
+- The CI's [release workflow](ci.md#release) will build artifacts, add them to the release and publish the release
+- Wait for the build to succeed and for the artifacts to appear in the [releases](https://github.com/STEAM-Academy-PRO/revolution-robotics-robot-mind/releases)
 
 Create a new Pi OS image
 ------------------------
