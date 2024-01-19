@@ -93,7 +93,7 @@ endif
 
 $(OUTPUT_DIR)/%.o: %.c
 \t@echo Building file: $<
-\t@$(MKDIR) "$($D)" 2>$(NULL) || $(TRUE)
+\t@$(MKDIR) "$(@D)" 2>$(NULL) || $(TRUE)
 \t@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) $(addprefix -I,$(INCLUDE_PATHS)) $(COMPILE_FLAGS) -MF $(@:%.o=%.d) -MT$(@:%.o=%.d) -o $@ $<
 \t@echo Finished building: $<
 
