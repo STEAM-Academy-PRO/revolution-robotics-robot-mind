@@ -144,6 +144,8 @@ class ResponseHeader(NamedTuple):
     @staticmethod
     def create(data: bytes):
         try:
+            if not ResponseHeader.is_valid(data): raise ValueError('Header checksum error')
+
             header_bytes = data[0:4]
             status, _payload_length, _payload_checksum = struct.unpack('<BBH', header_bytes)
             return ResponseHeader(status=ResponseStatus(status),
@@ -160,7 +162,7 @@ class ResponseHeader(NamedTuple):
             return False
         header_bytes = data[0:4]
         if crc7(header_bytes) != data[4]:
-            log(f"data: {str(data)} !=  {str(header_bytes)} =>, {str(data[4])} != {str(crc7(header_bytes))}")
+            log(f"Header Check CRC error: {str(data)} !=  {str(header_bytes)}", LogLevel.WARNING)
             return False
         return True
 
@@ -243,11 +245,9 @@ class RevvyTransport:
         def _read_response_header_once():
             header_bytes = self._transport.read(5)
 
-            if not ResponseHeader.is_valid(header_bytes):
-                return None
             return ResponseHeader.create(header_bytes)
 
-        header = retry(_read_response_header_once, retries)
+        header = retry(_read_response_header_once, retries, lambda e: None)
 
         if not header:
             # log("Connection lost with the board, retry limit reached!", LogLevel.ERROR)

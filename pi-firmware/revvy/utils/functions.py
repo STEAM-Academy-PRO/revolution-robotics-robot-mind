@@ -65,7 +65,7 @@ def get_serial():
     return cpu_serial
 
 
-def retry(fn, retries=5):
+def retry(fn, retries=5, error_handler=None):
     """Retry the given function a number of times, or until it returns True or None"""
     retry_num = 0
     while retry_num < retries:
@@ -77,8 +77,11 @@ def retry(fn, retries=5):
             elif status:
                 return status
         except Exception as e:
-            log(f'repeat threw an error: {str(e)}')
-            print(traceback.format_exc())
+            if callable(error_handler):
+                error_handler(e)
+            else:
+                log(f'repeat threw an error: {str(e)}')
+                print(traceback.format_exc())
         retry_num += 1
 
     return False
