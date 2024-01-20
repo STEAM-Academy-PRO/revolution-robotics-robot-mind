@@ -5,10 +5,10 @@
 
 # SPDX-License-Identifier: GPL-3.0-only
 
+import argparse
 import os
 import sys
 import traceback
-# from revvy.api.v1 import RobotWebApi
 
 from revvy.robot_manager import RobotManager, RevvyStatusCode
 from revvy.utils.observable import Observable
@@ -22,6 +22,14 @@ from revvy.utils.logger import get_logger, logger, LogLevel
 from tools.check_manifest import check_manifest
 
 log = get_logger('revvy.py')
+
+
+parser = argparse.ArgumentParser(description='Revvy PI firmware')
+parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+args = parser.parse_args()
+
+if args.debug:
+    log("Debug mode")
 
 if __name__ == "__main__":
     current_installation = os.path.dirname(os.path.realpath(__file__))
@@ -87,7 +95,9 @@ if __name__ == "__main__":
     bluetooth_controller = RevvyBLE(robot_manager, device_name,
                                     serial, writeable_data_dir, writeable_assets_dir)
 
-    # RobotWebApi(robot_manager).run()
+    if args.debug:
+        from revvy.api.websocket import RobotWebSocketApi
+        RobotWebSocketApi(robot_manager)
 
     # noinspection PyBroadException
     try:

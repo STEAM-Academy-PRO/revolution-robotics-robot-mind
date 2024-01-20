@@ -172,7 +172,6 @@ class LiveMessageService(BlenoPrimaryService):
                     return True
             return False
 
-        # TODO: Whatever is in this control message, should be documented!!!!!!!!!!!!!!!!!!!
         analog_values = data[1:7]
         deadline_packed = data[7:11]
         next_deadline = struct.unpack('<I', deadline_packed)[0]

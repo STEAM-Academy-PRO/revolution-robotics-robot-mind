@@ -1,0 +1,49 @@
+{
+    "blocklyList": [
+        {
+            "assignments": {
+                "analog": [
+                    {
+                        "channels": [
+                            0,
+                            1
+                        ],
+                        "priority": 1
+                    }
+                ]
+            },
+            "builtinScriptName": "drive_joystick"
+        }
+    ],
+    "robotConfig": {
+        "sensors": [
+            {},
+            {},
+            {},
+            {}
+        ],
+        "motors": [
+            {
+                "reversed": 0,
+                "name": "motor1",
+                "type": 2,
+                "side": 0
+            },
+            {
+                "reversed": 0,
+                "name": "motor2",
+                "type": 2,
+                "side": 1
+            },
+            {},
+            {},
+            {},
+            {
+                "reversed": 1,
+                "name": "motor6",
+                "type": 2,
+                "side": 1
+            }
+        ]
+    }
+}
