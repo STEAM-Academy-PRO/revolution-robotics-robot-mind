@@ -172,6 +172,8 @@ class LiveMessageService(BlenoPrimaryService):
                     return True
             return False
 
+        # Documentation of control messages here:
+        # https://docs.google.com/document/d/10fSZSteEr80KhezFd8z21VvdrG8Kk38ko8qecDbktcM/edit
         analog_values = data[1:7]
         deadline_packed = data[7:11]
         next_deadline = struct.unpack('<I', deadline_packed)[0]
