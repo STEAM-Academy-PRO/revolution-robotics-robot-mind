@@ -1,33 +1,33 @@
 C_SRCS += \
-Atmel/hal/src/hal_atomic.c \
-Atmel/hal/src/hal_cache.c \
-Atmel/hal/src/hal_delay.c \
-Atmel/hal/src/hal_flash.c \
-Atmel/hal/src/hal_gpio.c \
-Atmel/hal/src/hal_i2c_s_async.c \
-Atmel/hal/src/hal_init.c \
-Atmel/hal/src/hal_io.c \
-Atmel/hal/src/hal_sleep.c \
-Atmel/hal/utils/src/utils_syscalls.c \
-Atmel/hpl/cmcc/hpl_cmcc.c \
-Atmel/hpl/core/hpl_core_m4.c \
-Atmel/hpl/core/hpl_init.c \
-Atmel/hpl/dmac/hpl_dmac.c \
-Atmel/hpl/gclk/hpl_gclk.c \
-Atmel/hpl/mclk/hpl_mclk.c \
-Atmel/hpl/nvmctrl/hpl_nvmctrl.c \
-Atmel/hpl/osc32kctrl/hpl_osc32kctrl.c \
-Atmel/hpl/oscctrl/hpl_oscctrl.c \
-Atmel/hpl/pm/hpl_pm.c \
-Atmel/hpl/ramecc/hpl_ramecc.c \
-Atmel/hpl/sercom/hpl_sercom.c \
+../mcu-common/Atmel/hal/src/hal_atomic.c \
+../mcu-common/Atmel/hal/src/hal_cache.c \
+../mcu-common/Atmel/hal/src/hal_delay.c \
+../mcu-common/Atmel/hal/src/hal_flash.c \
+../mcu-common/Atmel/hal/src/hal_gpio.c \
+../mcu-common/Atmel/hal/src/hal_i2c_s_async.c \
+../mcu-common/Atmel/hal/src/hal_init.c \
+../mcu-common/Atmel/hal/src/hal_io.c \
+../mcu-common/Atmel/hal/src/hal_sleep.c \
+../mcu-common/Atmel/hal/utils/src/utils_syscalls.c \
+../mcu-common/Atmel/hpl/cmcc/hpl_cmcc.c \
+../mcu-common/Atmel/hpl/core/hpl_core_m4.c \
+../mcu-common/Atmel/hpl/core/hpl_init.c \
+../mcu-common/Atmel/hpl/dmac/hpl_dmac.c \
+../mcu-common/Atmel/hpl/gclk/hpl_gclk.c \
+../mcu-common/Atmel/hpl/mclk/hpl_mclk.c \
+../mcu-common/Atmel/hpl/nvmctrl/hpl_nvmctrl.c \
+../mcu-common/Atmel/hpl/osc32kctrl/hpl_osc32kctrl.c \
+../mcu-common/Atmel/hpl/oscctrl/hpl_oscctrl.c \
+../mcu-common/Atmel/hpl/pm/hpl_pm.c \
+../mcu-common/Atmel/hpl/ramecc/hpl_ramecc.c \
+../mcu-common/Atmel/hpl/sercom/hpl_sercom.c \
+../mcu-common/Atmel/Device_Startup/startup_samd51.c \
+../mcu-common/Atmel/Device_Startup/system_samd51.c \
+../mcu-common/Atmel/hal/src/hal_spi_m_dma.c \
+../mcu-common/Atmel/hal/src/hal_spi_m_sync.c \
 main.c \
 driver_init.c \
 atmel_start.c \
-Atmel/Device_Startup/startup_samd51.c \
-Atmel/Device_Startup/system_samd51.c \
-Atmel/hal/src/hal_spi_m_dma.c \
-Atmel/hal/src/hal_spi_m_sync.c \
 rrrc/components/LEDController/LEDController.c \
 rrrc/components/MasterCommunicationInterface/i2cHal.c \
 rrrc/components/MasterCommunicationInterface/MasterCommunicationInterface.c \
@@ -45,45 +45,42 @@ rrrc/utils/functions.c \
 rrrc/watchdog.c
 
 INCLUDE_PATHS += \
--Irrrc/include \
--IConfig \
--I. \
--IAtmel/hpl/nvmctrl \
--IAtmel/hpl/ramecc \
--IAtmel/hal/include \
--IAtmel/hal/utils/include \
--IAtmel/hpl/adc \
--IAtmel/hpl/cmcc \
--IAtmel/hpl/core \
--IAtmel/hpl/dmac \
--IAtmel/hpl/eic \
--IAtmel/hpl/gclk \
--IAtmel/hpl/mclk \
--IAtmel/hpl/osc32kctrl \
--IAtmel/hpl/oscctrl \
--IAtmel/hpl/pm \
--IAtmel/hpl/port \
--IAtmel/hpl/rtc \
--IAtmel/hpl/sercom \
--IAtmel/hpl/systick \
--IAtmel/hpl/tc \
--IAtmel/hri \
--IAtmel/samd51a/include \
--Ithird_party/CMSIS/Include \
--Ithird_party/FreeRTOSV10.0.0 \
--Ithird_party/FreeRTOSV10.0.0/Source/include \
--Ithird_party/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM4F \
--Irrrc \
--Irrrc/components/MasterCommunication \
--Irrrc/components/MasterCommunicationInterface \
--Irrrc/components/LEDController \
--Irrrc/components/VersionProvider \
--Irrrc/components/UpdateManager \
--Irrrc/include \
--Irrrc/components \
--Irrrc/runtime \
--Irrrc/utils \
--Ithird_party
+rrrc/include \
+Config \
+. \
+../mcu-common/Atmel/hpl/nvmctrl \
+../mcu-common/Atmel/hpl/ramecc \
+../mcu-common/Atmel/hal/include \
+../mcu-common/Atmel/hal/utils/include \
+../mcu-common/Atmel/hpl/adc \
+../mcu-common/Atmel/hpl/cmcc \
+../mcu-common/Atmel/hpl/core \
+../mcu-common/Atmel/hpl/dmac \
+../mcu-common/Atmel/hpl/eic \
+../mcu-common/Atmel/hpl/gclk \
+../mcu-common/Atmel/hpl/mclk \
+../mcu-common/Atmel/hpl/osc32kctrl \
+../mcu-common/Atmel/hpl/oscctrl \
+../mcu-common/Atmel/hpl/pm \
+../mcu-common/Atmel/hpl/port \
+../mcu-common/Atmel/hpl/rtc \
+../mcu-common/Atmel/hpl/sercom \
+../mcu-common/Atmel/hpl/systick \
+../mcu-common/Atmel/hpl/tc \
+../mcu-common/Atmel/hri \
+../mcu-common/Atmel/samd51a/include \
+../mcu-common/CMSIS/Include \
+rrrc \
+rrrc/components/MasterCommunication \
+rrrc/components/MasterCommunicationInterface \
+rrrc/components/LEDController \
+rrrc/components/VersionProvider \
+rrrc/components/UpdateManager \
+rrrc/include \
+rrrc/components \
+rrrc/runtime \
+rrrc/utils \
+third_party
 
 COMPILE_FLAGS += \
 -x c \
@@ -110,7 +107,7 @@ LINKER_FLAGS := \
 -mfpu=fpv4-sp-d16 \
 -mcpu=cortex-m4 \
 --specs=nano.specs \
--TAtmel/Device_Startup/samd51p19a_flash.ld
+-TConfig/samd51p19a_flash.ld
 
 ifeq ($(OS),Windows_NT)
 	SHELL := cmd.exe
@@ -131,7 +128,7 @@ else
 endif
 
 ifeq ($(config), debug)
-OUTPUT_DIR :=Build/Debug
+OUTPUT_DIR :=Build/Debug/mcu-bootloader
 COMPILE_FLAGS += \
 -DDEBUG \
 -DBOOTLOADER_VERSION=0 \
@@ -139,7 +136,7 @@ COMPILE_FLAGS += \
 -O0 \
 -g3
 else
-OUTPUT_DIR :=Build/Release
+OUTPUT_DIR :=Build/Release/mcu-bootloader
 COMPILE_FLAGS += \
 -DBOOTLOADER_VERSION=0 \
 -DHARDWARE_VERSION=2 \
@@ -154,7 +151,6 @@ OUTPUT_FILE :=$(OUTPUT_DIR)/rrrc_samd51
 all: $(OUTPUT_FILE).elf
 
 OBJS := $(C_SRCS:%.c=$(OUTPUT_DIR)/%.o)
-DIRS := $(sort $(dir $(OBJS)))
 C_DEPS := $(OBJS:%.o=%.d)
 
 ifneq ($(MAKECMDGOALS),clean)
@@ -163,15 +159,16 @@ ifneq ($(strip $(C_DEPS)),)
 endif
 endif
 
+# Make sure files from the outer mcu-common directory don't escape Build
 $(OUTPUT_DIR)/%.o: %.c
 	@echo Building file: $<
-	@$(MKDIR) "$(dir $@)" 2>$(NULL) || $(TRUE)
-	@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) $(INCLUDE_PATHS) $(COMPILE_FLAGS) -MF $(@:%.o=%.d) -MT$(@:%.o=%.d) -MT$(@:%.o=%.o) -o $@ $<
+	@$(MKDIR) "$(@D)" 2>$(NULL) || $(TRUE)
+	@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) $(addprefix -I,$(INCLUDE_PATHS)) $(COMPILE_FLAGS) -MF $(@:%.o=%.d) -MT$(@:%.o=%.d) -o $@ $<
 	@echo Finished building: $<
 
 $(OUTPUT_FILE).elf: $(OBJS)
 	@echo Building target: $@
-	@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) -o$(OUTPUT_FILE).elf $(OBJS) $(LINKER_FLAGS) -Wl,-Map=$(OUTPUT_FILE).map -Wl,--start-group -lm  -Wl,--end-group $(LINK_DIRS) -Wl,--gc-sections
+	@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) -o$(OUTPUT_FILE).elf $(OBJS) $(LINKER_FLAGS) -Wl,-Map=$(OUTPUT_FILE).map -Wl,--start-group -lm  -Wl,--end-group -Wl,--gc-sections
 	@echo Finished building target: $@
 	@$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -O binary $(OUTPUT_FILE).elf $(OUTPUT_FILE).bin
 	@$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -O ihex -R .eeprom -R .fuse -R .lock -R .signature  $(OUTPUT_FILE).elf $(OUTPUT_FILE).hex

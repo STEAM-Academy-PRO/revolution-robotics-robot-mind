@@ -6,7 +6,8 @@
         {
             "label": "make clean",
             "type": "shell",
-            "command": "make clean"
+            "command": "make clean",
+            "problemMatcher": []
         },
         {
             "label": "make debug",

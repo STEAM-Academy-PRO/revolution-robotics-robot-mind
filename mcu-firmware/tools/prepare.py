@@ -28,9 +28,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.debug:
-        build_dir = 'Build/Debug'
+        build_dir = 'Build/Debug/mcu-firmware'
     else:
-        build_dir = 'Build/Release'
+        build_dir = 'Build/Release/mcu-firmware'
 
     firmware_file = f"{build_dir}/{firmware_filename}"
 

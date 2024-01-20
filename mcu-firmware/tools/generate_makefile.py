@@ -20,7 +20,7 @@ C_SRCS += \\
 
 INCLUDE_PATHS += \\
 {{# includes }}
--I{{ path }}{{^ last }} \\{{/ last }}
+{{ path }}{{^ last }} \\{{/ last }}
 {{/ includes }}
 
 COMPILE_FLAGS += \\
@@ -49,7 +49,7 @@ LINKER_FLAGS := \\
 -mfpu=fpv4-sp-d16 \\
 -mcpu=cortex-m4 \\
 --specs=nano.specs \\
--TAtmel/Device_Startup/samd51p19a_flash.ld
+-TConfig/samd51p19a_flash.ld
 
 ifeq ($(OS),Windows_NT)
 \tSHELL := cmd.exe
@@ -70,10 +70,10 @@ else
 endif
 
 ifeq ($(config), debug)
-OUTPUT_DIR :=Build/Debug
+OUTPUT_DIR :=Build/Debug/mcu-firmware
 COMPILE_FLAGS += -DDEBUG -O0 -g3
 else
-OUTPUT_DIR :=Build/Release
+OUTPUT_DIR :=Build/Release/mcu-firmware
 COMPILE_FLAGS += -O3 -g3 -flto
 LINKER_FLAGS += -flto
 endif
@@ -83,7 +83,6 @@ OUTPUT_FILE :=$(OUTPUT_DIR)/rrrc_samd51
 all: $(OUTPUT_FILE).elf
 
 OBJS := $(C_SRCS:%.c=$(OUTPUT_DIR)/%.o)
-DIRS := $(sort $(dir $(OBJS)))
 C_DEPS := $(OBJS:%.o=%.d)
 
 ifneq ($(MAKECMDGOALS),clean)
@@ -94,13 +93,13 @@ endif
 
 $(OUTPUT_DIR)/%.o: %.c
 \t@echo Building file: $<
-\t@$(MKDIR) "$(dir $@)" 2>$(NULL) || $(TRUE)
-\t@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) $(INCLUDE_PATHS) $(COMPILE_FLAGS) -MF $(@:%.o=%.d) -MT$(@:%.o=%.d) -MT$(@:%.o=%.o) -o $@ $<
+\t@$(MKDIR) "$(@D)" 2>$(NULL) || $(TRUE)
+\t@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) $(addprefix -I,$(INCLUDE_PATHS)) $(COMPILE_FLAGS) -MF $(@:%.o=%.d) -MT$(@:%.o=%.d) -o $@ $<
 \t@echo Finished building: $<
 
 $(OUTPUT_FILE).elf: $(OBJS)
 \t@echo Building target: $@
-\t@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) -o$(OUTPUT_FILE).elf $(OBJS) $(LINKER_FLAGS) -Wl,-Map=$(OUTPUT_FILE).map -Wl,--start-group -lm  -Wl,--end-group $(LINK_DIRS) -Wl,--gc-sections
+\t@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) -o$(OUTPUT_FILE).elf $(OBJS) $(LINKER_FLAGS) -Wl,-Map=$(OUTPUT_FILE).map -Wl,--start-group -lm  -Wl,--end-group -Wl,--gc-sections
 \t@echo Finished building target: $@
 \t@$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -O binary $(OUTPUT_FILE).elf $(OUTPUT_FILE).bin
 \t@$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -O ihex -R .eeprom -R .fuse -R .lock -R .signature  $(OUTPUT_FILE).elf $(OUTPUT_FILE).hex
