@@ -8,6 +8,10 @@ from binascii import b2a_base64, a2b_base64
 import math
 from contextlib import suppress
 
+from revvy.utils.logger import get_logger
+
+
+log = get_logger('functions.py')
 
 def clip(x, min_x, max_x):
     """Constrain a number between two limits
@@ -54,14 +58,14 @@ def get_serial():
                     cpu_serial = line.rstrip()[-16:].lstrip('0')
                     break
     except Exception:
-        print('Failed to read cpuid')
+        log('Failed to read cpuid')
         print(traceback.format_exc())
         cpu_serial = "ERROR000000000"
 
     return cpu_serial
 
 
-def retry(fn, retries=5):
+def retry(fn, retries=5, error_handler=None):
     """Retry the given function a number of times, or until it returns True or None"""
     retry_num = 0
     while retry_num < retries:
@@ -72,8 +76,12 @@ def retry(fn, retries=5):
                 return
             elif status:
                 return status
-        except Exception:
-            print(traceback.format_exc())
+        except Exception as e:
+            if callable(error_handler):
+                error_handler(e)
+            else:
+                log(f'repeat threw an error: {str(e)}')
+                print(traceback.format_exc())
         retry_num += 1
 
     return False

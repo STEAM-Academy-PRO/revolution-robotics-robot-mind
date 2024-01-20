@@ -1,10 +1,12 @@
 # Handles the short messages from the device.
 
+import json
 import struct
 
 from pybleno import BlenoPrimaryService
 from revvy.bluetooth.ble_characteristics import GyroCharacteristic, MobileToBrainFunctionCharacteristic, MotorCharacteristic, ReadVariableCharacteristic, RelativeFunctionCharacteristic, SensorCharacteristic, TimerCharacteristic, ValidateConfigCharacteristic
 from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_DONE, VALIDATE_CONFIG_STATE_IN_PROGRESS, VALIDATE_CONFIG_STATE_UNKNOWN
+from revvy.robot_manager import RobotManager
 
 from revvy.utils.functions import bits_to_bool_list
 from revvy.utils.logger import get_logger
@@ -14,18 +16,19 @@ from revvy.robot.remote_controller import RemoteControllerCommand
 NUM_MOTOR_PORTS = 6
 NUM_SENSOR_PORTS = 4
 
-log = get_logger("BLE Service")
+log = get_logger("Live Message Service")
 
 class LiveMessageService(BlenoPrimaryService):
     """ Handles short messages on the Bluetooth interface"""
-    def __init__(self):
+    def __init__(self, robot_manager: RobotManager):
         self._message_handler = None
-        self.__validate_config_req_cb = None
+
+        self._robot_manager = robot_manager
 
         # on_joystick_action is a callback that should run when LiveMessageService
         # detects that joystick action is received from mobile app over a curtain
         # characteristic
-        self.__joystick_action_cb = None
+        # self.__joystick_action_cb = None
 
         self._read_variable_characteristic = [
             ReadVariableCharacteristic('d4ad2a7b-57be-4803-8df0-6807073961ad', b'Variable Slots')
@@ -92,15 +95,6 @@ class LiveMessageService(BlenoPrimaryService):
             ]
         })
 
-    def set_periodic_control_msg_cb(self, callback):
-        self.__periodic_control_msg_cb = callback
-
-    def set_joystick_action_cb(self, callback):
-        self.__joystick_action_cb = callback
-
-    def set_validate_config_req_cb(self, callback):
-        self.__validate_config_req_cb = callback
-
     def validate_config_callback(self, data):
         motor_bitmask, sensor0, sensor1, sensor2, sensor3, \
         motor_load_power, threshold = \
@@ -112,13 +106,19 @@ class LiveMessageService(BlenoPrimaryService):
 
         motors = [(motor_bitmask >> i) & 1 for i in range(NUM_MOTOR_PORTS)]
 
-        fn = self.__validate_config_req_cb
-        fn(motors, [sensor0, sensor1, sensor2, sensor3], motor_load_power,
-            threshold)
+        def validation_callback(success, motors, sensors):
+            self.set_validation_result(success, motors, sensors)
+            self._validate_config_characteristic.update_validate_config_result(
+                VALIDATE_CONFIG_STATE_IN_PROGRESS,
+                motor_bitmask,
+                sensors)
 
-        self._validate_config_characteristic.update_validate_config_result(
-          VALIDATE_CONFIG_STATE_IN_PROGRESS, motor_bitmask, sensor0, sensor1,
-          sensor2, sensor3)
+        self._robot_manager.validate_config_async(
+            motors, [sensor0, sensor1, sensor2, sensor3],
+            motor_load_power,
+            threshold,
+            validation_callback
+            )
 
         return True
 
@@ -145,7 +145,9 @@ class LiveMessageService(BlenoPrimaryService):
             s0 = s1 = s2 = s3 = False
 
         self._validate_config_characteristic.update_validate_config_result(
-          valitation_state, motor_bitmask, s0, s1, s2, s3)
+          valitation_state,
+          motor_bitmask,
+          [s0, s1, s2, s3])
 
 
     def simple_control_callback(self, data):
@@ -170,6 +172,7 @@ class LiveMessageService(BlenoPrimaryService):
                     return True
             return False
 
+        # TODO: Whatever is in this control message, should be documented!!!!!!!!!!!!!!!!!!!
         analog_values = data[1:7]
         deadline_packed = data[7:11]
         next_deadline = struct.unpack('<I', deadline_packed)[0]
@@ -178,11 +181,17 @@ class LiveMessageService(BlenoPrimaryService):
         joystick_xy_action = joystick_xy_is_moved(analog_values)
         joystick_button_action = any(button_values)
 
+        # log(f'data: {str(data)}')
+        # log(f'analog_values: {str(analog_values)}')
+        # log(f'deadline_packed: {str(deadline_packed)}')
+        # log(f'button_values: {str(button_values)}')
+
         # First user input action triggers global timer
         if joystick_xy_action or joystick_button_action:
-            self.__joystick_action_cb()
+            log(f'joystick_xy_action: {str(joystick_xy_action)}')
+            self._robot_manager.on_joystick_action()
 
-        message_handler = self.__periodic_control_msg_cb
+        message_handler = self._robot_manager.on_periodic_control_msg
         if message_handler:
             message_handler(RemoteControllerCommand(analog=analog_values,
                                                     buttons=button_values,
@@ -192,7 +201,7 @@ class LiveMessageService(BlenoPrimaryService):
 
     def state_control_callback(self, data):
         background_control_command = int.from_bytes(data[2:], byteorder='big')
-        message_handler = self.__periodic_control_msg_cb
+        message_handler = self._robot_manager.on_periodic_control_msg
         if message_handler:
             message_handler(RemoteControllerCommand(analog=b'\x7f\x7f\x00\x00\x00\x00\x00\x00\x00\x00',
                                                     buttons=[False]*32,

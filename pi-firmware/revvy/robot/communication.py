@@ -6,31 +6,7 @@ class RobotCommunicationInterface(ABC):
         pass
 
     @abstractmethod
-    def set_periodic_control_msg_cb(self, callback):
-        pass
-
-    @abstractmethod
-    def set_joystick_action_cb(self, callback):
-        pass
-
-    @abstractmethod
-    def set_validate_config_req_cb(self, callback):
-        pass
-
-
-    @abstractmethod
-    def on_connection_changed(self, callback):
-        pass
-
-
-    #----------------------------------------------
-
-    @abstractmethod
     def update_session_id(self, id):
-        pass
-
-    @abstractmethod
-    def set_validation_result(self, success, motors, sensors):
         pass
 
     @abstractmethod

@@ -65,7 +65,7 @@ class RevvyBLE(RobotCommunicationInterface):
 
         self._dis = DeviceInformationService(device_name, serial)
         self._bas = CustomBatteryService()
-        self._live = LiveMessageService()
+        self._live = LiveMessageService(robot_manager)
         self._long = LongMessageService(self.long_message_handler)
 
 
@@ -83,8 +83,10 @@ class RevvyBLE(RobotCommunicationInterface):
         self._bleno = Bleno()
         self._bleno.on('stateChange', self._on_state_change)
         self._bleno.on('advertisingStart', self._on_advertising_start)
+        self._bleno.on('accept', lambda _: self._robot_manager.on_connection_changed(True))
+        self._bleno.on('disconnect', lambda _: self._robot_manager.on_connection_changed(False))
 
-        self._robot_manager.set_control_interface_callbacks(self)
+        self._robot_manager.set_communication_interface_callbacks(self)
 
 
     def __getitem__(self, item):
@@ -114,17 +116,11 @@ class RevvyBLE(RobotCommunicationInterface):
         self._log(f'on -> advertisingStart: {_result(error)}')
 
         if not error:
-            self._log('setServices')
-
             # noinspection PyShadowingNames
             def on_set_service_error(error):
                 self._log(f'setServices: {_result(error)}')
 
             self._bleno.setServices(list(self._named_services.values()), on_set_service_error)
-
-    def on_connection_changed(self, callback):
-        self._bleno.on('accept', lambda _: callback(True))
-        self._bleno.on('disconnect', lambda _: callback(False))
 
     def start(self):
         self._bleno.start()
@@ -134,22 +130,8 @@ class RevvyBLE(RobotCommunicationInterface):
         self._bleno.stopAdvertising()
         self._bleno.disconnect()
 
-
-    def set_periodic_control_msg_cb(self, callback):
-        return self._live.set_periodic_control_msg_cb(callback)
-
-    def set_joystick_action_cb(self, callback):
-        return self._live.set_joystick_action_cb(callback)
-
-    def set_validate_config_req_cb(self, callback):
-        return self._live.set_validate_config_req_cb(callback)
-
-
     def update_session_id(self, id):
         return self._live.update_session_id(id)
-
-    def set_validation_result(self, success, motors, sensors):
-        return self._live.set_validation_result(success, motors, sensors)
 
     def update_orientation(self, vector_orientation):
         return self._live.update_orientation(vector_orientation)

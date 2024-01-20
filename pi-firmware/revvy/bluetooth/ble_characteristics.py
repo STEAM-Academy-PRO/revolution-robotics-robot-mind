@@ -49,12 +49,11 @@ class ValidateConfigCharacteristic(Characteristic):
     def get_state(self):
         return self._state
 
-    def update_validate_config_result(self, state, motors_bitmask, sensor0, sensor1,
-        sensor2, sensor3):
+    def update_validate_config_result(self, state, motors_bitmask, sensors):
 
         self._state = state
-        self._value = struct.pack('BBBBBB', state, motors_bitmask, sensor0,
-            sensor1, sensor2, sensor3)
+        self._value = struct.pack('BBBBBB', state, motors_bitmask, sensors[0],
+            sensors[1], sensors[2], sensors[3])
 
         log('validate_config::update:', self._value)
 

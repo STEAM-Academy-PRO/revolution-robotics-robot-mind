@@ -20,6 +20,8 @@ from revvy.robot.ports.common import PortInstance, PortCollection
 from revvy.utils.functions import map_values
 from revvy.utils.logger import get_logger
 
+log = get_logger('RobotInterface')
+
 class RGBChannelSensor(Enum):
   FRONT     = 0
   LEFT      = 1
@@ -45,7 +47,7 @@ def user_to_sensor_channel(user_channel):
     if user_channel == user.value:
       return sensor
 
-  print(f'user_to_sensor_channel: {user_channel}')
+  log(f'user_to_sensor_channel: {user_channel}')
   return RGBChannelSensor.UNDEFINED
 
 
@@ -763,7 +765,7 @@ class RobotWrapper(RobotInterface):
         return 0, base_color, background_color, None, None
 
     def search_line(self, line_color):
-        print(f'search_line:line_color={line_color}')
+        log(f'search_line:line_color={line_color}')
         line_driver = LineDriver(self._drivetrain, self, line_color)
         delta_seconds = 0.1
         should_stop = False
@@ -771,7 +773,7 @@ class RobotWrapper(RobotInterface):
         while not should_stop:
             should_stop = line_driver.search_line_update()
             time.sleep(delta_seconds)
-        print('search_line end')
+        log('search_line end')
         time.sleep(2)
 
     def follow_line(self, line_color, count_time=10000):
@@ -819,7 +821,7 @@ class RobotWrapper(RobotInterface):
           h = int(color.hue)
           s = int(color.saturation)
           v = int(color.value)
-          print(f'{color.red},{color.green},{color.blue}->{h},{s},{v}:{name}')
+          log(f'{color.red},{color.green},{color.blue}->{h},{s},{v}:{name}')
 
     def read_rgb_sensor_data(self):
         res = self._sensors["color_sensor"].read()
@@ -860,7 +862,7 @@ class RobotWrapper(RobotInterface):
         return color_name == color.name
 
     def hue_convert(self, val):
-        color = self.get_color_by_user_channel(channel)
+        color = self.get_color_by_user_channel(val)
         return 'not ready'
 
     def stop(self):

@@ -28,6 +28,7 @@ from revvy.robot_manager import RobotManager
 from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
 
 from revvy.scripting.runtime import ScriptDescriptor
+from revvy.utils.reverse_map_constant_name import get_constant_name
 
 
 
@@ -199,7 +200,7 @@ class LongMessageHandler:
         self._upload_finished_callback = callback
 
     def read_status(self) -> LongMessageStatusInfo:
-        self._log("read_status")
+        # self._log("read_status")
 
         if self._status == LongMessageHandler.STATUS_IDLE:
             return UnusedLongMessageStatusInfo
@@ -208,6 +209,7 @@ class LongMessageHandler:
             return self._long_message_storage.read_status(self._long_message_type)
 
         if self._status == LongMessageHandler.STATUS_INVALID:
+            self._log("read_status_invalid!")
             return ValidationErrorLongMessageStatusInfo
 
         assert self._status == LongMessageHandler.STATUS_WRITE
@@ -222,7 +224,7 @@ class LongMessageHandler:
             if upload_finished_callback:
                 upload_finished_callback(self._current_message)
 
-        self._log(f"select_long_message_type: {long_message_type}")
+        self._log(f"select_long_message_type: {get_constant_name(long_message_type, LongMessageType)}")
         LongMessageType.validate(long_message_type)
         self._long_message_type = long_message_type
         self._status = LongMessageHandler.STATUS_READ
@@ -453,7 +455,8 @@ class LongMessageImplementation:
 
     def on_message_updated(self, message: ReceivedLongMessage):
         message_type = message.message_type
-        self._log(f'Received message: {message_type}')
+
+        self._log(f'Received message: {get_constant_name(message_type, LongMessageType)}')
 
         if message_type == LongMessageType.TEST_KIT:
             test_script_source = message.data.decode()
@@ -475,7 +478,7 @@ class LongMessageImplementation:
 
         elif message_type == LongMessageType.CONFIGURATION_DATA:
             message_data = message.data.decode()
-            self._log('Got new configuration.')
+            # self._log('Got new configuration.')
 
             # string = '{"robotConfig": ' \
             #          '{"motors": [{"name": "drive1", "type": 2, "reversed": 0, "side": 0}, {}, {},{"name": "drive4", "type": 2, "reversed": 0, "side": 1}, {}, {}],' \

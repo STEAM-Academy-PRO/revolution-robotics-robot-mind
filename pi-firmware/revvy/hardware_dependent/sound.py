@@ -44,11 +44,11 @@ class SoundControlBase:
         return thread
 
     def _disable_amp_callback(self):
-        self._log('Disable amp callback')
+        # self._log('Disable amp callback')
         with self._lock:
-            self._log(f"Sounds playing: {len(self._processes)}")
+            # self._log(f"Sounds playing: {len(self._processes)}")
             if not self._processes:
-                self._log('Turning amp off')
+                # self._log('Turning amp off')
                 self._run_command(self._commands['disable_amp'])
 
     def set_volume(self, volume):

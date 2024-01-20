@@ -73,8 +73,8 @@ class PortHandler:
         self._default_driver = default_driver
         self._ports = {i: PortInstance(i, f'{name}Port', interface, self.configure_port) for i in range(1, amount + 1)}
 
-        self._log(f'Created handler for {amount} ports')
-        self._log('Supported types:\n  {}'.format(", ".join(self.available_types)))
+        # self._log(f'Created handler for {amount} ports')
+        # self._log('Supported types:\n  {}'.format(", ".join(self.available_types)))
 
     def __getitem__(self, port_idx):
         return self._ports[port_idx]
@@ -146,11 +146,11 @@ class PortInstance:
         return self._driver
 
     def configure(self, config) -> PortDriver:
-        self.log('Configure')
+        # self.log('Configure')
         return self._configure(config)
 
     def uninitialize(self):
-        self.log('Set to not configured')
+        # self.log('Set to not configured')
         self._configure(None)
 
     def __getattr__(self, name):

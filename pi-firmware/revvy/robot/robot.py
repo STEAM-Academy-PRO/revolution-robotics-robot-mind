@@ -51,16 +51,14 @@ class Robot(RobotInterface):
             bus_factory = self._default_bus_factory
         self._bus_factory = bus_factory
 
+        self._comm_interface = self._bus_factory()
+
         self._assets = Assets()
         self._assets.add_source(os.path.join('data', 'assets'))
 
         self._log = get_logger('Robot')
 
         self._script_variables = VariableSlot(4)
-        self.__validate_config_done_cb = None
-
-    def __enter__(self):
-        self._comm_interface = self._bus_factory()
 
         self._robot_control = self._comm_interface.create_application_control()
         self._bootloader_control = self._comm_interface.create_bootloader_control()
@@ -87,6 +85,9 @@ class Robot(RobotInterface):
         # I went up successfully, however this got an exception.
         # TODO: either do not fail for debug builds (no parsable version), or just do not fail!
         try:
+            # TODO: this is not stable right now, do not uncomment
+            # until revvy.py is stable and debugged why communication SOMETIMES fails to the board!
+            self._log('Firmware update TEMPORARILY disabled!')
             update_firmware(os.path.join('data', 'firmware'), self)
         except Exception as e:
             str_exception = str(e)
@@ -132,9 +133,8 @@ class Robot(RobotInterface):
         self.update_status = self._status_updater.read
         self.ping = self._robot_control.ping
 
-        return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __del__(self):
         self._comm_interface.close()
 
     @property
@@ -221,41 +221,7 @@ class Robot(RobotInterface):
 
         return SENSOR_ON_PORT_UNKNOWN
 
-    def validate_config(self, motors, sensors, motor_load_power, threshold):
-        self._log('validate req: motors={}, sensors={},pwr:{},sen:{}'.format(
-            motors, sensors, motor_load_power, threshold))
 
-        success = True
-        motors_result = []
-        for motor_port_idx, should_check_port in enumerate(motors):
-            motor_port_num = motor_port_idx + 1
-            self._log(f'checking motor at port "M{motor_port_num}"')
-            motor_is_present = False
-            if not motor_load_power:
-                motor_load_power = 60
-            if not threshold:
-                threshold = 10
-            if should_check_port:
-                motor_is_present = self._robot_control.test_motor_on_port(
-                    motor_port_num, motor_load_power, threshold)
-
-            status_string = 'unchecked'
-            if motor_is_present:
-                status_string = 'attached'
-            elif should_check_port:
-                status_string = 'detached'
-
-            self._log('Motor port "M{} check result:{}'.format(motor_port_num,
-                status_string))
-
-            motors_result.append(motor_is_present)
-
-        sensors_result = []
-        for sensor_idx, sensor_expected_type in enumerate(sensors):
-            tested_type = self.__validate_one_sensor_port(sensor_idx,
-                sensor_expected_type)
-            sensors_result.append(tested_type)
-        self.__validate_config_done_cb(success, motors_result, sensors_result)
 
     def reset(self):
         self._log('reset()')

@@ -85,7 +85,7 @@ class Resource:
         self._lock.__exit__(exc_type, exc_val, exc_tb)
 
     def reset(self):
-        self._log('Reset')
+        # self._log('Reset')
         with self._lock:
             handle, self._active_handle = self._active_handle, null_handle
 

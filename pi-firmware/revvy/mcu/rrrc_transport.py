@@ -8,7 +8,10 @@ from typing import NamedTuple
 import time
 
 from revvy.utils.functions import retry
+from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.stopwatch import Stopwatch
+
+log = get_logger('rrrc_transport')
 
 crc7_table = (
     0x00, 0x09, 0x12, 0x1b, 0x24, 0x2d, 0x36, 0x3f,
@@ -141,10 +144,9 @@ class ResponseHeader(NamedTuple):
     @staticmethod
     def create(data: bytes):
         try:
+            if not ResponseHeader.is_valid(data): raise ValueError('Header checksum error')
+
             header_bytes = data[0:4]
-            if crc7(header_bytes) != data[4]:
-                print("data:", data, header_bytes, data[4], crc7(header_bytes))
-                raise ValueError('Header checksum mismatch')
             status, _payload_length, _payload_checksum = struct.unpack('<BBH', header_bytes)
             return ResponseHeader(status=ResponseStatus(status),
                                   payload_length=_payload_length,
@@ -152,6 +154,17 @@ class ResponseHeader(NamedTuple):
                                   raw=header_bytes)
         except IndexError as e:
             raise ValueError('Header too short') from e
+
+    @staticmethod
+    def is_valid(data: bytes):
+        """ Checks if a communication header is valid """
+        if data == None:
+            return False
+        header_bytes = data[0:4]
+        if crc7(header_bytes) != data[4]:
+            log(f"Header Check CRC error: {str(data)} !=  {str(header_bytes)}", LogLevel.WARNING)
+            return False
+        return True
 
     def validate_payload(self, payload):
         return self.payload_checksum == binascii.crc_hqx(payload, 0xFFFF)
@@ -231,15 +244,14 @@ class RevvyTransport:
 
         def _read_response_header_once():
             header_bytes = self._transport.read(5)
-            if header_bytes == None:
-                return None
 
             return ResponseHeader.create(header_bytes)
 
-        header = retry(_read_response_header_once, retries)
+        header = retry(_read_response_header_once, retries, lambda e: None)
 
         if not header:
-            raise BrokenPipeError('Read response header: Retry limit reached')
+            # log("Connection lost with the board, retry limit reached!", LogLevel.ERROR)
+            raise BrokenPipeError('Read response header error')
 
         return header
 
@@ -277,6 +289,7 @@ class RevvyTransport:
         payload = retry(_read_payload_once, retries)
 
         if not payload:
+            # log("Connection lost with the board, retry limit reached!", LogLevel.ERROR)
             raise BrokenPipeError('Read payload: Retry limit reached')
 
         return payload
@@ -295,6 +308,6 @@ class RevvyTransport:
         self._stopwatch.reset()
         while self._stopwatch.elapsed < self.timeout:
             response = self._read_response_header(retries=100)
-            if response.status != ResponseStatus.Busy:
+            if response is not None and response.status != ResponseStatus.Busy:
                 return response
         raise TimeoutError
