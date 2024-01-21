@@ -12,6 +12,7 @@ from revvy.utils.logger import get_logger
 
 RemoteControllerCommand = namedtuple('RemoteControllerCommand', ['analog', 'buttons', 'background_command', 'next_deadline'])
 
+log = get_logger('RemoteController')
 
 class BleAutonomousCmd:
     START  = 10
@@ -98,11 +99,11 @@ class RemoteController:
     def __init__(self):
         self._background_control_state = BackgroundControlState()
         self._control_button_pressed = AutonomousModeRequest()
-        self._log = get_logger('RemoteController')
 
         self._analogActions = []  # ([channel], callback) pairs
         self._analogStates = []  # the last analog values, used to compare if a callback needs to be fired
         self._buttonHandlers = [EdgeDetector() for _ in range(32)]
+        self._is_action_running = [False] * 32  # Track if a button bound program is running.
         self._buttonActions = [None] * 32  # callbacks to be fired if a button gets pressed
 
         for handler in self._buttonHandlers:
@@ -128,7 +129,7 @@ class RemoteController:
         # over one entire controller (play) session
         if self._joystick_mode:
             return
-
+        log('Joystick mode ON')
         self._joystick_mode = True
         self._processing = True
         self._previous_time = time.time()
@@ -137,7 +138,7 @@ class RemoteController:
         self._background_control_state.set_stopped()
 
     def reset(self):
-        self._log('RemoteController: reset')
+        log('RemoteController: reset')
         self._analogActions.clear()
         self._analogStates.clear()
 
@@ -153,6 +154,7 @@ class RemoteController:
 
     def process_background_command(self, cmd):
         if cmd == BleAutonomousCmd.START:
+            log(f'start background program: {cmd}')
             self.start_background_functions()
         elif cmd == BleAutonomousCmd.PAUSE:
             self.pause_background_functions()
@@ -178,23 +180,37 @@ class RemoteController:
                     action([analog_cmd[x] for x in channels])
             except IndexError:
                 # looks like an action was registered for an analog channel that we didn't receive
-                self._log(f'Skip analog handler for channels {", ".join(map(str, channels))}')
+                log(f'Skip analog handler for channels {", ".join(map(str, channels))}')
 
-    def process_button_command(self, button_cmd):
+    def run_button_script(self, button_cmd):
+        """
+            On the controller user binds blockly programs to the buttons.
+            Here we iterate over the handlers and the button states, and if the button is pressed
+            run the program.
+            We also send a message about it being started.
+        """
+
         for handler, button, action in zip(self._buttonHandlers, button_cmd, self._buttonActions):
             pressed = handler.handle(button)
             if pressed == 1 and action:
+                log(f'starting program: {button} {handler}')
                 # noinspection PyCallingNonCallable
                 action()
 
     def process_control_message(self, msg):
+        """
+            The app sends regular (<100ms) control messages.
+            This function handles: analog inputs, button bound script running and background programs
+            It also updates the next_deadline - to notice if the session disconnects,
+            and switch the motors off.
+        """
         self.process_background_command(msg.background_command)
         self.process_analog_command(msg.analog)
-        self.process_button_command(msg.buttons)
+        self.run_button_script(msg.buttons)
         if msg.next_deadline is not None:
             self.__next_deadline = msg.next_deadline
 
-    def on_button_pressed(self, button, action: callable):
+    def set_on_button_pressed(self, button, action: callable):
         self._buttonActions[button] = action
 
     def on_analog_values(self, channels, action):
@@ -252,6 +268,8 @@ FIRST_MESSAGE_TIMEOUT = 5
 MESSAGE_MAX_PERIOD = 1
 
 
+log = get_logger('RemoteControllerScheduler')
+
 class RemoteControllerScheduler:
     def __init__(self, rc: RemoteController):
         self._controller = rc
@@ -259,9 +277,8 @@ class RemoteControllerScheduler:
         self._controller_detected_callback = None
         self._controller_lost_callback = None
         self._message = None
-        self._log = get_logger('RemoteControllerScheduler')
 
-    def data_ready(self, message: RemoteControllerCommand):
+    def periodic_control_message_handler(self, message: RemoteControllerCommand):
         self._message = message
         self._data_ready_event.set()
 
@@ -277,7 +294,7 @@ class RemoteControllerScheduler:
         return not (timeout or ctx.stop_requested)
 
     def handle_controller(self, ctx: ThreadContext):
-        self._log('Waiting for controller')
+        log('Waiting for controller')
 
         self._data_ready_event.clear()
 
@@ -286,7 +303,7 @@ class RemoteControllerScheduler:
         # wait for first message
         stopwatch = Stopwatch()
         if self._wait_for_message(ctx, FIRST_MESSAGE_TIMEOUT):
-            self._log(f"Time to first message: {stopwatch.elapsed}s")
+            log(f"Time to first message: {stopwatch.elapsed}s")
             if self._controller_detected_callback:
                 self._controller_detected_callback()
 
@@ -302,14 +319,14 @@ class RemoteControllerScheduler:
 
         # reset here, controller was lost or stopped
         self._controller.reset()
-        self._log('exited')
+        log('exited')
 
     def on_controller_detected(self, callback: callable):
-        # self._log('Register controller found handler')
+        # log('Register controller found handler')
         self._controller_detected_callback = callback
 
     def on_controller_lost(self, callback: callable):
-        # self._log('Register controller lost handler')
+        # log('Register controller lost handler')
         self._controller_lost_callback = callback
 
 def create_remote_controller_thread(rcs: RemoteControllerScheduler):

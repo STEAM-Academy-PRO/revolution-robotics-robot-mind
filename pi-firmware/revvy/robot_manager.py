@@ -33,7 +33,6 @@ class RevvyStatusCode(enum.IntEnum):
 class RobotManager:
     def __init__(self, sw_version, writeable_assets_dir):
         self._log = get_logger('RobotManager')
-        self._log('init')
         self.needs_interrupting = True
 
         self._configuring = False
@@ -74,7 +73,8 @@ class RobotManager:
         self.__session_id = 0
 
         self.on_joystick_action = self._remote_controller.on_joystick_action
-        self.on_periodic_control_msg = self._remote_controller_scheduler.data_ready
+
+        self.handle_periodic_control_message = self._remote_controller_scheduler.periodic_control_message_handler
 
         self._robot_interface = None
 
@@ -356,11 +356,13 @@ class RobotManager:
             script_handle = self._scripts.add_script(analog['script'])
             self._remote_controller.on_analog_values(analog['channels'], partial(start_analog_script, script_handle))
 
+        # Set up all the bound buttons to run the stored scripts.
         for button, script in enumerate(config.controller.buttons):
             if script:
                 script_handle = self._scripts.add_script(script)
                 script_handle.assign('list_slots', scriptvars)
-                self._remote_controller.on_button_pressed(button, script_handle.start)
+                self._remote_controller.set_on_button_pressed(button, script_handle.start)
+                script_handle.on_stopped(self._on_script_stopped)
 
         self._autonomous = config.background_initial_state
 
@@ -370,6 +372,10 @@ class RobotManager:
         self.remote_controller.reset_background_control_state()
         if config.background_initial_state == 'running':
             self._bg_controlled_scripts.start_all_scripts()
+
+    def _on_script_stopped(self, script):
+        self._log('script stopped!')
+        self._log(f'script: {script}')
 
     def _robot_configure(self, config):
 

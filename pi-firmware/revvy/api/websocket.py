@@ -2,6 +2,7 @@ import asyncio
 import json
 import struct
 import threading
+from revvy.robot.rc_message_parser import parse_control_message
 from revvy.robot_config import RobotConfig
 import websockets
 
@@ -47,28 +48,30 @@ class RobotWebSocketApi:
 
                 message_type = message["type"]
 
-                log(f'Incoming Message: [{message_type}]')
 
-                if message_type == 'configure':
-                    parsed_config = RobotConfig.from_string(json.loads(message["body"]))
-                    self._robot_manager.robot_configure(parsed_config,
-                        self._robot_manager.start_remote_controller)
+                try:
+                    if message_type == 'configure':
+                        log(f'Incoming Configuration Message: [{message_type}]')
 
-                if message_type == 'control':
-                    json_data = message["body"]
-                    data = struct.pack('B' * len(json_data), *[json_data[str(i)] for i in range(len(json_data))])
-                    analog_values = data[1:7]
-                    deadline_packed = data[7:11]
-                    next_deadline = struct.unpack('<I', deadline_packed)[0]
-                    button_values = bits_to_bool_list(data[11:15])
-                    message_handler = self._robot_manager.on_periodic_control_msg
+                        parsed_config = RobotConfig.from_string(json.loads(message["body"]))
+                        self._robot_manager.robot_configure(parsed_config,
+                            self._robot_manager.start_remote_controller)
 
-                    if message_handler:
-                        message_handler(RemoteControllerCommand(analog=analog_values,
-                                                    buttons=button_values,
-                                                    background_command=None,
-                                                    next_deadline=next_deadline))
+                    if message_type == 'control':
+                        json_data = message["body"]
+                        data = struct.pack('B' * len(json_data), *[json_data[str(i)] for i in range(len(json_data))])
 
+                        [analog_values, deadline_packed, next_deadline, button_values] = parse_control_message(data)
+
+                        message_handler = self._robot_manager.handle_periodic_control_message
+
+                        if message_handler:
+                            message_handler(RemoteControllerCommand(analog=analog_values,
+                                                        buttons=button_values,
+                                                        background_command=None,
+                                                        next_deadline=next_deadline))
+                except Exception as e:
+                    log(f'Control message failed: {message_type}: {e}')
                 # Send the received message back to the client
                 # await websocket.send(f"Received: {message_raw}")
 

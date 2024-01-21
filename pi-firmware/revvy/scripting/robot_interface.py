@@ -677,7 +677,7 @@ class RobotWrapper(RobotInterface):
 
         self.time = robot.time
 
-    def release_resources(self):
+    def release_resources(self, none=None):
         for res in self._resources.values():
             res.release()
 
