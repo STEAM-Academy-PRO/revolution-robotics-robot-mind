@@ -5,14 +5,32 @@ import { createSignal, createEffect, createMemo, Switch, Match } from 'solid-js'
 import ConfigurationView from './views/ConfigurationView';
 import ControllerView from './views/ControllerView';
 import ConnectionView from './views/ConnectionView';
-import { SocketWrapper } from './utils/Communicator';
+import { SocketWrapper, connectToRobot, disconnect } from './utils/Communicator';
 
 import json from "./assets/robot-config.json"
 
 function App() {
   const [conn, setConn] = createSignal<SocketWrapper|null>(null)
+  const [connLoading, setConnLoading] = createSignal<boolean>(false)
   const [config, setConfig] = createSignal(localStorage.getItem('config') || JSON.stringify(json, null, 2));
   const [tab, setTab] = createSignal('configure')
+  const [endpoint, setEndpoint] = createSignal(localStorage.getItem('endpoint') || '');
+  const [_log, setLog] = createSignal<string>('')
+
+  const isActive = createMemo(()=>tab() === 'play')
+
+  const log = (msg: any) => {
+    if (!msg) return
+    setLog(_log() + `\n[${new Date().toLocaleTimeString('en-US', { hour12: false })}] ${msg}`)
+  }
+
+  const connectOrDisconnect = ()=>{
+    if (conn()){
+      disconnect(conn, setConn)
+    } else {
+      connectToRobot(setConn, setConnLoading, endpoint, config, log)
+    }
+  }
 
   createEffect(() => {
     try{
@@ -29,12 +47,18 @@ function App() {
     {
       id: 'play',
       label: 'Play',
-      children: <ControllerView conn={conn} on={tab() === 'play'}/>
+      children: <ControllerView conn={conn} isActive={isActive}/>
     },
     {
       id: 'connect',
       label: 'Connection',
-      children: <ConnectionView setConn={setConn} conn={conn}/>
+      children: <ConnectionView
+        endpoint={endpoint} setEndpoint={setEndpoint}
+        connect={()=>connectToRobot(setConn, setConnLoading, endpoint, config, log)}
+        disconnect={()=>disconnect(conn, setConn)}
+        connection={conn}
+        log={_log} setLog={setLog}
+      />
     }
   ]
 
@@ -49,8 +73,8 @@ function App() {
             </li>
           )}
         </ul>
-        <div>
-          {conn()?<>🟢</>:<>🔴</>}
+        <div onClick={()=>connectOrDisconnect()}>
+          {conn()?<>🟢</>:connLoading()?<>🟡</>:<>🔴</>}
         </div>
 
       </div>

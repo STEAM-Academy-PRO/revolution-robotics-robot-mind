@@ -1,4 +1,4 @@
-import { Accessor, createSignal } from "solid-js"
+import { Accessor, Setter } from "solid-js"
 import { createEmitter } from "@solid-primitives/event-bus";
 
 const PORT = 8765
@@ -13,17 +13,18 @@ export enum WSEventType {
     onMessage = "onMessage",
     onError = 'onError',
     onOpen = 'onOpen',
-    onClose = 'onClose'}
+    onClose = 'onClose'
+}
 
 export enum RobotMessage {
     configure = 'configure',
     control = 'control'
 }
 
-export type WSEventResult = string|Event|boolean|undefined
+export type WSEventResult = string | Event | boolean | undefined
 export type WSEventCallback = (e: WSEventResult) => void
 
-export function connectToRobot(ip: string): SocketWrapper {
+export function connectSocket(ip: string): SocketWrapper {
     const emitter = createEmitter<Record<WSEventType, WSEventResult>>()
 
     let socket: WebSocket = new WebSocket(`ws://${ip}:${PORT}`);
@@ -56,8 +57,44 @@ export function connectToRobot(ip: string): SocketWrapper {
     };
     return {
         send: (type: RobotMessage, msg: any) =>
-            socket.send(JSON.stringify({type, body: msg})),
+            socket.send(JSON.stringify({ type, body: msg })),
         close: () => socket.close(),
         on: emitter.on
+    }
+}
+
+export function connectToRobot(
+    setConn: Setter<SocketWrapper | null>,
+    setConnLoading: Setter<boolean>,
+    endpoint: Accessor<string>,
+    config: Accessor<string>,
+    log: (msg: any) => void) {
+        log(`Connecting to ${endpoint()}`)
+    setConnLoading(true)
+    const socket = connectSocket(endpoint())
+    socket.on(WSEventType.onMessage, (e) => { log(e) })
+    socket.on(WSEventType.onOpen, (e) => {
+        log('Socket Connection Established!')
+        setConn(socket)
+        setConnLoading(false)
+        socket.send(RobotMessage.configure, JSON.stringify(config()))
+    })
+    socket.on(WSEventType.onClose, (wasClean) => {
+        log(wasClean ? 'Socket Connection Closed Nicely!' : 'Socket Connection Dropped.')
+        setConn(null)
+        setConnLoading(false)
+    })
+    socket.on(WSEventType.onError, (e) => {
+        console.error(e)
+        if (e instanceof Error)
+            log((e as Error).message)
+    })
+}
+
+
+export function disconnect(conn: Accessor<SocketWrapper | null>, setConn: Setter<SocketWrapper | null>) {
+    if (conn()) {
+        conn()?.close()
+        setConn(null);
     }
 }

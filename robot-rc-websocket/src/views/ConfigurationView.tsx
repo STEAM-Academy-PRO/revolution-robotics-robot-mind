@@ -1,13 +1,13 @@
 import { createSignal, createEffect, Accessor, Setter } from 'solid-js'
 
-import styles from './SimpleConfigSender.css'
+import styles from './Config.module.css'
 
 import { RobotMessage, SocketWrapper } from '../utils/Communicator';
 
 function ConfigurationView({
   config, setConfig,
   conn
-}: {config: Accessor<any>, setConfig: Setter<any>, conn: Accessor<SocketWrapper|null>}) {
+}: {config: Accessor<string>, setConfig: Setter<string>, conn: Accessor<SocketWrapper|null>}) {
 
   const [response, setResponse] = createSignal('');
   const [isSendEnabled, setIsSendEnabled] = createSignal(false);
@@ -26,7 +26,7 @@ function ConfigurationView({
   }
 
   // const handleSendHTTP = async () => {
-    
+
   //   const parsedConfig = JSON.parse(config())
   //   try {
 
