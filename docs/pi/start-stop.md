@@ -10,9 +10,9 @@ starting your script, or restart it after a modification.
 
 To control the framework service, use these commands:
 
- - Stop: `sudo systemctl stop revvy` or `stop`
- - Start: `sudo systemctl start revvy` or `start`
- - Restart: `sudo systemctl restart revvy`
+- Stop: `sudo systemctl stop revvy` or `stop`
+- Start: `sudo systemctl start revvy` or `start`
+- Restart: `sudo systemctl restart revvy`
 
 Which package is started?
 -------------------------

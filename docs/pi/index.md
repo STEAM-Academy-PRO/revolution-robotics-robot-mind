@@ -3,6 +3,7 @@ Pi firmware
 
 `Pi firmware` is the collection of python scripts running on the Pi OS.
 
-- [SSH using USB](ssh-usb.md)
-- [How to enable Wifi](enable-wifi.md)
-- [Starting and stopping the Pi firmware](start-stop.md)
+- [Set up the project](setup.md)
+- [Connecting to the brain](connect-ssh.md)
+- [Starting and stopping the firmware](start-stop.md)
+- [Working with firmware packages](working-with-packages.md)
