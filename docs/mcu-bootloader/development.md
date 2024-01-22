@@ -24,7 +24,7 @@ Building a release bootloader
 -----------------------------
 
 ```bash
-make all config=debug
+make all config=release
 ```
 
 The resulting binary is placed in `mcu-bootloader/Build/Release/mcu-bootloader`

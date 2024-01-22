@@ -23,18 +23,53 @@ Install the firmware on a working robot
 - Delete the corresponding lines from the `manifest.json` file in the `~/RevvyFramework/user/packages/<newest>/` folder
 - Restart the framework to install the firmware
 
+Building a debug firmware
+-------------------------
+
+```bash
+python -m tools.gen_version
+python -m tools.generate_makefile
+# currently the generated runtime is checked in, so this is not needed
+# cglue --generate --cglue-output=rrrc/generated_runtime
+make all config=debug
+```
+
+The resulting binary is placed in `mcu-firmware/Build/Debug/mcu-firmware`
+
+Building a release bootloader
+-----------------------------
+
+```bash
+python -m tools.gen_version
+python -m tools.generate_makefile
+# currently the generated runtime is checked in, so this is not needed
+# cglue --generate --cglue-output=rrrc/generated_runtime
+make all config=release
+```
+
+The resulting binary is placed in `mcu-firmware/Build/Release/mcu-firmware`
+
+Flashing the firmware
+---------------------
+
+```bash
+probe-rs download path/to/rrrc_samd51.elf --chip atsamd51p19a
+probe-rs reset --chip atsamd51p19a
+
+# or
+
+probe-rs run path/to/rrrc_samd51.elf --chip atsamd51p19a
+# ctrl-c to exit
+```
+
 Debugging
 ---------
 
-- Make sure the **debug** bootloader is installed on the MCU. You can find the compiled bootloaders
-  in the ProductionFiles repository, or the sources in the `mcu-bootloader` folder.
-- Select the Run icon in the left toolbar
-- Select the `Debug (J-Link)` configuration
-- Press `F5` to start
-- If prompted, accept the licence agreement
+VS Code comes with a launch configuration that can flash and connect to a debug firmware
+automatically. To start this, open the `mcu-firmware` folder in a new window and press F5.
 
-Programming the robot directly
-------------------------------
+Troubleshooting
+---------------
 
-- upload MCU bootloader with `probe-rs download path/to/rrrc_bootloader.bin --chip atsamd51p19a --format bin`
-- upload MCU firmware with `probe-rs download path/to/revvy_firmware.bin --format bin --chip atsamd51p19a --base-address 0x40000`
+- After flashing and restarting, if you see that the four status leds are magenta, reflash
+the bootloader with a debug image.
