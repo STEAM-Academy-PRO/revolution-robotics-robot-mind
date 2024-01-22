@@ -5,24 +5,6 @@ Some sound effects (bell, duck, lion and engine revving sounds) in the assets di
 
 [Documentation](../docs/pi/index.md)
 
-# How to start/stop/restart the framework service.
-After startup, the framework service is already running. If you want to modify it, or run a tool script or other scripts that work with the framework, you'll need to stop the service before starting your script, or restart it after a modification.
-
-To control the framework service, use these commands:
- - Stop: `sudo systemctl stop revvy` or `stop`
- - Start: `sudo systemctl start revvy` or `start`
- - Restart: `sudo systemctl restart revvy`
- - Debug: `debug`
-
-If you want to start the framework, but not the service (for example, you want to observe console output), enter the framework directory by running `cd RevvyFramework` and start by executing `python3 launch_revvy.py`. To exit, press Enter. (`debug`)
-
-# About the integrity protection and modifications
-After startup the framework scans for unintended modifications in the source code. This is done by comparing the checksum of the individual files to those contained in the `manifest.json` file. If a file is not listed in the manifest, it is ignored. If a checksum does not match, the framework exits and if possible, an older one is then started.
-
-Because of this, if you intend to modify a file, you need to either update the manifest with the new MD5 checksum, or remove the modified file from the manifest.
-
-Only the packages located under `~/RevvyFramework/user/packages` can be modified, other parts of the filesystem are read-only.
-
 # Preparing the environment for framework development
  - Check out the sources in a directory of your choice.
  - Create a python virtual environment in the source directory by running `python -m venv venv`

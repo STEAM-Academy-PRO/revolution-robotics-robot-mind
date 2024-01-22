@@ -5,3 +5,4 @@ Pi firmware
 
 - [SSH using USB](ssh-usb.md)
 - [How to enable Wifi](enable-wifi.md)
+- [Starting and stopping the Pi firmware](start-stop.md)
