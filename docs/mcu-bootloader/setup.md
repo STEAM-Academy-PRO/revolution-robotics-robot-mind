@@ -8,7 +8,6 @@ Tools required
  - ARM GCC, make
  - VS Code if you intend to keep your sanity
  - [Debugger for probe-rs](https://marketplace.visualstudio.com/items?itemName=probe-rs.probe-rs-debugger) and [probe-rs](https://probe.rs)
- - python 3.7 or newer
 
 Set up compiler
 ---------------
@@ -29,13 +28,3 @@ Set up compiler
   - Extract the downloaded directories to a place of your choice. (For example, C:\gnu\make)
   - Add the bin folder of the extracted archive to your `$PATH`.
 - Use `zadig` to replace the jlink drivers with WinUSB
-
-Set up project
---------------
-
- - open a command line in the project directory
- - Run command `python -m venv venv` to create new virtual environment in the `venv` directory
- - Activate virtual environment by running
-   - Windows: `.\venv\Scripts\activate`
-   - Linux: `source ./venv/bin/activate`
- - Run command `pip install -r tools/requirements.txt`
