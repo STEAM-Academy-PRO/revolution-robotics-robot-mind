@@ -1,6 +1,8 @@
 Pi firmware
 ===========
 
+[Documentation root](../index.md)
+
 `Pi firmware` is the collection of python scripts running on the Pi OS.
 
 - [Set up the project](setup.md)

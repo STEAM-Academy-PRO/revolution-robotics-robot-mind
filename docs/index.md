@@ -3,7 +3,8 @@ Documentation
 
  - [Glossary](glossary.md)
  - [CI](ci.md)
- - [MCU software](mcu/index.md)
+ - [MCU bootloader](mcu-bootloader/index.md)
+ - [MCU software](mcu-firmware/index.md)
  - [Pi firmware](pi/index.md)
  - [How to release a new version](release.md)
 
