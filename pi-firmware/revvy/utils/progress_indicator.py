@@ -1,4 +1,3 @@
-# SPDX-License-Identifier: GPL-3.0-only
 import math
 
 from revvy.robot.led_ring import RingLed

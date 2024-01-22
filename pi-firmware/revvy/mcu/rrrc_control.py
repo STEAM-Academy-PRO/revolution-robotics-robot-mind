@@ -1,4 +1,3 @@
-# SPDX-License-Identifier: GPL-3.0-only
 
 from revvy.mcu.commands import *
 from revvy.mcu.rrrc_transport import RevvyTransport

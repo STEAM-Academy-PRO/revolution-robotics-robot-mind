@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# SPDX-License-Identifier: GPL-3.0-only
 # start using 'python -m dev_tools.create_package' from the root directory
 import argparse
 import json
