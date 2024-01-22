@@ -1,15 +1,6 @@
 Firmware development
 ====================
 
-Developing with CGlue
---------------------
-
-* Create a new software component: `cglue --new-component ComponentName`
-* Update generated component code based on modification of the component model: `cglue --update-component ComponentName [--cleanup]`
-* Generate runtime based on the project.json configuration: `cglue --generate --cglue-output=rrrc/generated_runtime [--cleanup]`
-  The generated files are: `rrrc/generated_runtime.h` and `rrrc/generated_runtime.c`
-* Generate makefile for compilation: `python -m tools.generate_makefile [--cleanup]`
-
 When using the provided VS Code tasks, runtime and makefile generation is done automatically during the build process.
 
 Install the firmware on a working robot
