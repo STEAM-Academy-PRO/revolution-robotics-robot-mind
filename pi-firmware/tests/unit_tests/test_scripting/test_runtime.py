@@ -208,7 +208,7 @@ while not ctx.stop_requested:
     mock()
 '''), 0))
         sm.assign('mock', mock)
-        sm['test'].on_stopped(cont.set)
+        sm['test'].on_stopped(lambda _: cont.set())
 
         # first call, make sure the script runs
         sm['test'].start().wait()
@@ -248,8 +248,8 @@ while not ctx.stop_requested:
             # first call, make sure the script runs
             script1_stopped = Event()
             script2_stopped = Event()
-            sm['test1'].on_stopped(script1_stopped.set)
-            sm['test2'].on_stopped(script2_stopped.set)
+            sm['test1'].on_stopped(lambda _: script1_stopped.set())
+            sm['test2'].on_stopped(lambda _: script2_stopped.set())
             sm['test1'].start()
             sm['test2'].start()
 
@@ -273,7 +273,7 @@ while not ctx.stop_requested:
 
         sm = ScriptManager(robot_mock)
         sm.add_script(ScriptDescriptor('test', str_to_func('''raise Excepti'''), 0))
-        sm['test'].on_stopped(cont.set)
+        sm['test'].on_stopped(lambda _: cont.set())
 
         # first call, make sure the script runs
         sm['test'].start().wait()
