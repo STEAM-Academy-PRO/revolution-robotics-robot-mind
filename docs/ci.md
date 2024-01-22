@@ -77,10 +77,9 @@ There are three possible artifacts depending on what the PR changes:
 > TODO: this is less interesting now. Debug builds should upload the `.elf` for debugging. Maybe rename this particular artifact to `mcu-firmware-dist`?
 - `pi-firmware`: contains a `*.data` and a `*.meta` file. These files can be [installed on the brain](pi/install-data-meta.md).
 
-#### Merge Queue
+#### Why do I have to rebase my PR?
 
-The workflow is also used in the merge queue. Testing this way ensures the PR is compatible with
-changes made to the `main` branch.
+We need to be sure that the PR plays nice with changed made to the main branch since.
 
 ```mermaid
 %%{init: { 'gitGraph': {'showCommitLabel':false} } }%%
@@ -101,10 +100,10 @@ gitGraph TB:
     checkout pr-branch
     commit tag: "Runs CI workflow"
     checkout main
-    merge pr-branch tag: "Via Merge Queue"
+    merge pr-branch tag: "These changes..."
     checkout another-branch
     checkout main
-    merge another-branch tag: "Via Merge Queue"
+    merge another-branch tag: "...may interfere even if this PR merges cleanly"
 ```
 
 ### [`release.md`](../.github/workflows/release.yml)

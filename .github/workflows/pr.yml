@@ -5,7 +5,6 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - main
-  merge_group:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
