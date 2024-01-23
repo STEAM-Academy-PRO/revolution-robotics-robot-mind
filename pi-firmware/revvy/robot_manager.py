@@ -37,7 +37,7 @@ class RobotManager:
         self._configuring = False
         self._robot = Robot()
         self._robot.assets.add_source(writeable_assets_dir)
-        self._sw_version = sw_version
+        self.sw_version = sw_version
 
         self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
         self._background_fns = []
@@ -78,6 +78,9 @@ class RobotManager:
         self._robot_interface = None
 
     def set_communication_interface_callbacks(self, communication_interface: RobotCommunicationInterface):
+        # Ditch former connection!
+        if self._robot_interface is not None:
+            self._robot_interface.disconnect()
         self._robot_interface = communication_interface
 
     def validate_config_async(self, motors, sensors, motor_load_power,
@@ -145,28 +148,23 @@ class RobotManager:
             elif req.is_resume_pending():
                 self._bg_controlled_scripts.resume_all_scripts()
 
-    def __battery_characterstic(self, name):
-        return self._robot_interface.battery(name)
-
 
     def _update(self):
+        """
+            This runs every 5ms and reads out the robot's statuses.
+        """
         # noinspection PyBroadException
         try:
             self._robot.update_status()
 
-            self.__battery_characterstic('main_battery').update_value(
-                self._robot.battery.main)
-
-            self.__battery_characterstic('motor_battery').update_value(
-                self._robot.battery.motor)
-
-            self.__battery_characterstic('unified_battery_status').update_value(
+            self._robot_interface.update_battery(
               self._robot.battery.main,
               self._robot.battery.chargerStatus,
               self._robot.battery.motor,
               self._robot.battery.motor_battery_present)
 
             self._remote_controller.timer_increment()
+
             vector_list = [
                 getattr(self._robot.imu.rotation, 'x'),
                 getattr(self._robot.imu.rotation, 'y'),
@@ -239,7 +237,7 @@ class RobotManager:
     def robot_start(self):
         self._log('start')
         if self._robot.status.robot_status == RobotStatus.StartingUp:
-            # self._log('Waiting for MCU')
+            self._log('Waiting for MCU')
 
             try:
                 self._ping_robot()
@@ -247,9 +245,6 @@ class RobotManager:
                 pass  # FIXME somehow handle a dead MCU
 
             self._log('Connection to MCU established')
-            self._robot_interface.update_characteristic('hw_version', str(self._robot.hw_version))
-            self._robot_interface.update_characteristic('fw_version', str(self._robot.fw_version))
-            self._robot_interface.update_characteristic('sw_version', str(self._sw_version))
 
             # start reader thread
             self._status_update_thread.start()

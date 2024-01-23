@@ -8,6 +8,7 @@ import argparse
 import os
 import sys
 import traceback
+from revvy.firmware_updater import update_firmware_if_needed
 
 from revvy.robot_manager import RobotManager, RevvyStatusCode
 from revvy.utils.observable import Observable
@@ -21,7 +22,6 @@ from revvy.utils.logger import get_logger, logger, LogLevel
 from tools.check_manifest import check_manifest
 
 log = get_logger('revvy.py')
-
 
 parser = argparse.ArgumentParser(description='Revvy PI firmware')
 parser.add_argument('--debug', action='store_true', help='Enable debug mode')
@@ -46,7 +46,7 @@ if __name__ == "__main__":
         log('Revvy not started because manifest is invalid')
         sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
 
-    register_uncaught_exception_handler()
+    # register_uncaught_exception_handler()
 
     # prepare environment
 
@@ -86,6 +86,9 @@ if __name__ == "__main__":
     device_name.subscribe(lambda v: device_storage.write('device-name', v.encode("utf-8")))
 
     writeable_assets_dir = os.path.join(writeable_data_dir, 'assets')
+
+
+    update_firmware_if_needed()
 
     # Handles robot state
     robot_manager = RobotManager(sw_version, writeable_assets_dir)
