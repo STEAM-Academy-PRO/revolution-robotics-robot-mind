@@ -1,4 +1,3 @@
-# SPDX-License-Identifier: GPL-3.0-only
 from revvy.robot.ports.motors.dc_motor import DcMotorController
 from revvy.robot.ports.sensors.ev3 import ev3_color, Ev3UARTSensor
 from revvy.robot.ports.sensors.simple import hcsr04, bumper_switch, softeq_cs

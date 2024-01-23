@@ -1,5 +1,9 @@
 #!/usr/bin/python3
-# SPDX-License-Identifier: GPL-3.0-only
+
+# motor identification script, used in conjunction with rtt-viewer. it drives a motor with
+# specific power values, and the speed is measured by rtt-viewer. the data can be used to tune
+# the motor model parameters for the control loops, or just to see differences between individual
+# motors.
 
 import time
 

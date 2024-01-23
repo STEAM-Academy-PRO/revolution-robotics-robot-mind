@@ -1,4 +1,3 @@
-# SPDX-License-Identifier: GPL-3.0-only
 import itertools
 from contextlib import suppress
 from threading import Timer

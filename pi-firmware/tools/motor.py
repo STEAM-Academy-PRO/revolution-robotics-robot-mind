@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# SPDX-License-Identifier: GPL-3.0-only
 
 from revvy.robot.configurations import Motors
 from revvy.utils.thread_wrapper import periodic

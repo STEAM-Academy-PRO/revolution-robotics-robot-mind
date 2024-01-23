@@ -5,7 +5,6 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - main
-  merge_group:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -54,8 +53,8 @@ jobs:
         with:
           name: mcu-bootloader
           path: |
-            mcu-bootloader/Build/rrrc_samd51.elf
-            mcu-bootloader/Build/rrrc_samd51.bin
+            mcu-bootloader/Build/Debug/mcu-bootloader/rrrc_samd51.elf
+            mcu-bootloader/Build/Debug/mcu-bootloader/rrrc_samd51.bin
 
   check-mcu-firmware:
     permissions:

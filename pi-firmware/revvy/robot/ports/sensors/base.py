@@ -1,4 +1,3 @@
-# SPDX-License-Identifier: GPL-3.0-only
 
 from revvy.robot.ports.common import PortDriver, PortInstance
 

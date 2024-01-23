@@ -1,4 +1,3 @@
-# SPDX-License-Identifier: GPL-3.0-only
 from contextlib import suppress
 
 from revvy.mcu.rrrc_control import RevvyControl

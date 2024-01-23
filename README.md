@@ -1,5 +1,7 @@
 # Mind of the Robot
 
+[Documentation](docs/index.md)
+
 ## mcu-common
 
 Common hardware abstraction˛code used by mcu-bootloader and mcu-firmware

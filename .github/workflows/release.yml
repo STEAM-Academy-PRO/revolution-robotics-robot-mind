@@ -1,0 +1,180 @@
+name: Release packages
+
+on:
+  push:
+    tags:
+      - '*'
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  build-mcu-bootloader:
+    permissions:
+      contents: read # checkout
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install compiler
+        run: |
+          cd /usr/share
+          mkdir gcc-arm
+          cd gcc-arm
+          wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2 -O toolchain.tar.bz2
+          tar -xjf toolchain.tar.bz2
+
+      - name: Build Release bootloader
+        run: |
+          cd mcu-bootloader
+          make config=release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcu-bootloader
+          path: |
+            mcu-bootloader/Build/Release/mcu-bootloader/rrrc_samd51.elf
+            mcu-bootloader/Build/Release/mcu-bootloader/rrrc_samd51.bin
+
+  build-mcu-firmware:
+    permissions:
+      contents: read # checkout
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # fetch all history so that we can use `git rev-list --count`
+      
+      - name: Install dependencies
+        run: |
+          eval `ssh-agent -s`
+          ssh-add - <<< '${{ secrets.SSH_PRIVATE_KEY }}'
+          cd mcu-firmware
+          echo 'Upgrade pip' # default pip discards cglue's package
+          python -m pip install --upgrade pip
+          pip --version
+          echo 'Install pip requirements'
+          pip install -r tools/requirements.txt
+
+      - name: Install compiler
+        run: |
+          cd /usr/share
+          mkdir gcc-arm
+          cd gcc-arm
+          wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2 -O toolchain.tar.bz2
+          tar -xjf toolchain.tar.bz2
+
+      - name: Build Release firmware
+        run: |
+          cd mcu-firmware
+          python -m tools.gen_version
+          python -m tools.generate_makefile
+          # currently the generated runtime is checked in, so this is not needed
+          # cglue --generate --cglue-output=rrrc/generated_runtime
+          make all config=release
+          python -m tools.prepare --release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcu-firmware
+          path: mcu-firmware/Build/output/
+
+  check-pi-firmware:
+    permissions:
+      contents: read # checkout
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Running checks
+        run: |
+          cd pi-firmware
+
+          # install dependencies
+          pip install -r install/requirements.txt
+          pip install -r install/requirements_test.txt
+
+          # run checks
+          # python -m dev_tools.precommit_pep8 --check-all
+          timeout 5m nose2 -B
+
+  assemble-and-upload:
+    permissions:
+      contents: read # checkout
+      pull-requests: read # paths-filter
+
+    runs-on: ubuntu-latest
+    needs: [build-mcu-firmware, build-mcu-bootloader, check-pi-firmware]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # fetch all history so that we can use `git rev-list --count`
+
+      - name: Running checks
+        run: |
+          cd pi-firmware
+
+          # clean up the firmware directory to avoid stale files
+          rm -rf data/firmware
+
+      - name: Package the newly built mcu-firmware
+        uses: actions/download-artifact@v4
+        with:
+          name: mcu-firmware
+          path: pi-firmware/data/firmware
+
+      - name: Add MCU bootloader
+        uses: actions/download-artifact@v4
+        with:
+          name: mcu-bootloader
+          path: mcu-bootloader/
+
+      # TODO: duplicate download step because in the future I want to include
+      # firmware .elf here but not in the python package
+      - name: Add MCU firmware
+        uses: actions/download-artifact@v4
+        with:
+          name: mcu-firmware
+          path: mcu-firmware/
+
+      - name: Assembling package
+        run: |
+          cd pi-firmware
+          python -m dev_tools.create_package
+
+      - name: Upload mcu-bootloader to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: mcu-bootloader/*
+          file_glob: true
+          asset_name: MCU bootloader
+          tag: ${{ github.ref }}
+
+      - name: Upload mcu-firmware to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: mcu-firmware/*
+          file_glob: true
+          asset_name: MCU firmware
+          tag: ${{ github.ref }}
+
+      - name: Upload pi-firmware to release and finalize
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: pi-firmware/install/pi-firmware.*
+          file_glob: true
+          asset_name: Pi firmware
+          tag: ${{ github.ref }}
+          promote: true # create a pre-release to trigger workflow, then promote to release when done

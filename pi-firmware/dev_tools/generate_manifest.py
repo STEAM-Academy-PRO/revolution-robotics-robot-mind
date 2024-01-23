@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# SPDX-License-Identifier: GPL-3.0-only
 
 # create manifest file containing the version and individual file checksum values
 # start using 'python -m tools.generate_manifest' from the root directory
