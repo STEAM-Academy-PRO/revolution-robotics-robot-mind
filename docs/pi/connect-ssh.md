@@ -44,6 +44,7 @@ How to enable Wifi
 You may want to SSH into the brain over Wifi instead of USB. Here's how to set up the brain:
 
 - remove the SD card from brain, insert into laptop
+- make sure `dtoverlay=pi3-disable-wifi` is **NOT** present or commented out in `config.txt`
 - edit `wpa_supplicant.conf` on the boot partition with the following content with your wifi router data:
 
 ```
