@@ -5,7 +5,6 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - main
-  merge_group:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -54,8 +53,8 @@ jobs:
         with:
           name: mcu-bootloader
           path: |
-            mcu-bootloader/Build/rrrc_samd51.elf
-            mcu-bootloader/Build/rrrc_samd51.bin
+            mcu-bootloader/Build/Debug/mcu-bootloader/rrrc_samd51.elf
+            mcu-bootloader/Build/Debug/mcu-bootloader/rrrc_samd51.bin
 
   check-mcu-firmware:
     permissions:
@@ -78,6 +77,18 @@ jobs:
               - mcu-firmware/**
               - pi-firmware/** # FIXME temporary until we devise a strategy to store the mcu-firmware artifacts
               - .github/workflows/pr.yml
+      
+      - name: Install dependencies
+        if: steps.filter.outputs.mcu-firmware == 'true'
+        run: |
+          eval `ssh-agent -s`
+          ssh-add - <<< '${{ secrets.SSH_PRIVATE_KEY }}'
+          cd mcu-firmware
+          echo 'Upgrade pip' # default pip discards cglue's package
+          python -m pip install --upgrade pip
+          pip --version
+          echo 'Install pip requirements'
+          pip install -r tools/requirements.txt
 
       - name: Install compiler
         if: steps.filter.outputs.mcu-firmware == 'true'
@@ -92,7 +103,6 @@ jobs:
         if: steps.filter.outputs.mcu-firmware == 'true'
         run: |
           cd mcu-firmware
-          pip install -r tools/requirements.txt
           python -m tools.gen_version
           python -m tools.generate_makefile
           # currently the generated runtime is checked in, so this is not needed

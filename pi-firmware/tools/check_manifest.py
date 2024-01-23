@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# SPDX-License-Identifier: GPL-3.0-only
 
 # check whether the current package files are valid according to the manifest
 # start using 'python -m tools.check_manifest' from the root directory

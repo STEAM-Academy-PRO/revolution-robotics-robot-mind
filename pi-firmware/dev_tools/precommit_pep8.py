@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# SPDX-License-Identifier: GPL-3.0-only
 import argparse
 import re
 import subprocess

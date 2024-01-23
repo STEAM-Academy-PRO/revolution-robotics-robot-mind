@@ -1,4 +1,3 @@
-# SPDX-License-Identifier: GPL-3.0-only
 
 ### Send and receive long messages via bluetooth.
 
