@@ -193,6 +193,8 @@ class RobotManager:
             self.exit(RevvyStatusCode.ERROR)
         except BrokenPipeError:
             self._log("Status Update Error from MCU", LogLevel.WARNING)
+        except OSError as e:
+            self._log(f"{str(e)}", LogLevel.WARNING)
         except Exception:
             self._log(traceback.format_exc())
 

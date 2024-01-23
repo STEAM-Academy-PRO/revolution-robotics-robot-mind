@@ -106,6 +106,7 @@ class RemoteController:
         self._is_action_running = [False] * 32  # Track if a button bound program is running.
         self._buttonActions = [None] * 32  # callbacks to be fired if a button gets pressed
 
+        # TODO: This could use some comments. Why are we calling 1 on each button handler to start with?
         for handler in self._buttonHandlers:
             handler.handle(1)
 
@@ -164,6 +165,10 @@ class RemoteController:
             self.reset_background_functions()
 
     def process_analog_command(self, analog_cmd):
+        """
+            Handles joystick movement and triggers change (action)
+            if any of the values changed
+        """
         if analog_cmd == self._analogStates:
             return
 
