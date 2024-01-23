@@ -39,7 +39,7 @@
 }
 
 .tabContent{
-  width: 600px; padding-top: 20px;
+  padding: 20px;
   margin: 0 auto;
 }
 
@@ -57,3 +57,5 @@ ul{
 }
 
 
+.clickable{ cursor: pointer; }
+.clickable:hover{ background-color: #ccc; }

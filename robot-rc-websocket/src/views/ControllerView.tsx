@@ -76,7 +76,7 @@ export default function ControllerView({
         <h1>Controller</h1>
         <Joystick position={position}></Joystick>
         <Buttons list={buttons.map((b)=>b.set)}/>
-        {buttons.map((b)=>b.get()?<>1</>:<>0</>)}
+        {/* {buttons.map((b)=>b.get()?<>1</>:<>0</>)} */}
     </div>
   );
 }

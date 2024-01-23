@@ -1,13 +1,14 @@
+""" Simple WebSocket Remote controller for robot """
 import asyncio
 import json
 import struct
 import threading
-from revvy.robot.rc_message_parser import parse_control_message
-from revvy.robot_config import RobotConfig
 import websockets
 
+from revvy.robot.rc_message_parser import parse_control_message
+from revvy.robot_config import RobotConfig
+
 from revvy.robot.remote_controller import RemoteControllerCommand
-from revvy.utils.functions import bits_to_bool_list
 from revvy.utils.logger import get_logger
 
 log = get_logger('WebSocket')
@@ -48,12 +49,11 @@ class RobotWebSocketApi:
 
                 message_type = message["type"]
 
-
                 try:
                     if message_type == 'configure':
                         log(f'Incoming Configuration Message: [{message_type}]')
 
-                        parsed_config = RobotConfig.from_string(json.loads(message["body"]))
+                        parsed_config = RobotConfig.from_string(message["body"])
                         self._robot_manager.robot_configure(parsed_config,
                             self._robot_manager.start_remote_controller)
 

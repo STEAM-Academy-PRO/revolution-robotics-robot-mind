@@ -1,5 +1,6 @@
 import { Accessor, Setter } from "solid-js"
 import { createEmitter } from "@solid-primitives/event-bus";
+import { RobotConfig } from "./Config";
 
 const PORT = 8765
 
@@ -67,7 +68,7 @@ export function connectToRobot(
     setConn: Setter<SocketWrapper | null>,
     setConnLoading: Setter<boolean>,
     endpoint: Accessor<string>,
-    config: Accessor<string>,
+    configString: Accessor<RobotConfig>,
     log: (msg: any) => void) {
         log(`Connecting to ${endpoint()}`)
     setConnLoading(true)
@@ -77,7 +78,7 @@ export function connectToRobot(
         log('Socket Connection Established!')
         setConn(socket)
         setConnLoading(false)
-        socket.send(RobotMessage.configure, JSON.stringify(config()))
+        socket.send(RobotMessage.configure, JSON.stringify(configString()))
     })
     socket.on(WSEventType.onClose, (wasClean) => {
         log(wasClean ? 'Socket Connection Closed Nicely!' : 'Socket Connection Dropped.')

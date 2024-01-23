@@ -7,13 +7,18 @@ import ControllerView from './views/ControllerView';
 import ConnectionView from './views/ConnectionView';
 import { SocketWrapper, connectToRobot, disconnect } from './utils/Communicator';
 
-import json from "./assets/robot-config.json"
+import DEFAULT_JSON from "./assets/robot-config.json"
 import { uploadConfig } from './utils/commands';
+import { RobotConfig } from './utils/Config';
+
+// Load default config as fallback.
+let defaultConfig: RobotConfig = DEFAULT_JSON as RobotConfig
+try { defaultConfig = JSON.parse(localStorage.getItem('config') || '') as RobotConfig || DEFAULT_JSON} catch (e){}
 
 function App() {
   const [conn, setConn] = createSignal<SocketWrapper|null>(null)
   const [connLoading, setConnLoading] = createSignal<boolean>(false)
-  const [config, setConfig] = createSignal(localStorage.getItem('config') || JSON.stringify(json, null, 2));
+  const [config, setConfig] = createSignal<RobotConfig>(defaultConfig);
   const [tab, setTab] = createSignal('configure')
   const [endpoint, setEndpoint] = createSignal(localStorage.getItem('endpoint') || '');
   const [_log, setLog] = createSignal<string>('')
@@ -37,10 +42,8 @@ function App() {
   }
 
   createEffect(() => {
-    try{
-        JSON.parse(config())
-        localStorage.setItem('config', config());
-    } catch(e){}
+    config()
+    localStorage.setItem('config', JSON.stringify(config()));
   });
 
   const menuItems = [{
@@ -77,7 +80,7 @@ function App() {
             </li>
           )}
         </ul>
-        <div onClick={()=>connectOrDisconnect()}>
+        <div onClick={()=>connectOrDisconnect()} class={styles.clickable}>
           {conn()?<>🟢</>:connLoading()?<>🟡</>:<>🔴</>}
         </div>
 
