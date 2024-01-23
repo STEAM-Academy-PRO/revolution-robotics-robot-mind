@@ -8,6 +8,7 @@ import ConnectionView from './views/ConnectionView';
 import { SocketWrapper, connectToRobot, disconnect } from './utils/Communicator';
 
 import json from "./assets/robot-config.json"
+import { uploadConfig } from './utils/commands';
 
 function App() {
   const [conn, setConn] = createSignal<SocketWrapper|null>(null)
@@ -18,6 +19,9 @@ function App() {
   const [_log, setLog] = createSignal<string>('')
 
   const isActive = createMemo(()=>tab() === 'play')
+
+  // When switching to play mode, automatically upload the config!
+  createEffect(()=>{if (tab() === 'play') {uploadConfig(conn(), config())};})
 
   const log = (msg: any) => {
     if (!msg) return

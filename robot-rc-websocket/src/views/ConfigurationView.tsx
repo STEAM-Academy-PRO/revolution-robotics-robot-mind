@@ -3,6 +3,7 @@ import { createSignal, createEffect, Accessor, Setter } from 'solid-js'
 import styles from './Config.module.css'
 
 import { RobotMessage, SocketWrapper } from '../utils/Communicator';
+import { uploadConfig } from '../utils/commands';
 
 function ConfigurationView({
   config, setConfig,
@@ -22,6 +23,7 @@ function ConfigurationView({
   });
 
   const handleSend = ()=>{
+    uploadConfig(conn(), config())
     conn()?.send(RobotMessage.configure, JSON.stringify(config()))
   }
 
