@@ -1,11 +1,14 @@
 from collections import deque
 import hashlib
+import os
 from threading import Lock
+from revvy.utils.directories import WRITEABLE_DATA_DIR
+from revvy.utils.file_storage import create_unique_file
 
 from revvy.utils.stopwatch import Stopwatch
+from revvy.utils.version import get_branch, get_sw_version
 
 _log_lock = Lock()
-
 
 class LogLevel:
     DEBUG = 0
@@ -67,6 +70,7 @@ class Logger(BaseLogger):
         self._sw = Stopwatch()
         self._buffer = deque(maxlen=buffer_size)
         self.minimum_level = LogLevel.INFO
+        self.branch = get_branch()
         self.on_flush = None
 
     def log(self, message, level=LogLevel.INFO):
@@ -75,10 +79,13 @@ class Logger(BaseLogger):
             print(message)
             self._buffer.append(message + '\n')
 
+
     def flush(self):
-        if self.on_flush:
-            self.on_flush(self._buffer)
-            self._buffer.clear()
+        """ Dump flashed framework version"""
+        with create_unique_file(os.path.join(WRITEABLE_DATA_DIR, 'revvy_log')) as file:
+            file.write(f"Framework version: {get_sw_version()}-{self.branch}\n")
+            file.writelines(self._buffer)
+        self._buffer.clear()
 
 
 class LogWrapper(BaseLogger):
@@ -111,3 +118,5 @@ logger = Logger()
 
 def get_logger(tag, default_log_level=LogLevel.INFO, base=None):
     return LogWrapper(base or logger, tag, default_log_level)
+
+

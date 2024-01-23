@@ -105,9 +105,7 @@ class RemoteController:
         self._is_action_running = [False] * 32  # Track if a button bound program is running.
         self._buttonActions = [None] * 32  # callbacks to be fired if a button gets pressed
 
-        # TODO: This could use some comments. Why are we calling 1 on each button handler to start with?
-        for handler in self._buttonHandlers:
-            handler.handle(1)
+        self.reset_button_states()
 
         self._processing = False
         self._processing_time = 0.0
@@ -120,6 +118,14 @@ class RemoteController:
         # know the difference in code
         self._joystick_mode = False
         self.__next_deadline = MESSAGE_MAX_PERIOD
+
+    def reset_button_states(self):
+        # Button handlers used for edge detection, initialize them with value
+        for handler in self._buttonHandlers:
+            # Originally, this was 1, but there is a bug that the first button presses
+            # did not run the code after entering to play mode.
+            handler.detect_change(0)
+
 
     def get_next_deadline(self):
         return self.__next_deadline
@@ -149,8 +155,6 @@ class RemoteController:
         self._previous_time = None
         self._joystick_mode = False
 
-        for handler in self._buttonHandlers:
-            handler.handle(1)
 
     def process_background_command(self, cmd):
         if cmd == BleAutonomousCmd.START:
@@ -194,12 +198,12 @@ class RemoteController:
             We also send a message about it being started.
         """
 
-        for handler, button, action in zip(self._buttonHandlers, button_cmd, self._buttonActions):
-            pressed = handler.handle(button)
-            if pressed == 1 and action:
+        for handler, button, buttonAction in zip(self._buttonHandlers, button_cmd, self._buttonActions):
+            pressed = handler.detect_change(button)
+            if pressed == 1 and buttonAction:
                 log(f'starting program: {button} {handler}')
                 # noinspection PyCallingNonCallable
-                action()
+                buttonAction()
 
     def process_control_message(self, msg):
         """

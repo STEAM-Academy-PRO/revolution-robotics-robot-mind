@@ -5,7 +5,7 @@ import traceback
 
 from revvy.robot.mcu_error import ErrorType, McuErrorReader
 from revvy.robot.robot import Robot
-from revvy.utils.version import Version
+from revvy.utils.version import SoftwareVersion
 
 from revvy.utils.functions import is_bit_set
 
@@ -65,7 +65,7 @@ def parse_cfsr(cfsr):
     return [reason for bit, reason in enumerate(cfsr_reasons) if is_bit_set(cfsr, bit) and reason]
 
 
-def format_error(error, installed_fw: Version, only_current=False):
+def format_error(error, installed_fw: SoftwareVersion, only_current=False):
     # noinspection PyBroadException
     try:
         error_type = ErrorType(error[0])
@@ -117,7 +117,7 @@ def format_error(error, installed_fw: Version, only_current=False):
         except IndexError:
             exception_name = 'Unknown error'
 
-        if Version(fw_str) == installed_fw:
+        if SoftwareVersion(fw_str) == installed_fw:
             error_template = '{} ({}, HW: {}, FW: {})\nDetails: {}'
         elif not only_current:
             error_template = '{} ({}, HW: {}, FW: {} (NOT CURRENT))\nDetails: {}'

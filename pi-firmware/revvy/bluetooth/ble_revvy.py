@@ -1,15 +1,16 @@
+""" Bluetooth Low Energy interface for Revvy """
 
 import os
-
-
 from pybleno import Bleno
-from revvy.bluetooth.services.battery import CustomBatteryService
 
+from revvy.bluetooth.services.battery import CustomBatteryService
 from revvy.bluetooth.services.device_information import DeviceInformationService
 from revvy.bluetooth.services.long_message import LongMessageService
+
+from revvy.utils.device_name import get_device_name
+from revvy.utils.directories import BLE_STORAGE_DIR, WRITEABLE_ASSETS_DIR
 from revvy.utils.logger import get_logger
 from revvy.utils.file_storage import FileStorage, MemoryStorage
-from revvy.utils.observable import Observable
 
 from revvy.robot.communication import RobotCommunicationInterface
 from revvy.robot_manager import RobotManager
@@ -28,30 +29,24 @@ class RevvyBLE(RobotCommunicationInterface):
 
     Listens to connections from the app and controls the robot.
     """
-    def __init__(self, robot_manager: RobotManager, device_name: Observable, serial, writeable_data_dir, writeable_assets_dir):
-        self._deviceName = device_name.get()
+    def __init__(self, robot_manager: RobotManager):
         self._robot_manager = robot_manager
 
         self._log = get_logger('RevvyBLE')
-        os.environ["BLENO_DEVICE_NAME"] = self._deviceName
-        self._log(f'Initializing BLE with device name {self._deviceName}')
-
-        device_name.subscribe(self._device_name_changed)
-
+        os.environ["BLENO_DEVICE_NAME"] = get_device_name()
+        self._log(f'Initializing BLE with device name {get_device_name()}')
 
         ### -----------------------------------------------------
         ### Long Message Handler for receiving files and configs.
         ### -----------------------------------------------------
 
-        ble_storage_dir = os.path.join(writeable_data_dir, 'ble')
-
-        ble_storage = FileStorage(ble_storage_dir)
+        ble_storage = FileStorage(BLE_STORAGE_DIR)
 
         long_message_storage = LongMessageStorage(ble_storage, MemoryStorage())
-        extract_asset_longmessage(long_message_storage, writeable_assets_dir)
+        extract_asset_longmessage(long_message_storage, WRITEABLE_ASSETS_DIR)
         self.long_message_handler = LongMessageHandler(long_message_storage)
 
-        lmi = LongMessageImplementation(robot_manager, long_message_storage, writeable_assets_dir, False)
+        lmi = LongMessageImplementation(robot_manager, long_message_storage, WRITEABLE_ASSETS_DIR, False)
         self.long_message_handler.on_upload_started(lmi.on_upload_started)
         self.long_message_handler.on_upload_progress(lmi.on_upload_progress)
         self.long_message_handler.on_upload_finished(lmi.on_transmission_finished)
@@ -62,7 +57,7 @@ class RevvyBLE(RobotCommunicationInterface):
         ### -----------------------------------------------------
 
 
-        self._dis = DeviceInformationService(device_name, serial)
+        self._dis = DeviceInformationService()
         self._bas = CustomBatteryService()
         self._live = LiveMessageService(robot_manager)
         self._long = LongMessageService(self.long_message_handler)
@@ -82,19 +77,32 @@ class RevvyBLE(RobotCommunicationInterface):
         self._bleno = Bleno()
         self._bleno.on('stateChange', self._on_state_change)
         self._bleno.on('advertisingStart', self._on_advertising_start)
-        self._bleno.on('accept', lambda _: self._robot_manager.on_connection_changed(True))
+        self._bleno.on('accept', self.on_connected)
         self._bleno.on('disconnect', lambda _: self._robot_manager.on_connection_changed(False))
 
         self._robot_manager.set_communication_interface_callbacks(self)
 
+    def on_connected(self, c):
+        """ On new connection, update the callback interfaces. """
+        log('BLE interface connected!')
+        print(c)
+        # self._robot_manager.set_communication_interface_callbacks(self)
+        self._robot_manager.on_connection_changed(True)
+
+    def on_disconnect(self):
+        log('BLE interface disconnected!')
+        self._robot_manager.on_connection_changed(False)
+
+    def disconnect(self):
+        self._bleno.disconnect()
 
     def __getitem__(self, item):
         return self._named_services[item]
 
-    def _device_name_changed(self, name):
-        self._deviceName = name
-        os.environ["BLENO_DEVICE_NAME"] = self._deviceName
-        self._bleno.stopAdvertising(self._start_advertising)
+    ### We do not support this yet!
+    # def _device_name_changed(self, name):
+    #     os.environ["BLENO_DEVICE_NAME"] = name
+    #     self._bleno.stopAdvertising(self._start_advertising)
 
     def _on_state_change(self, state):
         self._log(f'on -> stateChange: {state}')
@@ -105,8 +113,8 @@ class RevvyBLE(RobotCommunicationInterface):
             self._bleno.stopAdvertising()
 
     def _start_advertising(self):
-        self._log('Start advertising as {}'.format(self._deviceName))
-        self._bleno.startAdvertising(self._deviceName, self._advertised_uuid_list)
+        self._log('Start advertising as {}'.format(get_device_name()))
+        self._bleno.startAdvertising(get_device_name(), self._advertised_uuid_list)
 
     def _on_advertising_start(self, error):
         def _result(result):
@@ -154,8 +162,5 @@ class RevvyBLE(RobotCommunicationInterface):
     def update_timer(self, time):
         return self._live.update_timer(time)
 
-    def update_characteristic(self, name, value):
-        return self._dis.characteristic(name).update(value)
-
-    def battery(self, name):
-        return self._bas.characteristic(name)
+    def update_battery(self, bat_main, charger_status, motor, motor_present):
+        return self._bas.characteristic('unified_battery_status').update_value(bat_main, charger_status, motor, motor_present)

@@ -1,8 +1,10 @@
 """ Simple WebSocket Remote controller for robot """
 import asyncio
 import json
+from shutil import ExecError
 import struct
 import threading
+from revvy.robot_manager import RobotManager
 import websockets
 
 from revvy.robot.rc_message_parser import parse_control_message
@@ -18,8 +20,9 @@ SERVER_PORT=8765
 log = get_logger('WS')
 
 class RobotWebSocketApi:
-    def __init__(self, robot_manager):
+    def __init__(self, robot_manager: RobotManager):
         self._robot_manager = robot_manager
+        self._connections = []
         self.thread()
 
     def start(self):
@@ -36,6 +39,10 @@ class RobotWebSocketApi:
 
     async def incoming_connection(self, websocket, path):
         try:
+            # Ditch former connections!
+            # self._robot_manager.set_communication_interface_callbacks(self)
+            # self._connections.append(websocket)
+
             # Print a message when a new connection is established
             log(f"Client connected: '{path}' - {websocket.remote_address}")
 
@@ -80,3 +87,49 @@ class RobotWebSocketApi:
         finally:
             # Print a message when a connection is closed
             log(f"Client disconnected: {websocket.remote_address}")
+
+
+    def send(self, message):
+        for ws in self._connections:
+            try:
+                ws.send(json.dumps(message))
+            except Exception as e:
+                log(f'send error {str(e)}')
+                log(f'{message}')
+
+    def disconnect(self):
+        """ Disconnects all clients """
+        for ws in self._connections:
+            ws.close()
+
+        self._connections = []
+
+    def update_session_id(self, id):
+        self.send(['session_id', id])
+
+    def update_orientation(self, vector_orientation):
+        self.send(['orientation', vector_orientation])
+
+    def update_gyro(self, vector_list):
+        self.send(['gyro', vector_list])
+
+    def update_motor(self, id, power, speed, pos):
+        self.send(['motor', id, power, speed, pos])
+
+    def update_sensor(self, raw_value):
+        self.send(['sensor', raw_value])
+
+    def update_script_variable(self, script_variables):
+        # self.send(['script_var', script_variables])
+        pass
+
+    def update_state_control(self, control_state):
+        self.send(['state', control_state])
+
+    def update_timer(self, time):
+        self.send(['timer', time])
+
+    def update_battery(self, bat_main, charger_status, motor, motor_present):
+        log('bat update')
+        self.send(['battery', bat_main, charger_status, motor, motor_present])
+

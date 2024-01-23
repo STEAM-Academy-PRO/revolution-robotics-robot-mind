@@ -1,19 +1,46 @@
+import os
 import re
+from revvy.utils.directories import CURRENT_INSTALLATION_PATH
 
+from revvy.utils.functions import read_json
 
 version_re = re.compile('(?P<major>\\d+?)\\.(?P<minor>\\d+?)(\\.(?P<rev>\\d+))?(-(?P<branch>.*?))?$')
-
 
 class FormatError(Exception):
     pass
 
+manifest = read_json(os.path.join(CURRENT_INSTALLATION_PATH,'manifest.json'))
+
+def get_branch():
+    """ Current manifest's branch """
+    global manifest
+    return manifest['branch']
+
+def get_sw_version():
+    """ Returns Current Software version, uses manifest file to determine that. """
+    global manifest
+    return SoftwareVersion(manifest['version'])
+
 
 class Version:
+    """ HW, SW, FW versio store populated by the init updater. """
+    def __init__(self):
+        self.sw = None
+        self.hw = None
+        self.fw = None
+    def set(self, sw, hw, fw):
+        self.sw = sw
+        self.hw = hw
+        self.fw = fw
+
+VERSION = Version()
+
+class SoftwareVersion:
     def __init__(self, ver_str):
         """
-        >>> Version('1.0.123')
+        >>> SoftwareVersion('1.0.123')
         Version(1.0.123)
-        >>> Version('1.0-foobar')
+        >>> SoftwareVersion('1.0-foobar')
         Version(1.0.0-foobar)
         """
         match = version_re.match(ver_str)
@@ -31,7 +58,7 @@ class Version:
     @property
     def major(self):
         """
-        >>> Version('2.3').major
+        >>> SoftwareVersion('2.3').major
         2
         """
         return self._major
@@ -39,7 +66,7 @@ class Version:
     @property
     def minor(self):
         """
-        >>> Version('2.3').minor
+        >>> SoftwareVersion('2.3').minor
         3
         """
         return self._minor
@@ -47,7 +74,7 @@ class Version:
     @property
     def revision(self):
         """
-        >>> Version('2.3.45').revision
+        >>> SoftwareVersion('2.3.45').revision
         45
         """
         return self._rev
@@ -55,113 +82,113 @@ class Version:
     @property
     def branch(self):
         """
-        >>> Version('2.3-foobranch').branch
+        >>> SoftwareVersion('2.3-foobranch').branch
         'foobranch'
         """
         return self._branch
 
     def __le__(self, other):
         """
-        >>> Version('1.0.0') <= Version('1.0.0')
+        >>> SoftwareVersion('1.0.0') <= SoftwareVersion('1.0.0')
         True
-        >>> Version('1.0.0') <= Version('1.0.1')
+        >>> SoftwareVersion('1.0.0') <= SoftwareVersion('1.0.1')
         True
-        >>> Version('1.0.0') <= Version('1.1.0')
+        >>> SoftwareVersion('1.0.0') <= SoftwareVersion('1.1.0')
         True
-        >>> Version('1.0.0') <= Version('2.0.0')
+        >>> SoftwareVersion('1.0.0') <= SoftwareVersion('2.0.0')
         True
-        >>> Version('1.0.1') <= Version('1.0.0')
+        >>> SoftwareVersion('1.0.1') <= SoftwareVersion('1.0.0')
         False
-        >>> Version('1.1.0') <= Version('1.0.0')
+        >>> SoftwareVersion('1.1.0') <= SoftwareVersion('1.0.0')
         False
-        >>> Version('2.0.0') <= Version('1.0.0')
+        >>> SoftwareVersion('2.0.0') <= SoftwareVersion('1.0.0')
         False
         """
         return self.compare(other) != 1
 
     def __eq__(self, other):
         """
-        >>> Version('1.0.0') == Version('1.0.0')
+        >>> SoftwareVersion('1.0.0') == SoftwareVersion('1.0.0')
         True
-        >>> Version('1.0.0') == Version('1.0.1')
+        >>> SoftwareVersion('1.0.0') == SoftwareVersion('1.0.1')
         False
-        >>> Version('1.0.0') == Version('1.1.0')
+        >>> SoftwareVersion('1.0.0') == SoftwareVersion('1.1.0')
         False
-        >>> Version('1.0.0') == Version('2.0.0')
+        >>> SoftwareVersion('1.0.0') == SoftwareVersion('2.0.0')
         False
-        >>> Version('1.0.0') == Version('1.0.0-dev')
+        >>> SoftwareVersion('1.0.0') == SoftwareVersion('1.0.0-dev')
         False
         """
         return self.compare(other) == 0 and self.branch == other.branch
 
     def __ne__(self, other):
         """
-        >>> Version('1.0.0') != Version('1.0.0')
+        >>> SoftwareVersion('1.0.0') != SoftwareVersion('1.0.0')
         False
-        >>> Version('1.0.0') != Version('1.0.1')
+        >>> SoftwareVersion('1.0.0') != SoftwareVersion('1.0.1')
         True
-        >>> Version('1.0.0') != Version('1.1.0')
+        >>> SoftwareVersion('1.0.0') != SoftwareVersion('1.1.0')
         True
-        >>> Version('1.0.0') != Version('2.0.0')
+        >>> SoftwareVersion('1.0.0') != SoftwareVersion('2.0.0')
         True
-        >>> Version('1.0.0') != Version('1.0.0-dev')
+        >>> SoftwareVersion('1.0.0') != SoftwareVersion('1.0.0-dev')
         True
         """
         return not (self == other)
 
     def __lt__(self, other):
         """
-        >>> Version('1.0.0') < Version('1.0.0')
+        >>> SoftwareVersion('1.0.0') < SoftwareVersion('1.0.0')
         False
-        >>> Version('1.0.0') < Version('1.0.1')
+        >>> SoftwareVersion('1.0.0') < SoftwareVersion('1.0.1')
         True
-        >>> Version('1.0.0') < Version('1.1.0')
+        >>> SoftwareVersion('1.0.0') < SoftwareVersion('1.1.0')
         True
-        >>> Version('1.0.0') < Version('2.0.0')
+        >>> SoftwareVersion('1.0.0') < SoftwareVersion('2.0.0')
         True
-        >>> Version('1.0.1') < Version('1.0.0')
+        >>> SoftwareVersion('1.0.1') < SoftwareVersion('1.0.0')
         False
-        >>> Version('1.1.0') < Version('1.0.0')
+        >>> SoftwareVersion('1.1.0') < SoftwareVersion('1.0.0')
         False
-        >>> Version('2.0.0') < Version('1.0.0')
+        >>> SoftwareVersion('2.0.0') < SoftwareVersion('1.0.0')
         False
         """
         return self.compare(other) == -1
 
     def __gt__(self, other):
         """
-        >>> Version('1.0.0') > Version('1.0.0')
+        >>> SoftwareVersion('1.0.0') > SoftwareVersion('1.0.0')
         False
-        >>> Version('1.0.0') > Version('1.0.1')
+        >>> SoftwareVersion('1.0.0') > SoftwareVersion('1.0.1')
         False
-        >>> Version('1.0.0') > Version('1.1.0')
+        >>> SoftwareVersion('1.0.0') > SoftwareVersion('1.1.0')
         False
-        >>> Version('1.0.0') > Version('2.0.0')
+        >>> SoftwareVersion('1.0.0') > SoftwareVersion('2.0.0')
         False
-        >>> Version('1.0.1') > Version('1.0.0')
+        >>> SoftwareVersion('1.0.1') > SoftwareVersion('1.0.0')
         True
-        >>> Version('1.1.0') > Version('1.0.0')
+        >>> SoftwareVersion('1.1.0') > SoftwareVersion('1.0.0')
         True
-        >>> Version('2.0.0') > Version('1.0.0')
+        >>> SoftwareVersion('2.0.0') > SoftwareVersion('1.0.0')
         True
         """
         return self.compare(other) == 1
 
     def __ge__(self, other):
         """
-        >>> Version('1.0.0') >= Version('1.0.0')
+        >>> SoftwareVersion('1.0.0') >= SoftwareVersion('1.0.0')
         True
-        >>> Version('1.0.0') >= Version('1.0.1')
+        >>> SoftwareVersion('1.0.0') >= SoftwareVersion('1.0.1')
         False
-        >>> Version('1.0.0') >= Version('1.1.0')
+        >>> SoftwareVersion('1.0.0') >= SoftwareVersion('1.1.0')
         False
-        >>> Version('1.0.0') >= Version('2.0.0')
+        >>> SoftwareVersion('1.0.0') >= SoftwareVersion('2.0.0')
         False
-        >>> Version('1.0.1') >= Version('1.0.0')
+        >>> SoftwareVersion('1.0.1') >= SoftwareVersion('1.0.0')
         True
-        >>> Version('1.1.0') >= Version('1.0.0')
+        >>> SoftwareVersion('1.1.0') >= SoftwareVersion('1.0.0')
         True
-        >>> Version('2.0.0') >= Version('1.0.0')
+        >>> SoftwareVersion('2.0.0') >= SoftwareVersion('1.0.0')
         True
         """
         return self.compare(other) != -1
@@ -169,11 +196,11 @@ class Version:
     # noinspection PyProtectedMember
     def compare(self, other):
         """
-        >>> Version('1.0.0').compare(Version('1.0.0'))
+        >>> SoftwareVersion('1.0.0').compare(SoftwareVersion('1.0.0'))
         0
-        >>> Version('1.0.1').compare(Version('1.0.0'))
+        >>> SoftwareVersion('1.0.1').compare(SoftwareVersion('1.0.0'))
         1
-        >>> Version('1.0.0').compare(Version('1.0.1'))
+        >>> SoftwareVersion('1.0.0').compare(SoftwareVersion('1.0.1'))
         -1
         """
 
@@ -193,9 +220,9 @@ class Version:
 
     def __str__(self) -> str:
         """
-        >>> str(Version('1.0'))
+        >>> str(SoftwareVersion('1.0'))
         '1.0.0'
-        >>> str(Version('1.0-dev'))
+        >>> str(SoftwareVersion('1.0-dev'))
         '1.0.0-dev'
         """
         return self._normalized

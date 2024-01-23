@@ -6,6 +6,10 @@ class RobotCommunicationInterface(ABC):
         pass
 
     @abstractmethod
+    def disconnect(self):
+        pass
+
+    @abstractmethod
     def update_session_id(self, id):
         pass
 
@@ -38,9 +42,5 @@ class RobotCommunicationInterface(ABC):
         pass
 
     @abstractmethod
-    def update_characteristic(self, name, value):
-        pass
-
-    @abstractmethod
-    def battery(self, name):
+    def update_battery(self, bat_main, charger_status, motor, motor_present):
         pass

@@ -6,7 +6,6 @@ from pybleno import Characteristic, Descriptor
 from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_UNKNOWN
 from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
 
-from revvy.utils.observable import Observable
 from revvy.utils.logger import get_logger
 
 log = get_logger("BLE Characteristics")
@@ -235,11 +234,11 @@ class ModelNumberCharacteristic(ReadOnlyCharacteristic):
 class VersionCharacteristic(Characteristic):
     version_max_length = 20
 
-    def __init__(self, uuid):
+    def __init__(self, uuid, version_info):
         super().__init__({
             'uuid':       uuid,
             'properties': ['read'],
-            'value':      None
+            'value':      version_info.encode()
         })
         self._version = []
 
@@ -256,7 +255,7 @@ class VersionCharacteristic(Characteristic):
 
 
 class SystemIdCharacteristic(Characteristic):
-    def __init__(self, system_id: Observable):
+    def __init__(self, system_id):
         super().__init__({
             'uuid':       '2A23',
             'properties': ['read', 'write'],
@@ -268,7 +267,7 @@ class SystemIdCharacteristic(Characteristic):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
-            callback(Characteristic.RESULT_SUCCESS, self._system_id.get().encode('utf-8'))
+            callback(Characteristic.RESULT_SUCCESS, self._system_id.encode('utf-8'))
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:

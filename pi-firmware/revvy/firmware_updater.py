@@ -1,3 +1,21 @@
+"""
+    Manages update system of the MCU board.
+
+    First, check if the board is in bootloader mode or application mode.
+
+    - If it's in application mode, we have a working firmware currently running.
+        - reboot to bootloader mode, check if the CRC of the flashed image is equal
+          to the latest in our file system.
+           - if not, update is needed.
+    - If bootloader mode, we do not have a running firmware -> something is wrong
+      let's try to flash the MCU.
+    - Reads hardware version out from the bootloader state
+    - Checks if we have a bin for the hardware version.
+    - if yes, and update is needed, we try uploading the image.
+    - when done, always restart the MCU, making it boot to application mode
+    - if the happy path works, we are in the app, we can continue loading.
+    - on the sad path, we raise an exception that fails the app, and the loader tries over.
+"""
 
 import binascii
 import os
@@ -5,12 +23,13 @@ import time
 import traceback
 from contextlib import suppress
 from json import JSONDecodeError
+
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 
 from revvy.utils.file_storage import IntegrityError
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
-from revvy.utils.version import Version
+from revvy.utils.version import VERSION, SoftwareVersion, get_sw_version
 from revvy.utils.functions import split, bytestr_hash, read_json
 from revvy.mcu.rrrc_control import RevvyTransportBase
 
@@ -23,7 +42,12 @@ class McuUpdater:
         self._bootloader_controller = revvy_transport_base.create_bootloader_control()
         self._stopwatch = Stopwatch()
         self.is_bootloader_mode = self._is_in_bootloader_mode()
+
         self.hw_version = self.read_hw_version()
+
+        # Will populate it in finalize.
+        self.fw_version = None
+        self.sw_version = get_sw_version()
 
     def _is_in_bootloader_mode(self) -> bool:
         """
@@ -54,7 +78,7 @@ class McuUpdater:
             return self._application_controller.get_hardware_version()
 
 
-    def is_update_needed(self, bin_file_fw_version: Version, fw_crc):
+    def is_update_needed(self, bin_file_fw_version: SoftwareVersion, fw_crc):
         """
         Compare firmware version to the currently running one
         """
@@ -140,12 +164,12 @@ class McuUpdater:
         time.sleep(0.2)
         assert not self._is_in_bootloader_mode()
 
-        fw = self._application_controller.get_firmware_version()
+        self.fw_version = self._application_controller.get_firmware_version()
 
         if was_update_needed:
-            log(f'Update successful, running FW version {fw}')
+            log(f'Update successful, running FW version {self.fw_version}')
         else:
-            log(f'No update was needed, running FW version {fw}')
+            log(f'No update was needed, running FW version {self.fw_version}')
 
 
 
@@ -177,7 +201,7 @@ def get_firmware_for_hw_version(fw_dir, hw_version):
             'md5': fw_metadata[version]['md5'],
             'length': fw_metadata[version]['length'],
         }
-        return Version(fw_metadata[version]['version']), read_firmware_bin_from_fs(data)
+        return SoftwareVersion(fw_metadata[version]['version']), read_firmware_bin_from_fs(data)
 
     except (IOError, JSONDecodeError, KeyError) as e:
         log(traceback.format_exc())
@@ -219,3 +243,7 @@ def update_firmware_if_needed():
 
     # Very important: this is ALWAYS needed to reset back the MCU state to application mode.
     updater.finalize_and_start_application(is_update_needed)
+
+    VERSION.set(updater.sw_version, updater.hw_version, updater.fw_version)
+
+    log(f'version info: hw: {VERSION.hw} sw: {VERSION.sw} fw: {VERSION.fw}')

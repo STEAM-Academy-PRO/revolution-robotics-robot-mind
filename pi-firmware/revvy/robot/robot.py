@@ -18,7 +18,7 @@ from revvy.scripting.robot_interface import RobotInterface
 from revvy.utils.assets import Assets
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
-from revvy.utils.version import Version
+from revvy.utils.version import VERSION, SoftwareVersion
 from revvy.scripting.variables import VariableSlot
 
 SENSOR_ON_PORT_NOT_PRESENT = 0
@@ -64,28 +64,14 @@ class Robot(RobotInterface):
 
         self._stopwatch = Stopwatch()
 
-        # read versions
-        try:
-            self._hw_version = self._robot_control.get_hardware_version()
-            self._fw_version = self._robot_control.get_firmware_version()
-        except OSError as e:
-            self._log('Failed to read robot version!')
-            raise e
-
-        # read version again in case it was updated
-        self._fw_version = self._robot_control.get_firmware_version()
-
-        self._log(f'Hardware: {self._hw_version}')
-        self._log(f'Firmware: {self._fw_version}')
-
         setup = {
-            Version('1.0'): SoundControlV1,
-            Version('1.1'): SoundControlV1,
-            Version('2.0'): SoundControlV2,
+            SoftwareVersion('1.0'): SoundControlV1,
+            SoftwareVersion('1.1'): SoundControlV1,
+            SoftwareVersion('2.0'): SoundControlV2,
         }
 
         self._ring_led = RingLed(self._robot_control)
-        self._sound = Sound(setup[self._hw_version](), self._assets.category_loader('sounds'))
+        self._sound = Sound(setup[VERSION.hw](), self._assets.category_loader('sounds'))
 
         self._status = RobotStatusIndicator(self._robot_control)
         self._status_updater = McuStatusUpdater(self._robot_control)
@@ -131,14 +117,6 @@ class Robot(RobotInterface):
     @property
     def bootloader_control(self):
         return self._bootloader_control
-
-    @property
-    def hw_version(self) -> Version:
-        return self._hw_version
-
-    @property
-    def fw_version(self) -> Version:
-        return self._fw_version
 
     @property
     def battery(self):

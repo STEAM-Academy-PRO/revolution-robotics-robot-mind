@@ -17,6 +17,7 @@ from revvy.robot_config import empty_robot_config
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import MotorConstants
 from revvy.scripting.runtime import ScriptManager
+from revvy.utils.directories import WRITEABLE_ASSETS_DIR
 from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.thread_wrapper import periodic
@@ -30,14 +31,13 @@ class RevvyStatusCode(enum.IntEnum):
 
 
 class RobotManager:
-    def __init__(self, sw_version, writeable_assets_dir):
+    def __init__(self):
         self._log = get_logger('RobotManager')
         self.needs_interrupting = True
 
         self._configuring = False
         self._robot = Robot()
-        self._robot.assets.add_source(writeable_assets_dir)
-        self.sw_version = sw_version
+        self._robot.assets.add_source(WRITEABLE_ASSETS_DIR)
 
         self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
         self._background_fns = []
