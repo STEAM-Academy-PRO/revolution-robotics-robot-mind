@@ -75,7 +75,7 @@ def retry(fn, retries=5, error_handler=None):
             if callable(error_handler):
                 error_handler(e)
             else:
-                print(f'repeat threw an error: {str(e)}')
+                # print(f'repeat threw an error: {str(e)}')
                 print(traceback.format_exc())
         retry_num += 1
 

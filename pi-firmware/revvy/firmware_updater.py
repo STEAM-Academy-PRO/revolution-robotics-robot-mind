@@ -25,11 +25,12 @@ from contextlib import suppress
 from json import JSONDecodeError
 
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
+from revvy.utils import logger
 
 from revvy.utils.file_storage import IntegrityError
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
-from revvy.utils.version import VERSION, SoftwareVersion, get_sw_version
+from revvy.utils.version import VERSION, SoftwareVersion, get_branch, get_sw_version
 from revvy.utils.functions import split, bytestr_hash, read_json
 from revvy.mcu.rrrc_control import RevvyTransportBase
 
@@ -245,5 +246,8 @@ def update_firmware_if_needed():
     updater.finalize_and_start_application(is_update_needed)
 
     VERSION.set(updater.sw_version, updater.hw_version, updater.fw_version)
+
+    logger.branch = get_branch()
+    logger.sw_version = VERSION.sw
 
     log(f'version info: hw: {VERSION.hw} sw: {VERSION.sw} fw: {VERSION.fw}')
