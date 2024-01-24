@@ -30,7 +30,7 @@ from revvy.utils import logger
 from revvy.utils.file_storage import IntegrityError
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
-from revvy.utils.version import VERSION, SoftwareVersion, get_branch, get_sw_version
+from revvy.utils.version import VERSION, Version, get_branch, get_sw_version
 from revvy.utils.functions import split, bytestr_hash, read_json
 from revvy.mcu.rrrc_control import RevvyTransportBase
 
@@ -79,7 +79,7 @@ class McuUpdater:
             return self._application_controller.get_hardware_version()
 
 
-    def is_update_needed(self, bin_file_fw_version: SoftwareVersion, fw_crc):
+    def is_update_needed(self, bin_file_fw_version: Version, fw_crc):
         """
         Compare firmware version to the currently running one
         """
@@ -202,7 +202,7 @@ def get_firmware_for_hw_version(fw_dir, hw_version):
             'md5': fw_metadata[version]['md5'],
             'length': fw_metadata[version]['length'],
         }
-        return SoftwareVersion(fw_metadata[version]['version']), read_firmware_bin_from_fs(data)
+        return Version(fw_metadata[version]['version']), read_firmware_bin_from_fs(data)
 
     except (IOError, JSONDecodeError, KeyError) as e:
         log(traceback.format_exc())

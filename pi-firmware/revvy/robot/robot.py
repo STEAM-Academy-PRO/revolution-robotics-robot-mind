@@ -18,7 +18,7 @@ from revvy.scripting.robot_interface import RobotInterface
 from revvy.utils.assets import Assets
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
-from revvy.utils.version import VERSION, SoftwareVersion
+from revvy.utils.version import VERSION, Version
 from revvy.scripting.variables import VariableSlot
 
 SENSOR_ON_PORT_NOT_PRESENT = 0
@@ -65,9 +65,9 @@ class Robot(RobotInterface):
         self._stopwatch = Stopwatch()
 
         setup = {
-            SoftwareVersion('1.0'): SoundControlV1,
-            SoftwareVersion('1.1'): SoundControlV1,
-            SoftwareVersion('2.0'): SoundControlV2,
+            Version('1.0'): SoundControlV1,
+            Version('1.1'): SoundControlV1,
+            Version('2.0'): SoundControlV2,
         }
 
         self._ring_led = RingLed(self._robot_control)

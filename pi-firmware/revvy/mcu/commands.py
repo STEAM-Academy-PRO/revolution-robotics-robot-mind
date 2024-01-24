@@ -7,7 +7,7 @@ from enum import Enum
 
 from revvy.utils.functions import split
 from revvy.utils.logger import get_logger
-from revvy.utils.version import SoftwareVersion, FormatError
+from revvy.utils.version import Version, FormatError
 from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseStatus
 
 
@@ -78,7 +78,7 @@ class IMUOrientationEstimator_Reset_Command(Command):
 class ReadVersionCommand(Command, ABC):
     def parse_response(self, payload):
         try:
-            return SoftwareVersion(parse_string(payload))
+            return Version(parse_string(payload))
         except (UnicodeDecodeError, FormatError):
             return None
 

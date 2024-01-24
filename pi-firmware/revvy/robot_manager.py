@@ -358,7 +358,8 @@ class RobotManager:
                 script_handle = self._scripts.add_script(script)
                 script_handle.assign('list_slots', scriptvars)
                 self._remote_controller.set_on_button_pressed(button, script_handle.start)
-                script_handle.on_stopped(self._on_script_stopped)
+                ### This is a sketch for script running callbacks.
+                # script_handle.on_stopped(lambda self: self._on_script_stopped(script_handle))
 
         self._autonomous = config.background_initial_state
 
