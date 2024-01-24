@@ -8,6 +8,8 @@
 
 #include <math.h>
 
+#include "SEGGER_RTT.h"
+
 #ifdef DEBUG
 #define DEBUG_SKIP_FW_INTEGRITY_CHECK 1
 #else
@@ -25,12 +27,29 @@ static bool ringLedsChanged;
 
 int main(void)
 {
+    SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_NO_BLOCK_SKIP);
+
+    SEGGER_RTT_WriteString(0, "Starting bootloader\r\n");
+
     /* Perform the very basic init and check the bootloader mode request */
     init_mcu();
     CRC32_Init();
     StartupReason_t startupReason = FMP_CheckBootloaderModeRequest();
+    switch (startupReason) {
+        case StartupReason_PowerUp:
+            SEGGER_RTT_WriteString(0, "Startup reason: Power up\r\n");
+            break;
+        case StartupReason_BootloaderRequest:
+            SEGGER_RTT_WriteString(0, "Startup reason: Bootloader mode requested\r\n");
+            break;
+        case StartupReason_WatchdogReset:
+            SEGGER_RTT_WriteString(0, "Startup reason: WDT reset\r\n");
+            break;
+    }
+
     if (startupReason == StartupReason_PowerUp)
     {
+        SEGGER_RTT_WriteString(0, "Checking firmware\r\n");
         /* TODO: debug bootloaders should look for empty header info and write it */
         bool start_application = FMP_CheckTargetFirmware(false, 0u);
 #if DEBUG_SKIP_FW_INTEGRITY_CHECK
@@ -38,6 +57,7 @@ int main(void)
         {
             if (FMP_IsApplicationHeaderEmpty() || FLASH_HEADER->bootloader_version != BOOTLOADER_VERSION)
             {
+                SEGGER_RTT_WriteString(0, "Debug mode, fixing up application header\r\n");
                 atmel_start_init();
                 FMP_FixApplicationHeader();
                 NVIC_SystemReset();
@@ -47,11 +67,13 @@ int main(void)
 #endif
         if (start_application)
         {
+            SEGGER_RTT_WriteString(0, "Starting application\r\n");
             /* this should be the only application start point to avoid getting stuck in a hard fault */
             FMT_JumpTargetFirmware();
         }
     }
 
+    SEGGER_RTT_WriteString(0, "Entered bootloader mode\r\n");
     // If we are below this line then there was either a bootloader request,
     // or the target firmware is missing or corrupted
 
