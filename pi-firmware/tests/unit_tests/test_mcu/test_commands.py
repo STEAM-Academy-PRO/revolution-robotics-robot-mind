@@ -94,7 +94,7 @@ class TestCommandTypes(unittest.TestCase):
             Response(ResponseStatus.Ok, b'v0.1')
         ])
         hw = ReadHardwareVersionCommand(mock_transport)
-        self.assertEqual(Version("0.1"), hw())
+        self.assertEqual(SoftwareVersion("0.1"), hw())
         self.assertEqual(None, hw())
 
     def test_firmware_version_returns_a_string(self):
@@ -103,7 +103,7 @@ class TestCommandTypes(unittest.TestCase):
             Response(ResponseStatus.Ok, b'v0.1-r5')
         ])
         fw = ReadFirmwareVersionCommand(mock_transport)
-        self.assertEqual(Version("0.1-r5"), fw())
+        self.assertEqual(SoftwareVersion("0.1-r5"), fw())
         self.assertEqual(None, fw())
 
     def test_set_master_status_payload_is_one_byte(self):
