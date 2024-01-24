@@ -1,8 +1,20 @@
+"""
+This is the robot's Blockly API.
+Whatever code blockly generates, it compiles to python
+code that uses these functions.
+
+DANGER!!!!
+Do not delete any headers, even if they are not used,
+as the generated code MAY use it!
+
+"""
 import struct
 import time
 import random
 
 from functools import partial
+from math import floor, sqrt
+from numbers import Number
 from enum import Enum
 
 from revvy.robot.configurations import Motors, Sensors
@@ -18,6 +30,7 @@ from revvy.robot.ports.common import PortInstance, PortCollection
 
 from revvy.utils.functions import map_values
 from revvy.utils.logger import get_logger
+
 
 log = get_logger('RobotInterface')
 
@@ -164,18 +177,21 @@ class RingLedWrapper(Wrapper):
         self.using_resource(partial(self._ring_led.start_animation, scenario))
 
     def set(self, leds: list, color):
-        # print(f'RingLedWrapper: set leds:{leds}, color:{color}')
-        def out_of_range(led_idx):
-            return not 0 < led_idx <= len(self._user_leds)
+        """ Instead of just failing, use the MOD if an LED index is out of range """
 
-        if any(map(out_of_range, leds)):
-            raise IndexError(f'Led index must be between 1 and {len(self._user_leds)}')
+        # print(f'RingLedWrapper: set leds:{leds}, color:{color}')
+        # def out_of_range(led_idx):
+        #     return not 0 < led_idx <= len(self._user_leds)
+
+        # if any(map(out_of_range, leds)):
+        #     raise IndexError(f'Led index must be between 1 and {len(self._user_leds)}')
 
         rgb = color_string_to_rgb(color)
-        # print(f'color_string_to_rgb: {color}->{rgb}')
 
         for idx in leds:
-            self._user_leds[idx - 1] = rgb
+            index = (floor(idx) - 1) % len(self._user_leds)
+            # log(f'led {idx} = {index} col {rgb} len {len(self._user_leds)}')
+            self._user_leds[index] = rgb
 
         self.using_resource(partial(self._ring_led.display_user_frame, self._user_leds))
 
@@ -303,7 +319,8 @@ def wrap_async_method(owner, method):
         with owner.try_take_resource(_interrupted) as resource:
             if resource:
                 awaiter = method(*args, **kwargs)
-                awaiter.wait()
+                if awaiter:
+                    awaiter.wait()
 
     return _wrapper
 
