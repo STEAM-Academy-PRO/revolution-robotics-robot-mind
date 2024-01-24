@@ -35,18 +35,16 @@ class ScriptHandle:
         self.log = get_logger(['Script', name])
         self.stop = self._thread.stop
         self.cleanup = self._thread.exit
+        self.on_stopped = self._thread.on_stopped
         self.on_stopping = self._thread.on_stop_requested
         self.pause = self._thread.pause_thread
         self.resume = self._thread.resume_thread
-        self._on_stopped = self._thread.on_stopped
+
+        self.on_stopped(self.reset_variables)
 
         assert(callable(script))
 
         self.log('Created')
-
-    def on_stopped(self, handle):
-        self._thread.on_stopped(lambda: handle(self._name))
-
 
     @property
     def is_stop_requested(self):
