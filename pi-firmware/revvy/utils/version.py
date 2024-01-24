@@ -9,16 +9,22 @@ version_re = re.compile('(?P<major>\\d+?)\\.(?P<minor>\\d+?)(\\.(?P<rev>\\d+))?(
 class FormatError(Exception):
     pass
 
-manifest = read_json(os.path.join(CURRENT_INSTALLATION_PATH,'manifest.json'))
+manifest = None
+
+def read_manifest():
+    global manifest
+    manifest = read_json(os.path.join(CURRENT_INSTALLATION_PATH,'manifest.json'))
 
 def get_branch():
     """ Current manifest's branch """
     global manifest
+    if not manifest: read_manifest()
     return manifest['branch']
 
 def get_sw_version():
     """ Returns Current Software version, uses manifest file to determine that. """
     global manifest
+    if not manifest: read_manifest()
     return SoftwareVersion(manifest['version'])
 
 
