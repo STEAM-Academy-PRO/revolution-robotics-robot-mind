@@ -461,7 +461,7 @@ class LongMessageImplementation:
             test_script_source = message.data.decode()
             self._log(f'Running test script: {test_script_source}')
 
-            script_descriptor = ScriptDescriptor("test_kit", str_to_func(test_script_source), 0)
+            script_descriptor = ScriptDescriptor("test_kit", str_to_func(test_script_source), 0, source = test_script_source)
 
             def start_script():
                 self._log("Starting new test script")

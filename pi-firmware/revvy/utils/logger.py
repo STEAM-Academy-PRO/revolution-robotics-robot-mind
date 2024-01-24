@@ -115,8 +115,13 @@ class LogWrapper(BaseLogger):
 
 logger = Logger()
 
+def empty(*args):
+    """ dummy """
+    pass
 
-def get_logger(tag, default_log_level=LogLevel.INFO, base=None):
+def get_logger(tag, default_log_level=LogLevel.INFO, base=None, off=False):
+    if off:
+        return empty
     return LogWrapper(base or logger, tag, default_log_level)
 
 
