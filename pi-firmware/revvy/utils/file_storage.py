@@ -5,7 +5,6 @@ from json import JSONDecodeError
 from typing import NamedTuple
 
 from revvy.utils.functions import bytestr_hash, read_json
-from revvy.utils.logger import get_logger
 
 
 class StorageError(Exception):
@@ -76,7 +75,6 @@ class FileStorage(StorageInterface):
 
     def __init__(self, storage_dir):
         self._storage_dir = storage_dir
-        self._log = get_logger('FileStorage')
         try:
             os.makedirs(self._storage_dir, 0o755, True)
             with open(self._access_file(), "w") as fp:
@@ -135,16 +133,3 @@ class FileStorage(StorageInterface):
         except JSONDecodeError as e:
             raise IntegrityError('Metadata') from e
 
-
-def create_unique_file(base_filename):
-
-    try:
-        return open(base_filename, 'x')
-    except FileExistsError:
-
-        i = 1
-        while True:
-            try:
-                return open(base_filename + str(i), 'x')
-            except FileExistsError:
-                i += 1

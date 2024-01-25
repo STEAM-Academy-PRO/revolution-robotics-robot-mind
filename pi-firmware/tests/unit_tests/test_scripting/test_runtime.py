@@ -207,7 +207,7 @@ while not ctx.stop_requested:
     mock()
 '''), 0))
         sm.assign('mock', mock)
-        sm['test'].on_stopped(cont.set)
+        sm['test'].on_stopped(lambda *args: cont.set())
 
         # first call, make sure the script runs
         sm['test'].start().wait()
@@ -247,21 +247,21 @@ while not ctx.stop_requested:
             # first call, make sure the script runs
             script1_stopped = Event()
             script2_stopped = Event()
-            sm['test1'].on_stopped(script1_stopped.set)
-            sm['test2'].on_stopped(script2_stopped.set)
+            sm['test1'].on_stopped(lambda *args: script1_stopped.set())
+            sm['test2'].on_stopped(lambda *args: script2_stopped.set())
             sm['test1'].start()
             sm['test2'].start()
 
-            self.assertTrue(script1_stopped.wait(1))
-            self.assertTrue(script2_stopped.wait(1))
+            self.assertTrue(script1_stopped.wait(1), "Script halting")
+            self.assertTrue(script2_stopped.wait(1), "Script halting")
 
             # scripts started?
-            self.assertEqual(1, mock1.call_count)
-            self.assertEqual(1, mock2.call_count)
+            self.assertEqual(1, mock1.call_count, "Script1 started")
+            self.assertEqual(1, mock2.call_count, "Script2 started")
 
             # scripts stopped?
-            self.assertFalse(sm['test1'].is_running)
-            self.assertFalse(sm['test2'].is_running)
+            self.assertFalse(sm['test1'].is_running, "Script1 stopped")
+            self.assertFalse(sm['test2'].is_running, "Script2 stopped")
         finally:
             sm.reset()
 
@@ -272,7 +272,7 @@ while not ctx.stop_requested:
 
         sm = ScriptManager(robot_mock)
         sm.add_script(ScriptDescriptor('test', str_to_func('''raise Excepti'''), 0))
-        sm['test'].on_stopped(cont.set)
+        sm['test'].on_stopped(lambda *args: cont.set())
 
         # first call, make sure the script runs
         sm['test'].start().wait()

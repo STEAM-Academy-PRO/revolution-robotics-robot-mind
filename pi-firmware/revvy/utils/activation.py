@@ -3,13 +3,13 @@
 class EdgeDetector:
     """
     >>> ed = EdgeDetector()
-    >>> print(", ".join(map(str, [ed.handle(1), ed.handle(2), ed.handle(2), ed.handle(1)])))
+    >>> print(", ".join(map(str, [ed.detect_change(1), ed.detect_change(2), ed.detect_change(2), ed.detect_change(1)])))
     1, 1, 0, -1
     """
     def __init__(self):
         self._previous = 0
 
-    def handle(self, value):
+    def detect_change(self, value):
         previous, self._previous = self._previous, value
 
         if value > previous:
@@ -33,7 +33,7 @@ class EdgeTrigger:
         self._falling_edge = callback
 
     def handle(self, value):
-        detection = self._detector.handle(value)
+        detection = self._detector.detect_change(value)
         if detection == 1:
             rising_edge_cb = self._rising_edge
             if rising_edge_cb:
@@ -92,5 +92,5 @@ class ToggleButton:
         self._on_disabled = callback
 
     def handle(self, value):
-        if self._edge_detector.handle(0 if value <= 0 else 1) == 1:
+        if self._edge_detector.detect_change(0 if value <= 0 else 1) == 1:
             self._toggle()

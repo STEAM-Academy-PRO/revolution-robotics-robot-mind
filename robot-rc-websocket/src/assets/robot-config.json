@@ -1,0 +1,97 @@
+{
+    "blocklyList": [
+      {
+        "assignments": {
+          "analog": [
+            {
+              "channels": [
+                0,
+                1
+              ],
+              "priority": 1
+            }
+          ]
+        },
+        "builtinScriptName": "drive_joystick"
+      },
+      {
+        "assignments": {
+          "buttons": [
+            {
+              "id": 0,
+              "priority": 2
+            }
+          ],
+          "variableSlots": []
+        },
+        "pythoncode": "cm9ib3QubGVkLnNldChsZWRzPVsxLDIsMyw0LDUsNiw3LDgsOSwxMCwxMSwxMl0sIGNvbG9yPScjMDAwMDAwJykKcm9ib3QubGVkLnNldChsZWRzPVsxMl0sIGNvbG9yPScjMzMzM2ZmJykK"
+      },
+      {
+        "assignments": {
+          "buttons": [
+            {
+              "id": 1,
+              "priority": 3
+            }
+          ],
+          "variableSlots": []
+        },
+        "pythoncode": "cm9ib3QubGVkLnNldChsZWRzPVsxLDIsMyw0LDUsNiw3LDgsOSwxMCwxMSwxMl0sIGNvbG9yPScjMDAwMDAwJykKcm9ib3QubGVkLnNldChsZWRzPVs5XSwgY29sb3I9JyMzMzMzZmYnKQo="
+      },
+      {
+        "assignments": {
+          "buttons": [
+            {
+              "id": 2,
+              "priority": 4
+            }
+          ],
+          "variableSlots": []
+        },
+        "pythoncode": "cm9ib3QubGVkLnNldChsZWRzPVsxLDIsMyw0LDUsNiw3LDgsOSwxMCwxMSwxMl0sIGNvbG9yPScjMDAwMDAwJykKcm9ib3QubGVkLnNldChsZWRzPVszXSwgY29sb3I9JyMzMzMzZmYnKQo="
+      },
+      {
+        "assignments": {
+          "buttons": [
+            {
+              "id": 3,
+              "priority": 5
+            }
+          ],
+          "variableSlots": []
+        },
+        "pythoncode": "cm9ib3QubGVkLnNldChsZWRzPVsxLDIsMyw0LDUsNiw3LDgsOSwxMCwxMSwxMl0sIGNvbG9yPScjMDAwMDAwJykKcm9ib3QubGVkLnNldChsZWRzPVs2XSwgY29sb3I9JyMzMzMzZmYnKQo="
+      }
+    ],
+    "robotConfig": {
+      "sensors": [
+        {},
+        {},
+        {},
+        {}
+      ],
+      "motors": [
+        {
+          "reversed": 0,
+          "name": "motor1",
+          "type": 2,
+          "side": 0
+        },
+        {
+          "reversed": 0,
+          "name": "motor2",
+          "type": 2,
+          "side": 1
+        },
+        {},
+        {},
+        {},
+        {
+          "reversed": 1,
+          "name": "motor6",
+          "type": 2,
+          "side": 1
+        }
+      ]
+    }
+  }

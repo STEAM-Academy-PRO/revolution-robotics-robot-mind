@@ -16,9 +16,9 @@ from revvy.robot.status import RobotStatusIndicator, RobotStatus
 from revvy.robot.status_updater import McuStatusUpdater
 from revvy.scripting.robot_interface import RobotInterface
 from revvy.utils.assets import Assets
-from revvy.utils.logger import get_logger, LogLevel
+from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
-from revvy.utils.version import Version
+from revvy.utils.version import VERSION, Version
 from revvy.scripting.variables import VariableSlot
 
 SENSOR_ON_PORT_NOT_PRESENT = 0
@@ -64,40 +64,6 @@ class Robot(RobotInterface):
 
         self._stopwatch = Stopwatch()
 
-        # read versions
-        while True:
-            try:
-                self._hw_version = self._robot_control.get_hardware_version()
-                self._fw_version = self._robot_control.get_firmware_version()
-                break
-            except OSError:
-                try:
-                    self._hw_version = self._bootloader_control.get_hardware_version()
-                    self._fw_version = Version('0.0.0')
-                    break
-                except OSError:
-                    self._log('Failed to read robot version')
-
-        from revvy.firmware_updater import update_firmware
-
-        # My MCU got flashed with a wrong version number we have been trying to build.
-        # I went up successfully, however this got an exception.
-        # TODO: either do not fail for debug builds (no parsable version), or just do not fail!
-        try:
-            # TODO: this is not stable right now, do not uncomment
-            # until revvy.py is stable and debugged why communication SOMETIMES fails to the board!
-            self._log('Firmware update TEMPORARILY disabled!')
-            update_firmware(os.path.join('data', 'firmware'), self)
-        except Exception as e:
-            str_exception = str(e)
-            self._log(f'Firmware update failed! Continuing for now. {str_exception}', LogLevel.WARNING)
-
-        # read version again in case it was updated
-        self._fw_version = self._robot_control.get_firmware_version()
-
-        self._log(f'Hardware: {self._hw_version}')
-        self._log(f'Firmware: {self._fw_version}')
-
         setup = {
             Version('1.0'): SoundControlV1,
             Version('1.1'): SoundControlV1,
@@ -105,7 +71,7 @@ class Robot(RobotInterface):
         }
 
         self._ring_led = RingLed(self._robot_control)
-        self._sound = Sound(setup[self._hw_version](), self._assets.category_loader('sounds'))
+        self._sound = Sound(setup[VERSION.hw](), self._assets.category_loader('sounds'))
 
         self._status = RobotStatusIndicator(self._robot_control)
         self._status_updater = McuStatusUpdater(self._robot_control)
@@ -153,14 +119,6 @@ class Robot(RobotInterface):
         return self._bootloader_control
 
     @property
-    def hw_version(self) -> Version:
-        return self._hw_version
-
-    @property
-    def fw_version(self) -> Version:
-        return self._fw_version
-
-    @property
     def battery(self):
         return self._battery
 
@@ -198,8 +156,6 @@ class Robot(RobotInterface):
     def time(self):
         return self._stopwatch.elapsed
 
-    def set_validate_config_done_cb(self, cb):
-        self.__validate_config_done_cb = cb
 
     def __validate_one_sensor_port(self, sensor_idx, expected_type):
         port_type = to_sensor_type_index(expected_type)
@@ -219,7 +175,6 @@ class Robot(RobotInterface):
             return SENSOR_ON_PORT_INVALID
 
         return SENSOR_ON_PORT_UNKNOWN
-
 
 
     def reset(self):

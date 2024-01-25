@@ -160,7 +160,7 @@ class ResponseHeader(NamedTuple):
             return False
         header_bytes = data[0:4]
         if crc7(header_bytes) != data[4]:
-            log(f"Header Check CRC error: {str(data)} !=  {str(header_bytes)}", LogLevel.WARNING)
+            # log(f"Header Check CRC error: {str(data)} !=  {str(header_bytes)}", LogLevel.WARNING)
             return False
         return True
 

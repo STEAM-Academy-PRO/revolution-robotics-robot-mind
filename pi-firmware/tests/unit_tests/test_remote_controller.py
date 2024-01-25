@@ -11,7 +11,7 @@ class TestRemoteController(unittest.TestCase):
         mocks = []
         for i in range(32):
             mock = Mock()
-            rc.on_button_pressed(i, mock)
+            rc.set_on_button_pressed(i, mock)
             mocks.append(mock)
 
         for i in range(32):
@@ -53,4 +53,4 @@ class TestRemoteController(unittest.TestCase):
 
     def test_error_raised_for_invalid_button(self):
         rc = RemoteController()
-        self.assertRaises(IndexError, lambda: rc.on_button_pressed(32, lambda: None))
+        self.assertRaises(IndexError, lambda: rc.set_on_button_pressed(32, lambda: None))

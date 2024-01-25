@@ -1,14 +1,48 @@
+import os
 import re
+from revvy.utils.directories import CURRENT_INSTALLATION_PATH
 
+from revvy.utils.functions import read_json
 
 version_re = re.compile('(?P<major>\\d+?)\\.(?P<minor>\\d+?)(\\.(?P<rev>\\d+))?(-(?P<branch>.*?))?$')
-
 
 class FormatError(Exception):
     pass
 
+manifest = None
+
+def read_manifest():
+    global manifest
+    manifest = read_json(os.path.join(CURRENT_INSTALLATION_PATH,'manifest.json'))
+
+def get_branch():
+    """ Current manifest's branch """
+    global manifest
+    if not manifest: read_manifest()
+    return manifest['branch']
+
+def get_sw_version():
+    """ Returns Current Software version, uses manifest file to determine that. """
+    global manifest
+    if not manifest: read_manifest()
+    return Version(manifest['version'])
+
+
+class SystemVersions:
+    """ HW, SW, FW version store populated by the init updater. """
+    def __init__(self):
+        self.sw = None
+        self.hw = None
+        self.fw = None
+    def set(self, sw, hw, fw):
+        self.sw = sw
+        self.hw = hw
+        self.fw = fw
+
+VERSION = SystemVersions()
 
 class Version:
+    """ Deals with version numbers """
     def __init__(self, ver_str):
         """
         >>> Version('1.0.123')

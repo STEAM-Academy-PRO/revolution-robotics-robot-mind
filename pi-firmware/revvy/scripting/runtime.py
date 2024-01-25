@@ -28,6 +28,7 @@ class ScriptHandle:
         self._owner = owner
         self._globals = global_variables.copy()
         self._inputs = {}
+        self._name = name
         self._runnable = script
         self.sleep = self._default_sleep
         self._thread = ThreadWrapper(self._run, name)

@@ -1,0 +1,16 @@
+textarea{
+    width: 90%; height: auto;
+    margin: 20px;
+    display: block;
+}
+
+.controller{ display: flex; flex-direction: row;}
+.column { flex-direction: column; height: 80vh}
+.editor { display: flex }
+
+.active { background: #ddd}
+
+pre{ text-align: left; overflow-x: auto }
+
+.clickable{ cursor: pointer; }
+.clickable:hover{ background-color: #ccc; }
