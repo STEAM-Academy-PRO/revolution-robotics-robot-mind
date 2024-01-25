@@ -155,12 +155,16 @@ bool LEDController_Read_RingLEDs_Changed(void)
 __attribute__((weak))
 rgb_t LEDController_Read_StatusLED(uint32_t led_idx)
 {
+    (void) led_idx;
+
     return (rgb_t) LED_MAGENTA;
 }
 
 __attribute__((weak))
 rgb_t LEDController_Read_RingLED(uint32_t led_idx)
 {
+    (void) led_idx;
+
     return (rgb_t){0, 0, 0};
 }
 

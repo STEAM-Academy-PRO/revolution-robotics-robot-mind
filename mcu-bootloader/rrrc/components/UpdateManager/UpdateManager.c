@@ -137,5 +137,6 @@ void UpdateManager_Run_UpdateApplicationHeader(const ApplicationFlashHeader_t* h
 __attribute__((weak))
 void UpdateManager_Write_Progress(uint8_t progress)
 {
+    (void) progress;
     /* nothing to do */
 }

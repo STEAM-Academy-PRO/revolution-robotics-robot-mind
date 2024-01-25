@@ -3,7 +3,7 @@
 #include "flash_mapping.h"
 #include "../utils/converter.h"
 
-#include <string.h>
+#include <string.h> // memcpy
 
 /* These constants are common between bootloader and application */
 #define OPERATION_MODE_BOOTLOADER   ((uint8_t) 0xBBu)
