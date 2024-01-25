@@ -8,7 +8,7 @@ Download [balena etcher](https://github.com/balena-io/etcher/releases) - click t
 
 1. Download the latest built image zip from the CI pipeline output
 
-TODO: Please add link
+[Pi OS releases](https://github.com/STEAM-Academy-PRO/revolution-robotics-pi-os/releases)
 
 2. Open balena etcher, click flash from file
 
