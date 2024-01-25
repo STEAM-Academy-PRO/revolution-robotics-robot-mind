@@ -107,5 +107,6 @@ void MasterCommunicationInterface_Call_OnTransmitComplete(void)
 
 void MasterCommunicationInterface_Run_SetResponse(const uint8_t* buffer, size_t bufferSize)
 {
+    i2c_hal_receive();
     i2c_hal_set_tx_buffer(buffer, bufferSize);
 }

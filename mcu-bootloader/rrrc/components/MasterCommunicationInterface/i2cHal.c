@@ -98,7 +98,6 @@ static void i2c_hal_on_address_matched(const uint8_t dir)
 {
     if (dir == I2C_DIR_MASTER_TX)
     {
-        descriptor.rxBufferCount = 0u;
         i2c_hal_rx_started();
     }
     else
