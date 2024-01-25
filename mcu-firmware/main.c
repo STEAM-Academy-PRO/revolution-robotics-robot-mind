@@ -5,6 +5,8 @@
 
 #include <string.h>
 
+#include "SEGGER_RTT.h"
+
 static TaskHandle_t xRRRC_Main_xTask;
 
 /**
@@ -18,6 +20,10 @@ void ltoFunctionKeeper(void)
 
 int main(void)
 {
+    SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_NO_BLOCK_SKIP);
+
+    SEGGER_RTT_WriteString(0, "Starting application\r\n");
+
     RRRC_ProcessLogic_Init();
 
     BaseType_t success = xTaskCreate(&RRRC_ProcessLogic_xTask, "Main", 1024u, NULL, taskPriority_Main, &xRRRC_Main_xTask);

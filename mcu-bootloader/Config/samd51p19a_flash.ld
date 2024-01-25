@@ -38,7 +38,8 @@ MEMORY
   rom      (rx)  : ORIGIN = 0x00000000, LENGTH = 0x0003C000
   error    (r)   : ORIGIN = 0x0003C000, LENGTH = 0x00004000
   app      (r)   : ORIGIN = 0x00040000, LENGTH = 0x0003E000
-  ram      (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00030000
+  ram      (rwx) : ORIGIN = 0x20000000, LENGTH = 0x0002f000
+  rtt_ram  (rwx) : ORIGIN = 0x2002f000, LENGTH = 0x00001000
   bkupram  (rwx) : ORIGIN = 0x47000000, LENGTH = 0x00002000
   qspi     (rwx) : ORIGIN = 0x04000000, LENGTH = 0x01000000
 }
@@ -159,6 +160,16 @@ SECTIONS
         . = ALIGN(8);
         _estack = .;
     } > ram
+
+    .segger_rtt (NOLOAD):
+    {
+        . = ALIGN(4);
+        _srtt = .;
+        *(.segger_rtt);
+        *(.segger_rtt_buffer);
+        . = ALIGN(4);
+        _ertt = .;
+    } > rtt_ram
 
     . = ALIGN(4);
     _end = . ;

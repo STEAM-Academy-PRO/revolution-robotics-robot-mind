@@ -1,7 +1,6 @@
 """ Simple WebSocket Remote controller for robot """
 import asyncio
 import json
-from shutil import ExecError
 import struct
 import threading
 from revvy.robot_manager import RobotManager

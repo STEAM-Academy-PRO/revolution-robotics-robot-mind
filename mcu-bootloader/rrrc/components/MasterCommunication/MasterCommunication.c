@@ -1,5 +1,5 @@
 #include "MasterCommunication.h"
-#include "../../utils/crc.h"
+#include "utils/crc.h"
 
 static uint8_t responseBuffer[256];
 
@@ -62,5 +62,7 @@ void MasterCommunication_Run_HandleCommand(const uint8_t* buffer, size_t bufferS
 __attribute__((weak))
 void MasterCommunication_Call_SendResponse(const uint8_t* responseBuffer, size_t responseSize)
 {
+    (void) responseBuffer;
+    (void) responseSize;
     /* nothing to do */
 }

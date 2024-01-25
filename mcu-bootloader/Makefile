@@ -25,6 +25,9 @@ C_SRCS += \
 ../mcu-common/Atmel/Device_Startup/system_samd51.c \
 ../mcu-common/Atmel/hal/src/hal_spi_m_dma.c \
 ../mcu-common/Atmel/hal/src/hal_spi_m_sync.c \
+../mcu-common/SEGGER/RTT/SEGGER_RTT.c \
+../mcu-common/SEGGER/RTT/SEGGER_RTT_printf.c \
+../mcu-common/SEGGER/RTT/Syscalls/SEGGER_RTT_Syscalls_GCC.c \
 main.c \
 driver_init.c \
 atmel_start.c \
@@ -69,6 +72,7 @@ Config \
 ../mcu-common/Atmel/hri \
 ../mcu-common/Atmel/samd51a/include \
 ../mcu-common/CMSIS/Include \
+../mcu-common/SEGGER/RTT \
 rrrc \
 rrrc/components/MasterCommunication \
 rrrc/components/MasterCommunicationInterface \

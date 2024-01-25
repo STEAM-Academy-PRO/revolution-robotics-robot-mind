@@ -77,7 +77,7 @@ jobs:
           # currently the generated runtime is checked in, so this is not needed
           # cglue --generate --cglue-output=rrrc/generated_runtime
           make all config=release
-          python -m tools.prepare --release
+          python -m tools.prepare
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -108,7 +108,7 @@ jobs:
 
   assemble-and-upload:
     permissions:
-      contents: read # checkout
+      contents: write # checkout: read, upload-release-action: write
       pull-requests: read # paths-filter
 
     runs-on: ubuntu-latest
@@ -136,7 +136,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: mcu-bootloader
-          path: mcu-bootloader/
+          path: output/mcu-bootloader/
 
       # TODO: duplicate download step because in the future I want to include
       # firmware .elf here but not in the python package
@@ -144,7 +144,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: mcu-firmware
-          path: mcu-firmware/
+          path: output/mcu-firmware/
 
       - name: Assembling package
         run: |
@@ -155,7 +155,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: mcu-bootloader/*
+          file: output/mcu-bootloader/*
           file_glob: true
           asset_name: MCU bootloader
           tag: ${{ github.ref }}
@@ -164,7 +164,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: mcu-firmware/*
+          file: output/mcu-firmware/*
           file_glob: true
           asset_name: MCU firmware
           tag: ${{ github.ref }}
