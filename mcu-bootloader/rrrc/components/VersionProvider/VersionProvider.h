@@ -1,10 +1,3 @@
-/*
- * VersionProvider.h
- *
- * Created: 2019. 07. 25. 14:39:17
- *  Author: Dániel Buga
- */
-
 #ifndef COMPONENT_VERSION_PROVIDER_H_
 #define COMPONENT_VERSION_PROVIDER_H_
 

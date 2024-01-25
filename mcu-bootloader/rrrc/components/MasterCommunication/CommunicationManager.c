@@ -1,10 +1,3 @@
-/*
- * CommunicationManager.c
- *
- * Created: 2019. 05. 06. 18:02:54
- *  Author: Dániel Buga
- */ 
-
 #include "CommunicationManager.h"
 #include "utils_assert.h"
 

@@ -1,10 +1,3 @@
-/*
- * comm_handlers.c
- *
- * Created: 2019. 05. 30. 14:33:06
- *  Author: Dániel Buga
- */ 
-
 #include "runtime.h"
 
 #include "flash_mapping.h"
@@ -36,6 +29,10 @@ const Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT] =
 
 static Comm_Status_t GetOperationMode_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount)
 {
+    (void) commandPayload;
+    (void) commandSize;
+    (void) responseBufferSize;
+
     *response = OPERATION_MODE_BOOTLOADER;
     *responseCount = 1u;
     return Comm_Status_Ok;
@@ -43,6 +40,10 @@ static Comm_Status_t GetOperationMode_Start(const uint8_t* commandPayload, uint8
 
 static Comm_Status_t ReadApplicationCrc_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount)
 {
+    (void) commandPayload;
+    (void) commandSize;
+    (void) responseBufferSize;
+
     uint32_t checksum = FMP_ReadApplicationChecksum();
     memcpy(response, &checksum, 4u);
     *responseCount = 4u;
@@ -51,6 +52,10 @@ static Comm_Status_t ReadApplicationCrc_Start(const uint8_t* commandPayload, uin
 
 static Comm_Status_t InitializeUpdate_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount)
 {
+    (void) response;
+    (void) responseBufferSize;
+    (void) responseCount;
+
     if (commandSize != 8u)
     {
         return Comm_Status_Error_PayloadLengthError;
@@ -72,6 +77,10 @@ static Comm_Status_t InitializeUpdate_Start(const uint8_t* commandPayload, uint8
 
 static Comm_Status_t ProgramApplication_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount)
 {
+    (void) responseBufferSize;
+    (void) response;
+    (void) responseCount;
+
     switch (UpdateManager_Run_Program(commandPayload, commandSize))
     {
         case UpdateManager_Ok:
@@ -84,6 +93,12 @@ static Comm_Status_t ProgramApplication_Start(const uint8_t* commandPayload, uin
 
 static Comm_Status_t FinalizeUpdate_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount)
 {
+    (void) commandPayload;
+    (void) commandSize;
+    (void) response;
+    (void) responseBufferSize;
+    (void) responseCount;
+
     switch (UpdateManager_Run_Finalize())
     {
         case UpdateManager_Ok:
