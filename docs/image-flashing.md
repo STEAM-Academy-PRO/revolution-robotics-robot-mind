@@ -16,7 +16,7 @@ TODO: Please add link
 
 3. Insert an SD card, select target the inserted SD Card
 
-![etcher](assets/balena-select.png)
+![etcher](assets/balena-select-target.png)
 
 4. Wait until it's done!
 
