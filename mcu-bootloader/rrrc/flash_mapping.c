@@ -14,10 +14,11 @@ static const void * s_fw_data = (const void *) FLASH_FW_OFFSET;
 static const void * s_rtc_module = (const void *) RTC;
 
 static void JumpTargetFirmware (uint32_t jump_addr) {
-    __asm__ (" mov   r1, r0        \n"
+    __asm__ (" mov   r1, %0        \n"
              " ldr   r0, [r1, #4]  \n"
              " ldr   sp, [r1]      \n"
-             " blx   r0");
+             " blx   r0"
+             : : "r" (jump_addr));
 }
 
 uint32_t FMP_ReadApplicationChecksum(void)

@@ -84,10 +84,11 @@ void i2c_hal_set_tx_buffer(const uint8_t* buffer, size_t bufferSize)
         bufferSize = ARRAY_SIZE(empty_tx_buffer);
     }
 
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     descriptor.nextTxBuffer = buffer;
     descriptor.nextTxBufferLast = buffer + bufferSize - 1;
-    __enable_irq();
+    __set_PRIMASK(primask);
 }
 
 /* interrupt handlers */
@@ -95,7 +96,6 @@ static void i2c_hal_on_address_matched(const uint8_t dir)
 {
     if (dir == I2C_DIR_MASTER_TX)
     {
-        descriptor.rxBufferCount = 0u;
         i2c_hal_rx_started();
     }
     else

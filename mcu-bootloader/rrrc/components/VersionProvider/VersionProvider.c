@@ -12,6 +12,10 @@ static const char* hw_version_strings[] =
 
 Comm_Status_t VersionProvider_GetHardwareVersion_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount)
 {
+    (void) commandPayload;
+    (void) commandSize;
+    (void) responseBufferSize;
+
     uint32_t hw = HARDWARE_VERSION;
 
     if (hw < ARRAY_SIZE(hw_version_strings))

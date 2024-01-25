@@ -131,6 +131,7 @@ void MasterCommunicationInterface_Run_OnInit(void)
 void MasterCommunicationInterface_Run_SetResponse(ConstByteArray_t response)
 {
     /* Begin User Code Section: SetResponse:run Start */
+    i2c_hal_receive();
     i2c_hal_set_tx_buffer(response.bytes, response.count);
     /* End User Code Section: SetResponse:run Start */
     /* Begin User Code Section: SetResponse:run End */

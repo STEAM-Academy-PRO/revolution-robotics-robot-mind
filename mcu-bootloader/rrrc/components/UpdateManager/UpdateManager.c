@@ -1,6 +1,8 @@
 #include "UpdateManager.h"
 #include "utils/crc.h"
 
+#include "SEGGER_RTT.h"
+
 #include "../../utils/functions.h"
 #include <math.h>
 
@@ -57,6 +59,8 @@ bool UpdateManager_Run_CheckImageFitsInFlash(size_t size)
 
 void UpdateManager_Run_InitializeUpdate(size_t firmware_size, uint32_t checksum)
 {
+    SEGGER_RTT_WriteString(0, "Initializing update\r\n");
+
     isInitialized = true;
     expected_crc = checksum;
     total_length = firmware_size;
@@ -137,5 +141,6 @@ void UpdateManager_Run_UpdateApplicationHeader(const ApplicationFlashHeader_t* h
 __attribute__((weak))
 void UpdateManager_Write_Progress(uint8_t progress)
 {
+    (void) progress;
     /* nothing to do */
 }
