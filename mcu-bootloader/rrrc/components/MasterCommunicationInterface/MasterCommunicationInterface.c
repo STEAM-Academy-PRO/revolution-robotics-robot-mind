@@ -2,14 +2,17 @@
 
 #include "i2cHal.h"
 
+#include "SEGGER_RTT.h"
 #include "driver_init.h"
 #include "utils_assert.h"
 #include <peripheral_clk_config.h>
 #include <limits.h>
 
-static uint8_t rxBuffer[255 + 6];
-static size_t messageSize;
+#define RX_BUFFER_OVERFLOW ((ssize_t) -1)
+
+static ssize_t messageSize;
 static bool messageReceived;
+static uint8_t* messageBuffer;
 
 static bool tx_complete = false;
 
@@ -38,11 +41,13 @@ void i2c_hal_rx_started(void)
 
 void i2c_hal_rx_complete(const uint8_t* buffer, size_t bufferSize, size_t bytesReceived)
 {
-    (void) buffer;
-    (void) bufferSize;
-    
+    if (bufferSize < bytesReceived) {
+        messageSize = RX_BUFFER_OVERFLOW;
+    } else {
+        messageSize = (ssize_t)bytesReceived;
+    }
     messageReceived = true;
-    messageSize = bytesReceived;
+    messageBuffer = buffer;
 }
 
 void i2c_hal_tx_complete(void)
@@ -69,9 +74,9 @@ void MasterCommunicationInterface_Run_Update(void)
     if (messageReceived)
     {
         messageReceived = false;
-        if (messageSize <= sizeof(rxBuffer))
+        if (messageSize > 0)
         {
-            MasterCommunicationInterface_Call_OnMessageReceived(&rxBuffer[0], messageSize);
+            MasterCommunicationInterface_Call_OnMessageReceived(messageBuffer, messageSize);
         }
         else
         {
