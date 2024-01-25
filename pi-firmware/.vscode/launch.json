@@ -5,13 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Attach PI Debugger",
+            "name": "Deploy and Debug on PI",
             "type": "python",
             "request": "attach",
             "connect": {
               "host": "${config:target}",
               "port": 5678
             },
+            "preLaunchTask": "remote-debug-launcher",
             "pathMappings": [
                 {
                     "localRoot": "${workspaceFolder}",
