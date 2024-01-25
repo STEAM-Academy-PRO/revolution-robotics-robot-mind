@@ -1,10 +1,3 @@
-/*
- * crc.c
- *
- * Created: 06/05/2019 13:32:05
- *  Author: Dániel Buga
- */ 
-
 #include "crc.h"
 
 #include <stdbool.h>

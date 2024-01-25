@@ -1,11 +1,3 @@
-/*
- * color.h
- *
- * Created: 2019. 06. 27. 10:01:38
- *  Author: bugad
- */ 
-
-
 #ifndef LED_COLOR_H_
 #define LED_COLOR_H_
 

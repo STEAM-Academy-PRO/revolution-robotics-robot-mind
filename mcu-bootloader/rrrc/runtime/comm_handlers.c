@@ -1,10 +1,3 @@
-/*
- * comm_handlers.c
- *
- * Created: 2019. 05. 30. 14:33:06
- *  Author: Dániel Buga
- */ 
-
 #include "runtime.h"
 
 #include "flash_mapping.h"

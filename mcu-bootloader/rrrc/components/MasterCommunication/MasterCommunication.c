@@ -1,10 +1,3 @@
-/*
- * MasterCommunication.c
- *
- * Created: 2019. 05. 06. 20:16:07
- *  Author: Dániel Buga
- */ 
-
 #include "MasterCommunication.h"
 #include "../../utils/crc.h"
 

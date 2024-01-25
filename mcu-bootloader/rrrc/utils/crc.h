@@ -1,11 +1,3 @@
-/*
- * crc.h
- *
- * Created: 06/05/2019 13:33:09
- *  Author: Dániel Buga
- */ 
-
-
 #ifndef UTILS_CRC_H_
 #define UTILS_CRC_H_
 

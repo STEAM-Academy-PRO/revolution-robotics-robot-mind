@@ -1,10 +1,3 @@
-/*
- * UpdateManager.c
- *
- * Created: 2019. 06. 11. 13:42:26
- *  Author: bugad
- */ 
-
 #include "UpdateManager.h"
 #include "crc32_software.h"
 

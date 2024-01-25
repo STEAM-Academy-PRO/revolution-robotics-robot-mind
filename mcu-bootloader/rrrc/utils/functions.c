@@ -1,10 +1,3 @@
-/*
- * functions.c
- *
- * Created: 03/05/2019 14:21:39
- *  Author: Dániel Buga
- */ 
-
 #include "functions.h"
 
 float constrain_f32(float in, float min, float max)
