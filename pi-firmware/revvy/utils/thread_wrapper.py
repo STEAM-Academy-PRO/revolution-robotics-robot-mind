@@ -26,7 +26,7 @@ class ThreadWrapper:
     PAUSED = 5
 
     def __init__(self, func, name="WorkerThread"):
-        self._log = get_logger(['ThreadWrapper', name], off=True)
+        self._log = get_logger(['ThreadWrapper', name])
         self._log('created')
         self._lock = Lock()  # lock used to ensure internal consistency
         self._interface_lock = RLock()  # prevent concurrent access. RLock so that callbacks may restart the thread
@@ -61,7 +61,6 @@ class ThreadWrapper:
                     self._enter_started()
                     self._func(ctx)
                 except InterruptedError:
-                    pass
                     self._log('interrupted')
                 except Exception as e:
                     self._log('' + traceback.format_exc(), LogLevel.ERROR)
@@ -71,7 +70,6 @@ class ThreadWrapper:
                 finally:
                     self._enter_stopped()
         finally:
-            self._enter_stopped()
             self._state = ThreadWrapper.EXITED
 
     def _enter_started(self):

@@ -24,11 +24,44 @@ class MockSound(SoundControlBase):
 def create_robot_mock():
 
     robot_mock = mockobj()
-    robot_mock.resources = {
-        'led_ring': Resource(),
-        'drivetrain': Resource(),
-        'sound': Resource()
+
+    robot_mock._resources = {
+        'led_ring':   Resource('RingLed'),
+        'drivetrain': Resource('DriveTrain'),
+        'sound':      Resource('Sound'),
+
+        **{f'motor_{port}': Resource(f'Motor {port}') for port in range(1, 6)},
+        **{f'sensor_{port}': Resource(f'Sensor {port}') for port in range(1, 6)}
     }
+
+    robot_mock.time = lambda: 0
+    robot_mock.motors = []
+    robot_mock.sensors = []
+
+    robot_mock.motors = mockobj()
+    robot_mock.motors.__iter__ = lambda: []
+    robot_mock.motors.names = {}
+
+    robot_mock.config = mockobj()
+    robot_mock.config.sensors = mockobj()
+    robot_mock.config.sensors.__iter__ = lambda: []
+    robot_mock.config.sensors.names = {}
+
+    robot_mock.drivetrain = mockobj()
+    robot_mock.drivetrain.turn = lambda *args, **kwargs: None
+    robot_mock.drivetrain.drive = lambda *args, **kwargs: None
+    robot_mock.sound = MockSound()
+    robot_mock.led = mockobj()
+    robot_mock.led.count = 0
+
+    robot_mock.imu = mockobj()
+
+    return robot_mock
+
+
+def create_robot_manager_mock():
+
+    robot_mock = mockobj()
     robot_mock.robot = mockobj()
     robot_mock.robot.time = lambda: 0
     robot_mock.robot.motors = []
@@ -60,6 +93,7 @@ class TestRuntime(unittest.TestCase):
         robot_mock = create_robot_mock()
 
         mock = Mock()
+        config = Mock()
 
         sm = ScriptManager(robot_mock)
         sm.assign('mock', mock)
@@ -67,7 +101,7 @@ class TestRuntime(unittest.TestCase):
         sm.assign('RobotInterface', RobotInterface)
         sm.add_script(ScriptDescriptor('test', str_to_func('''
 test.assertIsInstance(robot, RobotInterface)
-mock()'''), 0))
+mock()'''), 0), config)
 
         sm['test'].start()
         sm['test'].cleanup()
@@ -75,7 +109,7 @@ mock()'''), 0))
         self.assertEqual(1, mock.call_count)
 
     def test_variables_are_passed_to_callable_script_as_args(self):
-        robot_mock = create_robot_mock()
+        robot_mock = create_robot_manager_mock()
 
         mock = Mock()
 
@@ -96,7 +130,7 @@ mock()'''), 0))
         self.assertEqual(1, mock.call_count)
 
     def test_string_script_can_access_variables_assigned_after_creation(self):
-        robot_mock = create_robot_mock()
+        robot_mock = create_robot_manager_mock()
 
         mock = Mock()
 
@@ -114,7 +148,7 @@ mock()'''), 0))
         self.assertEqual(1, mock.call_count)
 
     def test_script_input_dict_is_passed_as_variables(self):
-        robot_mock = create_robot_mock()
+        robot_mock = create_robot_manager_mock()
 
         mock = Mock()
 
@@ -135,7 +169,7 @@ mock()'''), 0))
         script.cleanup()
 
     def test_overwriting_a_script_stops_the_previous_one(self):
-        robot_mock = create_robot_mock()
+        robot_mock = create_robot_manager_mock()
 
         mock = Mock()
         stopped_mock = Mock()
@@ -169,7 +203,7 @@ mock()'''), 0))
         self.assertEqual(2, stopped_mock.call_count)
 
     def test_resetting_the_manager_stops_running_scripts(self):
-        robot_mock = create_robot_mock()
+        robot_mock = create_robot_manager_mock()
 
         stopped_mock = Mock()
 
@@ -194,7 +228,7 @@ while not ctx.stop_requested:
         self.assertEqual(2, stopped_mock.call_count)
 
     def test_script_can_stop_itself(self):
-        robot_mock = create_robot_mock()
+        robot_mock = create_robot_manager_mock()
 
         cont = Event()
         mock = Mock()
@@ -218,7 +252,7 @@ while not ctx.stop_requested:
         self.assertEqual(1, mock.call_count)
 
     def test_script_can_stop_other_scripts(self):
-        robot_mock = create_robot_mock()
+        robot_mock = create_robot_manager_mock()
 
         mock1 = Mock()
         mock2 = Mock()
@@ -266,7 +300,7 @@ while not ctx.stop_requested:
             sm.reset()
 
     def test_crashing_script_calls_stopped_handler(self):
-        robot_mock = create_robot_mock()
+        robot_mock = create_robot_manager_mock()
 
         cont = Event()
 
