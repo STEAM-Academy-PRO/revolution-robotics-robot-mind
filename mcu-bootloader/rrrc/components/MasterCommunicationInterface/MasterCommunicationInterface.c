@@ -12,7 +12,7 @@
 
 static ssize_t messageSize;
 static bool messageReceived;
-static uint8_t* messageBuffer;
+static const uint8_t* messageBuffer;
 
 static bool tx_complete = false;
 
