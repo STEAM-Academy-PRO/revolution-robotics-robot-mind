@@ -1,10 +1,3 @@
-/*
- * LEDController.c
- *
- * Created: 03/05/2019 10:31:19
- *  Author: Dániel Buga
- */
-
 #include "LEDController.h"
 #include "driver_init.h"
 #include "../../include/color.h"

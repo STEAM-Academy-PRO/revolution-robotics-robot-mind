@@ -1,10 +1,3 @@
-/*
- * watchdog.c
- *
- * Created: 2019. 09. 11. 10:32:28
- *  Author: bugad
- */ 
-
 #include "watchdog.h"
 
 #include <compiler.h>

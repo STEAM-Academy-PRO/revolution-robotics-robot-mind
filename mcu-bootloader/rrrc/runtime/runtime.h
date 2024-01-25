@@ -1,11 +1,3 @@
-/*
- * runtime.h
- *
- * Created: 2019. 06. 11. 11:17:46
- *  Author: bugad
- */ 
-
-
 #ifndef RUNTIME_H_
 #define RUNTIME_H_
 

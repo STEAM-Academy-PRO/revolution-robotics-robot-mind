@@ -1,11 +1,3 @@
-/*
- * LEDController.h
- *
- * Created: 03/05/2019 10:30:59
- *  Author: Dániel Buga
- */ 
-
-
 #ifndef COMPONENT_LEDCONTROLLER_H_
 #define COMPONENT_LEDCONTROLLER_H_
 
