@@ -12,30 +12,25 @@ Recommended Dev Env
 -------------------
 
 Use VSCode, open this folder.
-Create a `target` file and add the IP address of the brain. (bonjour: `raspberrypi.local` or e.g. `192.168.0.123` for wifi)
+- Copy & rename your `settings.example.json` file within your `.vscode` folder
+- set your `target` to the IP address of your brain's PI if you are using your wifi for debugging
+  - (sometimes it works even through the wifi router is hosting a bonjour service)
 
 VSCode setup
 ------------
 
 - Enable auto imports in settings: `"python.analysis.autoImportCompletions": true`
 - install recommended extensions!
+- make sure the tests on the side showed up
 
-Debugging
----------
+Debugging & Run
+---------------
 
+- open a VSCode terminal
 - from this dir, run `./debug`
 - for attaching debugger, run `./debug 1`
-- When says: Waiting for debugger, run 
-- configure your `launch.json` to the proper IP
+- When says: Waiting for debugger, hit `F5` - `Attach PI Debugger` in the main window
+- if it says: "client port not open" just wait for a few more seconds and try again
+- happy debugging!
 
-```json
-{
-  "name": "Attach PI Debugger",
-  "type": "python",
-  "request": "attach",
-  "connect": {
-    "host": "192.168.0.X",
-    "port": 5678
-  }
-}
-```
+
