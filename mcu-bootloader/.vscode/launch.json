@@ -9,12 +9,42 @@
         "flashingEnabled": true,
       },
       "request": "launch",
-      "name": "probe_rs Executable Test",
+      "name": "probe_rs launch",
       "chip": "atsamd51p19a",
       "coreConfigs": [
         {
           "svdFile": "${workspaceRoot}/../mcu-common/Atmel/ATSAMD51P19A.svd",
-          "programBinary": "${workspaceRoot}/Build/Debug/mcu-bootloader/rrrc_samd51.elf"
+          "programBinary": "${workspaceRoot}/Build/Debug/mcu-bootloader/rrrc_samd51.elf",
+          "rttEnabled": true,
+          "rttChannelFormats": [
+            {
+              "channelNumber": 0,
+              "dataFormat": "String",
+              "showLocation": false,
+              "showTimestamps": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "probe-rs-debug",
+      "request": "attach",
+      "name": "probe_rs attach",
+      "chip": "atsamd51p19a",
+      "coreConfigs": [
+        {
+          "svdFile": "${workspaceRoot}/../mcu-common/Atmel/ATSAMD51P19A.svd",
+          "programBinary": "${workspaceRoot}/Build/Debug/mcu-bootloader/rrrc_samd51.elf",
+          "rttEnabled": true,
+          "rttChannelFormats": [
+            {
+              "channelNumber": 0,
+              "dataFormat": "String",
+              "showLocation": false,
+              "showTimestamps": false
+            }
+          ]
         }
       ]
     }

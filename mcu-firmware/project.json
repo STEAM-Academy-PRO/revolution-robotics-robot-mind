@@ -51,6 +51,9 @@
         "../mcu-common/Atmel/hpl/systick/hpl_systick.c",
         "../mcu-common/Atmel/hpl/tc/hpl_tc.c",
         "../mcu-common/Atmel/hpl/tc/tc_lite.c",
+        "../mcu-common/SEGGER/RTT/SEGGER_RTT.c",
+        "../mcu-common/SEGGER/RTT/SEGGER_RTT_printf.c",
+        "../mcu-common/SEGGER/RTT/Syscalls/SEGGER_RTT_Syscalls_GCC.c",
         "rrrc/hal/sercom/sercom_base.c",
         "rrrc/hal/sercom/sercom_uart.c",
         "rrrc/hal/sercom/sercom_i2c_master.c",
@@ -89,6 +92,7 @@
         "../mcu-common/Atmel/hri",
         "../mcu-common/Atmel/samd51a/include",
         "../mcu-common/CMSIS/Include",
+        "../mcu-common/SEGGER/RTT",
         "third_party/FreeRTOSV10.0.0",
         "third_party/FreeRTOSV10.0.0/Source/include",
         "third_party/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM4F"

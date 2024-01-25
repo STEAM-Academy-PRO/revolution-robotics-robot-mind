@@ -14,7 +14,16 @@
       "coreConfigs": [
         {
           "svdFile": "${workspaceRoot}/../mcu-common/Atmel/ATSAMD51P19A.svd",
-          "programBinary": "${workspaceRoot}/Build/Debug/mcu-firmware/rrrc_samd51.elf"
+          "programBinary": "${workspaceRoot}/Build/Debug/mcu-firmware/rrrc_samd51.elf",
+          "rttEnabled": true,
+          "rttChannelFormats": [
+            {
+              "channelNumber": 0,
+              "dataFormat": "String",
+              "showLocation": false,
+              "showTimestamps": false
+            }
+          ]
         }
       ]
     }
