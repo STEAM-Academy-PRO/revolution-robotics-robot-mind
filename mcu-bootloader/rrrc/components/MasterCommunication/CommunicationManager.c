@@ -1,7 +1,7 @@
 #include "CommunicationManager.h"
 #include "utils_assert.h"
-
-#include "../../utils/crc.h"
+#include "SEGGER_RTT.h"
+#include "utils/crc.h"
 #include <stdbool.h>
 
 static const Comm_CommandHandler_t* comm_commandTable = NULL;
@@ -89,15 +89,17 @@ size_t Comm_Handle(const Comm_Command_t* command, Comm_Response_t* response, siz
     
     if (!_commandValid(command))
     {
+        SEGGER_RTT_printf(0, "Command integrity error\n");
         resultStatus = Comm_Status_Error_CommandIntegrityError;
     }
     else if (!_payloadValid(command))
     {
+        SEGGER_RTT_printf(0, "Payload integrity error\n");
         resultStatus = Comm_Status_Error_PayloadIntegrityError;
     }
     else if (command->header.command >= comm_commandTableSize || comm_commandTable[command->header.command].Start == NULL)
     {
-        /* unimplemented command */
+        SEGGER_RTT_printf(0, "Unknown/unimplemented command\n");
         resultStatus = Comm_Status_Error_UnknownCommand;
     }
     else
@@ -122,6 +124,7 @@ size_t Comm_Handle(const Comm_Command_t* command, Comm_Response_t* response, siz
                 break;
 
             default:
+                SEGGER_RTT_printf(0, "Unknown operation\n");
                 resultStatus = Comm_Status_Error_UnknownOperation;
                 break;
         }
