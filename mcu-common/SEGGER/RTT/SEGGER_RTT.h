@@ -142,8 +142,8 @@ Revision: $Rev: 24324 $
       #define _CORE_HAS_RTT_ASM_SUPPORT 1
     #elif (defined __ARM_ARCH_7EM__)              // Cortex-M4/M7
       #define _CORE_HAS_RTT_ASM_SUPPORT 1
-      #define _CORE_NEEDS_DMB           1         // Only Cortex-M7 needs a DMB but we cannot distinguish M4 and M7 here...
-      #define RTT__DMB() __asm volatile ("dmb\n" : : :);
+      #define _CORE_NEEDS_DMB           0         // Only Cortex-M7 needs a DMB but we cannot distinguish M4 and M7 here...
+      // (danielb) manually modified from 1 to 0 and deleted the RTT__DMB() macro as we use a Cortex-M4
     #elif (defined __ARM_ARCH_8M_BASE__)          // Cortex-M23
       #define _CORE_HAS_RTT_ASM_SUPPORT 0
       #define _CORE_NEEDS_DMB           1
