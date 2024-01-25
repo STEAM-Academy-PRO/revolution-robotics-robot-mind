@@ -7,5 +7,6 @@ Documentation
  - [MCU software](mcu-firmware/index.md)
  - [Pi firmware](pi/index.md)
  - [How to release a new version](release.md)
+ - [How to flash an OS image](image-flashing.md)
 
 It is recommended to read this documentation on [GitHub](https://github.com/STEAM-Academy-PRO/revolution-robotics-robot-mind/tree/main/docs/index.md)
