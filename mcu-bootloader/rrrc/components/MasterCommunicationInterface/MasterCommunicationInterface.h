@@ -1,10 +1,3 @@
-/*
- * MasterCommunicationInterface.h
- *
- * Created: 07/05/2019 10:30:22
- *  Author: Dániel Buga
- */ 
-
 #ifndef MASTER_COMMUNICATION_INTERFACE_H_
 #define MASTER_COMMUNICATION_INTERFACE_H_
 

@@ -1,7 +1,7 @@
 #include <atmel_start.h>
-#include "crc32_software.h"
 #include "flash_mapping.h"
 
+#include "utils/crc.h"
 #include "rrrc/utils/functions.h"
 #include "rrrc/runtime/runtime.h"
 #include "rrrc/include/color.h"

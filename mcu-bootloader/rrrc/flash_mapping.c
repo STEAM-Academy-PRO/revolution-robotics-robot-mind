@@ -1,11 +1,4 @@
-//==============================================================================
-// flash_mapping.c
-//
-// Created: 10.05.2019 15:49:09
-//  Author: pkurganov
-//==============================================================================
-
-#include "crc32_software.h"
+#include "utils/crc.h"
 #include "flash_mapping.h"
 #include "watchdog.h"
 #include "hri_rtc_d51.h"
@@ -15,11 +8,11 @@
 
 static const void * s_fw_data = (const void *) FLASH_FW_OFFSET;
 
-// The "RTC" define is located in a MCU header file such as "samd51p19a.h"
+/**
+ * The "RTC" define is located in a MCU header file such as "samd51p19a.h"
+ */
 static const void * s_rtc_module = (const void *) RTC;
 
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
 static void JumpTargetFirmware (uint32_t jump_addr) {
     __asm__ (" mov   r1, r0        \n"
              " ldr   r0, [r1, #4]  \n"
@@ -27,25 +20,21 @@ static void JumpTargetFirmware (uint32_t jump_addr) {
              " blx   r0");
 }
 
-//==============================================================================
-// Public functions
-//==============================================================================
-
 uint32_t FMP_ReadApplicationChecksum(void)
 {
     return FLASH_HEADER->target_checksum;
 }
 
-//------------------------------------------------------------------------------
-// Read the RTC GP registers to check if the bootloader mode was requested
-//
-// The function returns false if the current RTC module setup
-// is not configured to support the RTC General Purpose Registers access,
-// or when the values in the GP registers do not correspond to booloader mode.
-//
-// The function returns true if GP registers are filled with 0xFFFFFFFF values,
-// which indicate that the
-//------------------------------------------------------------------------------
+/**
+ * Read the RTC GP registers to check if the bootloader mode was requested
+ *
+ * The function returns false if the current RTC module setup
+ * is not configured to support the RTC General Purpose Registers access,
+ * or when the values in the GP registers do not correspond to booloader mode.
+ *
+ * The function returns true if GP registers are filled with 0xFFFFFFFF values,
+ * which indicate that the
+ */
 StartupReason_t FMP_CheckBootloaderModeRequest(void) {
 
     uint32_t gp0, gp1, gp2, gp3 = 0u;
@@ -83,8 +72,6 @@ StartupReason_t FMP_CheckBootloaderModeRequest(void) {
     return startupReason;
 }
 
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
 bool FMP_CheckTargetFirmware(bool check_expected_crc, uint32_t expected_crc) {
 
     uint32_t crc32 = 0xFFFFFFFFu;
@@ -98,7 +85,7 @@ bool FMP_CheckTargetFirmware(bool check_expected_crc, uint32_t expected_crc) {
         return false;
     }
 
-    crc32 = CRC32_Calculate(s_fw_data, FLASH_HEADER->target_length, crc32);
+    crc32 = CRC32_Calculate(crc32, s_fw_data, FLASH_HEADER->target_length);
     crc32 ^= 0xFFFFFFFFu; // Final CRC bit inversion as per algo specification
 
     return (crc32 == FLASH_HEADER->target_checksum);
@@ -141,25 +128,9 @@ void FMP_FixApplicationHeader(void)
     UpdateManager_Run_UpdateApplicationHeader(&header);
 }
 
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
 void FMT_JumpTargetFirmware(void) {
 
     __disable_irq();
     watchdog_start();
     JumpTargetFirmware(FLASH_ADDR + FLASH_FW_OFFSET);
-}
-
-//------------------------------------------------------------------------------
-// This is a sample function to request the bootloader mode. Please
-// be sure to disable any non-relevant RTC activity before calling this func.
-//------------------------------------------------------------------------------
-void FMT_SetBootloaderRequest(void) {
-
-    hri_rtcmode0_set_CTRLB_GP0EN_bit(s_rtc_module);
-    hri_rtcmode0_set_CTRLB_GP2EN_bit(s_rtc_module);
-    hri_rtc_write_GP_reg(s_rtc_module, 0u, (hri_rtc_gp_reg_t) 0xFFFFFFFFu);
-    hri_rtc_write_GP_reg(s_rtc_module, 1u, (hri_rtc_gp_reg_t) 0xFFFFFFFFu);
-    hri_rtc_write_GP_reg(s_rtc_module, 2u, (hri_rtc_gp_reg_t) 0xFFFFFFFFu);
-    hri_rtc_write_GP_reg(s_rtc_module, 3u, (hri_rtc_gp_reg_t) 0xFFFFFFFFu);
 }

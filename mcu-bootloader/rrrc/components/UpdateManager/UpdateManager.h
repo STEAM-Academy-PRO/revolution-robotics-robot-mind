@@ -1,11 +1,3 @@
-/*
- * UpdateManager.h
- *
- * Created: 2019. 06. 11. 13:42:17
- *  Author: bugad
- */ 
-
-
 #ifndef UPDATEMANAGER_H_
 #define UPDATEMANAGER_H_
 
