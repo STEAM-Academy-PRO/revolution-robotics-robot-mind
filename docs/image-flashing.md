@@ -2,7 +2,7 @@
 
 ## Software you need
 
-Download (balena etcher)[https://github.com/balena-io/etcher/releases] - click the assets dropdown under releases, download your OS's version!
+Download [balena etcher](https://github.com/balena-io/etcher/releases) - click the assets dropdown under releases, download your OS's version!
 
 ## Flash an image
 
