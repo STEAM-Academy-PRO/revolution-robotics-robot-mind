@@ -170,5 +170,6 @@ void UpdateManager_Write_Progress(uint8_t progress)
 
 void assert_failed(const char *file, uint32_t line)
 {
+    SEGGER_RTT_WriteString(0, "Bootloader Assert failed\r\n");
     __BKPT(0);
 }
