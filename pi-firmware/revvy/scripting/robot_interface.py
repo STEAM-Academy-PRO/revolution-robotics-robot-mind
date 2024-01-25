@@ -109,10 +109,11 @@ class Wrapper:
         self.if_resource_available(lambda res: res.run_uninterruptable(callback))
 
     def if_resource_available(self, callback):
-        with self.try_take_resource() as resource:
-            if resource:
+        # If the resource is not available, try_take_resource returns None.
+        resource_ctx = self.try_take_resource()
+        if resource_ctx:
+            with resource_ctx as resource:
                 callback(resource)
-
 
 class SensorPortWrapper(Wrapper):
     """Wrapper class to expose sensor ports to user scripts"""
@@ -669,8 +670,8 @@ class RobotWrapper(RobotInterface):
     """Wrapper class that exposes API to user-written scripts"""
 
     # FIXME: type hints missing because of circular reference that causes ImportError
-    def __init__(self, script, robot: RobotInterface, config, res: dict, priority=0):
-        self._resources = {name: ResourceWrapper(res[name], priority) for name in res}
+    def __init__(self, script, robot: RobotInterface, config, resources: dict, priority=0):
+        self._resources = {name: ResourceWrapper(resources[name], priority) for name in resources}
         self._robot = robot
 
         motor_wrappers = [MotorPortWrapper(script, port, self._resources[f'motor_{port.id}'])
