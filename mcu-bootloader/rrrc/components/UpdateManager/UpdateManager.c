@@ -1,5 +1,5 @@
 #include "UpdateManager.h"
-#include "crc32_software.h"
+#include "utils/crc.h"
 
 #include "../../utils/functions.h"
 #include <math.h>
@@ -88,7 +88,7 @@ UpdateManager_Status_t UpdateManager_Run_Program(const uint8_t* pData, size_t ch
     }
 
     /* update checksum */
-    current_crc = CRC32_Calculate(pData, chunkSize, current_crc);
+    current_crc = CRC32_Calculate(current_crc, pData, chunkSize);
     current_length += chunkSize;
     
     /* program flash */

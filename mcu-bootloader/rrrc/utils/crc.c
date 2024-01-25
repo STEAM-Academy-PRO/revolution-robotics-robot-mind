@@ -2,7 +2,7 @@
 
 #include <stdbool.h>
 
-/*
+/**
  * Precomputed CRC7 values using 0x89u polynomial
  * source: https://github.com/spotify/linux/blob/master/lib/crc7.c
  */
@@ -42,7 +42,9 @@ static const uint8_t crc7_table[256] =
     0x46, 0x4f, 0x54, 0x5d, 0x62, 0x6b, 0x70, 0x79
 };
 
-/* Precomputed CRC16 table with polynomial 0x1021 (CRC-16-CCITT) */
+/**
+ * Precomputed CRC16 table with polynomial 0x1021 (CRC-16-CCITT)
+ */
 static const uint16_t crc16_table[256] =
 {
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
@@ -79,6 +81,8 @@ static const uint16_t crc16_table[256] =
     0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0
 };
 
+static uint32_t crc32_table[256];
+
 static inline uint8_t crc7_byte(uint8_t crcval, uint8_t byte)
 {
     return crc7_table[(uint8_t)(byte ^ (crcval << 1u))];
@@ -104,6 +108,32 @@ uint16_t CRC16_Calculate(uint16_t crc, const uint8_t* pBuffer, size_t size)
     while (size-- > 0u)
     {
         crc = crc16_byte(crc, *pBuffer++);
+    }
+
+    return crc;
+}
+
+void CRC32_Init(void)
+{
+    #define CRC32_POLYNOMIAL (0xEDB88320)
+
+    for (int idx = 0; idx < 256; idx++)
+    {
+        uint8_t bit = 8;
+        uint32_t val = idx;
+        do
+        {
+            val = (val & 1) ? ((val >> 1) ^ CRC32_POLYNOMIAL) : (val >> 1);
+        } while (--bit);
+        crc32_table[idx] = val;
+    }
+}
+
+uint32_t CRC32_Calculate(uint32_t crc, const uint8_t* pBuffer, size_t size)
+{
+    while (size-- > 0u)
+    {
+        crc = crc32_table[(crc ^ *pBuffer++) & 0xFF] ^ (crc >> 8);
     }
 
     return crc;
