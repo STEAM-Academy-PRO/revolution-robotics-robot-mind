@@ -77,7 +77,7 @@ jobs:
           # currently the generated runtime is checked in, so this is not needed
           # cglue --generate --cglue-output=rrrc/generated_runtime
           make all config=release
-          python -m tools.prepare --release
+          python -m tools.prepare
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
