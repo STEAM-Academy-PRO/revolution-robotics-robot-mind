@@ -1,5 +1,5 @@
 #include "MasterCommunication.h"
-#include "../../utils/crc.h"
+#include "utils/crc.h"
 
 static uint8_t responseBuffer[256];
 
