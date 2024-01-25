@@ -135,7 +135,7 @@ jobs:
       - name: Add MCU bootloader
         uses: actions/download-artifact@v4
         with:
-          name: output/mcu-bootloader
+          name: mcu-bootloader
           path: output/mcu-bootloader/
 
       # TODO: duplicate download step because in the future I want to include
@@ -143,7 +143,7 @@ jobs:
       - name: Add MCU firmware
         uses: actions/download-artifact@v4
         with:
-          name: output/mcu-firmware
+          name: mcu-firmware
           path: output/mcu-firmware/
 
       - name: Assembling package
