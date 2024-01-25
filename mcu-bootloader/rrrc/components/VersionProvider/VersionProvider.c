@@ -1,10 +1,3 @@
-/*
- * VersionProvider.c
- *
- * Created: 2019. 07. 25. 14:38:17
- *  Author: Dániel Buga
- */ 
-
 #include "VersionProvider.h"
 
 #include "utils.h"

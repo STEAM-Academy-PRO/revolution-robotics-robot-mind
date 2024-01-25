@@ -1,12 +1,3 @@
-/*
- * CommunicationManager.h
- *
- * This file defines the implemented communication interface above the I2C protocol.
- *
- * Created: 2019. 05. 06. 17:40:11
- *  Author: Dániel Buga
- */ 
-
 #ifndef COMMUNICATION_MANAGER_H_
 #define COMMUNICATION_MANAGER_H_
 

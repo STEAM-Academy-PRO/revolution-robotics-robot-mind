@@ -1,0 +1,12 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "remote-debug-launcher",
+            "type": "shell",
+            "command": "./debug",
+            "problemMatcher": [],
+            "args": ["1"]
+        }
+    ]
+}

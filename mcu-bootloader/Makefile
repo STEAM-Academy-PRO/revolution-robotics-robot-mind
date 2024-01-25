@@ -35,7 +35,6 @@ rrrc/components/MasterCommunication/CommunicationManager.c \
 rrrc/components/MasterCommunication/MasterCommunication.c \
 rrrc/components/UpdateManager/UpdateManager.c \
 rrrc/components/VersionProvider/VersionProvider.c \
-rrrc/crc32_software.c \
 rrrc/flash_mapping.c \
 rrrc/runtime/comm_handlers.c \
 rrrc/utils/color.c \

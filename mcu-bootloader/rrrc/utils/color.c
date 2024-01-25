@@ -1,10 +1,3 @@
-/*
-* color.c
-*
-* Created: 2019. 04. 18. 14:41:49
-*  Author: Dániel Buga
-*/
-
 #include "color.h"
 
 #include "functions.h"
