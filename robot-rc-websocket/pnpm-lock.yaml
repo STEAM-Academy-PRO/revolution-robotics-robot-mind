@@ -1,6 +1,13 @@
 lockfileVersion: '6.0'
 
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
 dependencies:
+  '@solid-primitives/event-bus':
+    specifier: ^1.0.9
+    version: 1.0.9(solid-js@1.7.6)
   solid-js:
     specifier: ^1.7.6
     version: 1.7.6
@@ -600,7 +607,7 @@ packages:
       '@solid-devtools/shared': 0.12.0(solid-js@1.7.6)
       '@solid-primitives/bounds': 0.0.111(solid-js@1.7.6)
       '@solid-primitives/cursor': 0.0.109(solid-js@1.7.6)
-      '@solid-primitives/event-bus': 1.0.7(solid-js@1.7.6)
+      '@solid-primitives/event-bus': 1.0.9(solid-js@1.7.6)
       '@solid-primitives/event-listener': 2.2.13(solid-js@1.7.6)
       '@solid-primitives/keyboard': 1.2.3(solid-js@1.7.6)
       '@solid-primitives/platform': 0.0.105(solid-js@1.7.6)
@@ -617,7 +624,7 @@ packages:
     peerDependencies:
       solid-js: ^1.7.0
     dependencies:
-      '@solid-primitives/event-bus': 1.0.7(solid-js@1.7.6)
+      '@solid-primitives/event-bus': 1.0.9(solid-js@1.7.6)
       '@solid-primitives/event-listener': 2.2.13(solid-js@1.7.6)
       '@solid-primitives/media': 2.2.3(solid-js@1.7.6)
       '@solid-primitives/refs': 1.0.4(solid-js@1.7.6)
@@ -650,14 +657,13 @@ packages:
       solid-js: 1.7.6
     dev: true
 
-  /@solid-primitives/event-bus@1.0.7(solid-js@1.7.6):
-    resolution: {integrity: sha512-RMDR4tgOUdiWB7rEFO1XnlnbwOy6MrbrjdYwinDEaEWmXB5aJBFqTuoTw/SDbrckTu1rLe/g0tbCin/vgHWmRw==}
+  /@solid-primitives/event-bus@1.0.9(solid-js@1.7.6):
+    resolution: {integrity: sha512-BI9dla3GQzINsufEzr/CV3B/9e0D1pyk7Ig6kPI6s4geUkiVgFadY5V8R95PEeHH1NagOny7AHpw+RaRIuBpkA==}
     peerDependencies:
       solid-js: ^1.6.12
     dependencies:
-      '@solid-primitives/utils': 6.2.0(solid-js@1.7.6)
+      '@solid-primitives/utils': 6.2.2(solid-js@1.7.6)
       solid-js: 1.7.6
-    dev: true
 
   /@solid-primitives/event-listener@2.2.13(solid-js@1.7.6):
     resolution: {integrity: sha512-8GtVEq0ECZoa5Klo1jjfGPfwg0zVJ8TNnNkWu8FqRkh0CkhbhCVJAKwjleem9K/qL6zUDfJihLjhqGBTBbb+8w==}
@@ -772,6 +778,13 @@ packages:
     dependencies:
       solid-js: 1.7.6
     dev: true
+
+  /@solid-primitives/utils@6.2.2(solid-js@1.7.6):
+    resolution: {integrity: sha512-11ypVbp987XxETeRqY5Y3OmmTpm8/jZqJXRvo6AyqBthzkvvjEdReuUMU2yVb+pwWGxfZpWHZ6EUCcGXUMhfwg==}
+    peerDependencies:
+      solid-js: ^1.6.12
+    dependencies:
+      solid-js: 1.7.6
 
   /@types/babel__core@7.20.1:
     resolution: {integrity: sha512-aACu/U/omhdk15O4Nfb+fHgH/z3QsfQzpnvRZhYhThms83ZnAOZz7zZAWO7mn2yyNQaA4xTO8GLK3uqFU4bYYw==}
@@ -993,8 +1006,8 @@ packages:
     resolution: {integrity: sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==}
     dev: true
 
-  /nanoid@3.3.6:
-    resolution: {integrity: sha512-BGcqMMJuToF7i1rt+2PWSNVnWIkGCU78jBG3RxO/bZlnZPK2Cmi2QaffxGO/2RvWi9sL+FAiRiXMgsyxQ1DIDA==}
+  /nanoid@3.3.7:
+    resolution: {integrity: sha512-eSRppjcPIatRIMC1U6UngP8XFcz8MQWGQdt1MTBQ7NaAmvXDfvNxbvWV3x2y6CdEUciCSsDHDQZbhYaB8QEo2g==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
     dev: true
@@ -1007,11 +1020,11 @@ packages:
     resolution: {integrity: sha512-1fygroTLlHu66zi26VoTDv8yRgm0Fccecssto+MhsZ0D/DGW2sm8E8AjW7NU5VVTRt5GxbeZ5qBuJr+HyLYkjQ==}
     dev: true
 
-  /postcss@8.4.24:
-    resolution: {integrity: sha512-M0RzbcI0sO/XJNucsGjvWU9ERWxb/ytp1w6dKtxTKgixdtQDq4rmx/g8W1hnaheq9jgwL/oyEdH5Bc4WwJKMqg==}
+  /postcss@8.4.33:
+    resolution: {integrity: sha512-Kkpbhhdjw2qQs2O2DGX+8m5OVqEcbB9HRBvuYM9pgrjEFUg30A9LmXNlTAUj4S9kgtGyrMbTzVjH7E+s5Re2yg==}
     engines: {node: ^10 || ^12 || >=14}
     dependencies:
-      nanoid: 3.3.6
+      nanoid: 3.3.7
       picocolors: 1.0.0
       source-map-js: 1.0.2
     dev: true
@@ -1155,7 +1168,7 @@ packages:
         optional: true
     dependencies:
       esbuild: 0.17.19
-      postcss: 8.4.24
+      postcss: 8.4.33
       rollup: 3.25.1
     optionalDependencies:
       fsevents: 2.3.2
@@ -1175,7 +1188,3 @@ packages:
   /yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
     dev: true
-
-settings:
-  autoInstallPeers: true
-  excludeLinksFromLockfile: false
