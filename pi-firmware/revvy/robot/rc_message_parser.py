@@ -14,4 +14,4 @@ def parse_control_message(data):
     next_deadline = struct.unpack('<I', deadline_packed)[0]
     button_values = bits_to_bool_list(data[11:15])
 
-    return [analog_values, deadline_packed, next_deadline, button_values]
+    return [analog_values, next_deadline, button_values]

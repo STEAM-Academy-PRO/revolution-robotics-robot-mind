@@ -14,6 +14,7 @@ from revvy.robot.ports.sensor import create_sensor_port_handler
 from revvy.robot.sound import Sound
 from revvy.robot.status import RobotStatusIndicator, RobotStatus
 from revvy.robot.status_updater import McuStatusUpdater
+from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import RobotInterface
 from revvy.utils.assets import Assets
 from revvy.utils.logger import get_logger
@@ -98,6 +99,18 @@ class Robot(RobotInterface):
         self.update_status = self._status_updater.read
         self.ping = self._robot_control.ping
 
+        self._resources = {
+            'led_ring':   Resource('RingLed'),
+            'drivetrain': Resource('DriveTrain'),
+            'sound':      Resource('Sound'),
+
+            **{f'motor_{port.id}': Resource(f'Motor {port.id}') for port in self.motors},
+            **{f'sensor_{port.id}': Resource(f'Sensor {port.id}') for port in self.sensors}
+        }
+
+    @property
+    def resources(self):
+        return self._resources
 
     def __del__(self):
         self._comm_interface.close()

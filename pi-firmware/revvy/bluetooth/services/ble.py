@@ -1,8 +1,6 @@
 from pybleno import BlenoPrimaryService
 
-from revvy.robot.communication import RobotCommunicationInterface
-
-class BleService(BlenoPrimaryService, RobotCommunicationInterface):
+class BleService(BlenoPrimaryService):
     """ Generic Bluetooth Service Channel Interface"""
     def __init__(self, uuid, characteristics: dict):
 
