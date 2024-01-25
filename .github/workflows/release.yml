@@ -108,7 +108,7 @@ jobs:
 
   assemble-and-upload:
     permissions:
-      contents: read # checkout
+      contents: write # checkout: read, upload-release-action: write
       pull-requests: read # paths-filter
 
     runs-on: ubuntu-latest
