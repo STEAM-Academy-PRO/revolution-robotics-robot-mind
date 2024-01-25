@@ -354,7 +354,7 @@ class DriveTrainWrapper(Wrapper):
             raise Exception()
         if resource:
             try:
-                self._drivetrain.set_speed(direction, speed, unit_speed)
+                self.__drivetrain.set_speed(direction, speed, unit_speed)
             finally:
                 if speed == 0:
                     resource.release()
@@ -626,7 +626,7 @@ class LineDriver:
             self.__log_debug('OFF-RIGHT')
             debug_stop(current, 1)
             self.__turn_right()
-        elif current == perpendicular:
+        elif current == on_line_perpendicular:
             self.__log_debug('PERPENDICULAR')
             debug_stop(current, 4)
             self.__turn_left()
@@ -727,7 +727,7 @@ class RobotWrapper(RobotInterface):
 
     @property
     def sound(self):
-        raise self._sound
+        return self._sound
 
     def play_tune(self, name):
         self._sound.play_tune(name)
