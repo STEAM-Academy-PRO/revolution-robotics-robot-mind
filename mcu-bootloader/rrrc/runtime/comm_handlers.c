@@ -4,6 +4,7 @@
 #include "../utils/converter.h"
 
 #include <string.h> // memcpy
+#include "SEGGER_RTT.h"
 
 /* These constants are common between bootloader and application */
 #define OPERATION_MODE_BOOTLOADER   ((uint8_t) 0xBBu)
@@ -33,6 +34,7 @@ static Comm_Status_t GetOperationMode_Start(const uint8_t* commandPayload, uint8
     (void) commandSize;
     (void) responseBufferSize;
 
+    SEGGER_RTT_printf(0, "GetOperationMode\n");
     *response = OPERATION_MODE_BOOTLOADER;
     *responseCount = 1u;
     return Comm_Status_Ok;
@@ -44,6 +46,7 @@ static Comm_Status_t ReadApplicationCrc_Start(const uint8_t* commandPayload, uin
     (void) commandSize;
     (void) responseBufferSize;
 
+    SEGGER_RTT_printf(0, "ReadApplicationCrc\n");
     uint32_t checksum = FMP_ReadApplicationChecksum();
     memcpy(response, &checksum, 4u);
     *responseCount = 4u;
@@ -56,6 +59,7 @@ static Comm_Status_t InitializeUpdate_Start(const uint8_t* commandPayload, uint8
     (void) responseBufferSize;
     (void) responseCount;
 
+    SEGGER_RTT_printf(0, "InitializeUpdate\n");
     if (commandSize != 8u)
     {
         return Comm_Status_Error_PayloadLengthError;
@@ -81,6 +85,7 @@ static Comm_Status_t ProgramApplication_Start(const uint8_t* commandPayload, uin
     (void) response;
     (void) responseCount;
 
+    SEGGER_RTT_printf(0, "ProgramApplication\n");
     switch (UpdateManager_Run_Program(commandPayload, commandSize))
     {
         case UpdateManager_Ok:
@@ -99,6 +104,7 @@ static Comm_Status_t FinalizeUpdate_Start(const uint8_t* commandPayload, uint8_t
     (void) responseBufferSize;
     (void) responseCount;
 
+    SEGGER_RTT_printf(0, "FinalizeUpdate\n");
     switch (UpdateManager_Run_Finalize())
     {
         case UpdateManager_Ok:
