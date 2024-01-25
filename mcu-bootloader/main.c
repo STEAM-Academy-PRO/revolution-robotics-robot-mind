@@ -25,16 +25,32 @@ static bool jump_to_application = false;
 static rgb_t ringLeds[12] = { 0 };
 static bool ringLedsChanged;
 
+extern uint32_t _srtt;
+extern uint32_t _ertt;
+
+static void clear_rtt() {
+    // Clear the rtt segments
+    for (uint32_t* pDest = &_srtt; pDest < &_ertt;) {
+        *pDest++ = 0;
+    }
+
+}
+
 int main(void)
 {
-    SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_NO_BLOCK_SKIP);
-
-    SEGGER_RTT_WriteString(0, "Starting bootloader\r\n");
-
     /* Perform the very basic init and check the bootloader mode request */
     init_mcu();
     CRC32_Init();
+
     StartupReason_t startupReason = FMP_CheckBootloaderModeRequest();
+
+    if (startupReason == StartupReason_PowerUp)
+    {
+        clear_rtt();
+    }
+
+    SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_NO_BLOCK_SKIP);
+
     switch (startupReason) {
         case StartupReason_PowerUp:
             SEGGER_RTT_WriteString(0, "Startup reason: Power up\r\n");
@@ -46,6 +62,8 @@ int main(void)
             SEGGER_RTT_WriteString(0, "Startup reason: WDT reset\r\n");
             break;
     }
+
+    SEGGER_RTT_WriteString(0, "Starting bootloader\r\n");
 
     if (startupReason == StartupReason_PowerUp)
     {

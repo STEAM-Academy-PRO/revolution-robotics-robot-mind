@@ -161,7 +161,7 @@ SECTIONS
         _estack = .;
     } > ram
 
-    .segger_rtt :
+    .segger_rtt (NOLOAD):
     {
         . = ALIGN(4);
         _srtt = .;
