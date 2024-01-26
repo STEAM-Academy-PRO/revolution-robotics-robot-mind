@@ -1,3 +1,8 @@
+"""
+    Manages robot on high level.
+    Instantiates Robot, RemoteController, preserves state,
+    processes configuration messages.
+"""
 
 import enum
 import os
@@ -7,11 +12,13 @@ import time
 from functools import partial
 from threading import Event
 
-from revvy.mcu.rrrc_transport import TransportException
 from revvy.robot.communication import RobotCommunicationInterface
 from revvy.robot.robot import Robot
-from revvy.robot.remote_controller import RemoteController, RemoteControllerScheduler, create_remote_controller_thread
+from revvy.robot.remote_controller import RemoteController, RemoteControllerScheduler
+from revvy.robot.remote_controller import create_remote_controller_thread
 from revvy.robot.led_ring import RingLed
+from revvy.robot.robot_events import RobotEvent
+from revvy.robot.robot_state import RobotState
 from revvy.robot.status import RobotStatus, RemoteControllerStatus
 from revvy.robot_config import empty_robot_config
 from revvy.scripting.robot_interface import MotorConstants
@@ -19,7 +26,6 @@ from revvy.scripting.runtime import ScriptEvent, ScriptHandle, ScriptManager
 from revvy.utils.directories import WRITEABLE_ASSETS_DIR
 from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.stopwatch import Stopwatch
-from revvy.utils.thread_wrapper import periodic
 
 
 class RevvyStatusCode(enum.IntEnum):
@@ -30,15 +36,16 @@ class RevvyStatusCode(enum.IntEnum):
 
 
 class RobotManager:
+    """ High level class to manage robot state and configuration """
     def __init__(self):
         self._log = get_logger('RobotManager')
         self.needs_interrupting = True
 
         self._configuring = False
         self._robot = Robot()
+
         self._robot.assets.add_source(WRITEABLE_ASSETS_DIR)
 
-        self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
         self._background_fns = []
 
         rc = RemoteController()
@@ -49,6 +56,8 @@ class RobotManager:
 
         self._remote_controller = rc
         self._remote_controller_thread = create_remote_controller_thread(rcs)
+
+        self._robot_state = RobotState(self._robot, self._remote_controller)
 
         self._scripts = ScriptManager(self._robot)
         self._bg_controlled_scripts = ScriptManager(self._robot)
@@ -65,7 +74,20 @@ class RobotManager:
 
         self.handle_periodic_control_message = self._remote_controller_scheduler.periodic_control_message_handler
 
+        self._robot_state.on(RobotEvent.FATAL_ERROR, self.exit)
+
+        # Start reading status from the robot.
+        self._robot_state.start_polling_mcu()
+
+        # TODO: REMOVE THIS
         self._robot_interface = None
+
+        self.on = self._robot_state.on
+
+        # TODO: This is temporary until I figure out WHY we need to run this every 5ms
+        self.on(RobotEvent.MCU_TICK, self.process_run_in_bg_requests)
+        self.on(RobotEvent.MCU_TICK, self.process_autonomous_requests)
+
 
     def set_communication_interface_callbacks(self, communication_interface: RobotCommunicationInterface):
         # Ditch former connection!
@@ -119,12 +141,20 @@ class RobotManager:
 
         callback(success, motors_result, sensors_result)
 
+
+
+    # Why is this in here, and not e.g. in the control message handler?
+    # This was triggered every 5, i repeat, EVERY FIVE MILLISECONDS!!!?!?
+    # WHYYYY?
+
     def process_run_in_bg_requests(self):
         functions = self._background_fns
         self._background_fns = []
         for i, f in enumerate(functions):
             self._log(f'Running {i}/{len(functions)} background functions')
             f()
+
+    # So as this.
 
     def process_autonomous_requests(self):
         if self._autonomous == 'ready':
@@ -137,55 +167,6 @@ class RobotManager:
                 self._bg_controlled_scripts.stop_all_scripts()
             elif req.is_resume_pending():
                 self._bg_controlled_scripts.resume_all_scripts()
-
-
-    def _update(self):
-        """
-            This runs every 5ms and reads out the robot's statuses.
-        """
-        # noinspection PyBroadException
-        try:
-            self._robot.update_status()
-
-            self._robot_interface.update_battery(
-              self._robot.battery.main,
-              self._robot.battery.chargerStatus,
-              self._robot.battery.motor,
-              self._robot.battery.motor_battery_present)
-
-            self._remote_controller.timer_increment()
-
-            vector_list = [
-                getattr(self._robot.imu.rotation, 'x'),
-                getattr(self._robot.imu.rotation, 'y'),
-                getattr(self._robot.imu.rotation, 'z'),
-            ]
-            vector_orientation = [
-                getattr(self._robot.imu.orientation, 'pitch'),
-                getattr(self._robot.imu.orientation, 'roll'),
-                getattr(self._robot.imu.orientation, 'yaw'),
-            ]
-            self._robot_interface.update_orientation(vector_orientation)
-            self._robot_interface.update_gyro(vector_list)
-            self._robot_interface.update_script_variable(self._robot.script_variables)
-            self._robot_interface.update_state_control(self.remote_controller.background_control_state)
-
-            self._robot_interface.update_timer(self._remote_controller.processing_time)
-
-            self.process_run_in_bg_requests()
-            self.process_autonomous_requests()
-
-        except TransportException:
-            self._log(traceback.format_exc())
-            self._log(traceback.format_exc())
-            self._log(traceback.format_exc())
-            self.exit(RevvyStatusCode.ERROR)
-        except BrokenPipeError:
-            self._log("Status Update Error from MCU", LogLevel.WARNING)
-        except OSError as e:
-            self._log(f"{str(e)}", LogLevel.WARNING)
-        except Exception:
-            self._log(traceback.format_exc())
 
 
 
@@ -235,9 +216,6 @@ class RobotManager:
                 pass  # FIXME somehow handle a dead MCU
 
             self._log('Connection to MCU established')
-
-            # start reader thread
-            self._status_update_thread.start()
 
             self._robot.status.robot_status = RobotStatus.NotConfigured
 
@@ -396,13 +374,13 @@ class RobotManager:
         else:
             self._robot.status.robot_status = RobotStatus.Configured
 
-    def robot_stop(self):
+    def robot_stop(self, *args):
+        self._robot_state.stop_polling_mcu()
         self._robot.status.controller_status = RemoteControllerStatus.NotConnected
         self._robot.status.robot_status = RobotStatus.Stopped
         self._remote_controller_thread.exit()
         self._robot_interface.stop()
         self._scripts.reset()
-        self._status_update_thread.exit()
         self._robot.stop()
 
     def _ping_robot(self, timeout=0):

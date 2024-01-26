@@ -84,6 +84,7 @@ class RevvyBLE(RobotCommunicationInterface):
         self._bleno.on('disconnect', lambda _: self._robot_manager.on_connection_changed(False))
         # pylint: enable=no-member
 
+        # TODO: REPLACE THIS!
         self._robot_manager.set_communication_interface_callbacks(self)
 
     def on_connected(self, c):

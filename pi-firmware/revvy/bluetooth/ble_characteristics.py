@@ -75,7 +75,7 @@ class CustomBatteryLevelCharacteristic(Characteristic):
         })
 
         self._updateValueCallback = None
-        self._value = 99  # initial value only
+        self._value = [0,0,0,0]  # initial value only
 
     def onReadRequest(self, offset, callback):
         if offset:

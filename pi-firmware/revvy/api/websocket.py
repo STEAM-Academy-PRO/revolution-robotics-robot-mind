@@ -24,6 +24,11 @@ class RobotWebSocketApi:
         self._connections = []
         self.thread()
 
+        robot_manager.on("all", self.all_event_capture)
+
+    def all_event_capture(self, object_ref, evt, data=None):
+        log(f'All event capture {evt} {str(data)}')
+
     def start(self):
         asyncio.set_event_loop(asyncio.new_event_loop())
         log('Starting WebSocket server')

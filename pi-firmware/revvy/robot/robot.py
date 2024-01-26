@@ -11,6 +11,7 @@ from revvy.robot.imu import IMU
 from revvy.robot.led_ring import RingLed
 from revvy.robot.ports.motor import create_motor_port_handler
 from revvy.robot.ports.sensor import create_sensor_port_handler
+from revvy.robot.robot_state import RobotState
 from revvy.robot.sound import Sound
 from revvy.robot.status import RobotStatusIndicator, RobotStatus
 from revvy.robot.status_updater import McuStatusUpdater
@@ -49,6 +50,7 @@ class Robot(RobotInterface):
     def __init__(self, bus_factory=None):
         if bus_factory is None:
             bus_factory = self._default_bus_factory
+
         self._bus_factory = bus_factory
 
         self._comm_interface = self._bus_factory()
