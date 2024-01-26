@@ -1,9 +1,11 @@
 """ Simple observable implementation. """
 
+import copy
 import threading
 from time import time
 
 from typing import Generic, TypeVar, Callable, List
+
 
 
 VariableType = TypeVar('VariableType')
@@ -29,12 +31,12 @@ class Observable(Generic[VariableType]):
         """ If not throttling, effects are instant. If throttling, effects are delayed. """
         if self._throttle_interval == 0:
             for observer in self._observers:
-                observer(self)
+                observer(self._data)
         else:
             current_time = time()
             if current_time - self._last_update_time > self._throttle_interval:
                 for observer in self._observers:
-                    observer(self)
+                    observer(self._data)
                 self._last_update_time = current_time
                 self._update_pending = False
             else:
@@ -51,7 +53,7 @@ class Observable(Generic[VariableType]):
         if new_data != self._data:
             # For lists or complex objects, make a deep copy
             if isinstance(new_data, list):
-                self._data = new_data.deep_copy()
+                self._data = copy.deepcopy(new_data)
             else:
                 self._data = new_data
             self.notify()

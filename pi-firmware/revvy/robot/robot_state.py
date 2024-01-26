@@ -9,6 +9,8 @@ It polls the MCU for updates in any states.
 """
 
 from functools import partial
+from math import floor
+import math
 import traceback
 from revvy.mcu.rrrc_transport import TransportException
 from revvy.robot.remote_controller import RemoteController
@@ -35,9 +37,13 @@ class RobotState(Emitter[RobotEvent]):
         self._remote_controller = remote_controller
         self._status_update_thread:ThreadWrapper = None
 
-        self._battery = Observable([0]*4, throttle_interval=1)
+        # Battery updates: every 2 seconds is enough, if it's unplugged, it's
+        # soon enough to notify.
+        self._battery = Observable([0]*4, 2)
+
         self._gyro = Observable([0]*3, throttle_interval=0.1)
         self._orientation = Observable([0]*3, throttle_interval=0.1)
+
         self._script_variables = Observable ([None]*4, throttle_interval=0.1)
 
         self._background_control_state = Observable('', throttle_interval=0.1)
@@ -47,13 +53,15 @@ class RobotState(Emitter[RobotEvent]):
         """ Starts a new thread that runs every 5ms to check on MCU status. """
         self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
 
-        self._battery.subscribe(partial(self.on, RobotEvent.BATTERY_CHANGE))
-        self._gyro.subscribe(partial(self.on, RobotEvent.GYRO_CHANGE))
-        self._orientation.subscribe(partial(self.on, RobotEvent.ORIENTATION_CHANGE))
-        self._script_variables.subscribe(partial(self.on, RobotEvent.BATTERY_CHANGE))
+        self._battery.subscribe(partial(self.trigger, RobotEvent.BATTERY_CHANGE))
+        self._gyro.subscribe(partial(self.trigger, RobotEvent.GYRO_CHANGE))
+        self._orientation.subscribe(partial(self.trigger, RobotEvent.ORIENTATION_CHANGE))
+        self._script_variables.subscribe(partial(self.trigger, RobotEvent.BATTERY_CHANGE))
 
-        self._background_control_state.subscribe(partial(self.on, RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE))
-        self._timer.subscribe(partial(self.on, RobotEvent.TIMER_TICK))
+        self._background_control_state.subscribe(partial(self.trigger, RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE))
+        self._timer.subscribe(partial(self.trigger, RobotEvent.TIMER_TICK))
+
+        self._robot.reset()
 
         self._status_update_thread.start()
 
@@ -80,11 +88,17 @@ class RobotState(Emitter[RobotEvent]):
             # TODO: Check what this does, and WHY?
             # self._remote_controller.timer_increment()
 
+            # Rotation has pretty high noise. To filter it out, I am cutting off the
+            # number's values below 1. `floor` works not to the need of this, and would
+            # return -1 for 0.99. Instead, I created a floor, that does the trick and
+            # drops the small absolute value of the number properly below 0
             self._gyro.set([
-                getattr(self._robot.imu.rotation, 'x'),
-                getattr(self._robot.imu.rotation, 'y'),
-                getattr(self._robot.imu.rotation, 'z')
+                floor0(getattr(self._robot.imu.rotation, 'x')),
+                floor0(getattr(self._robot.imu.rotation, 'y')),
+                floor0(getattr(self._robot.imu.rotation, 'z'))
             ])
+
+            ### This seems to do NOTHING.
             self._orientation = ([
                 getattr(self._robot.imu.orientation, 'pitch'),
                 getattr(self._robot.imu.orientation, 'roll'),
@@ -111,3 +125,9 @@ class RobotState(Emitter[RobotEvent]):
         except Exception:
             log(traceback.format_exc())
 
+
+def floor0(number):
+    if number < 0:
+        return math.ceil(number)
+    else:
+        return math.floor(number)

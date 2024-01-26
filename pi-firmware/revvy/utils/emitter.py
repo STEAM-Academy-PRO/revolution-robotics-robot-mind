@@ -32,10 +32,15 @@ class Emitter(Generic[CustomEventType]):
 
     def trigger(self, event_type: CustomEventType, data=None):
         """ Triggers all the event handlers subscribed with on(event, callback) """
+
+        for handler in self._all_handlers:
+            handler(self, event_type, data)
+
+        if event_type not in self._events_handlers:
+            # Noone to notify...
+            return
         for event_handler in self._events_handlers[event_type]:
             # Important to pass down self, so we have the reference of
             # the handler one level up.
             event_handler(self, data)
 
-        for handler in self._all_handlers:
-            handler(self, event_type, data)

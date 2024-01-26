@@ -11,7 +11,6 @@ from revvy.robot.imu import IMU
 from revvy.robot.led_ring import RingLed
 from revvy.robot.ports.motor import create_motor_port_handler
 from revvy.robot.ports.sensor import create_sensor_port_handler
-from revvy.robot.robot_state import RobotState
 from revvy.robot.sound import Sound
 from revvy.robot.status import RobotStatusIndicator, RobotStatus
 from revvy.robot.status_updater import McuStatusUpdater
@@ -63,7 +62,6 @@ class Robot(RobotInterface):
         self._script_variables = VariableSlot(4)
 
         self._robot_control = self._comm_interface.create_application_control()
-        self._bootloader_control = self._comm_interface.create_bootloader_control()
 
         self._stopwatch = Stopwatch()
 
@@ -130,10 +128,6 @@ class Robot(RobotInterface):
         return self._robot_control
 
     @property
-    def bootloader_control(self):
-        return self._bootloader_control
-
-    @property
     def battery(self):
         return self._battery
 
@@ -193,7 +187,7 @@ class Robot(RobotInterface):
 
 
     def reset(self):
-        self._log('reset()')
+        self._log('reset() --------------------------------------------------------------------')
         self._ring_led.start_animation(RingLed.BreathingGreen)
         self._status_updater.reset()
 

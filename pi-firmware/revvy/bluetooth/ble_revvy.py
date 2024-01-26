@@ -6,6 +6,7 @@ from pybleno import Bleno
 from revvy.bluetooth.services.battery import CustomBatteryService
 from revvy.bluetooth.services.device_information import DeviceInformationService
 from revvy.bluetooth.services.long_message import LongMessageService
+from revvy.robot.robot_events import RobotEvent
 
 from revvy.utils.device_name import get_device_name
 from revvy.utils.directories import BLE_STORAGE_DIR, WRITEABLE_ASSETS_DIR
@@ -86,6 +87,10 @@ class RevvyBLE(RobotCommunicationInterface):
 
         # TODO: REPLACE THIS!
         self._robot_manager.set_communication_interface_callbacks(self)
+
+
+    # def subscribe_to_state_changes(self):
+        # self._robot_manager.on(RobotEvent.BATTERY_CHANGE)
 
     def on_connected(self, c):
         """ On new connection, update the callback interfaces. """

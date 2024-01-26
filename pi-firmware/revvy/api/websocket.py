@@ -33,7 +33,7 @@ class RobotWebSocketApi:
         asyncio.set_event_loop(asyncio.new_event_loop())
         log('Starting WebSocket server')
         server = websockets.serve(self.incoming_connection, "0.0.0.0", SERVER_PORT)
-        log('Started WebSocket server')
+        log(f'Started WebSocket server on {SERVER_PORT}')
         asyncio.get_event_loop().run_until_complete(server)
         asyncio.get_event_loop().run_forever()
 

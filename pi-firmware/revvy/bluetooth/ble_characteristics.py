@@ -385,6 +385,7 @@ class UnifiedBatteryInfoCharacteristic(CustomBatteryLevelCharacteristic):
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
+
     def update_value(self,
         core_battery_level,
         core_battery_status,
