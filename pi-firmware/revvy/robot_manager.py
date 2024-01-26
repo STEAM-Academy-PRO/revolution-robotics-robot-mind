@@ -14,9 +14,8 @@ from revvy.robot.remote_controller import RemoteController, RemoteControllerSche
 from revvy.robot.led_ring import RingLed
 from revvy.robot.status import RobotStatus, RemoteControllerStatus
 from revvy.robot_config import empty_robot_config
-from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import MotorConstants
-from revvy.scripting.runtime import ScriptManager
+from revvy.scripting.runtime import ScriptEvent, ScriptHandle, ScriptManager
 from revvy.utils.directories import WRITEABLE_ASSETS_DIR
 from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.stopwatch import Stopwatch
@@ -51,17 +50,8 @@ class RobotManager:
         self._remote_controller = rc
         self._remote_controller_thread = create_remote_controller_thread(rcs)
 
-        self._resources = {
-            'led_ring':   Resource('RingLed'),
-            'drivetrain': Resource('DriveTrain'),
-            'sound':      Resource('Sound'),
-
-            **{f'motor_{port.id}': Resource(f'Motor {port.id}') for port in self._robot.motors},
-            **{f'sensor_{port.id}': Resource(f'Sensor {port.id}') for port in self._robot.sensors}
-        }
-
-        self._scripts = ScriptManager(self)
-        self._bg_controlled_scripts = ScriptManager(self)
+        self._scripts = ScriptManager(self._robot)
+        self._bg_controlled_scripts = ScriptManager(self._robot)
         self._autonomous = 0
         self._config = empty_robot_config
 
@@ -195,9 +185,7 @@ class RobotManager:
         except Exception:
             self._log(traceback.format_exc())
 
-    @property
-    def resources(self):
-        return self._resources
+
 
     @property
     def config(self):
@@ -306,7 +294,7 @@ class RobotManager:
 
         self._remote_controller_thread.stop().wait()
 
-        for res in self._resources.values():
+        for res in self._robot._resources.values():
             res.reset()
 
         # ping robot, because robot may reset after stopping scripts
@@ -349,30 +337,43 @@ class RobotManager:
 
         # set up remote controller
         for analog in config.controller.analog:
-            script_handle = self._scripts.add_script(analog['script'])
+            script_handle = self._scripts.add_script(analog['script'], config)
             self._remote_controller.on_analog_values(analog['channels'], partial(start_analog_script, script_handle))
 
         # Set up all the bound buttons to run the stored scripts.
         for button, script in enumerate(config.controller.buttons):
             if script:
-                script_handle = self._scripts.add_script(script)
+                script_handle = self._scripts.add_script(script, config)
                 script_handle.assign('list_slots', scriptvars)
-                self._remote_controller.set_on_button_pressed(button, script_handle.start)
-                ### This is a sketch for script running callbacks.
-                # script_handle.on_stopped(lambda self: self._on_script_stopped(script_handle))
+                self._remote_controller.link_button_to_runner(button, script_handle)
+
+                script_handle.on(ScriptEvent.STOP, self._on_script_stopped)
+                script_handle.on(ScriptEvent.ERROR, self._on_script_error)
 
         self._autonomous = config.background_initial_state
 
         for script in config.background_scripts:
-            self._bg_controlled_scripts.add_script(script)
+            self._bg_controlled_scripts.add_script(script, config)
 
         self.remote_controller.reset_background_control_state()
         if config.background_initial_state == 'running':
             self._bg_controlled_scripts.start_all_scripts()
 
-    def _on_script_stopped(self, script):
-        self._log('script stopped!')
-        self._log(f'script: {script}')
+
+    def _on_script_error(self, script: ScriptHandle, ex):
+        """
+            Handle runner script errors gracefully, and type out what caused it to bail!
+            These are user scripts, so we should consider sending them back via Bluetooth
+        """
+        self._log(f'ERROR in userscript: {script.name}', LogLevel.ERROR)
+        self._log(f'ERROR:  {str(ex)}', LogLevel.ERROR)
+        self._log(f'Source that caused the error: \n\n{script.descriptor.source}\n\n', LogLevel.ERROR)
+        self._log(f'{traceback.format_exc()}', LogLevel.ERROR)
+
+    def _on_script_stopped(self, script, data=None):
+        """ If we want to send back script status stopped change, this is the place. """
+        # self._log(f'script: {script.name}')
+        pass
 
     def _robot_configure(self, config):
 

@@ -120,7 +120,7 @@ class RobotConfig:
                 raise KeyError(f'Builtin script "{script_name}" does not exist')
 
             log(f'Use builtin script: {script_name}')
-            return builtin_scripts[script_name]
+            return builtin_scripts[script_name], 'built in script: ' + script_name
 
         source_b64 = json_get_field(script, ['pythonCode', 'pythoncode'],
             optional=True)
@@ -128,23 +128,26 @@ class RobotConfig:
         if not source_b64:
             raise KeyError('Neither builtinScriptName, nor pythonCode is present for a script')
 
-        code = b64_decode_str(source_b64)
+        script_source_code = b64_decode_str(source_b64)
         log('Use python code as script')
 
-        code = code.replace('import time\n', '')
-        return str_to_func(code, script_num)
+        ### TODO: This is a HACK!!! Blockly should not be generating
+        # import time\n headers, if we do not want them.
+        script_source_code = script_source_code.replace('import time\n', '')
+
+        return str_to_func(script_source_code, script_num), script_source_code
 
     @staticmethod
     def process_script(config, script, script_idx):
         log(f'Processing script #{script_idx}')
-        runnable = RobotConfig.create_runnable(script, script_idx)
+        runnable, source = RobotConfig.create_runnable(script, script_idx)
 
         assignments = script['assignments']
         # script names are mostly relevant for logging
         for analog_assignment in assignments.setdefault('analog', []):
             script_name = make_analog_script_name(analog_assignment, script_idx)
             priority = analog_assignment['priority']
-            script_desc = ScriptDescriptor(script_name, runnable, priority)
+            script_desc = ScriptDescriptor(script_name, runnable, priority, source = source)
             config.controller.analog.append({
                 'channels': analog_assignment['channels'],
                 'script': script_desc
@@ -161,13 +164,13 @@ class RobotConfig:
             button_idx = button_assignment['id']
             script_name = make_button_script_name(script_idx, button_idx)
             priority = button_assignment['priority']
-            script_desc = ScriptDescriptor(script_name, runnable, priority)
+            script_desc = ScriptDescriptor(script_name, runnable, priority, source = source, ref_id=button_idx)
             config.controller.buttons[button_idx] = script_desc
 
         if 'background' in assignments:
             script_name = make_script_name_common(script_idx, "background", "0")
             priority = assignments['background']
-            script_desc = ScriptDescriptor(script_name, runnable, priority)
+            script_desc = ScriptDescriptor(script_name, runnable, priority, source = source, ref_id=script_idx)
             config.background_scripts.append(script_desc)
 
     @staticmethod

@@ -1,14 +1,14 @@
 
 import time
-import traceback
 from threading import Event, Thread, Lock, RLock
+import traceback
 
-from revvy.utils.logger import get_logger, LogLevel
+from revvy.utils.logger import LogLevel, get_logger
 
-
+# TODO: This busted the list it was given, so e.g. script stop callbacks would not get called
+# back multiple times. I have no clue how many other things this broke.
 def _call_callbacks(cb_list: list):
-    while cb_list:
-        cb = cb_list.pop()
+    for cb in cb_list:
         cb()
 
 
@@ -26,13 +26,14 @@ class ThreadWrapper:
     PAUSED = 5
 
     def __init__(self, func, name="WorkerThread"):
-        self._log = get_logger(['ThreadWrapper', name])
+        self._log = get_logger(['ThreadWrapper', name], off=True)
         self._log('created')
         self._lock = Lock()  # lock used to ensure internal consistency
         self._interface_lock = RLock()  # prevent concurrent access. RLock so that callbacks may restart the thread
         self._func = func
         self._stopped_callbacks = []
         self._stop_requested_callbacks = []
+        self._error_callbacks = []
         self._pause_flag = Event()
         self._pause_flag.set() # when set, the code can run
         self._control = Event()  # used to wake up thread function when it is stopped
@@ -61,13 +62,14 @@ class ThreadWrapper:
                     self._func(ctx)
                 except InterruptedError:
                     self._log('interrupted')
-                except Exception:
+                except Exception as e:
                     self._log('' + traceback.format_exc(), LogLevel.ERROR)
+                    for error_callback in self._error_callbacks:
+                        error_callback(e)
                     self._log.flush()
                 finally:
                     self._enter_stopped()
         finally:
-            self._enter_stopped()
             self._state = ThreadWrapper.EXITED
 
     def _enter_started(self):
@@ -102,6 +104,10 @@ class ThreadWrapper:
             self._control.set()
 
     def start(self):
+        """
+            Only allows one instance of the script to run.
+            If the thread is stopping, it's going to restart it right after.
+        """
         assert self._state != ThreadWrapper.EXITED, 'thread has already exited'
         assert not self._is_exiting, 'can not start an exiting thread'
 
@@ -120,6 +126,7 @@ class ThreadWrapper:
             return self._thread_running_event
 
     def stop(self):
+        """ If the thread is already stopped or stopping, does nothing. """
         with self._interface_lock:
             if self._state in [ThreadWrapper.STOPPING, ThreadWrapper.STOPPED, ThreadWrapper.EXITED]:
                 self._log('stop already called. Currently in state: %s' % self._state)
@@ -167,6 +174,9 @@ class ThreadWrapper:
 
     def on_stopped(self, callback):
         self._stopped_callbacks.append(callback)
+
+    def on_error(self, callback):
+        self._error_callbacks.append(callback)
 
     def on_stop_requested(self, callback):
         if self._state == ThreadWrapper.STOPPING:

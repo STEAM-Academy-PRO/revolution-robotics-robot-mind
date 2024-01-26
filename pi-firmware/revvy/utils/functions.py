@@ -192,7 +192,12 @@ def str_to_func(code, script_id=None):
                     if variable_slot.get_name() == name:
                         variable_slot.set_value(value)
                         return
-            print(f'ReportVariableChanged: variable "{name}" not found')
+            # This is technically not needed to log out, as if we do not get the
+            # variable list from the app, it will not have the list.
+            # This is however I think is VERY backwards: we should send back ALL
+            # the variables if they change, and eventually make it much easier to
+            # track them on the phone's UI.
+            # print(f'ReportVariableChanged: variable "{name}" not found')
 
         kwargs['ReportVariableChanged'] = ReportVariableChanged
 

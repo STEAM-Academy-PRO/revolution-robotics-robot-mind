@@ -1,7 +1,6 @@
 """ Simple WebSocket Remote controller for robot """
 import asyncio
 import json
-from shutil import ExecError
 import struct
 import threading
 from revvy.robot_manager import RobotManager
@@ -68,7 +67,7 @@ class RobotWebSocketApi:
                         json_data = message["body"]
                         data = struct.pack('B' * len(json_data), *[json_data[str(i)] for i in range(len(json_data))])
 
-                        [analog_values, deadline_packed, next_deadline, button_values] = parse_control_message(data)
+                        [analog_values, next_deadline, button_values] = parse_control_message(data)
 
                         message_handler = self._robot_manager.handle_periodic_control_message
 

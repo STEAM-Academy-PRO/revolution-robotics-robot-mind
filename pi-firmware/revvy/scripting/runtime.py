@@ -1,16 +1,37 @@
+""" Handles blockly and analog script running lifecycle """
 
+from enum import Enum
 import time
-from typing import NamedTuple
 
-from revvy.scripting.robot_interface import RobotWrapper
+from typing import TYPE_CHECKING
+
+# To have types, use this to avoid circular dependencies.
+if TYPE_CHECKING:
+    from revvy.robot.robot import Robot
+    from revvy.robot_config import RobotConfig
+
 from revvy.utils.logger import get_logger
 from revvy.utils.thread_wrapper import ThreadContext, ThreadWrapper
+from revvy.scripting.robot_interface import RobotWrapper
 
+class ScriptEvent(Enum):
+    START = 'start'
+    STOP = 'stop'
+    ERROR = 'error'
 
-class ScriptDescriptor(NamedTuple):
+class ScriptDescriptor():
     name: str
     runnable: callable
     priority: int
+    source: str
+    ref_id: str
+    def __init__(self, name, runnable, priority, source='', ref_id = None):
+        self.name = name
+        self.runnable = runnable
+        self.priority = priority
+        self.source = source
+        self.ref_id = ref_id
+
 
 
 class TimeWrapper:
@@ -20,19 +41,21 @@ class TimeWrapper:
 
 
 class ScriptHandle:
+    """ Creates a controller from a script descirptor """
     def _default_sleep(self, _):
         self.log('Error: default sleep called')
         raise Exception('Script not running')
 
-    def __init__(self, owner: 'ScriptManager', script, name, global_variables: dict):
+    def __init__(self, owner: 'ScriptManager', descriptor, name, global_variables: dict):
         self._owner = owner
         self._globals = global_variables.copy()
         self._inputs = {}
-        self._name = name
-        self._runnable = script
+        self.name = name
+        self._runnable = descriptor.runnable
+        self.descriptor = descriptor
         self.sleep = self._default_sleep
         self._thread = ThreadWrapper(self._run, name)
-        self.log = get_logger(['Script', name])
+        self.log = get_logger(['Script', name], off=True)
         self.stop = self._thread.stop
         self.cleanup = self._thread.exit
         self.on_stopped = self._thread.on_stopped
@@ -41,10 +64,29 @@ class ScriptHandle:
         self.resume = self._thread.resume_thread
 
         self.on_stopped(self.reset_variables)
+        self.on_stopped(lambda: self.trigger(ScriptEvent.STOP))
 
-        assert(callable(script))
+        self._thread.on_error(self._on_error)
+
+        self._events_handlers = {event: [] for event in ScriptEvent}
+
+        assert(callable(self._runnable))
 
         self.log('Created')
+
+    def _on_error(self, error):
+        self.trigger(ScriptEvent.ERROR, error)
+
+
+    def on(self, event: ScriptEvent, callback):
+        """ Subscribe to script runner events """
+        self._events_handlers[event].append(callback)
+
+    def trigger(self, event: ScriptEvent, data=None):
+        for event_handler in self._events_handlers[event]:
+            # Important to pass down self, so we have the reference of
+            # the handler one level up.
+            event_handler(self, data)
 
     @property
     def is_stop_requested(self):
@@ -69,6 +111,7 @@ class ScriptHandle:
 
             self.sleep = ctx.sleep
             self.log("Starting script")
+            self.trigger(ScriptEvent.START)
             self._runnable(Control=ctx, ctx=ctx, time=TimeWrapper(ctx), **self._inputs)
         except InterruptedError:
             self.log('Interrupted')
@@ -78,12 +121,11 @@ class ScriptHandle:
             self.log("Script finished")
             self.sleep = self._default_sleep
 
-    def reset_variables(self):
-      self.log('reset_variables')
-      if 'list_slots' in self._globals:
-          for var in self._globals['list_slots']:
-            self.log(f'resetting_variable: {var}')
-            var.reset_value()
+    def reset_variables(self, *args):
+        if 'list_slots' in self._globals:
+            for var in self._globals['list_slots']:
+                self.log(f'resetting_variable: {var}')
+                var.reset_value()
 
     def start(self, **kwargs):
         if not kwargs:
@@ -94,7 +136,7 @@ class ScriptHandle:
 
 
 class ScriptManager:
-    def __init__(self, robot):
+    def __init__(self, robot: 'Robot'):
         self._robot = robot
         self._globals = {}
         self._scripts: dict[str, ScriptHandle] = {}
@@ -115,16 +157,19 @@ class ScriptManager:
         for script in self._scripts.values():
             script.assign(name, value)
 
-    def add_script(self, script: ScriptDescriptor):
+    def add_script(self, script: ScriptDescriptor, config: 'RobotConfig'=None, robot_wrapper_class=RobotWrapper):
+        # TODO: This is a not a good place here: we should not need to check if a script
+        # is running, when trying to override it, lifecycle should prevent this from
+        # ever happening.
         if script.name in self._scripts:
             self._log(f'Stopping {script.name} before overriding')
             self._scripts[script.name].cleanup()
 
         self._log(f'New script: {script.name}')
-        script_handle = ScriptHandle(self, script.runnable, script.name, self._globals)
+        script_handle = ScriptHandle(self, script, script.name, self._globals)
         try:
-            robot = self._robot
-            interface = RobotWrapper(script_handle, robot.robot, robot.config, robot.resources, script.priority)
+            # Note: Due to dependency injection, this is wrapped out.
+            interface = robot_wrapper_class(script_handle,self._robot, config, self._robot.resources, script.priority)
             script_handle.on_stopping(interface.release_resources)
             script_handle.on_stopped(interface.release_resources)
             script_handle.assign('robot', interface)

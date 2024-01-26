@@ -1,6 +1,5 @@
-# Handles the short messages from the device.
+""" Handles the short messages from the device. """
 
-import json
 import struct
 
 from pybleno import BlenoPrimaryService
@@ -9,7 +8,6 @@ from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_DONE,
 from revvy.robot.rc_message_parser import parse_control_message
 from revvy.robot_manager import RobotManager
 
-from revvy.utils.functions import bits_to_bool_list
 from revvy.utils.logger import get_logger
 
 from revvy.robot.remote_controller import RemoteControllerCommand
@@ -17,7 +15,7 @@ from revvy.robot.remote_controller import RemoteControllerCommand
 NUM_MOTOR_PORTS = 6
 NUM_SENSOR_PORTS = 4
 
-log = get_logger("Live Message Service")
+log = get_logger("Live Message Service", off=True)
 
 class LiveMessageService(BlenoPrimaryService):
     """ Handles short messages on the Bluetooth interface"""
@@ -173,7 +171,7 @@ class LiveMessageService(BlenoPrimaryService):
                     return True
             return False
 
-        [analog_values, deadline_packed, next_deadline, button_values] = parse_control_message(data)
+        [analog_values, next_deadline, button_values] = parse_control_message(data)
 
         # This seems like it's doing nothing...
         joystick_xy_action = joystick_xy_is_moved(analog_values)
@@ -186,7 +184,7 @@ class LiveMessageService(BlenoPrimaryService):
 
         # First user input action triggers global timer
         if joystick_xy_action or joystick_button_action:
-            log(f'joystick_xy_action: {str(joystick_xy_action)}')
+            # log(f'joystick_xy_action: {str(joystick_xy_action)}')
             self._robot_manager.on_joystick_action()
 
         message_handler = self._robot_manager.handle_periodic_control_message

@@ -89,7 +89,8 @@ class Logger(BaseLogger):
 
 
 class LogWrapper(BaseLogger):
-    def __init__(self, logger: BaseLogger, tag, default_log_level=LogLevel.INFO):
+    def __init__(self, logger: BaseLogger, tag, default_log_level=LogLevel.INFO, min_log_level=LogLevel.DEBUG):
+        self._min_log_level = min_log_level
         if isinstance(tag, str):
             self._tag = '[' + hash_to_color(tag) + '] '
         elif isinstance(tag, list):
@@ -104,7 +105,8 @@ class LogWrapper(BaseLogger):
         message = self._tag + message
         if level is None:
             level = self._default_log_level
-        self._logger.log(message, level)
+        if level >= self._min_log_level:
+            self._logger.log(message, level)
 
     def __call__(self, message, level=None):
         self.log(message, level)
@@ -115,8 +117,11 @@ class LogWrapper(BaseLogger):
 
 logger = Logger()
 
+def empty(*args):
+    """ dummy """
+    pass
 
-def get_logger(tag, default_log_level=LogLevel.INFO, base=None):
-    return LogWrapper(base or logger, tag, default_log_level)
+def get_logger(tag, default_log_level=LogLevel.INFO, base=None, off=False):
+    return LogWrapper(base or logger, tag, default_log_level, min_log_level=LogLevel.ERROR if off else LogLevel.DEBUG)
 
 

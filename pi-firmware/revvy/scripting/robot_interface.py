@@ -1,9 +1,28 @@
+"""
+This is the robot's Blockly API.
+Whatever code blockly generates, it compiles to python
+code that uses these functions.
+
+DANGER!!!!
+Do not delete any headers, even if they are not used,
+as the generated code MAY use it!
+
+"""
 import struct
 import time
 import random
 
 from functools import partial
+from math import floor, sqrt
+from numbers import Number
 from enum import Enum
+
+from typing import TYPE_CHECKING
+
+# # To have types, use this to avoid circular dependencies.
+if TYPE_CHECKING:
+    from revvy.robot_config import RobotConfig
+
 
 from revvy.robot.configurations import Motors, Sensors
 from revvy.robot.led_ring import RingLed
@@ -18,6 +37,7 @@ from revvy.robot.ports.common import PortInstance, PortCollection
 
 from revvy.utils.functions import map_values
 from revvy.utils.logger import get_logger
+
 
 log = get_logger('RobotInterface')
 
@@ -96,10 +116,11 @@ class Wrapper:
         self.if_resource_available(lambda res: res.run_uninterruptable(callback))
 
     def if_resource_available(self, callback):
-        with self.try_take_resource() as resource:
-            if resource:
+        # If the resource is not available, try_take_resource returns None.
+        resource_ctx = self.try_take_resource()
+        if resource_ctx:
+            with resource_ctx as resource:
                 callback(resource)
-
 
 class SensorPortWrapper(Wrapper):
     """Wrapper class to expose sensor ports to user scripts"""
@@ -164,18 +185,21 @@ class RingLedWrapper(Wrapper):
         self.using_resource(partial(self._ring_led.start_animation, scenario))
 
     def set(self, leds: list, color):
-        # print(f'RingLedWrapper: set leds:{leds}, color:{color}')
-        def out_of_range(led_idx):
-            return not 0 < led_idx <= len(self._user_leds)
+        """ Instead of just failing, use the MOD if an LED index is out of range """
 
-        if any(map(out_of_range, leds)):
-            raise IndexError(f'Led index must be between 1 and {len(self._user_leds)}')
+        # print(f'RingLedWrapper: set leds:{leds}, color:{color}')
+        # def out_of_range(led_idx):
+        #     return not 0 < led_idx <= len(self._user_leds)
+
+        # if any(map(out_of_range, leds)):
+        #     raise IndexError(f'Led index must be between 1 and {len(self._user_leds)}')
 
         rgb = color_string_to_rgb(color)
-        # print(f'color_string_to_rgb: {color}->{rgb}')
 
         for idx in leds:
-            self._user_leds[idx - 1] = rgb
+            index = (floor(idx) - 1) % len(self._user_leds)
+            # log(f'led {idx} = {index} col {rgb} len {len(self._user_leds)}')
+            self._user_leds[index] = rgb
 
         self.using_resource(partial(self._ring_led.display_user_frame, self._user_leds))
 
@@ -303,7 +327,8 @@ def wrap_async_method(owner, method):
         with owner.try_take_resource(_interrupted) as resource:
             if resource:
                 awaiter = method(*args, **kwargs)
-                awaiter.wait()
+                if awaiter:
+                    awaiter.wait()
 
     return _wrapper
 
@@ -336,7 +361,7 @@ class DriveTrainWrapper(Wrapper):
             raise Exception()
         if resource:
             try:
-                self._drivetrain.set_speed(direction, speed, unit_speed)
+                self.__drivetrain.set_speed(direction, speed, unit_speed)
             finally:
                 if speed == 0:
                     resource.release()
@@ -608,7 +633,7 @@ class LineDriver:
             self.__log_debug('OFF-RIGHT')
             debug_stop(current, 1)
             self.__turn_right()
-        elif current == perpendicular:
+        elif current == on_line_perpendicular:
             self.__log_debug('PERPENDICULAR')
             debug_stop(current, 4)
             self.__turn_left()
@@ -651,9 +676,8 @@ class RobotInterface:
 class RobotWrapper(RobotInterface):
     """Wrapper class that exposes API to user-written scripts"""
 
-    # FIXME: type hints missing because of circular reference that causes ImportError
-    def __init__(self, script, robot: RobotInterface, config, res: dict, priority=0):
-        self._resources = {name: ResourceWrapper(res[name], priority) for name in res}
+    def __init__(self, script, robot: RobotInterface, config: 'RobotConfig', resources: dict, priority=0):
+        self._resources = {name: ResourceWrapper(resources[name], priority) for name in resources}
         self._robot = robot
 
         motor_wrappers = [MotorPortWrapper(script, port, self._resources[f'motor_{port.id}'])
@@ -662,7 +686,8 @@ class RobotWrapper(RobotInterface):
                            for port in robot.sensors]
         self._motors = PortCollection(motor_wrappers)
         self._sensors = PortCollection(sensor_wrappers)
-        self._motors.aliases.update(config.motors.names)
+        motor_names = config.motors.names
+        self._motors.aliases.update(motor_names)
         self._sensors.aliases.update(config.sensors.names)
         self._sound = SoundWrapper(script, robot.sound, self._resources['sound'])
         self._ring_led = RingLedWrapper(script, robot.led, self._resources['led_ring'])
@@ -709,7 +734,7 @@ class RobotWrapper(RobotInterface):
 
     @property
     def sound(self):
-        raise self._sound
+        return self._sound
 
     def play_tune(self, name):
         self._sound.play_tune(name)

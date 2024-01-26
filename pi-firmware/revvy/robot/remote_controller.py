@@ -1,17 +1,19 @@
+from numbers import Number
 import time
 import copy
 
 from collections import namedtuple
 from threading import Event
+import traceback
+from revvy.scripting.runtime import ScriptHandle
 
-from revvy.utils.activation import EdgeDetector
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.thread_wrapper import ThreadWrapper, ThreadContext
-from revvy.utils.logger import get_logger
+from revvy.utils.logger import LogLevel, get_logger
 
 RemoteControllerCommand = namedtuple('RemoteControllerCommand', ['analog', 'buttons', 'background_command', 'next_deadline'])
 
-log = get_logger('RemoteController')
+log = get_logger('RemoteController', off=True)
 
 class BleAutonomousCmd:
     START  = 10
@@ -94,18 +96,25 @@ class BackgroundControlState:
         return self.__state
 
 
+class ButtonHandler:
+    id: Number
+    script: ScriptHandle
+    last_button_value: bool
+    def __init__(self, id, script, last_button_value):
+        self.id = id
+        self.script = script
+        self.last_button_value = last_button_value
+
 class RemoteController:
+
     def __init__(self):
         self._background_control_state = BackgroundControlState()
         self._control_button_pressed = AutonomousModeRequest()
 
         self._analogActions = []  # ([channel], callback) pairs
         self._analogStates = []  # the last analog values, used to compare if a callback needs to be fired
-        self._buttonHandlers = [EdgeDetector() for _ in range(32)]
-        self._is_action_running = [False] * 32  # Track if a button bound program is running.
-        self._buttonActions = [None] * 32  # callbacks to be fired if a button gets pressed
 
-        self.reset_button_states()
+        self._button_handlers = []
 
         self._processing = False
         self._processing_time = 0.0
@@ -118,13 +127,6 @@ class RemoteController:
         # know the difference in code
         self._joystick_mode = False
         self.__next_deadline = MESSAGE_MAX_PERIOD
-
-    def reset_button_states(self):
-        # Button handlers used for edge detection, initialize them with value
-        for handler in self._buttonHandlers:
-            # Originally, this was 1, but there is a bug that the first button presses
-            # did not run the code after entering to play mode.
-            handler.detect_change(0)
 
 
     def get_next_deadline(self):
@@ -144,11 +146,9 @@ class RemoteController:
         self._background_control_state.set_stopped()
 
     def reset(self):
-        log('RemoteController: reset')
         self._analogActions.clear()
         self._analogStates.clear()
 
-        self._buttonActions = [None] * 32
         self._processing = False
         self._processing_time = 0.0
         self._background_control_state.set_stopped()
@@ -190,7 +190,7 @@ class RemoteController:
                 # looks like an action was registered for an analog channel that we didn't receive
                 log(f'Skip analog handler for channels {", ".join(map(str, channels))}')
 
-    def run_button_script(self, button_cmd):
+    def run_button_script(self, button_pressed_list):
         """
             On the controller user binds blockly programs to the buttons.
             Here we iterate over the handlers and the button states, and if the button is pressed
@@ -198,12 +198,37 @@ class RemoteController:
             We also send a message about it being started.
         """
 
-        for handler, button, buttonAction in zip(self._buttonHandlers, button_cmd, self._buttonActions):
-            pressed = handler.detect_change(button)
-            if pressed == 1 and buttonAction:
-                log(f'starting program: {button} {handler}')
-                # noinspection PyCallingNonCallable
-                buttonAction()
+        for button in self._button_handlers:
+            button_is_pressed = button_pressed_list[button.id]
+            is_button_pressed_change = button.last_button_value != button_is_pressed
+            button.last_button_value = button_is_pressed
+
+            if is_button_pressed_change:
+                button.last_press_stopped_it = False
+
+            if button_is_pressed:
+                if button.script.is_running:
+                    # Button pressed, script is running, there are two options:
+                    # if the user tapped the button and did not release it
+                    # OR
+                    # if the edge detector detects change again, it means that
+                    # the user let it go and tapped again, which means thy means
+                    # to stop it from running.
+
+                    if is_button_pressed_change:
+                        # Pushed the second time, STOP it!
+                        # log(f'stopping: {button.script.name}')
+                        button.script.stop()
+                        button.last_press_stopped_it = True
+                    else:
+                        # Just keeps on pushing.
+                        pass
+                else:
+                    if not button.last_press_stopped_it:
+                        # it's not running, we need to start it!
+                        # log(f'starting program: {button.script.name}')
+                        button.script.start()
+
 
     def process_control_message(self, msg):
         """
@@ -218,8 +243,9 @@ class RemoteController:
         if msg.next_deadline is not None:
             self.__next_deadline = msg.next_deadline
 
-    def set_on_button_pressed(self, button, action: callable):
-        self._buttonActions[button] = action
+    def link_button_to_runner(self, button_id, script_handle: ScriptHandle):
+        log(f'registering callbacks for {button_id} {script_handle} {self._button_handlers}')
+        self._button_handlers.append(ButtonHandler(button_id, script_handle, False))
 
     def on_analog_values(self, channels, action):
         self._analogActions.append((channels, action))
@@ -275,9 +301,6 @@ class RemoteController:
 FIRST_MESSAGE_TIMEOUT = 5
 MESSAGE_MAX_PERIOD = 1
 
-
-log = get_logger('RemoteControllerScheduler')
-
 class RemoteControllerScheduler:
     def __init__(self, rc: RemoteController):
         self._controller = rc
@@ -302,32 +325,36 @@ class RemoteControllerScheduler:
         return not (timeout or ctx.stop_requested)
 
     def handle_controller(self, ctx: ThreadContext):
-        log('Waiting for controller')
+        try:
+            log('Waiting for controller')
 
-        self._data_ready_event.clear()
+            self._data_ready_event.clear()
 
-        ctx.on_stopped(self._data_ready_event.set)
+            ctx.on_stopped(self._data_ready_event.set)
 
-        # wait for first message
-        stopwatch = Stopwatch()
-        if self._wait_for_message(ctx, FIRST_MESSAGE_TIMEOUT):
-            log(f"Time to first message: {stopwatch.elapsed}s")
-            if self._controller_detected_callback:
-                self._controller_detected_callback()
+            # wait for first message
+            stopwatch = Stopwatch()
+            if self._wait_for_message(ctx, FIRST_MESSAGE_TIMEOUT):
+                log(f"Time to first message: {stopwatch.elapsed}s")
+                if self._controller_detected_callback:
+                    self._controller_detected_callback()
 
-            self._controller.process_control_message(self._message)
-
-            # wait for the other messages
-            while self._wait_for_message(ctx, self._controller.get_next_deadline()):
                 self._controller.process_control_message(self._message)
 
-        if not ctx.stop_requested:
-            if self._controller_lost_callback:
-                self._controller_lost_callback()
+                # wait for the other messages
+                while self._wait_for_message(ctx, self._controller.get_next_deadline()):
+                    self._controller.process_control_message(self._message)
 
-        # reset here, controller was lost or stopped
-        self._controller.reset()
-        log('exited')
+            if not ctx.stop_requested:
+                if self._controller_lost_callback:
+                    self._controller_lost_callback()
+
+            # reset here, controller was lost or stopped
+            self._controller.reset()
+            log('exited')
+        except Exception as e:
+            log(str(e), LogLevel.ERROR)
+            log(traceback.format_exc(), LogLevel.ERROR)
 
     def on_controller_detected(self, callback: callable):
         # log('Register controller found handler')

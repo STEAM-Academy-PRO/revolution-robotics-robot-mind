@@ -3,6 +3,7 @@ import unittest
 from threading import Event
 
 from mock import Mock
+import mock
 
 from revvy.hardware_dependent.sound import SoundControlBase
 from revvy.scripting.resource import Resource
@@ -24,35 +25,79 @@ class MockSound(SoundControlBase):
 def create_robot_mock():
 
     robot_mock = mockobj()
+
     robot_mock.resources = {
-        'led_ring': Resource(),
-        'drivetrain': Resource(),
-        'sound': Resource()
+        'led_ring':   Resource('RingLed'),
+        'drivetrain': Resource('DriveTrain'),
+        'sound':      Resource('Sound'),
+
+        **{f'motor_{port}': Resource(f'Motor {port}') for port in range(1, 7)},
+        **{f'sensor_{port}': Resource(f'Sensor {port}') for port in range(1, 5)}
     }
-    robot_mock.robot = mockobj()
-    robot_mock.robot.time = lambda: 0
-    robot_mock.robot.motors = []
-    robot_mock.robot.sensors = []
+
+    robot_mock.time = lambda: 0
+
+    robot_mock.motors = []
+    robot_mock.sensors = []
 
     robot_mock.config = mockobj()
     robot_mock.config.motors = mockobj()
     robot_mock.config.motors.__iter__ = lambda: []
-    robot_mock.config.motors.names = {}
+    robot_mock.config.motors.names = {"motor1": 1}
+    # robot_mock.config.motors.names.__iter__ = lambda: []
 
     robot_mock.config.sensors = mockobj()
     robot_mock.config.sensors.__iter__ = lambda: []
-    robot_mock.config.sensors.names = {}
+    robot_mock.config.sensors.names = mockobj()
+    robot_mock.config.sensors.names.__iter__ = lambda: []
 
-    robot_mock.robot.drivetrain = mockobj()
-    robot_mock.robot.drivetrain.turn = lambda *args, **kwargs: None
-    robot_mock.robot.drivetrain.drive = lambda *args, **kwargs: None
-    robot_mock.robot.sound = MockSound()
-    robot_mock.robot.led = mockobj()
-    robot_mock.robot.led.count = 0
 
-    robot_mock.robot.imu = mockobj()
+    robot_mock.drivetrain = mockobj()
+    robot_mock.drivetrain.turn = lambda *args, **kwargs: None
+    robot_mock.drivetrain.drive = lambda *args, **kwargs: None
+    robot_mock.sound = MockSound()
+    robot_mock.led = mockobj()
+    robot_mock.led.count = 0
+
+    robot_mock.imu = mockobj()
 
     return robot_mock
+
+
+# def create_robot_manager_mock():
+
+#     robot_mock = mockobj()
+#     robot_mock.robot = create_robot_mock()
+#     robot_mock.robot.time = lambda: 0
+#     robot_mock.robot.motors = []
+#     robot_mock.robot.sensors = []
+
+#     robot_mock.config = mockobj()
+#     robot_mock.config.motors = mockobj()
+#     robot_mock.config.motors.__iter__ = lambda: []
+#     robot_mock.config.motors.names = {}
+
+#     robot_mock.config.sensors = mockobj()
+#     robot_mock.config.sensors.__iter__ = lambda: []
+#     robot_mock.config.sensors.names = {}
+
+#     robot_mock.robot.drivetrain = mockobj()
+#     robot_mock.robot.drivetrain.turn = lambda *args, **kwargs: None
+#     robot_mock.robot.drivetrain.drive = lambda *args, **kwargs: None
+#     robot_mock.robot.sound = MockSound()
+#     robot_mock.robot.led = mockobj()
+#     robot_mock.robot.led.count = 0
+
+#     robot_mock.robot.imu = mockobj()
+
+#     return robot_mock
+
+class RobotInterfaceMock(RobotInterface):
+    def __init__(self, *args) -> None:
+        print('HOW did I not get here?? -------------------------------------')
+        pass
+    def release_resources(self, *args):
+        pass
 
 
 class TestRuntime(unittest.TestCase):
@@ -64,10 +109,10 @@ class TestRuntime(unittest.TestCase):
         sm = ScriptManager(robot_mock)
         sm.assign('mock', mock)
         sm.assign('test', self)
-        sm.assign('RobotInterface', RobotInterface)
+        sm.assign('RobotInterface', RobotInterfaceMock)
         sm.add_script(ScriptDescriptor('test', str_to_func('''
 test.assertIsInstance(robot, RobotInterface)
-mock()'''), 0))
+mock()'''), 0), robot_wrapper_class=RobotInterfaceMock)
 
         sm['test'].start()
         sm['test'].cleanup()
@@ -82,13 +127,13 @@ mock()'''), 0))
         sm = ScriptManager(robot_mock)
         sm.assign('mock', mock)
         sm.assign('test', self)
-        sm.assign('RobotInterface', RobotInterface)
+        sm.assign('RobotInterface', RobotInterfaceMock)
 
         def _script(test, robot, mock, **kwargs):
-            test.assertIsInstance(robot, RobotInterface)
+            test.assertIsInstance(robot, RobotInterfaceMock)
             mock()
 
-        sm.add_script(ScriptDescriptor('test', _script, 0))
+        sm.add_script(ScriptDescriptor('test', _script, 0), robot_wrapper_class=RobotInterfaceMock)
 
         sm['test'].start()
         sm['test'].cleanup()
@@ -103,10 +148,10 @@ mock()'''), 0))
         sm = ScriptManager(robot_mock)
         sm.add_script(ScriptDescriptor('test', str_to_func('''
 test.assertIsInstance(robot, RobotInterface)
-mock()'''), 0))
+mock()'''), 0), robot_wrapper_class=RobotInterfaceMock)
         sm.assign('mock', mock)
         sm.assign('test', self)
-        sm.assign('RobotInterface', RobotInterface)
+        sm.assign('RobotInterface', RobotInterfaceMock)
 
         sm['test'].start()
         sm['test'].cleanup()
@@ -117,9 +162,10 @@ mock()'''), 0))
         robot_mock = create_robot_mock()
 
         mock = Mock()
+        config = Mock()
 
         sm = ScriptManager(robot_mock)
-        sm.add_script(ScriptDescriptor('test', str_to_func('mock()'), 0))
+        sm.add_script(ScriptDescriptor('test', str_to_func('mock()'), 0), robot_wrapper_class=RobotInterfaceMock)
 
         script = sm['test']
 
@@ -144,7 +190,7 @@ mock()'''), 0))
         sm.add_script(ScriptDescriptor('test', str_to_func('''
 while not ctx.stop_requested:
     pass
-mock()'''), 0))
+mock()'''), 0), robot_wrapper_class=RobotInterfaceMock)
         sm.assign('mock', mock)
 
         # first call, make sure the script runs
@@ -152,7 +198,7 @@ mock()'''), 0))
         sm['test'].start()
 
         # add second script
-        sm.add_script(ScriptDescriptor('test', str_to_func('mock()'), 0))  # stops the first script
+        sm.add_script(ScriptDescriptor('test', str_to_func('mock()'), 0), robot_wrapper_class=RobotInterfaceMock)  # stops the first script
 
         # check that the first script ran and was stopped
         self.assertEqual(1, mock.call_count)
@@ -177,11 +223,11 @@ mock()'''), 0))
         sm.add_script(ScriptDescriptor('test', str_to_func('''
 while not ctx.stop_requested:
     pass
-'''), 0))
+'''), 0), robot_wrapper_class=RobotInterfaceMock)
         sm.add_script(ScriptDescriptor('test2', str_to_func('''
 while not ctx.stop_requested:
     pass
-'''), 0))
+'''), 0), robot_wrapper_class=RobotInterfaceMock)
 
         # first call, make sure the script runs
         sm['test'].on_stopped(stopped_mock)
@@ -205,7 +251,7 @@ while not ctx.stop_requested:
     mock()
     Control.terminate()
     mock()
-'''), 0))
+'''), 0), robot_wrapper_class=RobotInterfaceMock)
         sm.assign('mock', mock)
         sm['test'].on_stopped(lambda *args: cont.set())
 
@@ -231,13 +277,13 @@ mock()
 second_running.wait()
 while not ctx.stop_requested:
     Control.terminate_all()
-'''), 0))
+'''), 0), robot_wrapper_class=RobotInterfaceMock)
         sm.add_script(ScriptDescriptor('test2', str_to_func('''
 second_running.set()
 mock()
 while not ctx.stop_requested:
     time.sleep(0.01)
-'''), 0))
+'''), 0), robot_wrapper_class=RobotInterfaceMock)
         sm['test1'].assign('mock', mock1)
         sm['test1'].assign('second_running', second_running_evt)
         sm['test2'].assign('second_running', second_running_evt)
@@ -271,7 +317,7 @@ while not ctx.stop_requested:
         cont = Event()
 
         sm = ScriptManager(robot_mock)
-        sm.add_script(ScriptDescriptor('test', str_to_func('''raise Excepti'''), 0))
+        sm.add_script(ScriptDescriptor('test', str_to_func('''raise Excepti'''), 0), robot_wrapper_class=RobotInterfaceMock)
         sm['test'].on_stopped(lambda *args: cont.set())
 
         # first call, make sure the script runs

@@ -75,10 +75,14 @@ class RevvyBLE(RobotCommunicationInterface):
         ]
 
         self._bleno = Bleno()
+
+        # _bleno exposes it's on function runtime, which makes the linter sad.
+        # pylint: disable=no-member
         self._bleno.on('stateChange', self._on_state_change)
         self._bleno.on('advertisingStart', self._on_advertising_start)
         self._bleno.on('accept', self.on_connected)
         self._bleno.on('disconnect', lambda _: self._robot_manager.on_connection_changed(False))
+        # pylint: enable=no-member
 
         self._robot_manager.set_communication_interface_callbacks(self)
 
