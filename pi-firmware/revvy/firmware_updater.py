@@ -221,8 +221,16 @@ def update_firmware_if_needed():
     i2c_bus = 1
     updater = McuUpdater(RevvyTransportI2C(i2c_bus))
 
+    is_update_needed = False
+
     try:
         fw_bin_version, fw_binary = get_firmware_for_hw_version(firmware_path, updater.hw_version)
+
+        checksum = binascii.crc32(fw_binary)
+        is_update_needed = updater.is_update_needed(fw_bin_version, checksum)
+        if is_update_needed:
+            updater.upload_binary(checksum, fw_binary)
+
     except KeyError as e:
         log(f'No firmware for the hardware ({updater.hw_version})')
         if updater.is_bootloader_mode:
@@ -236,11 +244,6 @@ def update_firmware_if_needed():
         if updater.is_bootloader_mode:
             raise e
 
-    checksum = binascii.crc32(fw_binary)
-
-    is_update_needed = updater.is_update_needed(fw_bin_version, checksum)
-    if is_update_needed:
-        updater.upload_binary(checksum, fw_binary)
 
     # Very important: this is ALWAYS needed to reset back the MCU state to application mode.
     updater.finalize_and_start_application(is_update_needed)
