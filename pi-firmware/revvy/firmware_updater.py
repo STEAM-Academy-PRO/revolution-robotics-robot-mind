@@ -221,20 +221,32 @@ def update_firmware_if_needed():
     i2c_bus = 1
     updater = McuUpdater(RevvyTransportI2C(i2c_bus))
 
+    # If an exception occurs, we'll save it for later when we may rethrow it.
+    exception = None
     try:
         fw_bin_version, fw_binary = get_firmware_for_hw_version(firmware_path, updater.hw_version)
     except KeyError as e:
+        exception = e
         log(f'No firmware for the hardware ({updater.hw_version})')
-        if updater.is_bootloader_mode:
-            raise e
     except IOError as e:
+        exception = e
         log('Firmware file does not exist or is not readable')
-        if updater.is_bootloader_mode:
-            raise e
     except IntegrityError as e:
+        exception = e
         log('Firmware file corrupted')
+
+    if exception:
         if updater.is_bootloader_mode:
-            raise e
+            # We have no valid firmware in the package, and no firmware on the brain. Let's throw an
+            # exception, and let the loader try again. Maybe an earier installation will restore
+            # the MCU.
+            log('No firmware in the package, and no firmware on the brain. Aborting.')
+            raise exception
+        else:
+            # We have no firmware in the package, but we have one on the brain. Let's continue
+            # and hope that the package is compatible.
+            log('No firmware in the package. The brain will use the last installation.')
+            return
 
     checksum = binascii.crc32(fw_binary)
 
