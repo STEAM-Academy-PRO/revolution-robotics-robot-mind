@@ -286,6 +286,6 @@ class DifferentialDrivetrain:
             raise ValueError(f'Invalid unit_rotation: {unit_rotation}')
 
         # BUG: If the user tried to turn 0 degrees we do not get a controller back.
-        if self._controller and self._controller:
+        if self._controller and self._controller.awaiter:
             return self._controller.awaiter
 

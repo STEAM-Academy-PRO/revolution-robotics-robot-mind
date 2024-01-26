@@ -177,8 +177,6 @@ class RobotManager:
 
         except TransportException:
             self._log(traceback.format_exc())
-            self._log(traceback.format_exc())
-            self._log(traceback.format_exc())
             self.exit(RevvyStatusCode.ERROR)
         except BrokenPipeError:
             self._log("Status Update Error from MCU", LogLevel.WARNING)
