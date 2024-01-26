@@ -6,6 +6,9 @@ Creating and installing an update package
 
 To package the framework for installation, do the following:
 
+- If you want to include a mcu-firmware in the package:
+ - [build one](../mcu-firmware/development.md#preparing-for-package) and run the `prepare` script for packaging
+ - Copy the `revvy_firmware-<version>.bin` and `catalog.json` files from `mcu-firmware/Build/output` into `pi-firmware/data/firmware`
 - Run `python -m dev_tools.create_package`
 - The resulting files can be found in `install`:
   - `framework.data` and `framework.meta`
