@@ -7,8 +7,9 @@ from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import RingLedWrapper, PortCollection, ResourceWrapper
 
 
+class TestRingLed(unittest.TestCase):
+
 ### This is no longer the case: ring led should turn over, without coding needed.
-# class TestRingLed(unittest.TestCase):
 #     def test_ring_leds_are_indexed_from_one(self):
 #         led_mock = Mock()
 #         led_mock.display_user_frame = Mock()
