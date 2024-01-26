@@ -143,10 +143,8 @@ OUTPUT_DIR :=Build/Release/mcu-bootloader
 COMPILE_FLAGS += \
 -DBOOTLOADER_VERSION=0 \
 -DHARDWARE_VERSION=2 \
--O3 \
--g3 \
--flto
-LINKER_FLAGS += -flto
+-O0 \
+-g3
 endif
 
 OUTPUT_FILE :=$(OUTPUT_DIR)/rrrc_samd51
