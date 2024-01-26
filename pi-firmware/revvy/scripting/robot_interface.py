@@ -17,6 +17,13 @@ from math import floor, sqrt
 from numbers import Number
 from enum import Enum
 
+from typing import TYPE_CHECKING
+
+# # To have types, use this to avoid circular dependencies.
+if TYPE_CHECKING:
+    from revvy.robot_config import RobotConfig
+
+
 from revvy.robot.configurations import Motors, Sensors
 from revvy.robot.led_ring import RingLed
 from revvy.robot.ports.motor import MotorConstants
@@ -669,8 +676,7 @@ class RobotInterface:
 class RobotWrapper(RobotInterface):
     """Wrapper class that exposes API to user-written scripts"""
 
-    # FIXME: type hints missing because of circular reference that causes ImportError
-    def __init__(self, script, robot: RobotInterface, config, resources: dict, priority=0):
+    def __init__(self, script, robot: RobotInterface, config: 'RobotConfig', resources: dict, priority=0):
         self._resources = {name: ResourceWrapper(resources[name], priority) for name in resources}
         self._robot = robot
 
@@ -680,7 +686,8 @@ class RobotWrapper(RobotInterface):
                            for port in robot.sensors]
         self._motors = PortCollection(motor_wrappers)
         self._sensors = PortCollection(sensor_wrappers)
-        self._motors.aliases.update(config.motors.names)
+        motor_names = config.motors.names
+        self._motors.aliases.update(motor_names)
         self._sensors.aliases.update(config.sensors.names)
         self._sound = SoundWrapper(script, robot.sound, self._resources['sound'])
         self._ring_led = RingLedWrapper(script, robot.led, self._resources['led_ring'])

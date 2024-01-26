@@ -1,3 +1,4 @@
+""" Handles blockly and analog script running lifecycle """
 
 from enum import Enum
 import time
@@ -9,10 +10,9 @@ if TYPE_CHECKING:
     from revvy.robot.robot import Robot
     from revvy.robot_config import RobotConfig
 
-
-from revvy.scripting.robot_interface import RobotWrapper
 from revvy.utils.logger import get_logger
 from revvy.utils.thread_wrapper import ThreadContext, ThreadWrapper
+from revvy.scripting.robot_interface import RobotWrapper
 
 class ScriptEvent(Enum):
     START = 'start'
@@ -157,7 +157,7 @@ class ScriptManager:
         for script in self._scripts.values():
             script.assign(name, value)
 
-    def add_script(self, script: ScriptDescriptor, config: 'RobotConfig'):
+    def add_script(self, script: ScriptDescriptor, config: 'RobotConfig'=None, robot_wrapper_class=RobotWrapper):
         # TODO: This is a not a good place here: we should not need to check if a script
         # is running, when trying to override it, lifecycle should prevent this from
         # ever happening.
@@ -168,7 +168,8 @@ class ScriptManager:
         self._log(f'New script: {script.name}')
         script_handle = ScriptHandle(self, script, script.name, self._globals)
         try:
-            interface = RobotWrapper(script_handle,self._robot, config, self._robot.resources, script.priority)
+            # Note: Due to dependency injection, this is wrapped out.
+            interface = robot_wrapper_class(script_handle,self._robot, config, self._robot.resources, script.priority)
             script_handle.on_stopping(interface.release_resources)
             script_handle.on_stopped(interface.release_resources)
             script_handle.assign('robot', interface)
