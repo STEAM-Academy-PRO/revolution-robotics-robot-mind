@@ -3,6 +3,8 @@ import re
 from revvy.utils.directories import CURRENT_INSTALLATION_PATH
 
 from revvy.utils.functions import read_json
+from revvy.utils import logger
+from revvy.utils.logger import get_logger
 
 version_re = re.compile('(?P<major>\\d+?)\\.(?P<minor>\\d+?)(\\.(?P<rev>\\d+))?(-(?P<branch>.*?))?$')
 
@@ -34,10 +36,17 @@ class SystemVersions:
         self.sw = None
         self.hw = None
         self.fw = None
+
     def set(self, sw, hw, fw):
         self.sw = sw
         self.hw = hw
         self.fw = fw
+
+        logger.branch = get_branch()
+        logger.sw_version = sw
+
+        log = get_logger('Version info')
+        log(f'hw: {hw} sw: {sw} fw: {fw}')
 
 VERSION = SystemVersions()
 

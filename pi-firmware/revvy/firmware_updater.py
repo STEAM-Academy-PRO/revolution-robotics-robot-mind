@@ -25,12 +25,11 @@ from contextlib import suppress
 from json import JSONDecodeError
 
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-from revvy.utils import logger
 
 from revvy.utils.file_storage import IntegrityError
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
-from revvy.utils.version import VERSION, Version, get_branch, get_sw_version
+from revvy.utils.version import VERSION, Version, get_sw_version
 from revvy.utils.functions import split, bytestr_hash, read_json
 from revvy.mcu.rrrc_control import RevvyTransportBase
 
@@ -49,6 +48,8 @@ class McuUpdater:
         # Will populate it in finalize.
         self.fw_version = None
         self.sw_version = get_sw_version()
+
+        self.update_global_version_info()
 
     def _is_in_bootloader_mode(self) -> bool:
         """
@@ -166,12 +167,15 @@ class McuUpdater:
         assert not self._is_in_bootloader_mode()
 
         self.fw_version = self._application_controller.get_firmware_version()
-
+        self.update_global_version_info()
+        
         if was_update_needed:
             log(f'Update successful, running FW version {self.fw_version}')
         else:
             log(f'No update was needed, running FW version {self.fw_version}')
 
+    def update_global_version_info(self):
+        VERSION.set(self.sw_version, self.hw_version, self.fw_version)
 
 
 def read_firmware_bin_from_fs(fw_data):
@@ -256,10 +260,3 @@ def update_firmware_if_needed():
 
     # Very important: this is ALWAYS needed to reset back the MCU state to application mode.
     updater.finalize_and_start_application(is_update_needed)
-
-    VERSION.set(updater.sw_version, updater.hw_version, updater.fw_version)
-
-    logger.branch = get_branch()
-    logger.sw_version = VERSION.sw
-
-    log(f'version info: hw: {VERSION.hw} sw: {VERSION.sw} fw: {VERSION.fw}')
