@@ -24,6 +24,8 @@ class PortDriver:
     def __init__(self, port: 'PortInstance', driver):
         self._driver = driver
         self._port = port
+
+        # TODO: How? Why? What is the function aggregator? What does this do?
         self._on_status_changed = FunctionAggregator()
         self.log = get_logger(f'{driver}', base=port.log)
 
@@ -119,6 +121,10 @@ class PortInstance:
         self._configurator = configurator
         self._interface = interface
         self._driver = None
+        # WHY is this here? What does it do? What is a functionAggregator? Why is it needed?
+        # HOW do I see WHERE my port is configured?
+        # This is so overcomplicated, for no good reason.
+        # Why does it need a callback? Why can't it be sync?
         self._config_changed_callbacks = FunctionAggregator()
 
     @property

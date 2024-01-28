@@ -28,7 +28,7 @@ motor_types = [
 
 motor_sides = ["left", "right"]
 
-sensor_types = [
+SENSOR_TYPES = [
     None,
     Sensors.Ultrasonic,
     Sensors.BumperSwitch,
@@ -235,7 +235,7 @@ class RobotConfig:
                 if not sensor:
                     sensor = {'type': 0}
 
-                sensor_type = sensor_types[sensor['type']]
+                sensor_type = SENSOR_TYPES[sensor['type']]
 
                 if sensor_type is not None:
                     config.sensors.names[sensor['name']] = i

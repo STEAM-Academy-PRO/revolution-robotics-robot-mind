@@ -60,3 +60,44 @@ class Observable(Generic[VariableType]):
 
     def get(self):
         return self._data
+
+
+class SmoothingObservable(Observable):
+    """
+        When dealing with noisy data, we want to smooth it out.
+        e.g. when measuring something like a battery voltage, we want to
+        have stable readings, that are not toggling between two values, rather
+        going just down.
+
+        This only sends notifications, if the average of the last `smoothing_window`
+        elements change.
+    """
+    def __init__(self,
+                 value,
+                 throttle_interval=0,
+                 window_size=10,
+                 precision=1,
+                 smoothening_function: Callable = None):
+        super().__init__(value, throttle_interval)
+        self._data_history = [] if not value else [value]
+        self._window_size = window_size
+        self._precision = precision
+        self._data = None
+        self._last_data = None
+        self._smoothening_function = smoothening_function
+
+    def set(self, new_data: VariableType):
+        self._data_history.append(new_data)
+
+        # If the length is larger than the window, ditch first element.
+        if len(self._data_history) > self._window_size:
+            self._data_history.pop(0)
+
+        if self._smoothening_function:
+            new_value =  self._smoothening_function(self._data_history)
+        else:
+            # simple average func
+            new_value = sum(self._data_history) / len(self._data_history)
+            new_value = round(new_value * self._precision) / self._precision
+
+        super().set(new_value)

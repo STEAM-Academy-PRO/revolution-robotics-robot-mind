@@ -23,7 +23,7 @@ class MotorConstants:
     ACTION_RELEASE = 1
 
 
-def create_motor_port_handler(interface: RevvyControl):
+def create_motor_port_handlers(interface: RevvyControl):
     port_amount = interface.get_motor_port_amount()
     port_types = interface.get_motor_port_types()
 

@@ -217,6 +217,7 @@ class LiveMessageService(BlenoPrimaryService):
     def update_session_id(self, value):
         log('update_session_id:' + str(value))
         data = list(struct.pack('<I', value))
+        # WHAT are we using this for?
         self._mobile_to_brain.update(data)
 
     def update_gyro(self, vector_list):

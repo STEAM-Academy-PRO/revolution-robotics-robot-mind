@@ -9,14 +9,15 @@ from revvy.mcu.rrrc_control import RevvyTransportBase
 from revvy.robot.drivetrain import DifferentialDrivetrain
 from revvy.robot.imu import IMU
 from revvy.robot.led_ring import RingLed
-from revvy.robot.ports.motor import create_motor_port_handler
-from revvy.robot.ports.sensor import create_sensor_port_handler
+from revvy.robot.ports.motor import create_motor_port_handlers
+from revvy.robot.ports.sensor import create_sensor_port_handlers
 from revvy.robot.sound import Sound
 from revvy.robot.status import RobotStatusIndicator, RobotStatus
 from revvy.robot.status_updater import McuStatusUpdater
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import RobotInterface
 from revvy.utils.assets import Assets
+from revvy.utils.directories import WRITEABLE_ASSETS_DIR
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.version import VERSION, Version
@@ -55,7 +56,10 @@ class Robot(RobotInterface):
         self._comm_interface = self._bus_factory()
 
         self._assets = Assets()
+
+        # This both were called, I have no clue why.
         self._assets.add_source(os.path.join('data', 'assets'))
+        self._assets.add_source(WRITEABLE_ASSETS_DIR)
 
         self._log = get_logger('Robot')
 
@@ -86,11 +90,11 @@ class Robot(RobotInterface):
             else:
                 self._status_updater.enable_slot(slot_name, port.update_status)
 
-        self._motor_ports = create_motor_port_handler(self._robot_control)
+        self._motor_ports = create_motor_port_handlers(self._robot_control)
         for port in self._motor_ports:
             port.on_config_changed.add(partial(_set_updater, f'motor_{port.id}'))
 
-        self._sensor_ports = create_sensor_port_handler(self._robot_control)
+        self._sensor_ports = create_sensor_port_handlers(self._robot_control)
         for port in self._sensor_ports:
             port.on_config_changed.add(partial(_set_updater, f'sensor_{port.id}'))
 
@@ -187,7 +191,7 @@ class Robot(RobotInterface):
 
 
     def reset(self):
-        self._log('reset() --------------------------------------------------------------------')
+        self._log('reset()')
         self._ring_led.start_animation(RingLed.BreathingGreen)
         self._status_updater.reset()
 
@@ -205,6 +209,7 @@ class Robot(RobotInterface):
         self._status_updater.enable_slot("gyro", self._imu.update_gyro_data)
         self._status_updater.enable_slot("orientation", self._imu.update_orientation_data)
         self._status_updater.enable_slot("yaw", self._imu.update_yaw_angles)
+
         # TODO: do something useful with the reset signal
         self._status_updater.enable_slot("reset", lambda _: self._log('MCU reset detected'))
 

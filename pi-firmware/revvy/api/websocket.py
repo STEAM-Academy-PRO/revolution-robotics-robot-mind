@@ -107,33 +107,3 @@ class RobotWebSocketApi:
             ws.close()
 
         self._connections = []
-
-    def update_session_id(self, id):
-        self.send(['session_id', id])
-
-    def update_orientation(self, vector_orientation):
-        self.send(['orientation', vector_orientation])
-
-    def update_gyro(self, vector_list):
-        self.send(['gyro', vector_list])
-
-    def update_motor(self, id, power, speed, pos):
-        self.send(['motor', id, power, speed, pos])
-
-    def update_sensor(self, raw_value):
-        self.send(['sensor', raw_value])
-
-    def update_script_variable(self, script_variables):
-        # self.send(['script_var', script_variables])
-        pass
-
-    def update_state_control(self, control_state):
-        self.send(['state', control_state])
-
-    def update_timer(self, time):
-        self.send(['timer', time])
-
-    def update_battery(self, bat_main, charger_status, motor, motor_present):
-        log('bat update')
-        self.send(['battery', bat_main, charger_status, motor, motor_present])
-

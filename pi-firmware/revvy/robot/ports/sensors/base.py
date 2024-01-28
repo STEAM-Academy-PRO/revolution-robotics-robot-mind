@@ -64,4 +64,5 @@ class BaseSensorPortDriver(PortDriver):
     def raw_value(self):
         return self._raw_value
 
+    # Surprise.
     def convert_sensor_value(self, raw): raise NotImplementedError

@@ -2,16 +2,22 @@ from numbers import Number
 import time
 import copy
 
-from collections import namedtuple
 from threading import Event
 import traceback
+from typing import NamedTuple
 from revvy.scripting.runtime import ScriptHandle
 
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.thread_wrapper import ThreadWrapper, ThreadContext
 from revvy.utils.logger import LogLevel, get_logger
 
-RemoteControllerCommand = namedtuple('RemoteControllerCommand', ['analog', 'buttons', 'background_command', 'next_deadline'])
+class RemoteControllerCommand(NamedTuple):
+    """ Raw message coming through the ble interface """
+    analog: bytearray
+    buttons: bytearray
+    background_command: bytearray
+    next_deadline: bytearray
+
 
 log = get_logger('RemoteController', off=True)
 

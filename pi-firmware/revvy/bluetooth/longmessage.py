@@ -457,6 +457,8 @@ class LongMessageImplementation:
 
         self._log(f'Received message: {get_constant_name(message_type, LongMessageType)}')
 
+        # I would love to see this TEST_KIT!
+
         if message_type == LongMessageType.TEST_KIT:
             test_script_source = message.data.decode()
             self._log(f'Running test script: {test_script_source}')
@@ -476,7 +478,7 @@ class LongMessageImplementation:
 
             self._robot_manager.robot_configure(empty_robot_config, start_script)
 
-        elif message_type == LongMessageType.CONFIGURATION_DATA:
+        if message_type == LongMessageType.CONFIGURATION_DATA:
             message_data = message.data.decode()
 
             try:
@@ -487,8 +489,7 @@ class LongMessageImplementation:
                     self._log('New configuration ignored.')
                 else:
                     ### -------------------------------------------------------------------------!!!
-                    self._robot_manager.robot_configure(parsed_config,
-                        self._robot_manager.start_remote_controller)
+                    self._robot_manager.robot_configure(parsed_config)
             except ConfigError:
                 self._log(traceback.format_exc())
 

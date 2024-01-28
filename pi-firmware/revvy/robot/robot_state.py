@@ -9,13 +9,13 @@ It polls the MCU for updates in any states.
 """
 
 from functools import partial
-from math import floor
 import math
 import traceback
 from revvy.mcu.rrrc_transport import TransportException
 from revvy.robot.remote_controller import RemoteController
 
 from revvy.robot.robot_events import RobotEvent
+from revvy.robot.states.battery_state import BatteryState
 from revvy.utils.emitter import Emitter
 from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.observable import Observable
@@ -39,7 +39,7 @@ class RobotState(Emitter[RobotEvent]):
 
         # Battery updates: every 2 seconds is enough, if it's unplugged, it's
         # soon enough to notify.
-        self._battery = Observable([0]*4, 2)
+        self._battery = BatteryState()
 
         self._gyro = Observable([0]*3, throttle_interval=0.1)
         self._orientation = Observable([0]*3, throttle_interval=0.1)
@@ -56,7 +56,7 @@ class RobotState(Emitter[RobotEvent]):
         self._battery.subscribe(partial(self.trigger, RobotEvent.BATTERY_CHANGE))
         self._gyro.subscribe(partial(self.trigger, RobotEvent.GYRO_CHANGE))
         self._orientation.subscribe(partial(self.trigger, RobotEvent.ORIENTATION_CHANGE))
-        self._script_variables.subscribe(partial(self.trigger, RobotEvent.BATTERY_CHANGE))
+        self._script_variables.subscribe(partial(self.trigger, RobotEvent.SCRIPT_VARIABLE_CHANGE))
 
         self._background_control_state.subscribe(partial(self.trigger, RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE))
         self._timer.subscribe(partial(self.trigger, RobotEvent.TIMER_TICK))
@@ -78,24 +78,19 @@ class RobotState(Emitter[RobotEvent]):
         try:
             self._robot.update_status()
 
-            self._battery.set([
-                self._robot.battery.main,
-                self._robot.battery.chargerStatus,
-                self._robot.battery.motor,
-                self._robot.battery.motor_battery_present
-            ])
+            self._battery.set(self._robot.battery)
 
             # TODO: Check what this does, and WHY?
-            # self._remote_controller.timer_increment()
+            self._remote_controller.timer_increment()
 
             # Rotation has pretty high noise. To filter it out, I am cutting off the
-            # number's values below 1. `floor` works not to the need of this, and would
-            # return -1 for 0.99. Instead, I created a floor, that does the trick and
-            # drops the small absolute value of the number properly below 0
+            # drops the small absolute value of the number properly below 0 and setting
+            # the precision to 2 degrees. There is most probably a better way to do this,
+            # but good enough for now.
             self._gyro.set([
-                floor0(getattr(self._robot.imu.rotation, 'x')),
-                floor0(getattr(self._robot.imu.rotation, 'y')),
-                floor0(getattr(self._robot.imu.rotation, 'z'))
+                floor0(getattr(self._robot.imu.rotation, 'x'), 0.5),
+                floor0(getattr(self._robot.imu.rotation, 'y'), 0.5),
+                floor0(getattr(self._robot.imu.rotation, 'z'), 0.5)
             ])
 
             ### This seems to do NOTHING.
@@ -109,7 +104,8 @@ class RobotState(Emitter[RobotEvent]):
             self._background_control_state.set(self._remote_controller.background_control_state)
 
             # TODO: WHY is this necessary???
-            #self._robot_interface.update_timer(self._remote_controller.processing_time)
+            self._timer.set(self._remote_controller.processing_time)
+
 
             # self.process_run_in_bg_requests()
             # self.process_autonomous_requests()
@@ -126,8 +122,11 @@ class RobotState(Emitter[RobotEvent]):
             log(traceback.format_exc())
 
 
-def floor0(number):
+def floor0(number, round_to=1):
+    """ Simple floor function that works reversed for minus values, having 0 between -1 and 1 """
     if number < 0:
-        return math.ceil(number)
+        return math.ceil(number * round_to) / round_to
     else:
-        return math.floor(number)
+        return math.floor(number * round_to) / round_to
+
+
