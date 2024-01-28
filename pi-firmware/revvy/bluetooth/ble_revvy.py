@@ -105,6 +105,9 @@ class RevvyBLE:
                 lambda ref, sensor_reading: self._live.update_sensor(
                     sensor_reading.id, sensor_reading.raw_value))
 
+        self._robot_manager.on(RobotEvent.ORIENTATION_CHANGE,
+                lambda ref, vector_orientation: self._live.update_orientation(vector_orientation))
+
         self._robot_manager.on(RobotEvent.DISCONNECT, self.disconnect)
 
         self._robot_manager.on(RobotEvent.SESSION_ID_CHANGE, lambda ref, val: self._live.update_session_id(val))

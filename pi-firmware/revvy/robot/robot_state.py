@@ -42,7 +42,7 @@ class RobotState(Emitter[RobotEvent]):
         self._battery = BatteryState()
 
         self._gyro = Observable([0]*3, throttle_interval=0.1)
-        self._orientation = Observable([0]*3, throttle_interval=0.1)
+        self._orientation = Observable([0]*3, throttle_interval=0.2)
 
         self._script_variables = Observable ([None]*4, throttle_interval=0.1)
 
@@ -93,13 +93,14 @@ class RobotState(Emitter[RobotEvent]):
                 floor0(getattr(self._robot.imu.rotation, 'z'), 0.5)
             ])
 
-            ### This seems to do NOTHING.
-            self._orientation = ([
+            # TODO: Debounce this a bit better: this is used for the angle.
+            self._orientation.set([
                 getattr(self._robot.imu.orientation, 'pitch'),
                 getattr(self._robot.imu.orientation, 'roll'),
                 getattr(self._robot.imu.orientation, 'yaw'),
             ])
 
+            log(f'{self._robot.script_variables}')
             self._script_variables.set(self._robot.script_variables)
             self._background_control_state.set(self._remote_controller.background_control_state)
 
@@ -108,7 +109,11 @@ class RobotState(Emitter[RobotEvent]):
 
 
             # self.process_run_in_bg_requests()
+            # For now, the above two are handling the variable changes.
+
             # self.process_autonomous_requests()
+
+            self.trigger(RobotEvent.MCU_TICK)
 
         except TransportException:
             # TODO: This caused the whole app to quit. Why? What is this error?

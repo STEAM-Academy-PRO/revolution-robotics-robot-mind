@@ -84,15 +84,11 @@ class RobotManager:
         self.trigger = self._robot_state.trigger
 
         # TODO: This is temporary until I figure out WHY we need to run this every 5ms
-        self.on(RobotEvent.MCU_TICK, self.process_run_in_bg_requests)
-        self.on(RobotEvent.MCU_TICK, self.process_autonomous_requests)
+        # Manages the variable readings bubbling to the interface.
+        self.on(RobotEvent.MCU_TICK, lambda *args: self.process_run_in_bg_requests())
 
-    # @ deprecated!
-    # def set_communication_interface_callbacks(self, communication_interface: RobotCommunicationInterface):
-    #     # Ditch former connection!
-    #     if self._robot_interface is not None:
-    #         self._robot_interface.disconnect()
-    #     self._robot_interface = communication_interface
+        self.on(RobotEvent.MCU_TICK, lambda *args: self.process_autonomous_requests())
+
 
     def validate_config_async(self, motors, sensors, motor_load_power,
         threshold, callback):
@@ -219,12 +215,9 @@ class RobotManager:
             self._robot.status.robot_status = RobotStatus.NotConfigured
 
             # Initial robot reset.
+            self._robot.play_tune('robot2')
+            self._log('robot first configured with empty configuration object!')
 
-            def boot_up_success():
-                self._robot.play_tune('robot2')
-                self._log('robot first configured with empty configuration object!')
-
-            self.robot_configure(None, boot_up_success)
 
     def run_in_background(self, callback, name=''):
         if callable(callback):
@@ -245,7 +238,7 @@ class RobotManager:
         self._log(f"Device disconnected: {self._connected_device_name}")
         self._robot.status.controller_status = RemoteControllerStatus.NotConnected
         self._robot.play_tune('disconnect')
-        self.robot_configure(None)
+        self.reset_configuration()
 
 
     def on_connection_changed(self, is_connected):
@@ -259,7 +252,6 @@ class RobotManager:
         self._log('Remote controller lost')
         if self._robot.status.controller_status != RemoteControllerStatus.NotConnected:
             self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
-            self.robot_configure(None)
             self.reset_configuration()
 
 

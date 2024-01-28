@@ -3,6 +3,7 @@ import asyncio
 import json
 import struct
 import threading
+from revvy.robot.robot_events import RobotEvent
 from revvy.robot_manager import RobotManager
 import websockets
 
@@ -18,6 +19,12 @@ SERVER_PORT=8765
 
 log = get_logger('WS')
 
+log_for_events = [RobotEvent.BATTERY_CHANGE,
+                  RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE,
+                #   RobotEvent.ORIENTATION_CHANGE,
+                  RobotEvent.SCRIPT_VARIABLE_CHANGE
+                  ]
+
 class RobotWebSocketApi:
     def __init__(self, robot_manager: RobotManager):
         self._robot_manager = robot_manager
@@ -27,7 +34,8 @@ class RobotWebSocketApi:
         robot_manager.on("all", self.all_event_capture)
 
     def all_event_capture(self, object_ref, evt, data=None):
-        log(f'All event capture {evt} {str(data)}')
+        if evt in log_for_events:
+            log(f'{evt} {str(data)}')
 
     def start(self):
         asyncio.set_event_loop(asyncio.new_event_loop())
