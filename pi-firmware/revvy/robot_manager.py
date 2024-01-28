@@ -273,7 +273,7 @@ class RobotManager:
             scr.assign('Motor', MotorConstants)
             scr.assign('RingLed', RingLed)
 
-        self._remote_controller_thread.stop().wait()
+        self._remote_controller_thread.stop()
 
         for res in self._robot._resources.values():
             res.reset()
@@ -300,10 +300,6 @@ class RobotManager:
         self._apply_new_configuration(config)
 
         self._robot.status.robot_status = RobotStatus.Configured
-
-        # You would assume reset does what it says... No you'd have to call reset
-        # even after config.
-        self._robot.reset()
 
         self._remote_controller_thread.start()
         ### This used to be called in a background process, I have no clue why, but I am removing it.
