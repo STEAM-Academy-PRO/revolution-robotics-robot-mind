@@ -214,7 +214,7 @@ def get_firmware_for_hw_version(fw_dir, hw_version):
 
 
 def update_firmware_if_needed():
-    """ Checks HW version, determines if we need a """
+    """ Checks HW version, determines if we can/need to do a firmware update """
     firmware_path = os.path.join('data', 'firmware')
 
     ### If we are in bootloader mode, we DO have to update.
