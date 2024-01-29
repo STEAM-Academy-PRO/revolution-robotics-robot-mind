@@ -15,9 +15,9 @@ from revvy.utils.thread_wrapper import ThreadContext, ThreadWrapper
 from revvy.scripting.robot_interface import RobotWrapper
 
 class ScriptEvent(Enum):
-    START = 'start'
-    STOP = 'stop'
-    ERROR = 'error'
+    STOP = 0
+    START = 1
+    ERROR = 2
 
 class ScriptDescriptor():
     name: str

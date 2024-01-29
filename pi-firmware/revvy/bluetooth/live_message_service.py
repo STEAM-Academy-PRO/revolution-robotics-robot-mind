@@ -3,7 +3,7 @@
 import struct
 
 from pybleno import BlenoPrimaryService
-from revvy.bluetooth.ble_characteristics import GyroCharacteristic, MobileToBrainFunctionCharacteristic, MotorCharacteristic, ReadVariableCharacteristic, RelativeFunctionCharacteristic, SensorCharacteristic, TimerCharacteristic, ValidateConfigCharacteristic
+from revvy.bluetooth.ble_characteristics import GyroCharacteristic, MobileToBrainFunctionCharacteristic, MotorCharacteristic, ProgramStatusCharacteristic, ReadVariableCharacteristic, RelativeFunctionCharacteristic, SensorCharacteristic, TimerCharacteristic, ValidateConfigCharacteristic
 from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_DONE, VALIDATE_CONFIG_STATE_IN_PROGRESS, VALIDATE_CONFIG_STATE_UNKNOWN
 from revvy.robot.rc_message_parser import parse_control_message
 from revvy.robot_manager import RobotManager
@@ -43,6 +43,10 @@ class LiveMessageService(BlenoPrimaryService):
 
         self._timer_characteristic = [
             TimerCharacteristic('c0e913da-5fdd-4a17-90b4-47758d449306', b'Timer'),
+        ]
+
+        self._program_status_characteristic = [
+            ProgramStatusCharacteristic('7b988246-56c3-4a90-a6e8-e823ea287730', b'ProgramStatus')
         ]
 
         self._state_control_characteristic = [
@@ -91,6 +95,7 @@ class LiveMessageService(BlenoPrimaryService):
                 *self._read_variable_characteristic,
                 *self._state_control_characteristic,
                 *self._timer_characteristic,
+                *self._program_status_characteristic
             ]
         })
 
@@ -208,6 +213,10 @@ class LiveMessageService(BlenoPrimaryService):
     def update_sensor(self, sensor, value):
         if 0 < sensor <= len(self._sensor_characteristics):
             self._sensor_characteristics[sensor - 1].update(value)
+
+    def update_program_status(self, button_id, status):
+        packed_data = struct.pack('>bi', button_id, status)
+        self._program_status_characteristic[0].update(packed_data)
 
     def update_motor(self, motor, power, speed, position):
         if 0 < motor <= len(self._motor_characteristics):

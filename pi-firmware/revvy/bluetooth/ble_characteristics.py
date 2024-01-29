@@ -206,6 +206,9 @@ class ReadVariableCharacteristic(BrainToMobileFunctionCharacteristic):
     pass
 
 
+class ProgramStatusCharacteristic(BrainToMobileFunctionCharacteristic):
+    pass
+
 # Device Information Service
 class ReadOnlyCharacteristic(Characteristic):
     def __init__(self, uuid, value):

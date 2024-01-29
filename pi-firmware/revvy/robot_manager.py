@@ -356,6 +356,7 @@ class RobotManager:
                 script_handle.assign('list_slots', scriptvars)
                 self._remote_controller.link_button_to_runner(button, script_handle)
 
+                script_handle.on(ScriptEvent.START, self._on_script_running)
                 script_handle.on(ScriptEvent.STOP, self._on_script_stopped)
                 script_handle.on(ScriptEvent.ERROR, self._on_script_error)
 
@@ -369,20 +370,25 @@ class RobotManager:
             self._bg_controlled_scripts.start_all_scripts()
 
 
-    def _on_script_error(self, script: ScriptHandle, ex):
+    def _on_script_running(self, script_handle: ScriptHandle, data=None):
+        """ When script started, notify phone app. """
+        self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.START)
+
+    def _on_script_error(self, script_handle: ScriptHandle, ex):
         """
             Handle runner script errors gracefully, and type out what caused it to bail!
             These are user scripts, so we should consider sending them back via Bluetooth
         """
-        self._log(f'ERROR in userscript: {script.name}', LogLevel.ERROR)
+        self._log(f'ERROR in userscript: {script_handle.descriptor.name}', LogLevel.ERROR)
         self._log(f'ERROR:  {str(ex)}', LogLevel.ERROR)
-        self._log(f'Source that caused the error: \n\n{script.descriptor.source}\n\n', LogLevel.ERROR)
+        self._log(f'Source that caused the error: \n\n{script_handle.descriptor.source}\n\n', LogLevel.ERROR)
         self._log(f'{traceback.format_exc()}', LogLevel.ERROR)
+        self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.ERROR)
 
-    def _on_script_stopped(self, script, data=None):
+    def _on_script_stopped(self, script_handle: ScriptHandle, data=None):
         """ If we want to send back script status stopped change, this is the place. """
         # self._log(f'script: {script.name}')
-        pass
+        self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.STOP)
 
     def _robot_configure(self, config):
 
