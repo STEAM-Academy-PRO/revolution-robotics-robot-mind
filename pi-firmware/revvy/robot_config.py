@@ -32,7 +32,6 @@ sensor_types = [
     None,
     Sensors.Ultrasonic,
     Sensors.BumperSwitch,
-    Sensors.EV3_Color,
     Sensors.SofteqCS,
 ]
 

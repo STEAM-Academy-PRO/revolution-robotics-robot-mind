@@ -1,5 +1,4 @@
 from revvy.robot.ports.motors.dc_motor import DcMotorController
-from revvy.robot.ports.sensors.ev3 import ev3_color, Ev3UARTSensor
 from revvy.robot.ports.sensors.simple import hcsr04, bumper_switch, softeq_cs
 
 
@@ -33,6 +32,4 @@ class Motors:
 class Sensors:
     Ultrasonic = {'driver': hcsr04, 'config': {}}
     BumperSwitch = {'driver': bumper_switch, 'config': {}}
-    EV3 = {'driver': lambda port, _: Ev3UARTSensor(port), 'config': {}}
-    EV3_Color = {'driver': ev3_color, 'config': {}}
     SofteqCS = {'driver': softeq_cs, 'config': {}}
