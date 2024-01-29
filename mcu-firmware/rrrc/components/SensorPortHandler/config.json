@@ -9,8 +9,6 @@
         "SensorPortLibraries/DebugRTC/DebugRTC.c",
         "SensorPortLibraries/Dummy/Dummy.c",
         "SensorPortLibraries/HC_SR04/HC_SR04.c",
-        "SensorPortLibraries/EV3/EV3.c",
-        "SensorPortLibraries/EV3/ev3_utils.c",
         "SensorPortLibraries/RGB/RGB.c",
         "SensorPortLibraries/SensorPort_I2C.c",
         "SensorPortLibraries/SensorPort_UART.c"
