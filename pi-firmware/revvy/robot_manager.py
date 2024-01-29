@@ -21,11 +21,20 @@ from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.thread_wrapper import periodic
 
-
 class RevvyStatusCode(enum.IntEnum):
+    """ Exit codes we used to tell the loader what happened """
+
+    # Manual exit. The loader will exit, too. Exiting with OK only makes sense if the package is
+    # not managed by the revvy.service.
     OK = 0
+
+    # An error has occurred. The loader is allowed to reload this package
     ERROR = 1
+
+    # The loader should try to load a previous package
     INTEGRITY_ERROR = 2
+
+    # The loader should try to install and load a new package
     UPDATE_REQUEST = 3
 
 

@@ -213,8 +213,13 @@ def get_firmware_for_hw_version(fw_dir, hw_version):
         raise KeyError from e
 
 
-def update_firmware_if_needed():
-    """ Checks HW version, determines if we can/need to do a firmware update """
+def update_firmware_if_needed() -> bool:
+    """
+        Checks HW version, determines if we can/need to do a firmware update
+
+        Returns True if the update was skipped or successful, False if the robot is in a
+        state where it cannot continue.
+    """
     firmware_path = os.path.join('data', 'firmware')
 
     ### If we are in bootloader mode, we DO have to update.
@@ -245,12 +250,12 @@ def update_firmware_if_needed():
             # exception, and let the loader try again. Maybe an earier installation will restore
             # the MCU.
             log('No firmware in the package, and no firmware on the brain. Aborting.')
-            raise exception
+            return False
         else:
             # We have no firmware in the package, but we have one on the brain. Let's continue
             # and hope that the package is compatible.
             log('No firmware in the package. The brain will use the last installation.')
-            return
+            return True
 
     checksum = binascii.crc32(fw_binary)
 
@@ -260,3 +265,4 @@ def update_firmware_if_needed():
 
     # Very important: this is ALWAYS needed to reset back the MCU state to application mode.
     updater.finalize_and_start_application(is_update_needed)
+    return True
