@@ -11,8 +11,6 @@ if __name__ == "__main__":
     port_config_map = {
         'Ultrasonic': Sensors.Ultrasonic,
         'Button':     Sensors.BumperSwitch,
-        'EV3':        Sensors.EV3,
-        'EV3_Color':  Sensors.EV3_Color,
         'Softeq_CS':  Sensors.SofteqCS,
     }
 
