@@ -215,7 +215,7 @@ class LiveMessageService(BlenoPrimaryService):
             self._sensor_characteristics[sensor - 1].update(value)
 
     def update_program_status(self, button_id, status):
-        packed_data = struct.pack('>bi', button_id, status)
+        packed_data = struct.pack('>BB', button_id, status)
         self._program_status_characteristic[0].update(packed_data)
 
     def update_motor(self, motor, power, speed, position):
