@@ -25,12 +25,11 @@ from contextlib import suppress
 from json import JSONDecodeError
 
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-from revvy.utils import logger
 
 from revvy.utils.file_storage import IntegrityError
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
-from revvy.utils.version import VERSION, Version, get_branch, get_sw_version
+from revvy.utils.version import VERSION, Version, get_sw_version
 from revvy.utils.functions import split, bytestr_hash, read_json
 from revvy.mcu.rrrc_control import RevvyTransportBase
 
@@ -49,6 +48,8 @@ class McuUpdater:
         # Will populate it in finalize.
         self.fw_version = None
         self.sw_version = get_sw_version()
+
+        self.update_global_version_info()
 
     def _is_in_bootloader_mode(self) -> bool:
         """
@@ -166,12 +167,15 @@ class McuUpdater:
         assert not self._is_in_bootloader_mode()
 
         self.fw_version = self._application_controller.get_firmware_version()
-
+        self.update_global_version_info()
+        
         if was_update_needed:
             log(f'Update successful, running FW version {self.fw_version}')
         else:
             log(f'No update was needed, running FW version {self.fw_version}')
 
+    def update_global_version_info(self):
+        VERSION.set(self.sw_version, self.hw_version, self.fw_version)
 
 
 def read_firmware_bin_from_fs(fw_data):
@@ -209,8 +213,13 @@ def get_firmware_for_hw_version(fw_dir, hw_version):
         raise KeyError from e
 
 
-def update_firmware_if_needed():
-    """ Checks HW version, determines if we need a """
+def update_firmware_if_needed() -> bool:
+    """
+        Checks HW version, determines if we can/need to do a firmware update
+
+        Returns True if the update was skipped or successful, False if the robot is in a
+        state where it cannot continue.
+    """
     firmware_path = os.path.join('data', 'firmware')
 
     ### If we are in bootloader mode, we DO have to update.
@@ -221,20 +230,32 @@ def update_firmware_if_needed():
     i2c_bus = 1
     updater = McuUpdater(RevvyTransportI2C(i2c_bus))
 
+    # If an exception occurs, we'll save it for later when we may rethrow it.
+    exception = None
     try:
         fw_bin_version, fw_binary = get_firmware_for_hw_version(firmware_path, updater.hw_version)
     except KeyError as e:
+        exception = e
         log(f'No firmware for the hardware ({updater.hw_version})')
-        if updater.is_bootloader_mode:
-            raise e
     except IOError as e:
+        exception = e
         log('Firmware file does not exist or is not readable')
-        if updater.is_bootloader_mode:
-            raise e
     except IntegrityError as e:
+        exception = e
         log('Firmware file corrupted')
+
+    if exception:
         if updater.is_bootloader_mode:
-            raise e
+            # We have no valid firmware in the package, and no firmware on the brain. Let's throw an
+            # exception, and let the loader try again. Maybe an earier installation will restore
+            # the MCU.
+            log('No firmware in the package, and no firmware on the brain. Aborting.')
+            return False
+        else:
+            # We have no firmware in the package, but we have one on the brain. Let's continue
+            # and hope that the package is compatible.
+            log('No firmware in the package. The brain will use the last installation.')
+            return True
 
     checksum = binascii.crc32(fw_binary)
 
@@ -244,10 +265,4 @@ def update_firmware_if_needed():
 
     # Very important: this is ALWAYS needed to reset back the MCU state to application mode.
     updater.finalize_and_start_application(is_update_needed)
-
-    VERSION.set(updater.sw_version, updater.hw_version, updater.fw_version)
-
-    logger.branch = get_branch()
-    logger.sw_version = VERSION.sw
-
-    log(f'version info: hw: {VERSION.hw} sw: {VERSION.sw} fw: {VERSION.fw}')
+    return True

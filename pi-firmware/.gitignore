@@ -5,6 +5,7 @@
 /install/*.data
 /install/*.meta
 /install/packages
+/data/firmware/
 target
 
 .coverage

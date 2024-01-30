@@ -18,7 +18,6 @@ class RemoteControllerCommand(NamedTuple):
     background_command: bytearray
     next_deadline: bytearray
 
-
 log = get_logger('RemoteController', off=True)
 
 class BleAutonomousCmd:
@@ -154,6 +153,7 @@ class RemoteController:
     def reset(self):
         self._analogActions.clear()
         self._analogStates.clear()
+        self._button_handlers.clear()
 
         self._processing = False
         self._processing_time = 0.0

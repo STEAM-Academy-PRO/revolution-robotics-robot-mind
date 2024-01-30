@@ -32,9 +32,13 @@ python -m tools.generate_makefile
 # currently the generated runtime is checked in, so this is not needed
 # cglue --generate --cglue-output=rrrc/generated_runtime
 make all config=debug
+
+# if you want to include the firmware in a pi-firmware package
+python -m tools.prepare --debug
 ```
 
-The resulting binary is placed in `mcu-firmware/Build/Debug/mcu-firmware`
+The resulting binary is placed in `mcu-firmware/Build/Debug/mcu-firmware`.
+The result of the `prepare` script is placed in `mcu-firmware/Build/output`.
 
 Building a release bootloader
 -----------------------------
@@ -45,9 +49,13 @@ python -m tools.generate_makefile
 # currently the generated runtime is checked in, so this is not needed
 # cglue --generate --cglue-output=rrrc/generated_runtime
 make all config=release
+
+# if you want to include the firmware in a pi-firmware package
+python -m tools.prepare
 ```
 
-The resulting binary is placed in `mcu-firmware/Build/Release/mcu-firmware`
+The resulting binary is placed in `mcu-firmware/Build/Release/mcu-firmware`.
+The result of the `prepare` script is placed in `mcu-firmware/Build/output`.
 
 Flashing the firmware
 ---------------------

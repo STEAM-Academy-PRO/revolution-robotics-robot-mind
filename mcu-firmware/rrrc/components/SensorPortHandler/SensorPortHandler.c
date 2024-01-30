@@ -14,7 +14,6 @@
 #include "SensorPortLibraries/HC_SR04/HC_SR04.h"
 #include "SensorPortLibraries/RGB/RGB.h"
 #include "SensorPortLibraries/DebugRTC/DebugRTC.h"
-#include "SensorPortLibraries/EV3/EV3.h"
 
 static const SensorLibrary_t* libraries[] =
 {
@@ -22,8 +21,7 @@ static const SensorLibrary_t* libraries[] =
     &sensor_library_bumper_switch,
     &sensor_library_hc_sr04,
     &sensor_library_rgb,
-    &sensor_library_debug_rtc,
-    &sensor_library_ev3
+    &sensor_library_debug_rtc
 };
 
 static size_t sensorPortCount = 0u;

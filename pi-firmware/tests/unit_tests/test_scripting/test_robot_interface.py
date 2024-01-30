@@ -9,26 +9,25 @@ from revvy.scripting.robot_interface import RingLedWrapper, PortCollection, Reso
 
 class TestRingLed(unittest.TestCase):
 
-### This is no longer the case: ring led should turn over, without coding needed.
-#     def test_ring_leds_are_indexed_from_one(self):
-#         led_mock = Mock()
-#         led_mock.display_user_frame = Mock()
-#         led_mock.count = 6
+    def test_ring_leds_do_not_throw_error(self):
+        led_mock = Mock()
+        led_mock.display_user_frame = Mock()
+        led_mock.count = 6
 
-#         led_resource = ResourceWrapper(Resource(), 0)
+        led_resource = ResourceWrapper(Resource(), 0)
 
-#         script = Mock()
-#         script.is_stop_requested = False
+        script = Mock()
+        script.is_stop_requested = False
 
-#         rw = RingLedWrapper(script, led_mock, led_resource)
-#         self.assertRaises(IndexError, lambda: rw.set(leds=[0], color='#112233'))
-#         rw.set(leds=[1], color='#112233')
-#         rw.set(leds=[2], color='#112233')
-#         rw.set(leds=[3], color='#112233')
-#         rw.set(leds=[4], color='#112233')
-#         rw.set(leds=[5], color='#112233')
-#         rw.set(leds=[6], color='#112233')
-#         self.assertRaises(IndexError, lambda: rw.set(leds=[7], color='#112233'))
+        rw = RingLedWrapper(script, led_mock, led_resource)
+        rw.set(leds=[-50], color='#112233')
+        rw.set(leds=[1], color='#112233')
+        rw.set(leds=[2], color='#112233')
+        rw.set(leds=[3], color='#112233')
+        rw.set(leds=[4], color='#112233')
+        rw.set(leds=[5], color='#112233')
+        rw.set(leds=[6], color='#112233')
+        rw.set(leds=[3333], color='#112233')
 
     def test_ring_led_set_remembers_previous_state(self):
         led_mock = Mock()

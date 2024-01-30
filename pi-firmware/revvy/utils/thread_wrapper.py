@@ -108,12 +108,8 @@ class ThreadWrapper:
             Only allows one instance of the script to run.
             If the thread is stopping, it's going to restart it right after.
         """
-        # I do not understand why these here. Why couldn't a thread be restarted
-        # when exited? What's the benefit of that?
-        # Either this, or there is a bug, that the configuration binds the SAME
-        # function twice or it does not clean up after itself, so it's bailing.
-        # assert self._state != ThreadWrapper.EXITED, 'thread has already exited'
-        # assert not self._is_exiting, 'can not start an exiting thread'
+        assert self._state != ThreadWrapper.EXITED, 'thread has already exited'
+        assert not self._is_exiting, 'can not start an exiting thread'
 
         with self._interface_lock:
             with self._lock:

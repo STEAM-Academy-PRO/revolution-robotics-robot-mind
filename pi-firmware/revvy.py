@@ -40,7 +40,10 @@ if __name__ == "__main__":
         sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
 
     ### Before we enter the main loop, let's load up
-    update_firmware_if_needed()
+    if not update_firmware_if_needed():
+        log('Revvy not started because the robot has no functional firmware')
+        # exiting with integrity error forces the loader to try a previous package
+        sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
 
     # Handles robot state
     robot_manager = RobotManager()
