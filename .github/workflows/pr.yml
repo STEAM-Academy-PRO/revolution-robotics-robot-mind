@@ -203,4 +203,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pi-firmware
-          path: pi-firmware/install/pi-firmware.*
+          path: |
+            pi-firmware/install/pi-firmware.*
+            pi-firmware/install/framework-*.tar.gz
