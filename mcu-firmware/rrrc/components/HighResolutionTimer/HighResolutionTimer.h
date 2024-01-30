@@ -10,6 +10,10 @@
 
 #endif /* COMPONENT_TYPES_HIGH_RESOLUTION_TIMER_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void HighResolutionTimer_Run_OnInit(void);
 uint32_t HighResolutionTimer_Run_GetTickCount(void);
 float HighResolutionTimer_Run_ToMs(uint32_t ticks);

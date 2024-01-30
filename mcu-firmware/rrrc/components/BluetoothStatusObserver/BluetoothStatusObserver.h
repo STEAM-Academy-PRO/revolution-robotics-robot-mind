@@ -49,6 +49,10 @@ typedef struct {
 
 #endif /* COMPONENT_TYPES_BLUETOOTH_STATUS_OBSERVER_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void BluetoothStatusObserver_Run_OnInit(void);
 Comm_Status_t BluetoothStatusObserver_Run_Command_SetBluetoothStatus_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 void BluetoothStatusObserver_Write_ConnectionStatus(BluetoothStatus_t value);

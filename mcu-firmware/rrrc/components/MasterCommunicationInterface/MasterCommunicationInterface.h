@@ -22,6 +22,10 @@ typedef struct {
 
 #endif /* COMPONENT_TYPES_MASTER_COMMUNICATION_INTERFACE_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void MasterCommunicationInterface_Run_OnInit(void);
 void MasterCommunicationInterface_Run_SetResponse(ConstByteArray_t response);
 void MasterCommunicationInterface_RaiseEvent_RxTimeout(void);

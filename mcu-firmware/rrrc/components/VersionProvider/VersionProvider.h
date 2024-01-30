@@ -15,6 +15,10 @@ typedef struct {
 
 #endif /* COMPONENT_TYPES_VERSION_PROVIDER_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 uint32_t VersionProvider_Constant_FirmwareVersion(void);
 ByteArray_t VersionProvider_Constant_FirmwareVersionString(void);
 uint32_t VersionProvider_Constant_HardwareVersion(void);

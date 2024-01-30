@@ -43,6 +43,10 @@ typedef struct {
 
 #endif /* COMPONENT_TYPES_MASTER_COMMUNICATION_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void MasterCommunication_Run_OnInit(const Comm_CommandHandler_t* commandTable, size_t commandTableSize);
 void MasterCommunication_Run_HandleCommand(ConstByteArray_t message);
 ConstByteArray_t MasterCommunication_Constant_DefaultResponse(void);

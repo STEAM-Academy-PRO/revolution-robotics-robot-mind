@@ -66,6 +66,10 @@ typedef float Percentage_t;
 
 #endif /* COMPONENT_TYPES_PROJECT_CONFIGURATION_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 uint8_t ProjectConfiguration_Constant_DeviceAddress(void);
 uint32_t ProjectConfiguration_Constant_ExpectedStartupTime(void);
 uint32_t ProjectConfiguration_Constant_ExpectedUpdateTime(void);

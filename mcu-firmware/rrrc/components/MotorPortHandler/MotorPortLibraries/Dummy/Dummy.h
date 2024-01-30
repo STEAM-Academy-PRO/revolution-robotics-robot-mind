@@ -3,6 +3,6 @@
 
 #include "../MotorPortLibrary.h"
 
-const MotorLibrary_t motor_library_dummy;
+extern const MotorLibrary_t motor_library_dummy;
 
 #endif /* MOTOR_PORT_LIBRARY_DUMMY_H_ */

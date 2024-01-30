@@ -22,6 +22,10 @@ typedef enum {
 
 #endif /* COMPONENT_TYPES_IMU_MOVEMENT_DETECTOR_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void IMUMovementDetector_Run_OnInit(void);
 void IMUMovementDetector_Run_OnUpdate(void);
 void IMUMovementDetector_Write_IsMoving(bool value);
