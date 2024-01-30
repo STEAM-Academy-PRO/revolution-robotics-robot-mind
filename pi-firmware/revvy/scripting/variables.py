@@ -63,6 +63,12 @@ class VariableSlot(object):
     def __str__(self):
         return self.__get_string_description()
 
+    def get_variables(self):
+        return self.__v
+
+    def get_variable_values(self):
+        return [var.get_value() for var in self.__v]
+
     def get_variable(self, slot_idx):
         return self.__v[slot_idx]
 

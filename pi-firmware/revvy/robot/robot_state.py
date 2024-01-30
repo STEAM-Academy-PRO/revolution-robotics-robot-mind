@@ -100,8 +100,7 @@ class RobotState(Emitter[RobotEvent]):
                 getattr(self._robot.imu.orientation, 'yaw'),
             ])
 
-            log(f'{self._robot.script_variables}')
-            self._script_variables.set(self._robot.script_variables)
+            self._script_variables.set(self._robot.script_variables.get_variable_values())
             self._background_control_state.set(self._remote_controller.background_control_state)
 
             # TODO: WHY is this necessary???

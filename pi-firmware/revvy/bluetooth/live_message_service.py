@@ -8,7 +8,7 @@ from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_DONE,
 from revvy.robot.rc_message_parser import parse_control_message
 from revvy.robot_manager import RobotManager
 
-from revvy.utils.logger import get_logger
+from revvy.utils.logger import LogLevel, get_logger
 
 from revvy.robot.remote_controller import RemoteControllerCommand
 
@@ -240,9 +240,12 @@ class LiveMessageService(BlenoPrimaryService):
             self._buf_timer = buf
             self._timer_characteristic[0].update(self._buf_timer)
 
-    def update_script_variable(self, script_variables):
+    def update_script_variables(self, script_variables):
         # By characteristic protocol - maximum slots in BLE message is 4
         MAX_VARIABLE_SLOTS = 4
+
+        if len(script_variables) != MAX_VARIABLE_SLOTS:
+            log("Script variable size mismatch", LogLevel.WARNING)
 
         # Message format:
         # offset:  0    1  2  3  4    5  6  7  8    9  10 11 12   13 14 15 16
@@ -263,18 +266,15 @@ class LiveMessageService(BlenoPrimaryService):
         mask = 0
         valuebuf = b''
 
-        for slot_idx in range(MAX_VARIABLE_SLOTS):
-            v = script_variables.get_variable(slot_idx)
-            if v.is_valid() and v.value_is_set():
-                value = v.get_value()
-                mask = mask | (1 << slot_idx)
+        for index, variable_value in enumerate(script_variables):
+            if variable_value is not None:
+                mask = mask | (1 << index)
             else:
-                value = 0.0
-            valuebuf += struct.pack('f', value)
+                variable_value = 0.0
+            valuebuf += struct.pack('f', variable_value)
 
         maskbuf = struct.pack('B', mask)
         msg = maskbuf + valuebuf
-        # log('scriptvars', msg)
         self._read_variable_characteristic[0].update(msg)
 
     def update_state_control(self, state):

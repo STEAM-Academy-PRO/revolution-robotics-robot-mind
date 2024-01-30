@@ -112,6 +112,8 @@ class RevvyBLE:
 
         self._robot_manager.on(RobotEvent.SESSION_ID_CHANGE, lambda ref, val: self._live.update_session_id(val))
 
+        self._robot_manager.on(RobotEvent.SCRIPT_VARIABLE_CHANGE, lambda ref,
+                            variables: self._live.update_script_variables(variables))
 
     def _on_connected(self, c):
         """ On new INCOMING connection, update the callback interfaces. """
