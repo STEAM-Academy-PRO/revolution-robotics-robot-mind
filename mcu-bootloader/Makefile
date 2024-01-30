@@ -91,7 +91,6 @@ COMPILE_FLAGS += \
 -D__SAMD51P19A__ \
 -ffunction-sections \
 -fdata-sections \
--fcommon \
 -mlong-calls \
 -Wall \
 -Wextra \

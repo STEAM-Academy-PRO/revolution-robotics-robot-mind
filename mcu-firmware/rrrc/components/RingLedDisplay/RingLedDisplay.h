@@ -37,6 +37,10 @@ typedef struct {
 
 #endif /* COMPONENT_TYPES_RING_LED_DISPLAY_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void RingLedDisplay_Run_OnInit(void);
 void RingLedDisplay_Run_Update(void);
 void RingLedDisplay_Run_OnMasterStarted(void);

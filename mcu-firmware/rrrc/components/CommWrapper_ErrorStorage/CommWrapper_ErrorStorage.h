@@ -36,6 +36,10 @@ typedef enum {
 
 #endif /* COMPONENT_TYPES_COMM_WRAPPER__ERROR_STORAGE_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 Comm_Status_t CommWrapper_ErrorStorage_Run_Command_ReadCount_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 Comm_Status_t CommWrapper_ErrorStorage_Run_Command_ReadErrors_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 Comm_Status_t CommWrapper_ErrorStorage_Run_Command_ClearMemory_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);

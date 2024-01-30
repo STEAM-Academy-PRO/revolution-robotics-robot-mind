@@ -15,6 +15,10 @@ typedef enum {
 
 #endif /* COMPONENT_TYPES_BATTERY_CHARGER_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void BatteryCharger_Run_OnInit(void);
 void BatteryCharger_Run_Update(void);
 void BatteryCharger_Write_ChargerState(ChargerState_t value);

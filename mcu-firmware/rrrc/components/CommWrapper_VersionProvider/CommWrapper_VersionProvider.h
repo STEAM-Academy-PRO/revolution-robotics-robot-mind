@@ -34,6 +34,10 @@ typedef enum {
 
 #endif /* COMPONENT_TYPES_COMM_WRAPPER__VERSION_PROVIDER_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 Comm_Status_t CommWrapper_VersionProvider_Run_Command_ReadHardwareVersion_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 Comm_Status_t CommWrapper_VersionProvider_Run_Command_ReadFirmwareVersion_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 ByteArray_t CommWrapper_VersionProvider_Read_FirmwareVersionString(void);

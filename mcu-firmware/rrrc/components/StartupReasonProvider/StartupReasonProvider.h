@@ -9,6 +9,10 @@
 
 #endif /* COMPONENT_TYPES_STARTUP_REASON_PROVIDER_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void StartupReasonProvider_Run_OnInit(void);
 void StartupReasonProvider_Write_IsColdStart(bool value);
 

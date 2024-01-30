@@ -18,6 +18,10 @@ typedef struct {
 
 #endif /* COMPONENT_TYPES_BATTERY_CALCULATOR_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void BatteryCalculator_Run_OnInit(void);
 void BatteryCalculator_Run_Update(void);
 void BatteryCalculator_Write_MainBatteryLevel(uint8_t value);

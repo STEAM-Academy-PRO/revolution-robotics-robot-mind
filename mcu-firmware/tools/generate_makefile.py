@@ -30,7 +30,6 @@ COMPILE_FLAGS += \\
 -DCOMPATIBLE_HW_VERSIONS=2 \\
 -ffunction-sections \\
 -fdata-sections \\
--fcommon \\
 -mlong-calls \\
 -Wall \\
 -Wextra \\

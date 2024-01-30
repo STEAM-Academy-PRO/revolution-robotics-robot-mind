@@ -20,6 +20,10 @@ typedef struct {
 
 #endif /* COMPONENT_TYPES_MCU_STATUS_COLLECTOR_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void McuStatusCollector_Run_Reset(void);
 uint8_t McuStatusCollector_Run_Read(ByteArray_t destination);
 void McuStatusCollector_Run_EnableSlot(uint8_t slot);

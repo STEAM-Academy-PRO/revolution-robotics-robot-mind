@@ -53,6 +53,10 @@ typedef struct {
 
 #endif /* COMPONENT_TYPES_MASTER_STATUS_OBSERVER_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void MasterStatusObserver_Run_OnInit(void);
 void MasterStatusObserver_Run_Update(void);
 Comm_Status_t MasterStatusObserver_Run_Command_SetMasterStatus_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);

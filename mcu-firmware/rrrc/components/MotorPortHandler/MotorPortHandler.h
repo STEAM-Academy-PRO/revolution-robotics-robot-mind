@@ -70,8 +70,10 @@ typedef enum {
 
 #endif /* COMPONENT_TYPES_MOTOR_PORT_HANDLER_H_ */
 
-/* TODO generate OnInit */
+/* Begin User Code Section: Declarations */
 void MotorPortHandler_Run_OnInit(MotorPort_t* ports, uint8_t portCount);
+/* End User Code Section: Declarations */
+
 void MotorPortHandler_Run_PortUpdate(uint8_t port_idx);
 void MotorPortHandler_Run_ReadPortTypes(ByteArray_t* buffer);
 void MotorPortHandler_Run_SetPortType(uint8_t port_idx, uint8_t port_type, bool* result);

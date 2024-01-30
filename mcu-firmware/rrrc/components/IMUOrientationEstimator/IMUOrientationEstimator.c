@@ -142,6 +142,10 @@ static Quaternion_t madgwick_imu(const float sampleTime, const Vector3D_t accele
     };
 }
 
+void IMUOrientationEstimator_Reset(void)
+{
+    orientation = (Quaternion_t) {1.0f, 0.0f, 0.0f, 0.0f };
+}
 /* End User Code Section: Declarations */
 
 void IMUOrientationEstimator_Run_OnInit(void)
@@ -228,11 +232,6 @@ void IMUOrientationEstimator_Run_OnUpdate(void)
     /* Begin User Code Section: OnUpdate:run End */
 
     /* End User Code Section: OnUpdate:run End */
-}
-
-void IMUOrientationEstimator_Reset(void)
-{
-    orientation = (Quaternion_t) {1.0f, 0.0f, 0.0f, 0.0f };
 }
 
 __attribute__((weak))

@@ -33,6 +33,10 @@ typedef enum {
 
 #endif /* COMPONENT_TYPES_LED_DISPLAY_CONTROLLER_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void LedDisplayController_Run_OnInit(void);
 void LedDisplayController_Run_Update(void);
 void LedDisplayController_Write_Leds(uint32_t index, rgb_t value);
