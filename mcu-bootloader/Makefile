@@ -115,7 +115,7 @@ LINKER_FLAGS := \
 ifeq ($(OS),Windows_NT)
 	SHELL := cmd.exe
 	MKDIR := md
-	GCC_BINARY_PREFIX := "C:/gcc/gcc-arm-none-eabi-9-2019-q4-major/bin/arm-none-eabi-
+	GCC_BINARY_PREFIX := "C:/gcc/gcc-arm-none-eabi-9-2020-q2-update/bin/arm-none-eabi-
 	GCC_BINARY_SUFFIX := .exe"
 	NULL := nul
 	DEL := rmdir /s /q
@@ -123,7 +123,7 @@ ifeq ($(OS),Windows_NT)
 else
 	SHELL := /bin/bash
 	MKDIR := mkdir -p
-	GCC_BINARY_PREFIX := /usr/share/gcc-arm/gcc-arm-none-eabi-9-2019-q4-major/bin/arm-none-eabi-
+	GCC_BINARY_PREFIX := /usr/share/gcc-arm/gcc-arm-none-eabi-9-2020-q2-update/bin/arm-none-eabi-
 	GCC_BINARY_SUFFIX :=
 	NULL := /dev/null
 	DEL := rm -rf
