@@ -91,6 +91,7 @@ COMPILE_FLAGS += \
 -D__SAMD51P19A__ \
 -ffunction-sections \
 -fdata-sections \
+-fcommon \
 -mlong-calls \
 -Wall \
 -Wextra \
@@ -115,7 +116,7 @@ LINKER_FLAGS := \
 ifeq ($(OS),Windows_NT)
 	SHELL := cmd.exe
 	MKDIR := md
-	GCC_BINARY_PREFIX := "C:/gcc/gcc-arm-none-eabi-9-2020-q2-update/bin/arm-none-eabi-
+	GCC_BINARY_PREFIX := "C:/gcc/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-
 	GCC_BINARY_SUFFIX := .exe"
 	NULL := nul
 	DEL := rmdir /s /q
@@ -123,7 +124,7 @@ ifeq ($(OS),Windows_NT)
 else
 	SHELL := /bin/bash
 	MKDIR := mkdir -p
-	GCC_BINARY_PREFIX := /usr/share/gcc-arm/gcc-arm-none-eabi-9-2020-q2-update/bin/arm-none-eabi-
+	GCC_BINARY_PREFIX := /usr/share/gcc-arm/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-
 	GCC_BINARY_SUFFIX :=
 	NULL := /dev/null
 	DEL := rm -rf
@@ -143,8 +144,9 @@ OUTPUT_DIR :=Build/Release/mcu-bootloader
 COMPILE_FLAGS += \
 -DBOOTLOADER_VERSION=0 \
 -DHARDWARE_VERSION=2 \
--O0 \
--g3
+-O3 \
+-g3 \
+-flto
 endif
 
 OUTPUT_FILE :=$(OUTPUT_DIR)/rrrc_samd51

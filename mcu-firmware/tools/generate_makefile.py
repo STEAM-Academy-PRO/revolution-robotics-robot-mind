@@ -30,6 +30,7 @@ COMPILE_FLAGS += \\
 -DCOMPATIBLE_HW_VERSIONS=2 \\
 -ffunction-sections \\
 -fdata-sections \\
+-fcommon \\
 -mlong-calls \\
 -Wall \\
 -Wextra \\
@@ -54,7 +55,7 @@ LINKER_FLAGS := \\
 ifeq ($(OS),Windows_NT)
 \tSHELL := cmd.exe
 \tMKDIR := md
-\tGCC_BINARY_PREFIX := "C:/gcc/gcc-arm-none-eabi-9-2020-q2-update/bin/arm-none-eabi-
+\tGCC_BINARY_PREFIX := "C:/gcc/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-
 \tGCC_BINARY_SUFFIX := .exe"
 \tNULL := nul
 \tDEL := rmdir /s /q
@@ -62,7 +63,7 @@ ifeq ($(OS),Windows_NT)
 else
 \tSHELL := /bin/bash
 \tMKDIR := mkdir -p
-\tGCC_BINARY_PREFIX := /usr/share/gcc-arm/gcc-arm-none-eabi-9-2020-q2-update/bin/arm-none-eabi-
+\tGCC_BINARY_PREFIX := /usr/share/gcc-arm/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-
 \tGCC_BINARY_SUFFIX :=
 \tNULL := /dev/null
 \tDEL := rm -rf
