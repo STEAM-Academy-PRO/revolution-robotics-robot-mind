@@ -146,6 +146,8 @@ COMPILE_FLAGS += \
 -O3 \
 -g3 \
 -flto
+LINKER_FLAGS += \
+-flto
 endif
 
 OUTPUT_FILE :=$(OUTPUT_DIR)/rrrc_samd51
