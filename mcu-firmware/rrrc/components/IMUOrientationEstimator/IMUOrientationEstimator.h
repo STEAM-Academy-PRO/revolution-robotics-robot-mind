@@ -34,6 +34,10 @@ typedef enum {
 
 #endif /* COMPONENT_TYPES_IMU_ORIENTATION_ESTIMATOR_H_ */
 
+/* Begin User Code Section: Declarations */
+void IMUOrientationEstimator_Reset(void);
+/* End User Code Section: Declarations */
+
 void IMUOrientationEstimator_Run_OnInit(void);
 void IMUOrientationEstimator_Run_OnUpdate(void);
 void IMUOrientationEstimator_Write_Orientation(const Quaternion_t* value);
@@ -42,6 +46,5 @@ void IMUOrientationEstimator_Write_OrientationEulerDegrees(const Orientation3D_t
 QueueStatus_t IMUOrientationEstimator_Read_Acceleration(Vector3D_t* value);
 QueueStatus_t IMUOrientationEstimator_Read_AngularSpeeds(Vector3D_t* value);
 float IMUOrientationEstimator_Read_SampleTime(void);
-void IMUOrientationEstimator_Reset(void);
 
 #endif /* COMPONENT_IMU_ORIENTATION_ESTIMATOR_H_ */

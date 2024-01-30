@@ -18,6 +18,10 @@ typedef struct {
 
 #endif /* COMPONENT_TYPES_MOTOR_THERMAL_MODEL_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void MotorThermalModel_Run_OnInit(void);
 void MotorThermalModel_Run_OnUpdate(void);
 void MotorThermalModel_Write_Temperature(uint32_t index, Temperature_t value);

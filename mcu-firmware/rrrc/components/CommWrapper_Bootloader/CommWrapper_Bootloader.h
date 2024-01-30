@@ -50,6 +50,10 @@ typedef enum {
 
 #endif /* COMPONENT_TYPES_COMM_WRAPPER__BOOTLOADER_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 Comm_Status_t CommWrapper_Bootloader_Run_Command_GetOperationMode_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 Comm_Status_t CommWrapper_Bootloader_Run_Command_RebootToBootloader_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 AsyncOperationState_t CommWrapper_Bootloader_Async_RebootToBootloader_Call(void);

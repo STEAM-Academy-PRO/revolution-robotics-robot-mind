@@ -1,6 +1,15 @@
 #ifndef COMPONENT_MOTOR_DRIVER_8833_H_
 #define COMPONENT_MOTOR_DRIVER_8833_H_
 
+#ifndef COMPONENT_TYPES_MOTOR_DRIVER_8833_H_
+#define COMPONENT_TYPES_MOTOR_DRIVER_8833_H_
+
+
+
+#endif /* COMPONENT_TYPES_MOTOR_DRIVER_8833_H_ */
+
+/* Begin User Code Section: Declarations */
+
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -26,12 +35,6 @@ typedef struct {
     bool has_fault;
 } MotorDriver_8833_t;
 
-#ifndef COMPONENT_TYPES_MOTOR_DRIVER_8833_H_
-#define COMPONENT_TYPES_MOTOR_DRIVER_8833_H_
-
-#endif /* COMPONENT_TYPES_MOTOR_DRIVER_8833_H_ */
-
-void MotorDriver_8833_Run_OnInit(void);
 void MotorDriver_8833_Run_Start(void);
 
 void MotorDriver_8833_Run_OnDriverInit(MotorDriver_8833_t* drivers,
@@ -48,6 +51,10 @@ bool MotorDriver_8833_TestLoadStart(int driver_index, int driver_channel, uint8_
 bool MotorDriver_8833_TestLoadStop(int driver_index, int driver_channel);
 void MotorDriver_8833_GetMotorPortDriver(int motor_port_idx,
     int *motor_driver_idx, int *motor_driver_channel_idx);
+
+/* End User Code Section: Declarations */
+
+void MotorDriver_8833_Run_OnInit(void);
 void MotorDriver_8833_Run_StartISR(void);
 
 #endif /* COMPONENT_MOTOR_DRIVER_8833_H_ */

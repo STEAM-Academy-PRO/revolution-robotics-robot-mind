@@ -86,6 +86,25 @@ void SensorPortHandler_Run_OnInit(SensorPort_t* ports, size_t portCount)
     }
 }
 
+static void OnPortDeinitCompleted(SensorPort_t* port, bool success)
+{
+    if (!success)
+    {
+      port->set_port_type_state = SetPortTypeState_Error;
+      return;
+    }
+
+    /* reset status slot */
+    SensorPortHandler_Call_UpdatePortStatus(port->port_idx,
+       (ByteArray_t) { NULL, 0u }
+    );
+
+    port->library = libraries[port->set_port_type_state_new_port_type];
+    port->library->Init(port);
+    port->set_port_type_state_new_port_type = 0;
+    port->set_port_type_state = SetPortTypeState_Done;
+}
+
 /* End User Code Section: Declarations */
 
 void SensorPortHandler_Run_PortUpdate(uint8_t port_idx)
@@ -174,27 +193,12 @@ void SensorPortHandler_Run_ReadSensorInfo(uint8_t port_idx, uint8_t page, ByteAr
     /* End User Code Section: ReadSensorInfo:run End */
 }
 
-static void OnPortDeinitCompleted(SensorPort_t* port, bool success)
-{
-    if (!success)
-    {
-      port->set_port_type_state = SetPortTypeState_Error;
-      return;
-    }
-
-    /* reset status slot */
-    SensorPortHandler_Call_UpdatePortStatus(port->port_idx,
-       (ByteArray_t) { NULL, 0u }
-    );
-
-    port->library = libraries[port->set_port_type_state_new_port_type];
-    port->library->Init(port);
-    port->set_port_type_state_new_port_type = 0;
-    port->set_port_type_state = SetPortTypeState_Done;
-}
-
 AsyncResult_t SensorPortHandler_AsyncRunnable_SetPortType(AsyncCommand_t asyncCommand, uint8_t port_idx, uint8_t port_type, bool* result)
 {
+    (void) asyncCommand;
+    (void) port_idx;
+    (void) port_type;
+    (void) result;
     /* Begin User Code Section: SetPortType:async_run Start */
 
     (void) asyncCommand;
@@ -244,15 +248,12 @@ AsyncResult_t SensorPortHandler_AsyncRunnable_SetPortType(AsyncCommand_t asyncCo
     /* End User Code Section: SetPortType:async_run End */
 }
 
-AsyncResult_t SensorPortHandler_AsyncRunnable_TestSensorOnPort(
-    AsyncCommand_t asyncCommand, uint8_t port_idx, uint8_t port_type,
-    TestSensorOnPortResult_t* result)
+AsyncResult_t SensorPortHandler_AsyncRunnable_TestSensorOnPort(AsyncCommand_t asyncCommand, uint8_t port_idx, uint8_t port_type, TestSensorOnPortResult_t* result)
 {
     (void) asyncCommand;
     (void) port_idx;
     (void) port_type;
     (void) result;
-
     /* Begin User Code Section: TestSensorOnPort:async_run Start */
     SensorOnPortStatus_t status;
     const SensorLibrary_t *lib = libraries[port_type];

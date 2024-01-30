@@ -219,8 +219,7 @@ Comm_Status_t CommWrapper_SensorPorts_Run_Command_ReadSensorInfo_Start(ConstByte
     /* End User Code Section: Command_ReadSensorInfo_Start:run End */
 }
 
-Comm_Status_t CommWrapper_SensorPorts_Run_Command_TestSensorOnPort_Start(ConstByteArray_t commandPayload,
-    ByteArray_t response, uint8_t* responseCount)
+Comm_Status_t CommWrapper_SensorPorts_Run_Command_TestSensorOnPort_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount)
 {
     /* Begin User Code Section: Command_TestSensorOnPort_Start:run Start */
     (void) response;

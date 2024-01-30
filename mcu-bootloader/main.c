@@ -73,6 +73,7 @@ int main(void)
 #if DEBUG_SKIP_FW_INTEGRITY_CHECK
         if (!start_application)
         {
+            SEGGER_RTT_WriteString(0, "Debug mode, application CRC mismatch\r\n");
             if (FMP_IsApplicationHeaderEmpty() || FLASH_HEADER->bootloader_version != BOOTLOADER_VERSION)
             {
                 SEGGER_RTT_WriteString(0, "Debug mode, fixing up application header\r\n");
@@ -88,6 +89,8 @@ int main(void)
             SEGGER_RTT_WriteString(0, "Starting application\r\n");
             /* this should be the only application start point to avoid getting stuck in a hard fault */
             FMT_JumpTargetFirmware();
+        } else {
+            SEGGER_RTT_WriteString(0, "No valid firmware found\r\n");
         }
     }
 

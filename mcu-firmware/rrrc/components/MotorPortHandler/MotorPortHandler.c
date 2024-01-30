@@ -78,6 +78,63 @@ void MotorPortHandler_Run_OnInit(MotorPort_t* ports, uint8_t portCount)
         _init_port(&motorPorts[i]);
     }
 }
+
+extern Current_t MotorCurrentFilter_FilteredCurrent_array[6];
+extern int16_t MotorPortHandler_DriveStrength_array[6];
+#define TEST_MOTOR_ON_PORT_STATE_IDLING 0
+#define TEST_MOTOR_ON_PORT_STATE_IN_PROGRESS 1
+
+/*
+ * This defines raw ADC value, taken from motor driver current sensing pin,
+ * anything below this value is considered noise. ADC results above this value
+ * speak about actual current, drawn by motor under test load. Read full
+ * description of how motor on port validation is performed
+ */
+#define TEST_MOTOR_ON_PORT_RAW_ADC_THRESHOLD 10
+
+static int test_motor_on_port_state = TEST_MOTOR_ON_PORT_STATE_IDLING;
+static int test_motor_on_port_counter = 0;
+
+/*
+ * Knowning motor port index, tell what motor driver serves this motor and
+ * on what channel. Current hardware solution uses 3 motor drivers, each
+ * having 2 separate channels (A and B), each channel in turn having
+ * 2 PWM-channels and 1 current sensing pin.
+ */
+static void MotorPortHandler_GetMotorDriverChannel(int port_idx,
+    int *motor_driver_idx, int *motor_driver_channel)
+{
+  MotorDriver_8833_GetMotorPortDriver(port_idx, motor_driver_idx,
+      motor_driver_channel);
+}
+
+/*
+ * Set up ADC for successful test load currents detection:
+ * - Tracking of maximum ADC value on channel should be reset to 0, to make new
+ *   maximum values relevant to the upcoming test load
+ *
+ * - Limit ADC module to single continuos channel sampling in order to detect
+ *   small test-load currents drawn by motor.
+ *
+ *   In normal mode ADC component reads many channels in sequentual order and
+ *   looses small motor currents due to sparse sampling time. Same small test
+ *   load currents are detected successfully if ADC component samples one ADC
+ *   channel all the time.
+ */
+
+#define PORT_IDX_FW_INVALID -1
+
+static int PortIndexAppToFw(int port_idx_app)
+{
+  /* Application port indices here are in to 0-based */
+  const int app_to_fw_port_idx_map[] = { 5, 4, 3, 0, 1, 2 };
+  if ((unsigned)port_idx_app >= ARRAY_SIZE(app_to_fw_port_idx_map))
+  {
+    return PORT_IDX_FW_INVALID;
+  }
+  return app_to_fw_port_idx_map[port_idx_app];
+}
+
 /* End User Code Section: Declarations */
 
 void MotorPortHandler_Run_PortUpdate(uint8_t port_idx)
@@ -200,66 +257,13 @@ bool MotorPortHandler_Run_CreateDriveRequest(uint8_t port_idx, ConstByteArray_t 
     /* End User Code Section: CreateDriveRequest:run End */
 }
 
-extern Current_t MotorCurrentFilter_FilteredCurrent_array[6];
-extern int16_t MotorPortHandler_DriveStrength_array[6];
-#define TEST_MOTOR_ON_PORT_STATE_IDLING 0
-#define TEST_MOTOR_ON_PORT_STATE_IN_PROGRESS 1
-
-/*
- * This defines raw ADC value, taken from motor driver current sensing pin,
- * anything below this value is considered noise. ADC results above this value
- * speak about actual current, drawn by motor under test load. Read full
- * description of how motor on port validation is performed
- */
-#define TEST_MOTOR_ON_PORT_RAW_ADC_THRESHOLD 10
-
-static int test_motor_on_port_state = TEST_MOTOR_ON_PORT_STATE_IDLING;
-static int test_motor_on_port_counter = 0;
-
-/*
- * Knowning motor port index, tell what motor driver serves this motor and
- * on what channel. Current hardware solution uses 3 motor drivers, each
- * having 2 separate channels (A and B), each channel in turn having
- * 2 PWM-channels and 1 current sensing pin.
- */
-static void MotorPortHandler_GetMotorDriverChannel(int port_idx,
-    int *motor_driver_idx, int *motor_driver_channel)
-{
-  MotorDriver_8833_GetMotorPortDriver(port_idx, motor_driver_idx,
-      motor_driver_channel);
-}
-
-/*
- * Set up ADC for successful test load currents detection:
- * - Tracking of maximum ADC value on channel should be reset to 0, to make new
- *   maximum values relevant to the upcoming test load
- *
- * - Limit ADC module to single continuos channel sampling in order to detect
- *   small test-load currents drawn by motor.
- *
- *   In normal mode ADC component reads many channels in sequentual order and
- *   looses small motor currents due to sparse sampling time. Same small test
- *   load currents are detected successfully if ADC component samples one ADC
- *   channel all the time.
- */
-
-#define PORT_IDX_FW_INVALID -1
-
-static int PortIndexAppToFw(int port_idx_app)
-{
-  /* Application port indices here are in to 0-based */
-  const int app_to_fw_port_idx_map[] = { 5, 4, 3, 0, 1, 2 };
-  if ((unsigned)port_idx_app >= ARRAY_SIZE(app_to_fw_port_idx_map))
-  {
-    return PORT_IDX_FW_INVALID;
-  }
-  return app_to_fw_port_idx_map[port_idx_app];
-}
-
 AsyncResult_t MotorPortHandler_AsyncRunnable_TestMotorOnPort(AsyncCommand_t asyncCommand, uint8_t port_idx, uint8_t test_power, uint8_t threshold, bool* result)
 {
     (void) asyncCommand;
-
+    (void) port_idx;
+    (void) result;
+    (void) test_power;
+    (void) threshold;
     /* Begin User Code Section: TestMotorOnPort:async_run Start */
     int motor_driver_index;
     int motor_driver_channel;

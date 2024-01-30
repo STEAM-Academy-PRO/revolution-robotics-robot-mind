@@ -11,6 +11,10 @@ typedef float Current_t;
 
 #endif /* COMPONENT_TYPES_MOTOR_CURRENT_FILTER_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void MotorCurrentFilter_Run_OnInit(void);
 void MotorCurrentFilter_Run_Update(void);
 void MotorCurrentFilter_Write_FilteredCurrent(uint32_t index, Current_t value);
