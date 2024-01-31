@@ -1,0 +1,17 @@
+{
+    "name": "container",
+    "build": {
+        "dockerfile": "./Dockerfile",
+        "context": "..",
+        "options": [
+            "--ssh default"
+        ]
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "probe-rs.probe-rs-debugger"
+            ]
+        }
+    }
+}
