@@ -33,7 +33,6 @@ static void clear_rtt() {
     for (uint32_t* pDest = &_srtt; pDest < &_ertt;) {
         *pDest++ = 0;
     }
-
 }
 
 int main(void)
