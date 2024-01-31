@@ -9,6 +9,8 @@
 #define STATUS_LEDS_AMOUNT ((uint8_t) 4u)
 #define RING_LEDS_AMOUNT   ((uint8_t) 12u)
 
+#define LEDS_AMOUNT        (STATUS_LEDS_AMOUNT + RING_LEDS_AMOUNT)
+
 #define LED_VAL_ZERO    ~((uint8_t) 0xC0u)
 #define LED_VAL_ONE     ~((uint8_t) 0xFCu)
 #define LED_VAL_RES     ~((uint8_t) 0x00u)
@@ -16,7 +18,7 @@
 
 #define LED_BYTE_SIZE   8                   /* one LED control bit is coded as 8 MCU bits, so 1 byte -> 8 bytes */
 #define LED_COLOR_SIZE  3 * LED_BYTE_SIZE   /* 24 LED bits in total */
-#define LED_FRAME_SIZE  (LED_RESET_SIZE + (LED_COLOR_SIZE * (STATUS_LEDS_AMOUNT + RING_LEDS_AMOUNT)))
+#define LED_FRAME_SIZE  (2 * LED_RESET_SIZE + (LED_COLOR_SIZE * LEDS_AMOUNT))
 
 static bool ledsUpdating;
 
@@ -65,6 +67,7 @@ static inline void write_led_color(uint32_t led_idx, rgb_t color)
 
 static void update_frame(void)
 {
+    memset(frame_leds, LED_VAL_RES, sizeof(frame_leds));
     for (uint32_t i = 0u; i < STATUS_LEDS_AMOUNT; i++)
     {
         write_led_color(i, LEDController_Read_StatusLED(i));
