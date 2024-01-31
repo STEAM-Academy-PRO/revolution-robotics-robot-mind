@@ -36,7 +36,7 @@ DEBUG_PORT=5678
 echo "Deploying to: $USER@$HOST:$TARGET"
 
 ssh $USER@$HOST "mkdir -p $TARGET && tar -xzf - -C $TARGET --warning=no-timestamp && \
-    stop; killall python3; echo "PI: Files extracted to target folder."" < $PACKAGE_SOURCE
+    sudo systemctl stop revvy; killall python3; echo "PI: Files extracted to target folder."" < $PACKAGE_SOURCE
 
 echo ""
 echo "---------------------------------------------------------------"
