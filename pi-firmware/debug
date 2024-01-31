@@ -20,10 +20,11 @@ if [ ! -f ".vscode/settings.json" ]; then
     echo "Looks like first run, copied vscode settings.example to settings!"
 fi
 
-HOST="$(jq -r '.target' .vscode/settings.json)"
+# jq only works on linux, however as we are using python anyways, this is the easy way to get the target out.
+HOST=$(python3 -c "import json; print(json.load(open('.vscode/settings.json'))['target'])")
 REMOTE_DESTINATION_FOLDER="/home/pi/RevvyFramework/user/packages/"
 
-PACKAGE_FILENAME="pi-firmware-$VERSION"
+PACKAGE_FILENAME="framework-$VERSION"
 TARGET_FOLDER_NAME="revvy-$VERSION"
 PACKAGE_SOURCE="install/$PACKAGE_FILENAME.tar.gz"
 
