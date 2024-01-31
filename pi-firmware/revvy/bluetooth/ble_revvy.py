@@ -6,6 +6,7 @@ from pybleno import Bleno
 from revvy.bluetooth.services.battery import CustomBatteryService
 from revvy.bluetooth.services.device_information import DeviceInformationService
 from revvy.bluetooth.services.long_message import LongMessageService
+from revvy.scripting.runtime import ScriptEvent
 
 from revvy.utils.device_name import get_device_name
 from revvy.utils.directories import BLE_STORAGE_DIR, WRITEABLE_ASSETS_DIR
@@ -29,6 +30,11 @@ class RevvyBLE(RobotCommunicationInterface):
 
     Listens to connections from the app and controls the robot.
     """
+
+    def update_program_status(self, button_id, status: ScriptEvent):
+        log(f'program status update: {button_id} {status}')
+        self._live.update_program_status(button_id, status.value)
+
     def __init__(self, robot_manager: RobotManager):
         self._robot_manager = robot_manager
 
