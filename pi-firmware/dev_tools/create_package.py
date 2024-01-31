@@ -64,7 +64,7 @@ if __name__ == "__main__":
     version = manifest['version'].replace('/', '-')
     minor_version = version.split(".")[2]
 
-    package_path = 'install/pi-firmware-{}.tar.gz'.format(version)
+    package_path = 'install/framework-{}.tar.gz'.format(version)
     data_path = 'install/pi-firmware.data'
     meta_file = 'install/pi-firmware.meta'
     create_package(package_sources, package_path)
