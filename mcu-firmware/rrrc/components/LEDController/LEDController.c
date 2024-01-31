@@ -139,18 +139,6 @@ rgb_t LEDController_Read_Colors(uint32_t index)
 }
 
 __attribute__((weak))
-uint32_t LEDController_Read_HardwareVersion(void)
-{
-    /* Begin User Code Section: HardwareVersion:read Start */
-
-    /* End User Code Section: HardwareVersion:read Start */
-    /* Begin User Code Section: HardwareVersion:read End */
-
-    /* End User Code Section: HardwareVersion:read End */
-    return 0;
-}
-
-__attribute__((weak))
 uint8_t LEDController_Read_MaxBrightness(void)
 {
     /* Begin User Code Section: MaxBrightness:read Start */
