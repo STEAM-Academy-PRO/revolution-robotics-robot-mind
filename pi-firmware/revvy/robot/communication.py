@@ -44,3 +44,7 @@ class RobotCommunicationInterface(ABC):
     @abstractmethod
     def update_battery(self, bat_main, charger_status, motor, motor_present):
         pass
+
+    @abstractmethod
+    def update_program_status(self, button_id, status):
+        pass
