@@ -50,6 +50,7 @@ static void _init_port(MotorPort_t* port)
     gpio_set_pin_function(GPIO_FROM_FAST_PIN(port->gpio.enc1), GPIO_PIN_FUNCTION_A);
     gpio_set_pin_pull_mode(GPIO_FROM_FAST_PIN(port->gpio.enc1), GPIO_PULL_OFF);
 
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
 
     _gpio_set_continuous_sampling(GPIO_FROM_FAST_PIN(port->gpio.enc0));
@@ -63,7 +64,7 @@ static void _init_port(MotorPort_t* port)
     /* set dummy library */
     port->library = &motor_library_dummy;
 
-    __enable_irq();
+    __set_PRIMASK(primask);
 }
 
 void MotorPortHandler_Run_OnInit(MotorPort_t* ports, uint8_t portCount)

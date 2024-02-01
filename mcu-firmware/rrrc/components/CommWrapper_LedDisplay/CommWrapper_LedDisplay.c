@@ -119,9 +119,10 @@ Comm_Status_t CommWrapper_LedDisplay_Run_Command_SetUserFrame_Start(ConstByteArr
             .G = (c & 0x07E0u) >>  5u,
             .B = (c & 0x001Fu) >>  0u
         };
+        uint32_t primask = __get_PRIMASK();
         __disable_irq();
         CommWrapper_LedDisplay_Write_UserFrame(i, rgb565_to_rgb(color));
-        __enable_irq();
+        __set_PRIMASK(primask);
     }
 
     return Comm_Status_Ok;
