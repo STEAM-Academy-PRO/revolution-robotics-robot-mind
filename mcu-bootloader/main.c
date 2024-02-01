@@ -82,7 +82,7 @@ int main(void)
 #endif
         if (start_application)
         {
-            SEGGER_RTT_WriteString(0, "Starting application\r\n");
+            SEGGER_RTT_WriteString(0, "Bootloader: Starting application\r\n");
             /* this should be the only application start point to avoid getting stuck in a hard fault */
             FMT_JumpTargetFirmware();
         } else {

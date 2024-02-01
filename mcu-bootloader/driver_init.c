@@ -23,4 +23,10 @@ void system_init(void)
     init_mcu();
     CRC32_Init();
     FLASH_0_init();
+
+    // Temporarily (until next boot) write-protect the bootloader pages (first 64K for now)
+    flash_lock(&FLASH_0, 0, 32);
+    flash_lock(&FLASH_0, 0x4000, 32);
+    flash_lock(&FLASH_0, 0x8000, 32);
+    flash_lock(&FLASH_0, 0xC000, 32);
 }

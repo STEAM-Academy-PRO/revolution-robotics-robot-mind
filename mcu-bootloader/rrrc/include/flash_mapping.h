@@ -7,9 +7,9 @@
 
 #define FLASH_AVAILABLE     ((FLASH_SIZE / 2) - NVMCTRL_BLOCK_SIZE)
 #define FLASH_FW_OFFSET     (FLASH_SIZE / 2)
-#define FLASH_HDR_OFFSET    (FLASH_FW_OFFSET + FLASH_AVAILABLE)
+#define FLASH_HDR_OFFSET    (FLASH_FW_OFFSET + FLASH_AVAILABLE) // the last 0x2000
 
-typedef struct 
+typedef struct
 {
     uint32_t hw_version;
     uint32_t bootloader_version;
