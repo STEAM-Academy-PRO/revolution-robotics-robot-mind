@@ -804,7 +804,6 @@
                 "provider": "VersionProvider/HardwareVersion",
                 "consumers": [
                     "ErrorStorage/HardwareVersion",
-                    "LEDController/HardwareVersion",
                     "HardwareCompatibilityChecker/HardwareVersion",
                     "CommWrapper_VersionProvider/HardwareVersion"
                 ]

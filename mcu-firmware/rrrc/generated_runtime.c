@@ -2771,17 +2771,6 @@ rgb_t LEDController_Read_Colors(uint32_t index)
     /* End User Code Section: LEDController/Colors:read End */
 }
 
-uint32_t LEDController_Read_HardwareVersion(void)
-{
-    /* Begin User Code Section: LEDController/HardwareVersion:read Start */
-
-    /* End User Code Section: LEDController/HardwareVersion:read Start */
-    return VersionProvider_Constant_HardwareVersion();
-    /* Begin User Code Section: LEDController/HardwareVersion:read End */
-
-    /* End User Code Section: LEDController/HardwareVersion:read End */
-}
-
 uint8_t LEDController_Read_MaxBrightness(void)
 {
     /* Begin User Code Section: LEDController/MaxBrightness:read Start */
