@@ -9,6 +9,32 @@
 
 static TaskHandle_t xRRRC_Main_xTask;
 
+extern uint32_t _srtt;
+extern uint32_t _ertt;
+
+static void clear_rtt() {
+    // Try to detect if RTT is initialized. If not, clear the memory area
+
+    static const char _aInitStr[] = "\0\0\0\0\0\0TTR REGGES"; // Reversed to avoid accidentally finding it in RAM
+
+    volatile SEGGER_RTT_CB* p = (volatile SEGGER_RTT_CB*)((char*)&_SEGGER_RTT + SEGGER_RTT_UNCACHED_OFF);
+
+    bool rtt_initialized = true;
+    for (uint32_t i = 0; i < sizeof(_aInitStr) - 1; ++i) {
+        if (p->acID[i] != _aInitStr[sizeof(_aInitStr) - 2 - i]) {
+            rtt_initialized = false;
+            break;
+        }
+    }
+
+    if (!rtt_initialized) {
+        // Clear the rtt segments so INIT can be called again
+        for (uint32_t* pDest = &_srtt; pDest < &_ertt;) {
+            *pDest++ = 0;
+        }
+    }
+}
+
 /**
  * Put functions here to prevent Link-time optimization to remove them
  */
@@ -20,6 +46,7 @@ void ltoFunctionKeeper(void)
 
 int main(void)
 {
+    clear_rtt();
     SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_NO_BLOCK_SKIP);
 
     SEGGER_RTT_WriteString(0, "Starting application\r\n");
