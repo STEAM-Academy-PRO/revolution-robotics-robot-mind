@@ -4,7 +4,8 @@
         "dockerfile": "./Dockerfile",
         "context": "..",
         "options": [
-            "--ssh default"
+            "--ssh",
+            "default"
         ]
     },
     "customizations": {
