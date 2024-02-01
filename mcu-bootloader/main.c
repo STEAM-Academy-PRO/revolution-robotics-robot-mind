@@ -109,6 +109,26 @@ int main(void)
 
     LEDController_Run_OnInit();
 
+    // Display some indication why we are in bootloader mode
+    switch (startupReason) {
+        case StartupReason_BootloaderRequest:
+            // Bootloader mode was requested, do not show any indication
+            break;
+
+        case StartupReason_PowerUp:
+            // We did not find any loadable application. Display an angry red light on the
+            // bottom-most ring LED to indicate this.
+            ringLeds[2] = (rgb_t) LED_RED;
+            break;
+        
+        case StartupReason_WatchdogReset:
+            // The application is most likely inoperable. Display an angry red light on the
+            // top and bottom ring LED to indicate this.
+            ringLeds[2] = (rgb_t) LED_RED;
+            ringLeds[8] = (rgb_t) LED_RED;
+            break;
+    }
+
     while (1) {
         MasterCommunicationInterface_Run_Update();
         LEDController_Run_Update();
