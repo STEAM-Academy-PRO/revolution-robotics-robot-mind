@@ -130,6 +130,11 @@ void FMP_FixApplicationHeader(void)
 }
 
 void FMT_JumpTargetFirmware(void) {
+    // Temporarily write-protect the bootloader pages (first 64K for now)
+    flash_lock(&FLASH_0, 0, 32);
+    flash_lock(&FLASH_0, 0x4000, 32);
+    flash_lock(&FLASH_0, 0x8000, 32);
+    flash_lock(&FLASH_0, 0xC000, 32);
 
     __disable_irq();
     watchdog_start();
