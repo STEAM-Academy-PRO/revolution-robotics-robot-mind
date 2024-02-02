@@ -218,9 +218,10 @@ Comm_Status_t CommWrapper_MotorPorts_Run_Command_SetControlValue_Start(ConstByte
             *responseCount = 1u;
             return Comm_Status_Error_CommandError;
         }
+        uint32_t primask = __get_PRIMASK();
         __disable_irq();
         CommWrapper_MotorPorts_Write_DriveRequest(portIdx, &request);
-        __enable_irq();
+        __set_PRIMASK(primask);
     }
 
     return Comm_Status_Ok;
