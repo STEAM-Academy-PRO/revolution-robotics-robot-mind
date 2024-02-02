@@ -130,7 +130,6 @@ void FMP_FixApplicationHeader(void)
 }
 
 void FMT_JumpTargetFirmware(void) {
-
     __disable_irq();
     watchdog_start();
     JumpTargetFirmware(FLASH_ADDR + FLASH_FW_OFFSET);
