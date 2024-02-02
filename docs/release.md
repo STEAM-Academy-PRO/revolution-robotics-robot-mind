@@ -9,6 +9,16 @@ Release a Pi firmware update
 - The CI's [release workflow](ci.md#release) will build artifacts, add them to the release and publish the release
 - Wait for the build to succeed and for the artifacts to appear in the [releases](https://github.com/STEAM-Academy-PRO/revolution-robotics-robot-mind/releases)
 
+### Anatomy of a release
+
+A release on GitHub contains the following files:
+
+- `framework-<VERSION>.tar.gz`: the OTA package that can be distributed to users
+- `pi-firmware.data`, `pi-firmware.meta`: update packages that can be manually installed on a brain
+- `revvy_firmware-<VERSION>.bin`, `catalog.json`: MCU firmware update that can be added to a Pi firmware package
+- `mcu_firmware.elf`, `bootloader.elf`: MCU firmware and bootloader binaries for manual flashing
+- `bootloader.bin`: Raw MCU bootloader binary for manual flashing - for factory use
+
 Create a new Pi OS image
 ------------------------
 
