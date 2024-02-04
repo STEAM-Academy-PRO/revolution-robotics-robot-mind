@@ -64,7 +64,7 @@ Comm_Status_t CommWrapper_LedDisplay_Run_Command_SetScenarioType_Start(ConstByte
     }
 
     uint8_t idx = commandPayload.bytes[0];
-    if (idx >= 8u)
+    if (idx >= LIGHT_EFFECT_COUNT)
     {
         response.bytes[0] = idx;
         *responseCount = 1u;

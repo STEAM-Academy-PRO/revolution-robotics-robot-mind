@@ -68,6 +68,11 @@ typedef struct {
 
 /* End User Code Section: Declarations */
 
+// I wanted to put this into where it belongs: where we define the LED ring, but when I tried
+// importing that lib in here, I got re-definition errors.
+// I will just leave this here for now and ask about this IRL.
+#define LIGHT_EFFECT_COUNT 9
+
 void CommWrapper_LedDisplay_Run_Reset(void);
 Comm_Status_t CommWrapper_LedDisplay_Run_Command_GetScenarioTypes_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 Comm_Status_t CommWrapper_LedDisplay_Run_Command_SetScenarioType_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);

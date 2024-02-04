@@ -386,7 +386,7 @@ class RobotManager:
         self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.ERROR)
 
         # On code execution error, do send visible signals to the user about the code being broken.
-        self._robot.led.start_animation(RingLed.BusyIndicator)
+        self._robot.led.start_animation(RingLed.Bug)
         self._robot.sound.play_tune('uh_oh')
         time.sleep(1)
         self._robot.led.start_animation(RingLed.Off)

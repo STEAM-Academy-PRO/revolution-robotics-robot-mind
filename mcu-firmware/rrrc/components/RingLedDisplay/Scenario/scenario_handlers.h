@@ -13,7 +13,9 @@ typedef struct
     void* userData;
 } indication_handler_t;
 
-extern const indication_handler_t public_scenario_handlers[8];
+extern const uint8_t ledLightEffectCount;
+
+const indication_handler_t public_scenario_handlers[];
 extern const indication_handler_t startup_indicator_scenario;
 
 #endif /* SCENARIO_HANDLERS_H_ */

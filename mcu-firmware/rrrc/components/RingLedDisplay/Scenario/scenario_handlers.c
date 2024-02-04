@@ -38,12 +38,13 @@ static void startup_indicator(void* data);
 
 static void siren(void* data);
 static void traffic_light(void* data);
+static void bugIndicator(void* data);
 
 static uint32_t time_data;
 
 const indication_handler_t startup_indicator_scenario = { .init = &init_time, .handler = &startup_indicator, .DeInit = NULL, .userData = &time_data };
 
-const indication_handler_t public_scenario_handlers[8] = 
+const indication_handler_t public_scenario_handlers[] =
 {
     { .init = NULL,                .handler = &ledRingOffWriter,    .DeInit = NULL, .userData = NULL },
     { .init = NULL,                .handler = &ledRingFrameWriter,  .DeInit = NULL, .userData = NULL },
@@ -53,7 +54,10 @@ const indication_handler_t public_scenario_handlers[8] =
     { .init = &init_breathing,     .handler = &breathing,           .DeInit = NULL, .userData = &breathing_green_data },
     { .init = &init_time,          .handler = &siren,               .DeInit = NULL, .userData = &time_data },
     { .init = &init_time,          .handler = &traffic_light,       .DeInit = NULL, .userData = &time_data },
+    { .init = &init_time,          .handler = &bugIndicator,        .DeInit = NULL, .userData = &time_data },
 };
+
+const uint8_t ledLightEffectCount = sizeof(public_scenario_handlers) / sizeof(public_scenario_handlers[0]);
 
 static void init_time(void* data)
 {
@@ -67,12 +71,12 @@ static void startup_indicator(void* data)
     uint32_t* time = (uint32_t*) data;
 
     uint32_t n_leds = (uint32_t) ceilf(map_constrained(*time, 0, RingLedDisplay_Read_ExpectedStartupTime(), 0, 12));
-    
+
     for (uint32_t i = 0u; i < n_leds; i++)
     {
         RingLedDisplay_Write_LedColor(i, (rgb_t) LED_YELLOW);
     }
-    
+
     for (uint32_t i = n_leds; i < 12u; i++)
     {
         RingLedDisplay_Write_LedColor(i, (rgb_t) LED_OFF);
@@ -105,7 +109,7 @@ static void colorWheelWriter1(void* data)
     uint32_t* time = (uint32_t*) data;
 
     uint32_t phase = (*time * 6) / 20;
-    
+
     *time += RING_LED_UPDATE_TIME;
 
     for (uint32_t i = 0u; i < RING_LEDS_AMOUNT; i++)
@@ -116,7 +120,7 @@ static void colorWheelWriter1(void* data)
             .v = 100
         };
         rgb_t rgb = hsv_to_rgb(hsv);
-        
+
         RingLedDisplay_Write_LedColor(i, rgb);
     }
 }
@@ -126,9 +130,9 @@ static void rainbowFadeWriter(void* data)
     uint32_t* time = (uint32_t*) data;
 
     uint32_t phase = *time / 40;
-    
+
     *time += RING_LED_UPDATE_TIME;
-    
+
     hsv_t hsv = {
         .h = phase,
         .s = 100,
@@ -157,7 +161,7 @@ static void spinningColorWriter(void* data)
     const uint32_t tail_length = 6u;
     uint32_t n_leds = map_constrained(elapsed, 0, tail_length * 100, 0, tail_length);
     uint32_t start_led = (11u - tail_length) + (tail_length == n_leds ? elapsed / 100u : tail_length);
-    
+
     hsv_t hsv = rgb_to_hsv(sdata->color);
     for (uint32_t i = 0u; i < RING_LEDS_AMOUNT; i++)
     {
@@ -167,7 +171,7 @@ static void spinningColorWriter(void* data)
             hsv.v = (uint8_t) map(i, 0, tail_length, 0, 100);
             rgb = hsv_to_rgb(hsv);
         }
-        
+
         RingLedDisplay_Write_LedColor((start_led + i) % RING_LEDS_AMOUNT, rgb);
     }
 }
@@ -188,7 +192,7 @@ static void breathing(void* data)
 
     float c = sinf(2.0f * (float)M_PI * elapsed / 10000.0f);
     color.v = map(c*c, 0, 1, 0, 100);
-    
+
     rgb_t rgb = hsv_to_rgb(color);
     for (uint32_t i = 0u; i < RING_LEDS_AMOUNT; i++)
     {
@@ -205,7 +209,7 @@ static void siren(void* data)
     const uint32_t tail_length = 6u;
     uint32_t n_leds = map_constrained(elapsed, 0, tail_length * 75, 0, tail_length);
     uint32_t start_led = (11u - tail_length) + (tail_length == n_leds ? elapsed / 75u : tail_length);
-    
+
     hsv_t hsv_r = rgb_to_hsv((rgb_t) LED_RED);
     hsv_t hsv_b = rgb_to_hsv((rgb_t) LED_BLUE);
     for (uint32_t i = 0u; i < RING_LEDS_AMOUNT/2; i++)
@@ -216,11 +220,11 @@ static void siren(void* data)
         {
             hsv_r.v = (uint8_t) map(i, 0, tail_length, 0, 100);
             rgb_r = hsv_to_rgb(hsv_r);
-            
+
             hsv_b.v = (uint8_t) map(i, 0, tail_length, 0, 100);
             rgb_b = hsv_to_rgb(hsv_b);
         }
-        
+
         RingLedDisplay_Write_LedColor((start_led + i) % RING_LEDS_AMOUNT, rgb_r);
         RingLedDisplay_Write_LedColor((start_led + i + 6) % RING_LEDS_AMOUNT, rgb_b);
     }
@@ -249,9 +253,35 @@ static void traffic_light(void* data)
     {
         color = (rgb_t) LED_ORANGE;
     }
-    
+
     for (uint32_t i = 0u; i < RING_LEDS_AMOUNT; i++)
     {
         RingLedDisplay_Write_LedColor(i, color);
     }
 }
+
+
+// Light up every other LED blinking.
+static void bugIndicator(void* data)
+{
+    uint32_t* time_data = (uint32_t*) data;
+
+    *time_data = (*time_data + RING_LED_UPDATE_TIME) % 400u;
+
+    bool isOn = (*time_data / 200) % 2 == 0;
+
+    if (isOn) {
+        for (uint32_t i = 0u; i < RING_LEDS_AMOUNT; i++)
+        {
+            bool isEveryOtherLedOn = (i % 2) == 1;
+            rgb_t color = isEveryOtherLedOn ? (rgb_t)LED_RED : (rgb_t)LED_OFF;
+            RingLedDisplay_Write_LedColor(i, color );
+        }
+    } else {
+        for (uint32_t i = 0u; i < RING_LEDS_AMOUNT; i++)
+        {
+            RingLedDisplay_Write_LedColor(i, (rgb_t)LED_ORANGE);
+        }
+    }
+}
+
