@@ -2,6 +2,7 @@
 #define UTILS_FUNCTIONS_H_
 
 #include <stdio.h>
+#include <stdint.h>
 #include <float.h>
 
 float constrain_f32(float in, float min, float max);

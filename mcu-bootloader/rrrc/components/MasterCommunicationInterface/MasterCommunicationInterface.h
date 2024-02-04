@@ -2,6 +2,7 @@
 #define MASTER_COMMUNICATION_INTERFACE_H_
 
 #include <stdio.h>
+#include <stdint.h>
 
 typedef struct 
 {
