@@ -385,6 +385,12 @@ class RobotManager:
         self._log(f'{traceback.format_exc()}', LogLevel.ERROR)
         self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.ERROR)
 
+        # On code execution error, do send visible signals to the user about the code being broken.
+        self._robot.led.start_animation(RingLed.BusyIndicator)
+        self._robot.sound.play_tune('uh_oh')
+        time.sleep(1)
+        self._robot.led.start_animation(RingLed.Off)
+
     def _on_script_stopped(self, script_handle: ScriptHandle, data=None):
         """ If we want to send back script status stopped change, this is the place. """
         # self._log(f'script: {script.name}')
