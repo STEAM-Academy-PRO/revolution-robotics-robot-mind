@@ -57,6 +57,11 @@ const indication_handler_t public_scenario_handlers[] =
     { .init = &init_time,          .handler = &bugIndicator,        .DeInit = NULL, .userData = &time_data },
 };
 
+// I am sure that there is a way to expose the size of this, so if I create a new one, I do not have to
+// every time change the index number in three places, I just do not know how. I like ring led effects and
+// I will be wanting to make more. Plus it generally leads to unmaintainable code if we do have multiple places
+// to define the same consts.
+// So my question is: how to do this right, and use this number in the command validation?
 const uint8_t ledLightEffectCount = sizeof(public_scenario_handlers) / sizeof(public_scenario_handlers[0]);
 
 static void init_time(void* data)
