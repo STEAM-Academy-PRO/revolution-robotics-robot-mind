@@ -12,17 +12,17 @@ static const indication_handler_t* current_scenario_handler;
 static uint32_t time_since_startup;
 static bool master_ready;
 
-static uint8_t copy_ring_led_scenario_name(const char* name, ByteArray_t destination)
+static ssize_t copy_ring_led_scenario_name(const char* name, ByteArray_t destination)
 {
     size_t length = strlen(name);
 
     if (length > destination.count)
     {
-        return 0u;
+        return -1;
     }
 
     memcpy(destination.bytes, name, length);
-    return length;
+    return (ssize_t)length;
 }
 
 /* End User Code Section: Declarations */
@@ -122,7 +122,7 @@ void RingLedDisplay_Run_OnMasterStarted(void)
     /* End User Code Section: OnMasterStarted:run End */
 }
 
-uint8_t RingLedDisplay_Run_ReadScenarioName(RingLedScenario_t scenario, ByteArray_t destination)
+ssize_t RingLedDisplay_Run_ReadScenarioName(RingLedScenario_t scenario, ByteArray_t destination)
 {
     /* Begin User Code Section: ReadScenarioName:run Start */
     switch (scenario)
@@ -133,12 +133,28 @@ uint8_t RingLedDisplay_Run_ReadScenarioName(RingLedScenario_t scenario, ByteArra
         case RingLedScenario_RainbowFade: return copy_ring_led_scenario_name("RainbowFade", destination);
         case RingLedScenario_BusyIndicator: return copy_ring_led_scenario_name("BusyRing", destination);
         case RingLedScenario_BreathingGreen: return copy_ring_led_scenario_name("BreathingGreen", destination);
-        default: return 0u;
+
+        /* these are not listed */
+        case RingLedScenario_Siren: return 0;
+        case RingLedScenario_TrafficLight: return 0;
+
+        default: return -2;
     }
     /* End User Code Section: ReadScenarioName:run Start */
     /* Begin User Code Section: ReadScenarioName:run End */
 
     /* End User Code Section: ReadScenarioName:run End */
+}
+
+size_t RingLedDisplay_Constant_ScenarioCount(void)
+{
+    /* Begin User Code Section: ScenarioCount:constant Start */
+
+    /* End User Code Section: ScenarioCount:constant Start */
+    /* Begin User Code Section: ScenarioCount:constant End */
+
+    /* End User Code Section: ScenarioCount:constant End */
+    return ARRAY_SIZE(public_scenario_handlers);
 }
 
 __attribute__((weak))

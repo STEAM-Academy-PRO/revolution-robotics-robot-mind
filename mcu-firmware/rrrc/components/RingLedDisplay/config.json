@@ -45,7 +45,7 @@
         "Update": {},
         "OnMasterStarted": {},
         "ReadScenarioName": {
-            "return_type": "uint8_t",
+            "return_type": "ssize_t",
             "arguments": {
                 "scenario": "RingLedScenario_t",
                 "destination": "ByteArray_t"
@@ -83,6 +83,11 @@
             "port_type": "ReadValue",
             "default_value": null,
             "data_type": "uint32_t"
+        },
+        "ScenarioCount": {
+            "port_type": "Constant",
+            "data_type": "size_t",
+            "value": "ARRAY_SIZE(public_scenario_handlers)"
         }
     }
 }
