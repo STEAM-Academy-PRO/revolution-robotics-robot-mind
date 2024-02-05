@@ -210,9 +210,9 @@ class LiveMessageService(BlenoPrimaryService):
             self._sensor_characteristics[sensor - 1].update(value)
 
     def update_motor(self, motor, power, speed, position):
-        if 0 < motor <= len(self._motor_characteristics):
+        if 0 <= motor < len(self._motor_characteristics):
             data = list(struct.pack(">flb", speed, position, power))
-            self._motor_characteristics[motor - 1].update(data)
+            self._motor_characteristics[motor].update(data)
 
     def update_session_id(self, value):
         log('update_session_id:' + str(value))

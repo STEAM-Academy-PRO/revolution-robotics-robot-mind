@@ -101,10 +101,12 @@ class RevvyBLE:
         self._bas.characteristic('unified_battery_status').update_value(
             self._robot_manager._robot_state._battery.get())
 
+
         self._robot_manager.on(RobotEvent.SENSOR_VALUE_CHANGE,
                 lambda ref, sensor_reading: self._live.update_sensor(
                     sensor_reading.id, sensor_reading.raw_value))
 
+        # Only send up ORIENTATION changes, NO GYRO as we are not using that anywhere.
         self._robot_manager.on(RobotEvent.ORIENTATION_CHANGE,
                 lambda ref, vector_orientation: self._live.update_orientation(vector_orientation))
 
@@ -114,6 +116,16 @@ class RevvyBLE:
 
         self._robot_manager.on(RobotEvent.SCRIPT_VARIABLE_CHANGE, lambda ref,
                             variables: self._live.update_script_variables(variables))
+
+        # Currently we are not doing anything in the app about
+        # the motor angle changes, no way to display, no way to interact.
+        # there is no point of sending it up.
+        # self._robot_manager.on(RobotEvent.MOTOR_CHANGE, self.update_motor)
+
+    def update_motor(self, ref, motor_angles: [int]):
+        log(f'mlch {motor_angles}')
+        for angle, index in enumerate(motor_angles):
+            self._live.update_motor(index, 0, 0, angle)
 
     def _on_connected(self, c):
         """ On new INCOMING connection, update the callback interfaces. """

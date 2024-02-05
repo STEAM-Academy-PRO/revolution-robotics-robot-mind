@@ -329,9 +329,13 @@ class RobotManager:
         # set up motors
         for motor in self._robot.motors:
             motor.configure(config.motors[motor.id])
-            ### TODO! ---------------------------------------------------------------------------------
+
+            # We used to send up power and speed too, but we do not seem to use it anywhere.
+            # Angle could however be sent back up.
+            # Note that we reduce the ID here, so we do not need that anywhere else.
+            # This way we have motors 0-5 in RobotState already. Just a simple array.
             motor.on_status_changed.add(lambda p:
-                            self.trigger(RobotEvent, MotorChangeData(p.id, p.power, p.speed, p.pos)))
+                                        self._robot_state.set_motor_angle(p.id - 1, p.pos))
 
         for motor_id in config.drivetrain['left']:
             self._robot.drivetrain.add_left_motor(self._robot.motors[motor_id])

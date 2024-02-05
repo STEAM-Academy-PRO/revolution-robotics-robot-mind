@@ -9,7 +9,7 @@ It polls the MCU for updates in any states.
 """
 
 from functools import partial
-import math
+import math, copy
 import traceback
 from revvy.mcu.rrrc_transport import TransportException
 from revvy.robot.remote_controller import RemoteController
@@ -49,6 +49,9 @@ class RobotState(Emitter[RobotEvent]):
         self._background_control_state = Observable('', throttle_interval=0.1)
         self._timer = Observable(0, throttle_interval=1)
 
+        self._motor_angles = Observable([0]*6, throttle_interval=0.5)
+
+
     def start_polling_mcu(self):
         """ Starts a new thread that runs every 5ms to check on MCU status. """
         self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
@@ -61,14 +64,24 @@ class RobotState(Emitter[RobotEvent]):
         self._background_control_state.subscribe(partial(self.trigger, RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE))
         self._timer.subscribe(partial(self.trigger, RobotEvent.TIMER_TICK))
 
+        self._motor_angles.subscribe(partial(self.trigger, RobotEvent.MOTOR_CHANGE))
+
         self._robot.reset()
 
         self._status_update_thread.start()
 
 
+    def set_motor_angle(self, idx, angle):
+        """ We update this from robot manager. """
+        angles = copy.deepcopy(self._motor_angles.get())
+        angles[idx] = angle
+        self._motor_angles.set(angles)
+
+
     def stop_polling_mcu(self):
         """ Exits the thread. """
         self._status_update_thread.exit()
+
 
     def _update(self):
         """

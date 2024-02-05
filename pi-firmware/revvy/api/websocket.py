@@ -19,11 +19,19 @@ SERVER_PORT=8765
 
 log = get_logger('WS')
 
-log_for_events = [RobotEvent.BATTERY_CHANGE,
+send_control_events = [RobotEvent.BATTERY_CHANGE,
                   RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE,
-                #   RobotEvent.ORIENTATION_CHANGE,
+                  RobotEvent.ORIENTATION_CHANGE,
                   RobotEvent.SCRIPT_VARIABLE_CHANGE
                   ]
+
+ignore_log_events = [
+    RobotEvent.ORIENTATION_CHANGE,
+    RobotEvent.TIMER_TICK,
+    RobotEvent.MCU_TICK,
+    RobotEvent.GYRO_CHANGE,
+    RobotEvent.MOTOR_CHANGE
+]
 
 class RobotWebSocketApi:
     def __init__(self, robot_manager: RobotManager):
@@ -34,8 +42,13 @@ class RobotWebSocketApi:
         robot_manager.on("all", self.all_event_capture)
 
     def all_event_capture(self, object_ref, evt, data=None):
-        if evt in log_for_events:
+        if evt not in ignore_log_events:
             log(f'{evt} {str(data)}')
+        if evt in send_control_events:
+            self.send({
+                "event": evt,
+                "data": data
+            })
 
     def start(self):
         asyncio.set_event_loop(asyncio.new_event_loop())
@@ -53,7 +66,7 @@ class RobotWebSocketApi:
         try:
             # Ditch former connections!
             # self._robot_manager.set_communication_interface_callbacks(self)
-            # self._connections.append(websocket)
+            self._connections.append(websocket)
 
             # Print a message when a new connection is established
             log(f"Client connected: '{path}' - {websocket.remote_address}")
@@ -73,8 +86,7 @@ class RobotWebSocketApi:
                         log(f'Incoming Configuration Message: [{message_type}]')
 
                         parsed_config = RobotConfig.from_string(message["body"])
-                        self._robot_manager.robot_configure(parsed_config,
-                            self._robot_manager.start_remote_controller)
+                        self._robot_manager.robot_configure(parsed_config)
 
                     if message_type == 'control':
                         json_data = message["body"]
