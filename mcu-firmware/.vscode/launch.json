@@ -31,6 +31,7 @@
       "type": "probe-rs-debug",
       "request": "attach",
       "name": "probe_rs attach",
+      "server": "127.0.0.1:1234",
       "chip": "atsamd51p19a",
       "coreConfigs": [
         {

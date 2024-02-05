@@ -17,7 +17,8 @@ typedef enum {
     RingLedScenario_BusyIndicator,
     RingLedScenario_BreathingGreen,
     RingLedScenario_Siren,
-    RingLedScenario_TrafficLight
+    RingLedScenario_TrafficLight,
+    RingLedScenario_BugIndicator
 } RingLedScenario_t;
 
 typedef enum {
@@ -68,18 +69,14 @@ typedef struct {
 
 /* End User Code Section: Declarations */
 
-// I wanted to put this into where it belongs: where we define the LED ring, but when I tried
-// importing that lib in here, I got re-definition errors.
-// I will just leave this here for now and ask about this IRL.
-#define LIGHT_EFFECT_COUNT 9
-
 void CommWrapper_LedDisplay_Run_Reset(void);
 Comm_Status_t CommWrapper_LedDisplay_Run_Command_GetScenarioTypes_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 Comm_Status_t CommWrapper_LedDisplay_Run_Command_SetScenarioType_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 Comm_Status_t CommWrapper_LedDisplay_Run_Command_GetRingLedAmount_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 Comm_Status_t CommWrapper_LedDisplay_Run_Command_SetUserFrame_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
-uint8_t CommWrapper_LedDisplay_Call_ReadScenarioName(RingLedScenario_t scenario, ByteArray_t destination);
+ssize_t CommWrapper_LedDisplay_Call_ReadScenarioName(RingLedScenario_t scenario, ByteArray_t destination);
 void CommWrapper_LedDisplay_Write_Scenario(RingLedScenario_t value);
 void CommWrapper_LedDisplay_Write_UserFrame(uint32_t index, rgb_t value);
+size_t CommWrapper_LedDisplay_Read_ScenarioCount(void);
 
 #endif /* COMPONENT_COMM_WRAPPER__LED_DISPLAY_H_ */

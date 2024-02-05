@@ -192,6 +192,11 @@
             "defined_in": "<stdio.h>",
             "default_value": "0u"
         },
+        "ssize_t": {
+            "pass_semantic": "value",
+            "defined_in": "<stdio.h>",
+            "default_value": "0"
+        },
         "bool": {
             "pass_semantic": "value",
             "defined_in": "<stdbool.h>",
@@ -498,6 +503,12 @@
                 "consumers": [
                     "CommWrapper_LedDisplay/Reset",
                     "RingLedDisplay/OnMasterStarted"
+                ]
+            },
+            {
+                "provider": "RingLedDisplay/ScenarioCount",
+                "consumers": [
+                    "CommWrapper_LedDisplay/ScenarioCount"
                 ]
             },
             {

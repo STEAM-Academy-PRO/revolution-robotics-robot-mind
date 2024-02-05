@@ -1,6 +1,7 @@
 #include "scenario_handlers.h"
 
 #include "utils/functions.h"
+#include "../RingLedDisplay.h"
 #include <math.h>
 
 #define RING_LED_UPDATE_TIME ((uint32_t) 20u)
@@ -42,27 +43,80 @@ static void bugIndicator(void* data);
 
 static uint32_t time_data;
 
-const indication_handler_t startup_indicator_scenario = { .init = &init_time, .handler = &startup_indicator, .DeInit = NULL, .userData = &time_data };
+const indication_handler_t startup_indicator_scenario = {
+    .name     = "",
+    .init     = init_time,
+    .update   = startup_indicator,
+    .uninit   = NULL,
+    .userData = &time_data
+};
 
 const indication_handler_t public_scenario_handlers[] =
 {
-    { .init = NULL,                .handler = &ledRingOffWriter,    .DeInit = NULL, .userData = NULL },
-    { .init = NULL,                .handler = &ledRingFrameWriter,  .DeInit = NULL, .userData = NULL },
-    { .init = &init_time,          .handler = &colorWheelWriter1,   .DeInit = NULL, .userData = &time_data },
-    { .init = &init_time,          .handler = &rainbowFadeWriter,   .DeInit = NULL, .userData = &time_data },
-    { .init = &init_spinningColor, .handler = &spinningColorWriter, .DeInit = NULL, .userData = &spinning_color_data },
-    { .init = &init_breathing,     .handler = &breathing,           .DeInit = NULL, .userData = &breathing_green_data },
-    { .init = &init_time,          .handler = &siren,               .DeInit = NULL, .userData = &time_data },
-    { .init = &init_time,          .handler = &traffic_light,       .DeInit = NULL, .userData = &time_data },
-    { .init = &init_time,          .handler = &bugIndicator,        .DeInit = NULL, .userData = &time_data },
+    [RingLedScenario_Off] = {
+        .name     = "RingLedOff",
+        .init     = NULL,
+        .update   = ledRingOffWriter,
+        .uninit   = NULL,
+        .userData = NULL
+    },
+    [RingLedScenario_UserFrame] = {
+        .name     = "UserFrame",
+        .init     = NULL,
+        .update   = ledRingFrameWriter,
+        .uninit   = NULL,
+        .userData = NULL
+    },
+    [RingLedScenario_ColorWheel] = {
+        .name     = "ColorWheel",
+        .init     = init_time,
+        .update   = colorWheelWriter1,
+        .uninit   = NULL,
+        .userData = &time_data
+    },
+    [RingLedScenario_RainbowFade] = {
+        .name     = "RainbowFade",
+        .init     = init_time,
+        .update   = rainbowFadeWriter,
+        .uninit   = NULL,
+        .userData = &time_data
+    },
+    [RingLedScenario_BusyIndicator] = {
+        .name     = "BusyRing",
+        .init     = init_spinningColor,
+        .update   = spinningColorWriter,
+        .uninit   = NULL,
+        .userData = &spinning_color_data
+    },
+    [RingLedScenario_BreathingGreen] = {
+        .name     = "BreathingGreen",
+        .init     = init_breathing,
+        .update   = breathing,
+        .uninit   = NULL,
+        .userData = &breathing_green_data
+    },
+    [RingLedScenario_Siren] = {
+        .name     = "",
+        .init     = init_time,
+        .update   = siren,
+        .uninit   = NULL,
+        .userData = &time_data
+    },
+    [RingLedScenario_TrafficLight] = {
+        .name     = "",
+        .init     = init_time,
+        .update   = traffic_light,
+        .uninit   = NULL,
+        .userData = &time_data
+    },
+    [RingLedScenario_BugIndicator] = {
+        .name     = "",
+        .init     = init_time,
+        .update   = bugIndicator,
+        .uninit   = NULL,
+        .userData = &time_data
+    }
 };
-
-// I am sure that there is a way to expose the size of this, so if I create a new one, I do not have to
-// every time change the index number in three places, I just do not know how. I like ring led effects and
-// I will be wanting to make more. Plus it generally leads to unmaintainable code if we do have multiple places
-// to define the same consts.
-// So my question is: how to do this right, and use this number in the command validation?
-const uint8_t ledLightEffectCount = sizeof(public_scenario_handlers) / sizeof(public_scenario_handlers[0]);
 
 static void init_time(void* data)
 {
@@ -110,9 +164,7 @@ static void ledRingFrameWriter(void* data)
 
 static void colorWheelWriter1(void* data)
 {
-    (void) data;
     uint32_t* time = (uint32_t*) data;
-
     uint32_t phase = (*time * 6) / 20;
 
     *time += RING_LED_UPDATE_TIME;
@@ -133,7 +185,6 @@ static void colorWheelWriter1(void* data)
 static void rainbowFadeWriter(void* data)
 {
     uint32_t* time = (uint32_t*) data;
-
     uint32_t phase = *time / 40;
 
     *time += RING_LED_UPDATE_TIME;

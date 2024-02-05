@@ -38,6 +38,7 @@ jobs:
           path: |
             mcu-bootloader/Build/Release/mcu-bootloader/rrrc_samd51.elf
             mcu-bootloader/Build/Release/mcu-bootloader/rrrc_samd51.bin
+          retention-days: 1
 
   build-mcu-firmware:
     permissions:
@@ -84,12 +85,14 @@ jobs:
         with:
           name: mcu-firmware
           path: mcu-firmware/Build/output/
+          retention-days: 1
 
       - name: Upload .elf
         uses: actions/upload-artifact@v4
         with:
           name: mcu-firmware-elf
           path: mcu-firmware/Build/Release/mcu-firmware/rrrc_samd51.elf
+          retention-days: 1
 
   check-pi-firmware:
     permissions:

@@ -18,7 +18,8 @@ typedef enum {
     RingLedScenario_BusyIndicator,
     RingLedScenario_BreathingGreen,
     RingLedScenario_Siren,
-    RingLedScenario_TrafficLight
+    RingLedScenario_TrafficLight,
+    RingLedScenario_BugIndicator
 } RingLedScenario_t;
 
 typedef enum {
@@ -44,7 +45,8 @@ typedef struct {
 void RingLedDisplay_Run_OnInit(void);
 void RingLedDisplay_Run_Update(void);
 void RingLedDisplay_Run_OnMasterStarted(void);
-uint8_t RingLedDisplay_Run_ReadScenarioName(RingLedScenario_t scenario, ByteArray_t destination);
+ssize_t RingLedDisplay_Run_ReadScenarioName(RingLedScenario_t scenario, ByteArray_t destination);
+size_t RingLedDisplay_Constant_ScenarioCount(void);
 void RingLedDisplay_Write_LedColor(uint32_t index, rgb_t value);
 uint32_t RingLedDisplay_Read_ExpectedStartupTime(void);
 MasterStatus_t RingLedDisplay_Read_MasterStatus(void);

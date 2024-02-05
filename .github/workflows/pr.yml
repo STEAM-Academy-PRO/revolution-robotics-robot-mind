@@ -48,13 +48,14 @@ jobs:
           make config=debug
 
       - name: Upload artifacts
-        if: steps.filter.outputs.mcu-bootloader == 'true'
+        if: steps.filter.outputs.mcu-bootloader == 'true' && github.event.pull_request.draft == false
         uses: actions/upload-artifact@v4
         with:
           name: mcu-bootloader
           path: |
             mcu-bootloader/Build/Debug/mcu-bootloader/rrrc_samd51.elf
             mcu-bootloader/Build/Debug/mcu-bootloader/rrrc_samd51.bin
+          retention-days: 3
 
   check-mcu-firmware:
     permissions:
@@ -111,11 +112,12 @@ jobs:
           python -m tools.prepare --debug
 
       - name: Upload artifacts
-        if: steps.filter.outputs.mcu-firmware == 'true'
+        if: steps.filter.outputs.mcu-firmware == 'true' && github.event.pull_request.draft == false
         uses: actions/upload-artifact@v4
         with:
           name: mcu-firmware
           path: mcu-firmware/Build/output/
+          retention-days: 3
 
   check-pi-firmware:
     permissions:
@@ -155,6 +157,7 @@ jobs:
 
     runs-on: ubuntu-latest
     needs: [check-mcu-firmware, check-pi-firmware]
+    if: github.event.pull_request.draft == false
 
     steps:
       - uses: actions/checkout@v4
@@ -183,8 +186,8 @@ jobs:
 
       - name: Package the newly built mcu-firmware
         if: |
-          steps.filter.outputs.pi-firmware == 'true' &&
-          needs.check-mcu-firmware.result == 'success'
+          steps.filter.outputs.pi-firmware == 'true'
+          && needs.check-mcu-firmware.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: mcu-firmware
@@ -206,3 +209,4 @@ jobs:
           path: |
             pi-firmware/install/pi-firmware.*
             pi-firmware/install/framework-*.tar.gz
+          retention-days: 3
