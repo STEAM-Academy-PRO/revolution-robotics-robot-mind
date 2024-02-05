@@ -51,6 +51,16 @@ LINKER_FLAGS := \\
 --specs=nano.specs \\
 -TConfig/samd51p19a_flash.ld
 
+ifeq ($(IN_CONTAINER),1)
+\tSHELL := /bin/bash
+\tMKDIR := mkdir -p
+\tGCC_BINARY_PREFIX := arm-none-eabi-
+\tGCC_BINARY_SUFFIX :=
+\tNULL := /dev/null
+\tDEL := rm -rf
+\tTRUE := true
+else
+
 ifeq ($(OS),Windows_NT)
 \tSHELL := cmd.exe
 \tMKDIR := md
@@ -59,6 +69,7 @@ ifeq ($(OS),Windows_NT)
 \tNULL := nul
 \tDEL := rmdir /s /q
 \tTRUE := VER>nul
+
 else
 \tSHELL := /bin/bash
 \tMKDIR := mkdir -p
@@ -67,6 +78,7 @@ else
 \tNULL := /dev/null
 \tDEL := rm -rf
 \tTRUE := true
+endif
 endif
 
 ifeq ($(config), debug)
