@@ -41,18 +41,18 @@ static void traffic_light(void* data);
 
 static uint32_t time_data;
 
-const indication_handler_t startup_indicator_scenario = { .init = &init_time, .handler = &startup_indicator, .DeInit = NULL, .userData = &time_data };
+const indication_handler_t startup_indicator_scenario = { .name = "", .init = &init_time, .handler = &startup_indicator, .DeInit = NULL, .userData = &time_data };
 
 const indication_handler_t public_scenario_handlers[8] = 
 {
-    { .init = NULL,                .handler = &ledRingOffWriter,    .DeInit = NULL, .userData = NULL },
-    { .init = NULL,                .handler = &ledRingFrameWriter,  .DeInit = NULL, .userData = NULL },
-    { .init = &init_time,          .handler = &colorWheelWriter1,   .DeInit = NULL, .userData = &time_data },
-    { .init = &init_time,          .handler = &rainbowFadeWriter,   .DeInit = NULL, .userData = &time_data },
-    { .init = &init_spinningColor, .handler = &spinningColorWriter, .DeInit = NULL, .userData = &spinning_color_data },
-    { .init = &init_breathing,     .handler = &breathing,           .DeInit = NULL, .userData = &breathing_green_data },
-    { .init = &init_time,          .handler = &siren,               .DeInit = NULL, .userData = &time_data },
-    { .init = &init_time,          .handler = &traffic_light,       .DeInit = NULL, .userData = &time_data },
+    { .name = "RingLedOff",     .init = NULL,                .handler = &ledRingOffWriter,    .DeInit = NULL, .userData = NULL },
+    { .name = "UserFrame",      .init = NULL,                .handler = &ledRingFrameWriter,  .DeInit = NULL, .userData = NULL },
+    { .name = "ColorWheel",     .init = &init_time,          .handler = &colorWheelWriter1,   .DeInit = NULL, .userData = &time_data },
+    { .name = "RainbowFade",    .init = &init_time,          .handler = &rainbowFadeWriter,   .DeInit = NULL, .userData = &time_data },
+    { .name = "BusyRing",       .init = &init_spinningColor, .handler = &spinningColorWriter, .DeInit = NULL, .userData = &spinning_color_data },
+    { .name = "BreathingGreen", .init = &init_breathing,     .handler = &breathing,           .DeInit = NULL, .userData = &breathing_green_data },
+    { .name = "",               .init = &init_time,          .handler = &siren,               .DeInit = NULL, .userData = &time_data },
+    { .name = "",               .init = &init_time,          .handler = &traffic_light,       .DeInit = NULL, .userData = &time_data },
 };
 
 static void init_time(void* data)

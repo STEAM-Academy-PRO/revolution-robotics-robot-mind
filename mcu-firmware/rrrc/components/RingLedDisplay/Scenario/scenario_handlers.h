@@ -7,6 +7,7 @@ typedef void (*ledRingFn)(void* data);
 
 typedef struct
 {
+    const char* name;
     ledRingFn init;
     ledRingFn handler;
     ledRingFn DeInit;

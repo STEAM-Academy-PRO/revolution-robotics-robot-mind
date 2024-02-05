@@ -125,21 +125,12 @@ void RingLedDisplay_Run_OnMasterStarted(void)
 ssize_t RingLedDisplay_Run_ReadScenarioName(RingLedScenario_t scenario, ByteArray_t destination)
 {
     /* Begin User Code Section: ReadScenarioName:run Start */
-    switch (scenario)
+    if ((size_t) scenario >= ARRAY_SIZE(public_scenario_handlers))
     {
-        case RingLedScenario_Off: return copy_ring_led_scenario_name("RingLedOff", destination);
-        case RingLedScenario_UserFrame: return copy_ring_led_scenario_name("UserFrame", destination);
-        case RingLedScenario_ColorWheel: return copy_ring_led_scenario_name("ColorWheel", destination);
-        case RingLedScenario_RainbowFade: return copy_ring_led_scenario_name("RainbowFade", destination);
-        case RingLedScenario_BusyIndicator: return copy_ring_led_scenario_name("BusyRing", destination);
-        case RingLedScenario_BreathingGreen: return copy_ring_led_scenario_name("BreathingGreen", destination);
-
-        /* these are not listed */
-        case RingLedScenario_Siren: return 0;
-        case RingLedScenario_TrafficLight: return 0;
-
-        default: return -2;
+        return -2;
     }
+
+    return copy_ring_led_scenario_name(public_scenario_handlers[scenario].name, destination);
     /* End User Code Section: ReadScenarioName:run Start */
     /* Begin User Code Section: ReadScenarioName:run End */
 
