@@ -10,11 +10,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#define STATUS_LEDS_AMOUNT ((uint8_t) 4u)
-#define RING_LEDS_AMOUNT   ((uint8_t) 12u)
-
-#define LEDS_AMOUNT        (STATUS_LEDS_AMOUNT + RING_LEDS_AMOUNT)
-
 #define LED_VAL_ZERO    ~((uint8_t) 0xC0u)
 #define LED_VAL_ONE     ~((uint8_t) 0xFCu)
 #define LED_VAL_RES     ~((uint8_t) 0x00u)

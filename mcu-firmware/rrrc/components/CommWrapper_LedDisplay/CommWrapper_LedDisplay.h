@@ -73,8 +73,9 @@ Comm_Status_t CommWrapper_LedDisplay_Run_Command_GetScenarioTypes_Start(ConstByt
 Comm_Status_t CommWrapper_LedDisplay_Run_Command_SetScenarioType_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 Comm_Status_t CommWrapper_LedDisplay_Run_Command_GetRingLedAmount_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 Comm_Status_t CommWrapper_LedDisplay_Run_Command_SetUserFrame_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
-uint8_t CommWrapper_LedDisplay_Call_ReadScenarioName(RingLedScenario_t scenario, ByteArray_t destination);
+ssize_t CommWrapper_LedDisplay_Call_ReadScenarioName(RingLedScenario_t scenario, ByteArray_t destination);
 void CommWrapper_LedDisplay_Write_Scenario(RingLedScenario_t value);
 void CommWrapper_LedDisplay_Write_UserFrame(uint32_t index, rgb_t value);
+size_t CommWrapper_LedDisplay_Read_ScenarioCount(void);
 
 #endif /* COMPONENT_COMM_WRAPPER__LED_DISPLAY_H_ */
