@@ -4,10 +4,9 @@ import argparse
 import traceback
 
 from revvy.robot.mcu_error import ErrorType, McuErrorReader
-from revvy.robot.robot import Robot
 from revvy.utils.version import Version
-
 from revvy.utils.functions import is_bit_set
+from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 
 cfsr_reasons = [
     "The processor has attempted to execute an undefined instruction",
@@ -141,34 +140,34 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    with Robot() as robot:
-        robot_control = robot.robot_control
+    i2c_bus = 1
+    transport = RevvyTransportI2C(i2c_bus)
 
-        current_hw_version = robot_control.get_hardware_version()
-        current_fw_version = robot_control.get_firmware_version()
-        print(f'Current version numbers: HW: {current_hw_version} FW: {current_fw_version}')
+    robot_control = transport.create_application_control()
 
-        if args.inject_test_error:
-            print('Recording a test error')
-            robot_control.error_memory_test()
+    fw_version = robot_control.get_firmware_version()
 
-        error_reader = McuErrorReader(robot_control)
+    if args.inject_test_error:
+        print('Recording a test error')
+        robot_control.error_memory_test()
 
-        # read errors
-        error_count = error_reader.count
-        if error_count == 0:
-            print('There are no errors stored')
-        elif error_count == 1:
-            print('There is one error stored')
-        else:
-            print(f'There are {error_count} errors stored')
+    error_reader = McuErrorReader(robot_control)
 
-        for i, error_entry in enumerate(error_reader.read_all()):
-            formatted_error = format_error(error_entry, current_fw_version, only_current=args.only_current)
-            if formatted_error is not None:
-                print('----------------------------------------')
-                print(f'Error {i}')
-                print(formatted_error)
+    # read errors
+    error_count = error_reader.count
+    if error_count == 0:
+        print('There are no errors stored')
+    elif error_count == 1:
+        print('There is one error stored')
+    else:
+        print(f'There are {error_count} errors stored')
 
-        if args.clear:
-            error_reader.clear()
+    for i, error_entry in enumerate(error_reader.read_all()):
+        formatted_error = format_error(error_entry, fw_version, only_current=args.only_current)
+        if formatted_error is not None:
+            print('----------------------------------------')
+            print(f'Error {i}')
+            print(formatted_error)
+
+    if args.clear:
+        error_reader.clear()
