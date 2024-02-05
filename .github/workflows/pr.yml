@@ -55,6 +55,7 @@ jobs:
           path: |
             mcu-bootloader/Build/Debug/mcu-bootloader/rrrc_samd51.elf
             mcu-bootloader/Build/Debug/mcu-bootloader/rrrc_samd51.bin
+          retention-days: 3
 
   check-mcu-firmware:
     permissions:
@@ -116,6 +117,7 @@ jobs:
         with:
           name: mcu-firmware
           path: mcu-firmware/Build/output/
+          retention-days: 3
 
   check-pi-firmware:
     permissions:
@@ -206,3 +208,4 @@ jobs:
           path: |
             pi-firmware/install/pi-firmware.*
             pi-firmware/install/framework-*.tar.gz
+          retention-days: 3
