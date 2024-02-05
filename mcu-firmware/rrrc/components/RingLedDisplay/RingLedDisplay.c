@@ -87,9 +87,9 @@ void RingLedDisplay_Run_Update(void)
 
         if (current_scenario != requested_scenario)
         {
-            if (current_scenario_handler->DeInit)
+            if (current_scenario_handler->uninit)
             {
-                current_scenario_handler->DeInit(current_scenario_handler->userData);
+                current_scenario_handler->uninit(current_scenario_handler->userData);
             }
 
             current_scenario = requested_scenario;
