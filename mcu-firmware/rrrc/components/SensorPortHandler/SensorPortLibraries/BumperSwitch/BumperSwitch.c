@@ -89,8 +89,10 @@ void BumperSwitch_ReadSensorInfo(SensorPort_t* sensorPort, uint8_t page, uint8_t
 
 static bool BumperSwitch_TestSensorOnPort(SensorPort_t *port, SensorOnPortStatus_t *result)
 {
-  *result = SensorOnPortStatus_Unknown;
-  return true;
+    (void) port;
+
+    *result = SensorOnPortStatus_Unknown;
+    return true;
 }
 
 const SensorLibrary_t sensor_library_bumper_switch = 
