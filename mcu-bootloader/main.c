@@ -1,7 +1,6 @@
 #include <atmel_start.h>
 #include "flash_mapping.h"
 
-#include "utils/crc.h"
 #include "rrrc/utils/functions.h"
 #include "rrrc/runtime/runtime.h"
 #include "rrrc/include/color.h"
@@ -33,14 +32,11 @@ static void clear_rtt() {
     for (uint32_t* pDest = &_srtt; pDest < &_ertt;) {
         *pDest++ = 0;
     }
-
 }
 
 int main(void)
 {
-    /* Perform the very basic init and check the bootloader mode request */
-    init_mcu();
-    CRC32_Init();
+    atmel_start_init();
 
     StartupReason_t startupReason = FMP_CheckBootloaderModeRequest();
 
@@ -73,6 +69,7 @@ int main(void)
 #if DEBUG_SKIP_FW_INTEGRITY_CHECK
         if (!start_application)
         {
+            SEGGER_RTT_WriteString(0, "Debug mode, application CRC mismatch\r\n");
             if (FMP_IsApplicationHeaderEmpty() || FLASH_HEADER->bootloader_version != BOOTLOADER_VERSION)
             {
                 SEGGER_RTT_WriteString(0, "Debug mode, fixing up application header\r\n");
@@ -85,18 +82,17 @@ int main(void)
 #endif
         if (start_application)
         {
-            SEGGER_RTT_WriteString(0, "Starting application\r\n");
+            SEGGER_RTT_WriteString(0, "Bootloader: Starting application\r\n");
             /* this should be the only application start point to avoid getting stuck in a hard fault */
             FMT_JumpTargetFirmware();
+        } else {
+            SEGGER_RTT_WriteString(0, "No valid firmware found\r\n");
         }
     }
 
     SEGGER_RTT_WriteString(0, "Entered bootloader mode\r\n");
     // If we are below this line then there was either a bootloader request,
     // or the target firmware is missing or corrupted
-
-    // Initializes MCU, drivers and middleware
-    atmel_start_init();
 
     MasterCommunication_Run_OnInit(&communicationHandlers[0], COMM_HANDLER_COUNT);
 
@@ -106,6 +102,26 @@ int main(void)
     MasterCommunicationInterface_Run_OnInit(&communicationConfig);
 
     LEDController_Run_OnInit();
+
+    // Display some indication why we are in bootloader mode
+    switch (startupReason) {
+        case StartupReason_BootloaderRequest:
+            // Bootloader mode was requested, do not show any indication
+            break;
+
+        case StartupReason_PowerUp:
+            // We did not find any loadable application. Display an angry red light on the
+            // bottom-most ring LED to indicate this.
+            ringLeds[2] = (rgb_t) LED_RED;
+            break;
+        
+        case StartupReason_WatchdogReset:
+            // The application is most likely inoperable. Display an angry red light on the
+            // top and bottom ring LED to indicate this.
+            ringLeds[2] = (rgb_t) LED_RED;
+            ringLeds[8] = (rgb_t) LED_RED;
+            break;
+    }
 
     while (1) {
         MasterCommunicationInterface_Run_Update();

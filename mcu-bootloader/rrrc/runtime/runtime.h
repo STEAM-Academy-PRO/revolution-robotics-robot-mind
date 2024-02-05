@@ -8,7 +8,7 @@
 #include "rrrc/components/VersionProvider/VersionProvider.h"
 
 #define COMM_HANDLER_COUNT  ((uint8_t) 11u)
-const Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT];
+extern const Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT];
 
 void Runtime_RequestJumpToApplication(void);
 

@@ -23,6 +23,10 @@ typedef struct {
 
 #endif /* COMPONENT_TYPES_IMU_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void IMU_Run_OnInit(void);
 void IMU_Run_OnUpdate(void);
 float IMU_Constant_SampleTime(void);

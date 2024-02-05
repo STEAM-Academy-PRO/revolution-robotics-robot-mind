@@ -15,6 +15,10 @@ typedef struct {
 
 #endif /* COMPONENT_TYPES_CRC_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 uint8_t CRC_Run_Calculate_CRC7(uint8_t init_value, ConstByteArray_t data);
 uint16_t CRC_Run_Calculate_CRC16(uint16_t init_value, ConstByteArray_t data);
 

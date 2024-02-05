@@ -79,6 +79,7 @@ static void update_slot(uint8_t index, const uint8_t* data, uint8_t data_size)
     ASSERT(data_size <= slot->size);
 
     bool slot_changed = true;
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     if (!slot_has_data(slot) || data_size != slot->array.count)
     {
@@ -95,20 +96,21 @@ static void update_slot(uint8_t index, const uint8_t* data, uint8_t data_size)
         slot->version = (slot->version + 1u) & 0x7Fu;
         McuStatusSlots_Write_SlotData(index, (const SlotData_t) {.data = slot->array, .version = slot->version});
     }
-    __enable_irq();
+    __set_PRIMASK(primask);
 }
 /* End User Code Section: Declarations */
 
 void McuStatusSlots_Run_Reset(void)
 {
     /* Begin User Code Section: Reset:run Start */
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     for (size_t i = 0u; i < ARRAY_SIZE(slots); i++)
     {
         slots[i].array.count = 0u;
         slots[i].version = 0xFFu;
     }
-    __enable_irq();
+    __set_PRIMASK(primask);
 
     uint8_t reset_data = 0x5Au;
     update_slot(STATUS_SLOT_RESET, &reset_data, 1u);

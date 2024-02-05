@@ -1,11 +1,42 @@
 #ifndef COMPONENT_SENSOR_PORT_HANDLER_H_
 #define COMPONENT_SENSOR_PORT_HANDLER_H_
 
+#ifndef COMPONENT_TYPES_SENSOR_PORT_HANDLER_H_
+#define COMPONENT_TYPES_SENSOR_PORT_HANDLER_H_
+
 #include <float.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
+
+typedef struct {
+    uint8_t* bytes;
+    size_t count;
+} ByteArray_t;
+
+typedef enum {
+    AsyncCommand_None,
+    AsyncCommand_Start,
+    AsyncCommand_Continue,
+    AsyncCommand_Cancel
+} AsyncCommand_t;
+
+typedef enum {
+    AsyncResult_Pending,
+    AsyncResult_Ok
+} AsyncResult_t;
+
+typedef enum {
+    TestSensorOnPortResult_NotPresent,
+    TestSensorOnPortResult_Present,
+    TestSensorOnPortResult_Unknown,
+    TestSensorOnPortResult_Error
+} TestSensorOnPortResult_t;
+
+#endif /* COMPONENT_TYPES_SENSOR_PORT_HANDLER_H_ */
+
+/* Begin User Code Section: Declarations */
 struct _SensorPort_t;
 
 #include "SensorPortLibraries/SensorPort_I2C.h"
@@ -54,37 +85,10 @@ typedef struct _SensorPort_t
     } sercom;
 } SensorPort_t;
 
-#ifndef COMPONENT_TYPES_SENSOR_PORT_HANDLER_H_
-#define COMPONENT_TYPES_SENSOR_PORT_HANDLER_H_
-
-
-typedef struct {
-    uint8_t* bytes;
-    size_t count;
-} ByteArray_t;
-
-typedef enum {
-    AsyncCommand_None,
-    AsyncCommand_Start,
-    AsyncCommand_Continue,
-    AsyncCommand_Cancel
-} AsyncCommand_t;
-
-typedef enum {
-    AsyncResult_Pending,
-    AsyncResult_Ok
-} AsyncResult_t;
-
-typedef enum {
-    TestSensorOnPortResult_NotPresent,
-    TestSensorOnPortResult_Present,
-    TestSensorOnPortResult_Unknown,
-    TestSensorOnPortResult_Error
-} TestSensorOnPortResult_t;
-
-#endif /* COMPONENT_TYPES_SENSOR_PORT_HANDLER_H_ */
 /* TODO generate this as well */
 void SensorPortHandler_Run_OnInit(SensorPort_t* ports, size_t portCount);
+/* End User Code Section: Declarations */
+
 void SensorPortHandler_Run_PortUpdate(uint8_t port_idx);
 void SensorPortHandler_Run_ReadPortTypes(ByteArray_t* buffer);
 void SensorPortHandler_Run_Configure(uint8_t port_idx, ByteArray_t configuration, bool* result);

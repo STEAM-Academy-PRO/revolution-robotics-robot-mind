@@ -41,6 +41,10 @@ typedef struct {
 
 #endif /* COMPONENT_TYPES_MCU_STATUS_SLOTS_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void McuStatusSlots_Run_Reset(void);
 void McuStatusSlots_Run_Update(void);
 void McuStatusSlots_Run_UpdateSensorPort(uint8_t port, ByteArray_t data);

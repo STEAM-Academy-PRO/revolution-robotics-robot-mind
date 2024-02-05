@@ -3,6 +3,6 @@
 
 #include "../SensorPortLibrary.h"
 
-const SensorLibrary_t sensor_library_hc_sr04;
+extern const SensorLibrary_t sensor_library_hc_sr04;
 
 #endif /* SENSOR_LIB_HC_SR04_H_ */

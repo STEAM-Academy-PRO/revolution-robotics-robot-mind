@@ -15,19 +15,20 @@ static bool _read_slot(uint8_t index, uint8_t* pData, uint8_t bufferSize, uint8_
     static uint8_t buffer[64];
 
     *slotSize = 0u;
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     SlotData_t slot = McuStatusCollector_Read_SlotData(index);
 
     if (slot.version == versions[index] || ((slot.version & 0x80u) != 0u)) // if highest bit is 1, there is no data
     {
         // data did not change since last read
-        __enable_irq();
+        __set_PRIMASK(primask);
         return true;
     }
 
     // copy bytes in critical section to avoid corruption - TODO do this after the size checks
     memcpy(buffer, slot.data.bytes, slot.data.count);
-    __enable_irq();
+    __set_PRIMASK(primask);
 
     bool slot_fits = true;
 

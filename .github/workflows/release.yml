@@ -23,7 +23,7 @@ jobs:
           cd /usr/share
           mkdir gcc-arm
           cd gcc-arm
-          wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2 -O toolchain.tar.bz2
+          wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 -O toolchain.tar.bz2
           tar -xjf toolchain.tar.bz2
 
       - name: Build Release bootloader
@@ -38,6 +38,7 @@ jobs:
           path: |
             mcu-bootloader/Build/Release/mcu-bootloader/rrrc_samd51.elf
             mcu-bootloader/Build/Release/mcu-bootloader/rrrc_samd51.bin
+          retention-days: 1
 
   build-mcu-firmware:
     permissions:
@@ -66,7 +67,7 @@ jobs:
           cd /usr/share
           mkdir gcc-arm
           cd gcc-arm
-          wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2 -O toolchain.tar.bz2
+          wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 -O toolchain.tar.bz2
           tar -xjf toolchain.tar.bz2
 
       - name: Build Release firmware
@@ -79,11 +80,19 @@ jobs:
           make all config=release
           python -m tools.prepare
 
-      - name: Upload artifacts
+      - name: Upload packagable artifacts
         uses: actions/upload-artifact@v4
         with:
           name: mcu-firmware
           path: mcu-firmware/Build/output/
+          retention-days: 1
+
+      - name: Upload .elf
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcu-firmware-elf
+          path: mcu-firmware/Build/Release/mcu-firmware/rrrc_samd51.elf
+          retention-days: 1
 
   check-pi-firmware:
     permissions:
@@ -138,42 +147,30 @@ jobs:
           name: mcu-bootloader
           path: output/mcu-bootloader/
 
-      # TODO: duplicate download step because in the future I want to include
-      # firmware .elf here but not in the python package
-      - name: Add MCU firmware
+      - name: Add MCU firmware .elf
         uses: actions/download-artifact@v4
         with:
-          name: mcu-firmware
-          path: output/mcu-firmware/
+          name: mcu-firmware-elf
+          path: output/mcu-firmware-elf/
 
       - name: Assembling package
         run: |
           cd pi-firmware
           python -m dev_tools.create_package
-
-      - name: Upload mcu-bootloader to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: output/mcu-bootloader/*
-          file_glob: true
-          asset_name: MCU bootloader
-          tag: ${{ github.ref }}
-
-      - name: Upload mcu-firmware to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: output/mcu-firmware/*
-          file_glob: true
-          asset_name: MCU firmware
-          tag: ${{ github.ref }}
+          cd ..
+          mkdir upload
+          mv pi-firmware/install/framework-*.tar.gz upload/
+          mv pi-firmware/install/pi-firmware.* upload/
+          mv pi-firmware/data/firmware/* upload/
+          mv output/mcu-firmware-elf/rrrc_samd51.elf upload/mcu_firmware.elf
+          mv output/mcu-bootloader/rrrc_samd51.elf upload/bootloader.elf
+          mv output/mcu-bootloader/rrrc_samd51.bin upload/bootloader.bin
 
       - name: Upload pi-firmware to release and finalize
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: pi-firmware/install/pi-firmware.*
+          file: upload/*
           file_glob: true
           asset_name: Pi firmware
           tag: ${{ github.ref }}

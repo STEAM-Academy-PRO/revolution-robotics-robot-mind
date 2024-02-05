@@ -13,18 +13,16 @@ Tools required
 Set up compiler
 ---------------
 
-> Latest gcc does not compile, until fixed, you will need the `gcc-arm-none-eabi-9-2019-q4-major` version
+> Latest gcc does not compile, until fixed, you will need the `gcc-arm-none-eabi-10.3-2021.10` version
 
 ### Linux
 
 - `sudo apt install build-essential`
-- Download and extract [`gcc-arm-none-eabi-9-2019-q4-major`](https://developer.arm.com/downloads/-/gnu-rm) to `/usr/share/gcc-arm/gcc-arm-none-eabi-9-2019-q4-major`
-  - Add the `bin` folder to your `$PATH` (`.bashrc`)
+- Download and extract [`gcc-arm-none-eabi-10.3-2021.10`](https://developer.arm.com/downloads/-/gnu-rm) to `/usr/share/gcc-arm/`
 
 ### Windows
 
-- Download and extract [`gcc-arm-none-eabi-9-2019-q4-major`](https://developer.arm.com/downloads/-/gnu-rm) to `C:\gcc\gcc-arm-none-eabi-9-2019-q4-major`.
-  - Add the `bin` folder to your `$PATH`.
+- Download and extract [`gcc-arm-none-eabi-10.3-2021.10`](https://developer.arm.com/downloads/-/gnu-rm) to `C:\gcc\`.
 - Download the `Binaries` and `Dependencies` from http://gnuwin32.sourceforge.net/packages/make.htm
   - Extract the downloaded directories to a place of your choice. (For example, C:\gnu\make)
   - Add the bin folder of the extracted archive to your `$PATH`.

@@ -18,6 +18,10 @@ typedef struct {
 
 #endif /* COMPONENT_TYPES_MOTOR_DERATING_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void MotorDerating_Run_OnUpdate(void);
 void MotorDerating_Write_DeratedControlValue(uint32_t index, int16_t value);
 void MotorDerating_Write_MaxPowerRatio(uint32_t index, Percentage_t value);

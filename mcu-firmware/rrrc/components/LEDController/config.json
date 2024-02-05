@@ -28,11 +28,6 @@
             "port_type": "ReadValue",
             "default_value": "24u",
             "data_type": "uint8_t"
-        },
-        "HardwareVersion": {
-            "port_type": "ReadValue",
-            "data_type": "uint32_t",
-            "default_value": "0"
         }
     }
 }

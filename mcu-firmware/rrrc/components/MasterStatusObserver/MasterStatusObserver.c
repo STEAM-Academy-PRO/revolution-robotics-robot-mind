@@ -27,6 +27,7 @@ static bool countdown(uint32_t* timer, uint32_t increment)
 {
     bool elapsed = false;
 
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     if (*timer != 0u)
     {
@@ -40,7 +41,7 @@ static bool countdown(uint32_t* timer, uint32_t increment)
             *timer -= increment;
         }
     }
-    __enable_irq();
+    __set_PRIMASK(primask);
 
     return elapsed;
 }

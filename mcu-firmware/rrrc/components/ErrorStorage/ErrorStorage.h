@@ -11,6 +11,10 @@
 
 #endif /* COMPONENT_TYPES_ERROR_STORAGE_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void ErrorStorage_Run_OnInit(void);
 void ErrorStorage_Run_Store(const ErrorInfo_t* data);
 bool ErrorStorage_Run_Read(uint32_t index, ErrorInfo_t* data);

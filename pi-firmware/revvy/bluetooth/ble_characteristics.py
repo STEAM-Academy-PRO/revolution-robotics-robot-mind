@@ -6,6 +6,7 @@ from pybleno import Characteristic, Descriptor
 from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_UNKNOWN
 from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
 from revvy.mcu.commands import BatteryStatus
+from revvy.utils.pack_2_bit_number_array import pack_2_bit_number_array, unpack_2_bit_number_array
 
 from revvy.utils.logger import get_logger
 
@@ -169,6 +170,9 @@ class BrainToMobileFunctionCharacteristic(Characteristic):
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
     def onSubscribe(self, max_value_size, update_value_callback):
+        # TODO Bad naming. Subscribe would suggest that we can do it multiple times.
+        # However this is more like "setCallback"
+
         self._updateValueCallback = update_value_callback
 
     def onUnsubscribe(self):
@@ -205,6 +209,25 @@ class TimerCharacteristic(BrainToMobileFunctionCharacteristic):
 
 class ReadVariableCharacteristic(BrainToMobileFunctionCharacteristic):
     pass
+
+
+class ProgramStatusCharacteristic(BrainToMobileFunctionCharacteristic):
+    """ Store/send button script states to mobile. """
+    def update_button_value(self, button_id: int, status: int):
+        """ Handles low level packing. """
+        if not self._value:
+            state_array = [0]*32
+        else:
+            state_array = unpack_2_bit_number_array(self._value)
+
+        state_array[button_id] = status
+
+        packed_byte_array = pack_2_bit_number_array(state_array)
+
+        log(f'Button state change: {packed_byte_array}')
+        # If there are multiple messages, here is where we want to throttle.
+        self.update(packed_byte_array)
+
 
 
 # Device Information Service

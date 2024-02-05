@@ -9,6 +9,10 @@
 
 #endif /* COMPONENT_TYPES_HARDWARE_COMPATIBILITY_CHECKER_H_ */
 
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
 void HardwareCompatibilityChecker_Run_OnInit(void);
 void HardwareCompatibilityChecker_RaiseEvent_OnIncompatibleHardware(void);
 uint32_t HardwareCompatibilityChecker_Read_HardwareVersion(void);

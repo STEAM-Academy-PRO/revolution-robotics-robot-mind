@@ -2,6 +2,7 @@
 #define ATMEL_START_PINS_H_INCLUDED
 
 #include <stdio.h>
+#include <stdint.h>
 
 typedef uint8_t gpio_pin_t;
 

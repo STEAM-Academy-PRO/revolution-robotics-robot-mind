@@ -3,6 +3,6 @@
 
 #include "../SensorPortLibrary.h"
 
-const SensorLibrary_t sensor_library_bumper_switch;
+extern const SensorLibrary_t sensor_library_bumper_switch;
 
 #endif /* SENSOR_LIB_BUMPER_SWITCH_H_ */

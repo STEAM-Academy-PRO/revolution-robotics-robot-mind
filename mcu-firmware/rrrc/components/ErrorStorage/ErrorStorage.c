@@ -322,6 +322,7 @@ void ErrorStorage_Run_Store(const ErrorInfo_t* data)
     /* Begin User Code Section: Store:run Start */
     if (esInitialized)
     {
+        uint32_t primask = __get_PRIMASK();
         __disable_irq();
         if (errorStorageBlocks[esActiveBlock].allocated == OBJECTS_PER_BLOCK)
         {
@@ -335,7 +336,7 @@ void ErrorStorage_Run_Store(const ErrorInfo_t* data)
 
         _store_object(&errorStorageBlocks[esActiveBlock], &copy, sizeof(ErrorInfo_t));
         _update_number_of_stored_errors();
-        __enable_irq();
+        __set_PRIMASK(primask);
     }
     /* End User Code Section: Store:run Start */
     /* Begin User Code Section: Store:run End */
@@ -385,6 +386,7 @@ void ErrorStorage_Run_Clear(void)
     ASSERT (esInitialized);
 
     /* delete every allocated object */
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
     for (size_t i = 0u; i < ARRAY_SIZE(errorStorageBlocks); i++)
     {
@@ -398,7 +400,7 @@ void ErrorStorage_Run_Clear(void)
         block->deleted = block->allocated;
     }
     _update_number_of_stored_errors();
-    __enable_irq();
+    __set_PRIMASK(primask);
     /* End User Code Section: Clear:run Start */
     /* Begin User Code Section: Clear:run End */
 
