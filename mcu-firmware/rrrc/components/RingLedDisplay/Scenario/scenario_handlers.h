@@ -9,7 +9,7 @@ typedef struct
 {
     const char* name;
     ledRingFn init;
-    ledRingFn handler;
+    ledRingFn update;
     ledRingFn uninit;
     void* userData;
 } indication_handler_t;

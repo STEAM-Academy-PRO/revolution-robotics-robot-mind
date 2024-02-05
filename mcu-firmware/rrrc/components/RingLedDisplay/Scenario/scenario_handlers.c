@@ -1,6 +1,7 @@
 #include "scenario_handlers.h"
 
 #include "utils/functions.h"
+#include "../RingLedDisplay.h"
 #include <math.h>
 
 #define RING_LED_UPDATE_TIME ((uint32_t) 20u)
@@ -41,18 +42,72 @@ static void traffic_light(void* data);
 
 static uint32_t time_data;
 
-const indication_handler_t startup_indicator_scenario = { .name = "", .init = &init_time, .handler = &startup_indicator, .uninit = NULL, .userData = &time_data };
+const indication_handler_t startup_indicator_scenario = {
+    .name     = "",
+    .init     = init_time,
+    .update   = startup_indicator,
+    .uninit   = NULL,
+    .userData = &time_data
+};
 
-const indication_handler_t public_scenario_handlers[8] = 
+const indication_handler_t public_scenario_handlers[] =
 {
-    { .name = "RingLedOff",     .init = NULL,                .handler = &ledRingOffWriter,    .uninit = NULL, .userData = NULL },
-    { .name = "UserFrame",      .init = NULL,                .handler = &ledRingFrameWriter,  .uninit = NULL, .userData = NULL },
-    { .name = "ColorWheel",     .init = &init_time,          .handler = &colorWheelWriter1,   .uninit = NULL, .userData = &time_data },
-    { .name = "RainbowFade",    .init = &init_time,          .handler = &rainbowFadeWriter,   .uninit = NULL, .userData = &time_data },
-    { .name = "BusyRing",       .init = &init_spinningColor, .handler = &spinningColorWriter, .uninit = NULL, .userData = &spinning_color_data },
-    { .name = "BreathingGreen", .init = &init_breathing,     .handler = &breathing,           .uninit = NULL, .userData = &breathing_green_data },
-    { .name = "",               .init = &init_time,          .handler = &siren,               .uninit = NULL, .userData = &time_data },
-    { .name = "",               .init = &init_time,          .handler = &traffic_light,       .uninit = NULL, .userData = &time_data },
+    [RingLedScenario_Off] = {
+        .name     = "RingLedOff",
+        .init     = NULL,
+        .update   = ledRingOffWriter,
+        .uninit   = NULL,
+        .userData = NULL
+    },
+    [RingLedScenario_UserFrame] = {
+        .name     = "UserFrame",
+        .init     = NULL,
+        .update   = ledRingFrameWriter,
+        .uninit   = NULL,
+        .userData = NULL
+    },
+    [RingLedScenario_ColorWheel] = {
+        .name     = "ColorWheel",
+        .init     = init_time,
+        .update   = colorWheelWriter1,
+        .uninit   = NULL,
+        .userData = &time_data
+    },
+    [RingLedScenario_RainbowFade] = {
+        .name     = "RainbowFade",
+        .init     = init_time,
+        .update   = rainbowFadeWriter,
+        .uninit   = NULL,
+        .userData = &time_data
+    },
+    [RingLedScenario_BusyIndicator] = {
+        .name     = "BusyRing",
+        .init     = init_spinningColor,
+        .update   = spinningColorWriter,
+        .uninit   = NULL,
+        .userData = &spinning_color_data
+    },
+    [RingLedScenario_BreathingGreen] = {
+        .name     = "BreathingGreen",
+        .init     = init_breathing,
+        .update   = breathing,
+        .uninit   = NULL,
+        .userData = &breathing_green_data
+    },
+    [RingLedScenario_Siren] = {
+        .name     = "",
+        .init     = init_time,
+        .update   = siren,
+        .uninit   = NULL,
+        .userData = &time_data
+    },
+    [RingLedScenario_TrafficLight] = {
+        .name     = "",
+        .init     = init_time,
+        .update   = traffic_light,
+        .uninit   = NULL,
+        .userData = &time_data
+    },
 };
 
 static void init_time(void* data)

@@ -96,7 +96,7 @@ void RingLedDisplay_Run_Update(void)
             current_scenario_handler = &public_scenario_handlers[current_scenario];
 
             ASSERT(current_scenario_handler);
-            ASSERT(current_scenario_handler->handler);
+            ASSERT(current_scenario_handler->update);
 
             if (current_scenario_handler->init)
             {
@@ -105,7 +105,7 @@ void RingLedDisplay_Run_Update(void)
         }
     }
 
-    current_scenario_handler->handler(current_scenario_handler->userData);
+    current_scenario_handler->update(current_scenario_handler->userData);
     /* End User Code Section: Update:run Start */
     /* Begin User Code Section: Update:run End */
 
@@ -125,12 +125,14 @@ void RingLedDisplay_Run_OnMasterStarted(void)
 ssize_t RingLedDisplay_Run_ReadScenarioName(RingLedScenario_t scenario, ByteArray_t destination)
 {
     /* Begin User Code Section: ReadScenarioName:run Start */
-    if ((size_t) scenario >= ARRAY_SIZE(public_scenario_handlers))
+    if ((size_t) scenario < RingLedDisplay_Constant_ScenarioCount())
+    {
+        return copy_ring_led_scenario_name(public_scenario_handlers[scenario].name, destination);
+    }
+    else
     {
         return -2;
     }
-
-    return copy_ring_led_scenario_name(public_scenario_handlers[scenario].name, destination);
     /* End User Code Section: ReadScenarioName:run Start */
     /* Begin User Code Section: ReadScenarioName:run End */
 
