@@ -28,12 +28,8 @@ static BlockInfo_t errorStorageBlocks[] = {
 
 typedef struct {
     uint8_t layout_version;
+    uint8_t reserved[63];
 } FlashHeader_t;
-
-typedef union {
-    FlashHeader_t header;
-    uint8_t raw[64];
-} FlashHeaderObject_t;
 
 typedef uint8_t FlashObjectStatus_t;
 
@@ -81,8 +77,8 @@ typedef struct __attribute__((packed)) {
 
 _Static_assert(NVM_LAYOUT_VERSION != 0xFFu, "NVM version can't be same as empty byte");
 
-/* this 32 bytes size is set in stone */
-_Static_assert(sizeof(FlashHeaderObject_t) == HEADER_OBJECT_SIZE, "Incorrect flash header size");
+/* this 64 byte size is set in stone */
+_Static_assert(sizeof(FlashHeader_t) == HEADER_OBJECT_SIZE, "Incorrect flash header size");
 
 /* this is not set in stone, depends on layout version */
 _Static_assert(sizeof(FlashData_t) == DATA_OBJECT_SIZE, "Incorrect flash data object size");
@@ -96,7 +92,7 @@ static void _count_objects_in_block(BlockInfo_t* block);
 
 static const FlashHeader_t* _block_header(BlockInfo_t* block)
 {
-    return &((const FlashHeaderObject_t*) block->base_address)->header;
+    return (const FlashHeader_t*) block->base_address;
 }
 
 static bool _block_header_valid(const FlashHeader_t* header)
@@ -180,6 +176,7 @@ static void _store_object(BlockInfo_t* block, const void* data, size_t size)
             FlashHeader_t new_header = {
                 .layout_version = NVM_LAYOUT_VERSION
             };
+            memset(&new_header.reserved[0], 0xFFu, sizeof(new_header.reserved));
             _write_block_header(block, &new_header);
         }
     }
