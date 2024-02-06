@@ -58,6 +58,21 @@ bool _is_object_allocated(const FlashObjectStatus_t status)
     return NVM_IS_BIT_SET(status.allocated);
 }
 
+void _mark_object_allocated(FlashObjectStatus_t* status)
+{
+    status->allocated = 0u;
+}
+
+void _mark_object_deleted(FlashObjectStatus_t* status)
+{
+    status->deleted = 0u;
+}
+
+void _mark_object_valid(FlashObjectStatus_t* status)
+{
+    status->valid = 0u;
+}
+
 typedef struct __attribute__((packed)) {
     FlashObjectStatus_t status;
     uint8_t data[63];
@@ -178,12 +193,12 @@ static void _store_object(BlockInfo_t* block, const void* data, size_t size)
     memset(&object, 0xFFu, sizeof(object));
 
     /* allocate flash and write data */
-    object.status.allocated = 0u;
+    _mark_object_allocated(&object.status);
     memcpy(&object.data[0], data, size);
     _write_flash(addr, (uint8_t*) &object, sizeof(object));
 
     /* finalize flash */
-    object.status.valid = 0u;
+    _mark_object_valid(&object.status);
     _write_flash(addr, (uint8_t*) &object, 1u);
 
     block->allocated += 1u;
@@ -251,7 +266,6 @@ static void _init_block(BlockInfo_t* block)
     {
         block->allocated = 0u;
         block->deleted = 0u;
-        return;
     }
     else if (!_block_header_valid(header))
     {
