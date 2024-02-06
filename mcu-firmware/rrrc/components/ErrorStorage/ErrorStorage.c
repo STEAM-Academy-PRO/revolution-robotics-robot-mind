@@ -42,6 +42,22 @@ typedef struct {
     uint8_t allocated:1;
 } FlashObjectStatus_t;
 
+#define NVM_IS_BIT_SET(bit)  ((bit) == 0u)
+bool _is_object_valid(const FlashObjectStatus_t status)
+{
+    return NVM_IS_BIT_SET(status.valid);
+}
+
+bool _is_object_deleted(const FlashObjectStatus_t status)
+{
+    return NVM_IS_BIT_SET(status.deleted);
+}
+
+bool _is_object_allocated(const FlashObjectStatus_t status)
+{
+    return NVM_IS_BIT_SET(status.allocated);
+}
+
 typedef struct __attribute__((packed)) {
     FlashObjectStatus_t status;
     uint8_t data[63];
@@ -59,8 +75,6 @@ _Static_assert(sizeof(ErrorInfo_t) <= DATA_OBJECT_SIZE - 1, "Incorrect error obj
 static struct flash_descriptor FLASH_0;
 static uint32_t esActiveBlock;
 static bool esInitialized = false;
-
-#define NVM_IS_BIT_SET(bit)  ((bit) == 0u)
 
 static void _count_objects_in_block(BlockInfo_t* block);
 
@@ -115,7 +129,7 @@ static void _delete_object(BlockInfo_t* block, uint8_t idx)
     const FlashData_t* ptr = _get_object(block, idx);
     FlashObjectStatus_t status = ptr->status;
 
-    if (!NVM_IS_BIT_SET(status.deleted) && (NVM_IS_BIT_SET(status.allocated) || NVM_IS_BIT_SET(status.valid)))
+    if (!_is_object_deleted(status) && (_is_object_allocated(status) || _is_object_valid(status)))
     {
         /* set the deleted bit on a copy */
         status.deleted = 0u;
@@ -208,10 +222,10 @@ static void _count_objects_in_block(BlockInfo_t* block)
         FlashObjectStatus_t obj_status = _read_data_obj_status(block, obj_idx);
 
         /* track available (actually, allocated) space in each block */
-        if (NVM_IS_BIT_SET(obj_status.valid))
+        if (_is_object_valid(obj_status))
         {
             block->allocated++;
-            if (NVM_IS_BIT_SET(obj_status.deleted))
+            if (_is_object_deleted(obj_status))
             {
                 block->deleted++;
             }
@@ -219,7 +233,7 @@ static void _count_objects_in_block(BlockInfo_t* block)
         else
         {
             /* object is not supposed to have any 0 bits */
-            if (NVM_IS_BIT_SET(obj_status.deleted) || NVM_IS_BIT_SET(obj_status.allocated))
+            if (_is_object_deleted(obj_status) || _is_object_allocated(obj_status))
             {
                 /* this is an invalid block, treat it as deleted */
                 block->allocated++;
