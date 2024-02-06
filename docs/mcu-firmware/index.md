@@ -13,3 +13,4 @@ This repository contains the application code running on the ATSAMD51P19A microc
 - [Software architecture](architecture.md)
 - [Development guide](development.md)
 - [Working with error logs](error-logs.md)
+- [Clock tree configuration](clock-tree.md)
