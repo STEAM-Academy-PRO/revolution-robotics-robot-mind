@@ -55,6 +55,12 @@ static bool _is_object_allocated(const FlashObjectStatus_t status)
     return NVM_IS_BIT_SET(status, ALLOCATED_BIT);
 }
 
+static bool _is_object_reserved_bits_set(const FlashObjectStatus_t status)
+{
+    uint8_t mask = !(ALLOCATED_BIT | VALID_BIT | DELETED_BIT);
+    return (status & mask) != mask;
+}
+
 static void _mark_object_allocated(FlashObjectStatus_t* status)
 {
     *status = NVM_SET_BIT(*status, ALLOCATED_BIT);
@@ -118,14 +124,6 @@ static FlashData_t _read_data_obj(const BlockInfo_t* block, uint8_t idx)
 
     const FlashData_t* ptr = _get_object(block, idx);
     return *ptr;
-}
-
-static FlashObjectStatus_t _read_data_obj_status(const BlockInfo_t* block, uint8_t idx)
-{
-    ASSERT (idx < OBJECTS_PER_BLOCK);
-
-    const FlashData_t* ptr = _get_object(block, idx);
-    return ptr->status;
 }
 
 static void _write_flash(uint32_t address, uint8_t* src, size_t size)
@@ -232,23 +230,43 @@ static void _count_objects_in_block(BlockInfo_t* block)
     /* walk through objects in valid used blocks */
     for (size_t obj_idx = 0u; obj_idx < OBJECTS_PER_BLOCK; obj_idx++)
     {
-        FlashObjectStatus_t obj_status = _read_data_obj_status(block, obj_idx);
+        FlashData_t flashdata = _read_data_obj(block, obj_idx);
 
         /* track available (actually, allocated) space in each block */
-        if (_is_object_valid(obj_status))
+        if (_is_object_valid(flashdata.status))
         {
             block->allocated++;
-            if (_is_object_deleted(obj_status))
+            if (_is_object_deleted(flashdata.status))
             {
                 block->deleted++;
             }
         }
         else
         {
-            /* object is not supposed to have any 0 bits */
-            if (_is_object_deleted(obj_status) || _is_object_allocated(obj_status))
+            /*
+               Object header is not supposed to have any 0 bits if it's not valid.
+               We can have an interrupted write (which can set the allocated bit),
+               or an otherwise dirty/invalid object.
+            */
+            bool is_dirty = _is_object_deleted(flashdata.status)
+                || _is_object_allocated(flashdata.status)
+                || _is_object_reserved_bits_set(flashdata.status);
+
+            if (!is_dirty) {
+                /* Header is fine, make sure the contents are empty, too! */
+                for (size_t i = 0u; i < sizeof(flashdata.data); i++)
+                {
+                    if (flashdata.data[i] != 0xFFu)
+                    {
+                        is_dirty = true;
+                        break;
+                    }
+                }
+            }
+
+            if (is_dirty)
             {
-                /* this is an invalid block, treat it as deleted */
+                /* this is an invalid object, treat it as deleted */
                 block->allocated++;
                 block->deleted++;
             }
