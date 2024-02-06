@@ -4,7 +4,7 @@
 
 /* Begin User Code Section: Declarations */
 #include "rrrc_indication.h"
-#include "utils/functions.h"
+#include "libraries/functions.h"
 #include <math.h>
 
 #define MAIN_BATTERY_INDICATOR_LED  0
