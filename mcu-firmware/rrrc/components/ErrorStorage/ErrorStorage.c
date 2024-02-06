@@ -35,42 +35,43 @@ typedef union {
     uint8_t raw[64];
 } FlashHeaderObject_t;
 
-typedef struct {
-    uint8_t reserved:5;
-    uint8_t deleted:1;
-    uint8_t valid:1;
-    uint8_t allocated:1;
-} FlashObjectStatus_t;
+typedef uint8_t FlashObjectStatus_t;
 
-#define NVM_IS_BIT_SET(bit)  ((bit) == 0u)
-bool _is_object_valid(const FlashObjectStatus_t status)
+#define NVM_SET_BIT(storage, bit)  ((storage) & !(bit))
+#define NVM_IS_BIT_SET(storage, bit)  (((storage) & (bit)) == 0u)
+
+#define ALLOCATED_BIT ((uint8_t) 0x80u)
+#define VALID_BIT ((uint8_t) 0x40u)
+#define DELETED_BIT ((uint8_t) 0x20u)
+
+static bool _is_object_valid(const FlashObjectStatus_t status)
 {
-    return NVM_IS_BIT_SET(status.valid);
+    return NVM_IS_BIT_SET(status, VALID_BIT);
 }
 
-bool _is_object_deleted(const FlashObjectStatus_t status)
+static bool _is_object_deleted(const FlashObjectStatus_t status)
 {
-    return NVM_IS_BIT_SET(status.deleted);
+    return NVM_IS_BIT_SET(status, DELETED_BIT);
 }
 
-bool _is_object_allocated(const FlashObjectStatus_t status)
+static bool _is_object_allocated(const FlashObjectStatus_t status)
 {
-    return NVM_IS_BIT_SET(status.allocated);
+    return NVM_IS_BIT_SET(status, ALLOCATED_BIT);
 }
 
-void _mark_object_allocated(FlashObjectStatus_t* status)
+static void _mark_object_allocated(FlashObjectStatus_t* status)
 {
-    status->allocated = 0u;
+    *status = NVM_SET_BIT(*status, ALLOCATED_BIT);
 }
 
-void _mark_object_deleted(FlashObjectStatus_t* status)
+static void _mark_object_deleted(FlashObjectStatus_t* status)
 {
-    status->deleted = 0u;
+    *status = NVM_SET_BIT(*status, DELETED_BIT);
 }
 
-void _mark_object_valid(FlashObjectStatus_t* status)
+static void _mark_object_valid(FlashObjectStatus_t* status)
 {
-    status->valid = 0u;
+    *status = NVM_SET_BIT(*status, VALID_BIT);
 }
 
 typedef struct __attribute__((packed)) {
@@ -147,7 +148,7 @@ static void _delete_object(BlockInfo_t* block, uint8_t idx)
     if (!_is_object_deleted(status) && (_is_object_allocated(status) || _is_object_valid(status)))
     {
         /* set the deleted bit on a copy */
-        status.deleted = 0u;
+        _mark_object_deleted(&status);
 
         /* write the first byte back */
         _write_flash((uint32_t) ptr, (uint8_t*) &status, 1u);
