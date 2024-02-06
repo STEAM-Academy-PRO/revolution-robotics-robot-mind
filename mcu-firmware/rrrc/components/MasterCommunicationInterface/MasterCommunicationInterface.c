@@ -99,13 +99,6 @@ void i2c_hal_tx_complete(void)
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
-void i2c_hal_error_occurred(void)
-{
-    ErrorInfo_t info = {0};
-    info.error_id = ERROR_ID_MASTER_I2C_ERROR;
-    MasterCommunicationInterface_Call_LogError(&info);
-}
-
 void sercom2_rx_done_cb(uint8_t data)
 {
     i2c_hal_on_rx_done(data);

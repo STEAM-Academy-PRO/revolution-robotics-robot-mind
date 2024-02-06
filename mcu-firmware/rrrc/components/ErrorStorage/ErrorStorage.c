@@ -120,7 +120,7 @@ static void _delete_object(BlockInfo_t* block, uint8_t idx)
         /* set the deleted bit on a copy */
         status.deleted = 0u;
 
-        /* write the first 4 bytes back */
+        /* write the first byte back */
         _write_flash((uint32_t) ptr, (uint8_t*) &status, 1u);
     }
 }
@@ -132,6 +132,7 @@ static void _write_block_header(BlockInfo_t* block, FlashHeader_t* header)
 
 static void _store_object(BlockInfo_t* block, const void* data, size_t size)
 {
+    /* The caller shall select a non-full block as the storage destination. */
     ASSERT (block->allocated != OBJECTS_PER_BLOCK);
 
     /* it is possible handling the above assert changes the number of errors in the current block */
@@ -329,6 +330,7 @@ void ErrorStorage_Run_Store(const ErrorInfo_t* data)
             _force_select_active_block();
         }
 
+        /* We copy the data to add the version info. */
         ErrorInfo_t copy = *data;
 
         copy.hardware_version = ErrorStorage_Read_HardwareVersion();
@@ -337,6 +339,10 @@ void ErrorStorage_Run_Store(const ErrorInfo_t* data)
         _store_object(&errorStorageBlocks[esActiveBlock], &copy, sizeof(ErrorInfo_t));
         _update_number_of_stored_errors();
         __set_PRIMASK(primask);
+    }
+    else
+    {
+        /* TODO: store error on init */
     }
     /* End User Code Section: Store:run Start */
     /* Begin User Code Section: Store:run End */
@@ -363,13 +369,8 @@ bool ErrorStorage_Run_Read(uint32_t index, ErrorInfo_t* data)
         }
         else
         {
-            /* assume linear deletion */
+            /* Assume linear deletion, and assume correct entry. Reader will sort out the errors */
             FlashData_t flashdata = _read_data_obj(block, block->deleted + distance);
-
-            /* this MUST be our block */
-            ASSERT(NVM_IS_BIT_SET(flashdata.status.valid));
-            ASSERT(!NVM_IS_BIT_SET(flashdata.status.deleted));
-
             memcpy(data, &flashdata.data[0], sizeof(ErrorInfo_t));
             return true;
         }
