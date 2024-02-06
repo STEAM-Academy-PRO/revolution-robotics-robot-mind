@@ -18,10 +18,7 @@ def pack_2_bit_number_array_32(numbers: [int]) -> bytearray:
             raise ValueError("Each number must be a 2-bit number (0, 1, 2, or 3)")
         packed_value |= (num << (2 * i))
 
-    print(numbers)
-
-    # return struct.pack("<Q", packed_value)
-    return struct.pack(">Q", packed_value)
+    return struct.pack("<Q", packed_value)
 
 
 
