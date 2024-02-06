@@ -74,7 +74,7 @@ Debugging
 ---------
 
 VS Code comes with a launch configuration that can flash and connect to a debug firmware
-automatically. To start this, open the `mcu-firmware` folder in a new window and press F5.
+automatically. Follow the [Setup instructions](../setup.md) to set up your preferred debugger, then press F5.
 
 Troubleshooting
 ---------------
