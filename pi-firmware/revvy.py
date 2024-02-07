@@ -51,9 +51,9 @@ if __name__ == "__main__":
     # Receives commands from the control interface, acts on the robot_manager.
     bluetooth_controller = RevvyBLE(robot_manager)
 
-    # if args.debug:
-    from revvy.api.websocket import RobotWebSocketApi
-    RobotWebSocketApi(robot_manager)
+    if args.debug:
+        from revvy.api.websocket import RobotWebSocketApi
+        RobotWebSocketApi(robot_manager)
 
     # noinspection PyBroadException
     try:
