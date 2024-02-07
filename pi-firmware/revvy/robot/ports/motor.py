@@ -23,11 +23,12 @@ class MotorConstants:
     ACTION_RELEASE = 1
 
 
-def create_motor_port_handlers(interface: RevvyControl):
-    port_amount = interface.get_motor_port_amount()
-    port_types = interface.get_motor_port_types()
+class MotorPortHandler(PortHandler):
+    def __init__(self, interface: RevvyControl):
+        port_amount = interface.get_motor_port_amount()
+        port_types = interface.get_motor_port_types()
 
-    return PortHandler("Motor", interface, NullMotor, port_amount, port_types, interface.set_motor_port_type)
+        super().__init__("Motor", interface, NullMotor, port_amount, port_types, interface.set_motor_port_type)
 
 
 class NullMotor(PortDriver):
