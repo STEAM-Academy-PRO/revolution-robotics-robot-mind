@@ -85,8 +85,8 @@ class PortHandler:
         self._log = get_logger(["PortHandler", name])
         self._types = supported
         self._port_count = amount
-        self._ports = {
-            i: PortInstance(
+        self._ports = [
+            PortInstance(
                 i,
                 f'{name}Port',
                 interface,
@@ -95,17 +95,24 @@ class PortHandler:
                 set_port_type
             )
             for i in range(1, amount + 1) 
-        }
+        ]
 
         # self._log(f'Created handler for {amount} ports')
         # self._log('Supported types:\n  {}'.format(", ".join(self.available_types)))
 
-    def __getitem__(self, port_idx) -> 'PortInstance':
-        """ Returns the port with the given index """
-        return self._ports[port_idx]
+    def __getitem__(self, port_idx: int) -> 'PortInstance':
+        """
+        Returns the port with the given index. We index ports from 1 so they correspond
+        to port numbers on the Robot's enclosure.
+        """
+
+        if port_idx < 1 or port_idx > self._port_count:
+            raise IndexError(f'Port index out of range: {port_idx}')
+
+        return self._ports[port_idx - 1]
 
     def __iter__(self):
-        return self._ports.values().__iter__()
+        return self._ports.__iter__()
 
     @property
     def available_types(self):

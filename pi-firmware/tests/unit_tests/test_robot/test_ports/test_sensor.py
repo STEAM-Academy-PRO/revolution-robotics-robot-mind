@@ -28,12 +28,12 @@ class TestSensorPortHandler(unittest.TestCase):
 
         ports = SensorPortHandler(mock_control)
 
-        self.assertRaises(KeyError, lambda: ports[0])
+        self.assertRaises(IndexError, lambda: ports[0])
         self.assertIs(PortInstance, type(ports[1]))
         self.assertIs(PortInstance, type(ports[2]))
         self.assertIs(PortInstance, type(ports[3]))
         self.assertIs(PortInstance, type(ports[4]))
-        self.assertRaises(KeyError, lambda: ports[5])
+        self.assertRaises(IndexError, lambda: ports[5])
 
     def test_configure_raises_error_if_driver_is_not_supported_in_mcu(self):
         mock_control = Mock()
