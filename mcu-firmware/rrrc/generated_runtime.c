@@ -1977,7 +1977,7 @@ void SensorPortHandler_Call_UpdatePortStatus(uint8_t port, ByteArray_t data)
     /* End User Code Section: SensorPortHandler/UpdatePortStatus:run End */
 }
 
-uint8_t CommWrapper_LedDisplay_Call_ReadScenarioName(RingLedScenario_t scenario, ByteArray_t destination)
+ssize_t CommWrapper_LedDisplay_Call_ReadScenarioName(RingLedScenario_t scenario, ByteArray_t destination)
 {
     /* Begin User Code Section: CommWrapper_LedDisplay/ReadScenarioName:run Start */
 
@@ -2535,6 +2535,17 @@ uint32_t CommWrapper_ErrorStorage_Read_NumberOfStoredErrors(void)
     /* Begin User Code Section: CommWrapper_ErrorStorage/NumberOfStoredErrors:read End */
 
     /* End User Code Section: CommWrapper_ErrorStorage/NumberOfStoredErrors:read End */
+}
+
+size_t CommWrapper_LedDisplay_Read_ScenarioCount(void)
+{
+    /* Begin User Code Section: CommWrapper_LedDisplay/ScenarioCount:read Start */
+
+    /* End User Code Section: CommWrapper_LedDisplay/ScenarioCount:read Start */
+    return RingLedDisplay_Constant_ScenarioCount();
+    /* Begin User Code Section: CommWrapper_LedDisplay/ScenarioCount:read End */
+
+    /* End User Code Section: CommWrapper_LedDisplay/ScenarioCount:read End */
 }
 
 uint8_t CommWrapper_MotorPorts_Read_PortCount(void)

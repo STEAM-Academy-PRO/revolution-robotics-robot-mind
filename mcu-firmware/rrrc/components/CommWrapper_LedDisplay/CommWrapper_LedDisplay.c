@@ -25,18 +25,28 @@ Comm_Status_t CommWrapper_LedDisplay_Run_Command_GetScenarioTypes_Start(ConstByt
     }
 
     uint32_t len = 0u;
-    for (uint32_t i = 0u; i < 6u; i++)
+    for (uint32_t i = 0u; i < CommWrapper_LedDisplay_Read_ScenarioCount(); i++)
     {
         ASSERT (len < response.count);
 
+        // 2 bytes offset to store index and name_length
         ByteArray_t destination = {
             .bytes = &response.bytes[len + 2u],
             .count = response.count - len - 2u
         };
-        size_t name_length = CommWrapper_LedDisplay_Call_ReadScenarioName(i, destination);
-        if (name_length == 0u)
+
+        ssize_t name_length = CommWrapper_LedDisplay_Call_ReadScenarioName(i, destination);
+        if (name_length == 0)
         {
-            /* buffer full */
+            /* scenario has no name, skip it */
+            continue;
+        }
+        else if (name_length < 0)
+        {
+            // Handles:
+            // if (name_length == -1): buffer full
+            // if (name_length == -2): scenario not found
+            // if (name_length < -2): any other error
             *responseCount = 0u;
             return Comm_Status_Error_InternalError;
         }
@@ -64,7 +74,7 @@ Comm_Status_t CommWrapper_LedDisplay_Run_Command_SetScenarioType_Start(ConstByte
     }
 
     uint8_t idx = commandPayload.bytes[0];
-    if (idx >= 8u)
+    if (idx >= CommWrapper_LedDisplay_Read_ScenarioCount())
     {
         response.bytes[0] = idx;
         *responseCount = 1u;
@@ -133,7 +143,7 @@ Comm_Status_t CommWrapper_LedDisplay_Run_Command_SetUserFrame_Start(ConstByteArr
 }
 
 __attribute__((weak))
-uint8_t CommWrapper_LedDisplay_Call_ReadScenarioName(RingLedScenario_t scenario, ByteArray_t destination)
+ssize_t CommWrapper_LedDisplay_Call_ReadScenarioName(RingLedScenario_t scenario, ByteArray_t destination)
 {
     (void) destination;
     (void) scenario;
@@ -143,7 +153,7 @@ uint8_t CommWrapper_LedDisplay_Call_ReadScenarioName(RingLedScenario_t scenario,
     /* Begin User Code Section: ReadScenarioName:run End */
 
     /* End User Code Section: ReadScenarioName:run End */
-    return 0u;
+    return 0;
 }
 
 __attribute__((weak))
@@ -169,4 +179,16 @@ void CommWrapper_LedDisplay_Write_UserFrame(uint32_t index, rgb_t value)
     /* Begin User Code Section: UserFrame:write End */
 
     /* End User Code Section: UserFrame:write End */
+}
+
+__attribute__((weak))
+size_t CommWrapper_LedDisplay_Read_ScenarioCount(void)
+{
+    /* Begin User Code Section: ScenarioCount:read Start */
+
+    /* End User Code Section: ScenarioCount:read Start */
+    /* Begin User Code Section: ScenarioCount:read End */
+
+    /* End User Code Section: ScenarioCount:read End */
+    return 0;
 }

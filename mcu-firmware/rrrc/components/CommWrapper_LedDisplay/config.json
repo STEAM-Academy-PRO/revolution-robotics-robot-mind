@@ -25,11 +25,16 @@
         },
         "ReadScenarioName": {
             "port_type": "ServerCall",
-            "return_type": "uint8_t",
+            "return_type": "ssize_t",
             "arguments": {
                 "scenario": "RingLedScenario_t",
                 "destination": "ByteArray_t"
             }
+        },
+        "ScenarioCount": {
+            "port_type": "ReadValue",
+            "data_type": "size_t",
+            "default_value": 0
         },
         "UserFrame": {
             "port_type": "WriteIndexedData",

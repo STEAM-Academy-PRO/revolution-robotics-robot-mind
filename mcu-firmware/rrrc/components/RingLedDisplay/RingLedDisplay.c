@@ -12,17 +12,17 @@ static const indication_handler_t* current_scenario_handler;
 static uint32_t time_since_startup;
 static bool master_ready;
 
-static uint8_t copy_ring_led_scenario_name(const char* name, ByteArray_t destination)
+static ssize_t copy_ring_led_scenario_name(const char* name, ByteArray_t destination)
 {
     size_t length = strlen(name);
 
     if (length > destination.count)
     {
-        return 0u;
+        return -1;
     }
 
     memcpy(destination.bytes, name, length);
-    return length;
+    return (ssize_t)length;
 }
 
 /* End User Code Section: Declarations */
@@ -87,16 +87,16 @@ void RingLedDisplay_Run_Update(void)
 
         if (current_scenario != requested_scenario)
         {
-            if (current_scenario_handler->DeInit)
+            if (current_scenario_handler->uninit)
             {
-                current_scenario_handler->DeInit(current_scenario_handler->userData);
+                current_scenario_handler->uninit(current_scenario_handler->userData);
             }
 
             current_scenario = requested_scenario;
             current_scenario_handler = &public_scenario_handlers[current_scenario];
 
             ASSERT(current_scenario_handler);
-            ASSERT(current_scenario_handler->handler);
+            ASSERT(current_scenario_handler->update);
 
             if (current_scenario_handler->init)
             {
@@ -105,7 +105,7 @@ void RingLedDisplay_Run_Update(void)
         }
     }
 
-    current_scenario_handler->handler(current_scenario_handler->userData);
+    current_scenario_handler->update(current_scenario_handler->userData);
     /* End User Code Section: Update:run Start */
     /* Begin User Code Section: Update:run End */
 
@@ -122,23 +122,32 @@ void RingLedDisplay_Run_OnMasterStarted(void)
     /* End User Code Section: OnMasterStarted:run End */
 }
 
-uint8_t RingLedDisplay_Run_ReadScenarioName(RingLedScenario_t scenario, ByteArray_t destination)
+ssize_t RingLedDisplay_Run_ReadScenarioName(RingLedScenario_t scenario, ByteArray_t destination)
 {
     /* Begin User Code Section: ReadScenarioName:run Start */
-    switch (scenario)
+    if ((size_t) scenario < RingLedDisplay_Constant_ScenarioCount())
     {
-        case RingLedScenario_Off: return copy_ring_led_scenario_name("RingLedOff", destination);
-        case RingLedScenario_UserFrame: return copy_ring_led_scenario_name("UserFrame", destination);
-        case RingLedScenario_ColorWheel: return copy_ring_led_scenario_name("ColorWheel", destination);
-        case RingLedScenario_RainbowFade: return copy_ring_led_scenario_name("RainbowFade", destination);
-        case RingLedScenario_BusyIndicator: return copy_ring_led_scenario_name("BusyRing", destination);
-        case RingLedScenario_BreathingGreen: return copy_ring_led_scenario_name("BreathingGreen", destination);
-        default: return 0u;
+        return copy_ring_led_scenario_name(public_scenario_handlers[scenario].name, destination);
+    }
+    else
+    {
+        return -2;
     }
     /* End User Code Section: ReadScenarioName:run Start */
     /* Begin User Code Section: ReadScenarioName:run End */
 
     /* End User Code Section: ReadScenarioName:run End */
+}
+
+size_t RingLedDisplay_Constant_ScenarioCount(void)
+{
+    /* Begin User Code Section: ScenarioCount:constant Start */
+
+    /* End User Code Section: ScenarioCount:constant Start */
+    /* Begin User Code Section: ScenarioCount:constant End */
+
+    /* End User Code Section: ScenarioCount:constant End */
+    return ARRAY_SIZE(public_scenario_handlers);
 }
 
 __attribute__((weak))

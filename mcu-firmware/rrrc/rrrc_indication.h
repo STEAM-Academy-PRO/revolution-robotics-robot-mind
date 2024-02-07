@@ -12,8 +12,10 @@
 #include <stdint.h>
 #include "utils/color.h"
 
-#define STATUS_LEDS_AMOUNT 4
-#define RING_LEDS_AMOUNT 12
+#define STATUS_LEDS_AMOUNT ((uint8_t) 4u)
+#define RING_LEDS_AMOUNT   ((uint8_t) 12u)
+
+#define LEDS_AMOUNT        (STATUS_LEDS_AMOUNT + RING_LEDS_AMOUNT)
 
 // /* some RGB color definitions                                                 */
 // #define Black           0x0000      /*   0,   0,   0 */
