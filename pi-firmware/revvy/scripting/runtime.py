@@ -48,6 +48,7 @@ class ScriptHandle(Emitter[ScriptEvent]):
         raise Exception('Script not running')
 
     def __init__(self, owner: 'ScriptManager', descriptor, name, global_variables: dict):
+        super().__init__()
         self._owner = owner
         self._globals = global_variables.copy()
         self._inputs = {}

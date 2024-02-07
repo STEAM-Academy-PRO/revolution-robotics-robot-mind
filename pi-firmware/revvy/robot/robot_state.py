@@ -33,6 +33,7 @@ class RobotState(Emitter[RobotEvent]):
     """ Sustain a consistent event driven state of the robot """
 
     def __init__(self, robot: 'Robot', remote_controller: RemoteController):
+        super().__init__()
         self._robot = robot
         self._remote_controller = remote_controller
         self._status_update_thread:ThreadWrapper = None
