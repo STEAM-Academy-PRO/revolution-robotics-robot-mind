@@ -25,7 +25,6 @@ class BaseSensorPortDriver(PortDriver):
     def __init__(self, driver, port: PortInstance):
         super().__init__(port, driver)
         self._port = port
-        self._interface = port.interface
         self._value = None
         self._raw_value = None
 
