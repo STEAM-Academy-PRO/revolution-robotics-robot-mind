@@ -27,10 +27,7 @@ def create_motor_port_handlers(interface: RevvyControl):
     port_amount = interface.get_motor_port_amount()
     port_types = interface.get_motor_port_types()
 
-    handler = PortHandler("Motor", interface, NullMotor, port_amount, port_types)
-    handler._set_port_type = interface.set_motor_port_type
-
-    return handler
+    return PortHandler("Motor", interface, NullMotor, port_amount, port_types, interface.set_motor_port_type)
 
 
 class NullMotor(PortDriver):

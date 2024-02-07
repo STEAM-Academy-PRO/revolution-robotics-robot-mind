@@ -4,6 +4,7 @@ import struct
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.sensors.base import BaseSensorPortDriver
 
+# TODO: turn these into classes
 
 # noinspection PyUnusedLocal
 def bumper_switch(port: PortInstance, cfg):
@@ -46,34 +47,3 @@ def softeq_cs(port: PortInstance, cfg):
 
     sensor.convert_sensor_value = process_softeq_cs
     return sensor
-
-
-class ColorRGB:
-    def __init__(self, color_red, color_green, color_blue):
-        self._name = 'softeq_cs'
-        self._color_red = color_red
-        self._color_green = color_green
-        self._color_blue = color_blue
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def color_red(self):
-        return self._color_red
-
-    @property
-    def color_green(self):
-        return self._color_green
-
-    @property
-    def color_blue(self):
-        return self._color_blue
-
-    @property
-    def rgb(self):
-        return struct.pack('<hhh', self._color_red, self._color_green, self._color_blue)
-
-    def __str__(self) -> bytes:
-        return self.rgb

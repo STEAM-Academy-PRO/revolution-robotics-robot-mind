@@ -21,6 +21,8 @@ class SimpleEventEmitter:
 
 
 class PortDriver:
+    """ A base class for motor and sensor drivers. """
+
     def __init__(self, port: 'PortInstance', driver):
         self._driver = driver
         self._port = port
@@ -68,24 +70,20 @@ class PortCollection:
 
 
 class PortHandler:
-    def __init__(self, name, interface: RevvyControl, default_driver, amount: int, supported: dict):
+    """ This class represents a port type (motor or sensor) and includes all ports of the same type. """
+    def __init__(self, name, interface: RevvyControl, default_driver, amount: int, supported: dict, set_port_type):
         self._log = get_logger(["PortHandler", name])
         self._types = supported
         self._port_count = amount
         self._default_driver = default_driver
-        self._ports = {
-            i: PortInstance(
-                i,
-                f'{name}Port',
-                interface,
-                self.configure_port)
-                    for i in range(1, amount + 1)
-        }
+        self._set_port_type = set_port_type # a robot command that configures the port to a specific driver. TODO: move into PortInstance
+        self._ports = {i: PortInstance(i, f'{name}Port', interface, self.configure_port) for i in range(1, amount + 1)}
 
         # self._log(f'Created handler for {amount} ports')
         # self._log('Supported types:\n  {}'.format(", ".join(self.available_types)))
 
-    def __getitem__(self, port_idx):
+    def __getitem__(self, port_idx) -> 'PortInstance':
+        """ Returns the port with the given index """
         return self._ports[port_idx]
 
     def __iter__(self):
@@ -93,7 +91,7 @@ class PortHandler:
 
     @property
     def available_types(self):
-        """List of names of the supported drivers"""
+        """ Lists the names of the supported drivers """
         return self._types.keys()
 
     @property
@@ -104,8 +102,7 @@ class PortHandler:
         for port in self:
             port.uninitialize()
 
-    def _set_port_type(self, port, port_type): raise NotImplementedError
-
+    # TODO: move into PortInstance
     def configure_port(self, port, config) -> PortDriver:
         if config is None:
             # self._log(f'set port {port.id} to not configured')
@@ -121,6 +118,12 @@ class PortHandler:
 
 
 class PortInstance:
+    """
+    A single motor or sensor port.
+    
+    This class is responsible for handling port configuration and driver initialization.
+    """
+    # TODO: remove the attribute delegation to the driver. Instead, expose the driver as a property.
     props = ['log', '_port_idx', '_configurator', '_interface', '_driver', '_config_changed_callbacks']
 
     def __init__(self, port_idx, name, interface: RevvyControl, configurator):
@@ -166,9 +169,11 @@ class PortInstance:
         # self.log('Set to not configured')
         self._configure(None)
 
+    # TODO: remove
     def __getattr__(self, name):
         return getattr(self._driver, name)
 
+    # TODO: remove
     def __setattr__(self, key, value):
         if key in self.props:
             self.__dict__[key] = value
