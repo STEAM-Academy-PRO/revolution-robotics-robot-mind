@@ -2,19 +2,19 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "preLaunchTask": "prepare debug binary",
+      "name": "probe-rs launch",
+      "preLaunchTask": "make debug",
       "type": "probe-rs-debug",
       "flashingConfig": {
         "haltAfterReset": true,
-        "flashingEnabled": true,
+        "flashingEnabled": true
       },
       "request": "launch",
-      "name": "probe_rs run",
       "chip": "atsamd51p19a",
       "coreConfigs": [
         {
           "svdFile": "${workspaceRoot}/../mcu-common/Atmel/ATSAMD51P19A.svd",
-          "programBinary": "${workspaceRoot}/Build/Debug/mcu-firmware/rrrc_samd51.elf",
+          "programBinary": "${workspaceRoot}/Build/Debug/mcu-bootloader/rrrc_samd51.elf",
           "rttEnabled": true,
           "rttChannelFormats": [
             {
@@ -28,15 +28,14 @@
       ]
     },
     {
+      "name": "probe-rs attach",
       "type": "probe-rs-debug",
       "request": "attach",
-      "name": "probe_rs attach",
-      "server": "127.0.0.1:1234",
       "chip": "atsamd51p19a",
       "coreConfigs": [
         {
           "svdFile": "${workspaceRoot}/../mcu-common/Atmel/ATSAMD51P19A.svd",
-          "programBinary": "${workspaceRoot}/Build/Debug/mcu-firmware/rrrc_samd51.elf",
+          "programBinary": "${workspaceRoot}/Build/Debug/mcu-bootloader/rrrc_samd51.elf",
           "rttEnabled": true,
           "rttChannelFormats": [
             {
@@ -48,6 +47,18 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Cortex Debug (JLink)",
+      "preLaunchTask": "make debug",
+      "cwd": "${workspaceFolder}",
+      "executable": "${workspaceFolder}/Build/Debug/mcu-bootloader/rrrc_samd51.elf",
+      "serverpath": "<path to your>/JLinkGDBServerCL.exe",
+      "servertype": "jlink",
+      "request": "launch",
+      "type": "cortex-debug",
+      "runToEntryPoint": "main",
+      "device": "ATSAMD51P19"
     }
   ]
 }
