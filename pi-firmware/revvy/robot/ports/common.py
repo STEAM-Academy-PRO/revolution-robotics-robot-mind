@@ -72,12 +72,30 @@ class PortCollection:
 class PortHandler:
     """ This class represents a port type (motor or sensor) and includes all ports of the same type. """
     def __init__(self, name, interface: RevvyControl, default_driver, amount: int, supported: dict, set_port_type):
+        """
+        Creates a new port handler for the given amount of ports.
+
+        :param name: The name of the port type (e.g. "Motor" or "Sensor")
+        :param interface: The RevvyControl instance to use for communication
+        :param default_driver: The default driver to use for unconfigured ports
+        :param amount: The amount of ports of this type
+        :param supported: A dictionary of supported drivers
+        :param set_port_type: A function that sets the port type on the MCU
+        """
         self._log = get_logger(["PortHandler", name])
         self._types = supported
         self._port_count = amount
-        self._default_driver = default_driver
-        self._set_port_type = set_port_type # a robot command that configures the port to a specific driver. TODO: move into PortInstance
-        self._ports = {i: PortInstance(i, f'{name}Port', interface, self.configure_port) for i in range(1, amount + 1)}
+        self._ports = {
+            i: PortInstance(
+                i,
+                f'{name}Port',
+                interface,
+                default_driver,
+                supported,
+                set_port_type
+            )
+            for i in range(1, amount + 1) 
+        }
 
         # self._log(f'Created handler for {amount} ports')
         # self._log('Supported types:\n  {}'.format(", ".join(self.available_types)))
@@ -102,20 +120,6 @@ class PortHandler:
         for port in self:
             port.uninitialize()
 
-    # TODO: move into PortInstance
-    def configure_port(self, port, config) -> PortDriver:
-        if config is None:
-            # self._log(f'set port {port.id} to not configured')
-            driver = self._default_driver(port)
-
-        else:
-            driver = config['driver'](port, config['config'])
-
-        self._set_port_type(port.id, self._types[driver.driver])
-        driver.on_port_type_set()
-
-        return driver
-
 
 class PortInstance:
     """
@@ -123,19 +127,32 @@ class PortInstance:
     
     This class is responsible for handling port configuration and driver initialization.
     """
-    # TODO: remove the attribute delegation to the driver. Instead, expose the driver as a property.
-    props = ['log', '_port_idx', '_configurator', '_interface', '_driver', '_config_changed_callbacks']
 
-    def __init__(self, port_idx, name, interface: RevvyControl, configurator):
+    # TODO: remove the attribute delegation to the driver. Instead, expose the driver as a property.
+    props = ['log', '_port_idx', '_interface', '_driver', '_config_changed_callbacks', '_supported', '_default_driver', '_set_port_type']
+
+    def __init__(self, port_idx, name, interface: RevvyControl, default_driver, supported, set_port_type):
         self.log = get_logger(f'{name} {port_idx}')
         self._port_idx = port_idx
-        self._configurator = configurator
         self._interface = interface
         self._driver = None
-
-        # Make the port config change subscribable => When the port's type changes,
-        # these callbacks will be called.
         self._config_changed_callbacks = SimpleEventEmitter()
+        self._supported = supported
+        self._default_driver = default_driver
+        self._set_port_type = set_port_type
+
+    def _configure_port(self, config) -> PortDriver:
+        if config is None:
+            # self._log(f'set port {port.id} to not configured')
+            driver = self._default_driver(self)
+
+        else:
+            driver = config['driver'](self, config['config'])
+
+        self._set_port_type(self.id, self._supported[driver.driver])
+        driver.on_port_type_set()
+
+        return driver
 
     @property
     def id(self):
@@ -150,28 +167,26 @@ class PortInstance:
         """ Subscribe to port configuration changes """
         return self._config_changed_callbacks
 
-    def _configure(self, config):
-        # temporarily disable reading port
+    def configure(self, config) -> PortDriver:
+        # Temporarily disable reading port by emitting an event that announced the port is not configured
         self._config_changed_callbacks(self, None)
+
         if self._driver:
             self._driver.uninitialize()
-        self._driver = self._configurator(self, config)
+
+        self._driver = self._configure_port(config)
+
         self._config_changed_callbacks(self, config)
-        # print('   conf', config)
 
         return self._driver
 
-    def configure(self, config) -> PortDriver:
-        # self.log('Configure')
-        return self._configure(config)
-
     def uninitialize(self):
         # self.log('Set to not configured')
-        self._configure(None)
+        self.configure(None)
 
     # TODO: remove
-    def __getattr__(self, name):
-        return getattr(self._driver, name)
+    def __getattr__(self, key):
+        return getattr(self._driver, key)
 
     # TODO: remove
     def __setattr__(self, key, value):
