@@ -364,29 +364,44 @@ class RobotManager:
 
         for script in config.background_scripts:
             bg_script_handle = self._bg_controlled_scripts.add_script(script, config)
-            bg_script_handle.on(ScriptEvent.START, self._on_script_running)
-            bg_script_handle.on(ScriptEvent.STOP, self._on_script_stopped)
-            bg_script_handle.on(ScriptEvent.ERROR, self._on_script_error)
+
+            # For background scripts, now we do not send up program running states, as
+            # they are not actually buttons to be bound to. We need to re-think the configuration
+            # object as right now we do not have a good way to ID the running programs, other than
+            # having their button bound ID. This is a poor design choice, as it interferes with
+            # background programs. Until then, we do not track the state of background programs
+            # in here.
+            # IF I dug it out right, currently we actually have ONE state for
+            # ALL the background processes communicated in another BLE characteristic.
+            # I did not touch that for now, but this yells for some legwork in design.
+            bg_script_handle.on(ScriptEvent.START,
+                        lambda ref, data: self._on_script_running(ref, None, send_status=False))
+            bg_script_handle.on(ScriptEvent.STOP,
+                        lambda ref, data:  self._on_script_stopped(ref, None, send_status=False))
+            bg_script_handle.on(ScriptEvent.ERROR,
+                        lambda ref, error: self._on_script_error(ref, error, send_status=False))
 
         self.remote_controller.reset_background_control_state()
         if config.background_initial_state == 'running':
             self._bg_controlled_scripts.start_all_scripts()
 
 
-    def _on_script_running(self, script_handle: ScriptHandle, data=None):
+    def _on_script_running(self, script_handle: ScriptHandle, data=None, send_status=True):
         """ When script started, notify phone app. """
-        self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.START)
+        if send_status:
+            self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.START)
 
-    def _on_script_error(self, script_handle: ScriptHandle, ex):
+    def _on_script_error(self, script_handle: ScriptHandle, exception, send_status=True):
         """
             Handle runner script errors gracefully, and type out what caused it to bail!
             These are user scripts, so we should consider sending them back via Bluetooth
         """
         self._log(f'ERROR in userscript: {script_handle.descriptor.name}', LogLevel.ERROR)
-        self._log(f'ERROR:  {str(ex)}', LogLevel.ERROR)
+        self._log(f'ERROR:  {str(exception)}', LogLevel.ERROR)
         self._log(f'Source that caused the error: \n\n{script_handle.descriptor.source}\n\n', LogLevel.ERROR)
         self._log(f'{traceback.format_exc()}', LogLevel.ERROR)
-        self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.ERROR)
+        if send_status:
+            self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.ERROR)
 
         # On code execution error, do send visible signals to the user about the code being broken.
         self._robot.led.start_animation(RingLed.Bug)
@@ -394,10 +409,11 @@ class RobotManager:
         time.sleep(1)
         self._robot.led.start_animation(RingLed.Off)
 
-    def _on_script_stopped(self, script_handle: ScriptHandle, data=None):
+    def _on_script_stopped(self, script_handle: ScriptHandle, data=None, send_status=True):
         """ If we want to send back script status stopped change, this is the place. """
         # self._log(f'script: {script.name}')
-        self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.STOP)
+        if send_status:
+            self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.STOP)
 
     def _robot_configure(self, config):
 
