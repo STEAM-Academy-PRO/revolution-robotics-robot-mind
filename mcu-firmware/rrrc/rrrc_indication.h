@@ -10,7 +10,7 @@
 #define RRRC_INDICATION_H_
 
 #include <stdint.h>
-#include "utils/color.h"
+#include "libraries/color.h"
 
 #define STATUS_LEDS_AMOUNT ((uint8_t) 4u)
 #define RING_LEDS_AMOUNT   ((uint8_t) 12u)

@@ -103,12 +103,6 @@ float map(float in, float min_in, float max_in, float min_out, float max_out)
     return (in - min_in) * (out_fs / in_fs) + min_out;
 }
 
-uint32_t SwapEndian(uint32_t dig)
-{
-    uint8_t *c = (uint8_t *) &dig;
-    return * (uint32_t *) (uint8_t[]) {c[3], c[2], c[1], c[0] };
-}
-
 int32_t sgn_int32(int32_t value)
 {
     if (value < 0)
