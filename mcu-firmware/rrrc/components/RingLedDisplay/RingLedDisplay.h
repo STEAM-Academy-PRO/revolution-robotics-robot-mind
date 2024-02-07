@@ -18,7 +18,8 @@ typedef enum {
     RingLedScenario_BusyIndicator,
     RingLedScenario_BreathingGreen,
     RingLedScenario_Siren,
-    RingLedScenario_TrafficLight
+    RingLedScenario_TrafficLight,
+    RingLedScenario_BugIndicator
 } RingLedScenario_t;
 
 typedef enum {
