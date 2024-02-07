@@ -5,7 +5,7 @@ MCU firmware
 
 The MCU firmware is the code that controls the low level brain functions.
 
-The MCU is a Microchip ATSAMD51P19A.
+The MCU is a [Microchip ATSAMD51P19A](../assets/SAM-D5x-E5x-Family-Data-Sheet-DS60001507.pdf).
 
 This repository contains the application code running on the ATSAMD51P19A microcontroller on the Revolution Robotics Challenge Kit's control board.
 
