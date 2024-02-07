@@ -1,4 +1,3 @@
-
 from revvy.robot.ports.common import PortDriver, PortInstance
 
 
@@ -60,5 +59,5 @@ class BaseSensorPortDriver(PortDriver):
     def raw_value(self):
         return self._raw_value
 
-    # Surprise.
+    # TODO: abstractmethod
     def convert_sensor_value(self, raw): raise NotImplementedError

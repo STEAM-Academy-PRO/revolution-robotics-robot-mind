@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from contextlib import suppress
 
 from revvy.mcu.rrrc_control import RevvyControl
@@ -20,7 +21,7 @@ class SimpleEventEmitter:
             func(*args, **kwargs)
 
 
-class PortDriver:
+class PortDriver(ABC):
     """ A base class for motor and sensor drivers. """
 
     def __init__(self, port: 'PortInstance', driver):
@@ -40,11 +41,18 @@ class PortDriver:
     def on_status_changed(self):
         return self._on_status_changed
 
-    def on_port_type_set(self):
-        raise NotImplementedError
-
     def uninitialize(self):
         self._on_status_changed.clear()
+
+    @abstractmethod
+    def on_port_type_set(self):
+        """ Performs driver-specific initialization as part of the port configuration. """
+        pass
+
+    @abstractmethod
+    def update_status(self, data):
+        """ Processes port-specific data coming from the MCU. """
+        pass
 
 
 class PortCollection:
@@ -139,6 +147,15 @@ class PortInstance:
     props = ['log', '_port_idx', '_interface', '_driver', '_config_changed_callbacks', '_supported', '_default_driver', '_set_port_type']
 
     def __init__(self, port_idx, name, interface: RevvyControl, default_driver, supported, set_port_type):
+        """
+        
+        :param port_idx: The index of the port (1-based)
+        :param name: The name of the port type (e.g. "Motor" or "Sensor")
+        :param interface: The RevvyControl instance to use for communication
+        :param default_driver: The default driver to use for unconfigured ports
+        :param supported: A dictionary of supported drivers
+        :param set_port_type: A function that sets the port type on the MCU
+        """
         self.log = get_logger(f'{name} {port_idx}')
         self._port_idx = port_idx
         self._interface = interface
@@ -156,6 +173,8 @@ class PortInstance:
         else:
             driver = config['driver'](self, config['config'])
 
+        # TODO: it smells that we set the port type after the driver is created. It means we can't
+        # use the constructor to perform the initialization.
         self._set_port_type(self.id, self._supported[driver.driver])
         driver.on_port_type_set()
 
@@ -173,6 +192,10 @@ class PortInstance:
     def on_config_changed(self):
         """ Subscribe to port configuration changes """
         return self._config_changed_callbacks
+
+    @property
+    def driver(self) -> PortDriver:
+        return self._driver
 
     def configure(self, config) -> PortDriver:
         # Temporarily disable reading port by emitting an event that announced the port is not configured

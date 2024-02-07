@@ -16,6 +16,9 @@ class TestDriver(PortDriver):
     def on_port_type_set(self):
         pass
 
+    def update_status(self):
+        pass
+
 
 class TestMotorPortHandler(unittest.TestCase):
     def test_constructor_reads_port_amount_and_types(self):

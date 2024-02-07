@@ -9,6 +9,7 @@ from revvy.mcu.rrrc_control import RevvyTransportBase
 from revvy.robot.drivetrain import DifferentialDrivetrain
 from revvy.robot.imu import IMU
 from revvy.robot.led_ring import RingLed
+from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motor import MotorPortHandler
 from revvy.robot.ports.sensor import SensorPortHandler
 from revvy.robot.sound import Sound
@@ -76,12 +77,12 @@ class Robot(RobotInterface):
 
         self._imu = IMU()
 
-        def _set_updater(slot_name, port, config_name):
+        def _set_updater(slot_name, port: PortInstance, config_name):
             """ Controls reading a port's status information from the MCU. """
             if config_name is None:
                 self._status_updater.disable_slot(slot_name)
             else:
-                self._status_updater.enable_slot(slot_name, port._driver.update_status)
+                self._status_updater.enable_slot(slot_name, port.driver.update_status)
 
         self._motor_ports = MotorPortHandler(self._robot_control)
         for port in self._motor_ports:
