@@ -363,7 +363,10 @@ class RobotManager:
         self._autonomous = config.background_initial_state
 
         for script in config.background_scripts:
-            self._bg_controlled_scripts.add_script(script, config)
+            bg_script_handle = self._bg_controlled_scripts.add_script(script, config)
+            bg_script_handle.on(ScriptEvent.START, self._on_script_running)
+            bg_script_handle.on(ScriptEvent.STOP, self._on_script_stopped)
+            bg_script_handle.on(ScriptEvent.ERROR, self._on_script_error)
 
         self.remote_controller.reset_background_control_state()
         if config.background_initial_state == 'running':
