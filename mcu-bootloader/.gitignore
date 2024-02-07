@@ -5,3 +5,4 @@ Build/*
 /venv/
 Config/fw_version.h
 .vscode/settings.json
+.vscode/launch.json
