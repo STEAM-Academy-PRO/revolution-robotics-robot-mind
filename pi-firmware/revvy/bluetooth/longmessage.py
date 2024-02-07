@@ -461,7 +461,7 @@ class LongMessageImplementation:
 
         if message_type == LongMessageType.TEST_KIT:
             test_script_source = message.data.decode()
-            self._log(f'Running test script: {test_script_source}')
+            self._log(f'Running test script: \n{test_script_source}')
 
             script_descriptor = ScriptDescriptor("test_kit", str_to_func(test_script_source), 0, source = test_script_source)
 
@@ -469,7 +469,7 @@ class LongMessageImplementation:
                 self._log("Starting new test script")
                 ### -------------------------------------------------------------------------!!!
                 ### TODO: Wrong params, how is this ever used?
-                handle = self._robot_manager._scripts.add_script(script_descriptor)
+                handle = self._robot_manager._scripts.add_script(script_descriptor, empty_robot_config)
                 on_script_stopped_fn = partial(self._robot_manager.robot_configure, None)
                 handle.on_stopped(on_script_stopped_fn)
 

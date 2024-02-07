@@ -2,6 +2,8 @@
 
 from typing import NamedTuple
 
+from revvy.scripting.runtime import ScriptEvent
+
 
 class RobotEvent:
     """
@@ -13,6 +15,7 @@ class RobotEvent:
     GYRO_CHANGE="gyro_change"
     MOTOR_CHANGE="motor_change"
     SCRIPT_VARIABLE_CHANGE="script_variable_change"
+    PROGRAM_STATUS_CHANGE="program_status_change"
     BACKGROUND_CONTROL_STATE_CHANGE="background_control_state_change"
     SENSOR_VALUE_CHANGE="sensor_value_change"
     TIMER_TICK="timer_tick"
@@ -24,6 +27,11 @@ class RobotEvent:
     STOPPED="stopped"
 
 
+
+class ProgramStatusChange(NamedTuple):
+    """ Which program ID, what's the status of the program? """
+    id: int
+    status: ScriptEvent
 
 class MotorChangeData(NamedTuple):
     """ We send back motor status changes, regularly """

@@ -51,7 +51,6 @@ class RobotState(Emitter[RobotEvent]):
 
         self._motor_angles = Observable([0]*6, throttle_interval=0.5)
 
-
     def start_polling_mcu(self):
         """ Starts a new thread that runs every 5ms to check on MCU status. """
         self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
@@ -108,9 +107,9 @@ class RobotState(Emitter[RobotEvent]):
 
             # TODO: Debounce this a bit better: this is used for the angle.
             self._orientation.set([
-                getattr(self._robot.imu.orientation, 'pitch'),
-                getattr(self._robot.imu.orientation, 'roll'),
-                getattr(self._robot.imu.orientation, 'yaw'),
+                floor0(getattr(self._robot.imu.orientation, 'pitch'), 1),
+                floor0(getattr(self._robot.imu.orientation, 'roll'), 1),
+                floor0(getattr(self._robot.imu.orientation, 'yaw'), 1),
             ])
 
             self._script_variables.set(self._robot.script_variables.get_variable_values())

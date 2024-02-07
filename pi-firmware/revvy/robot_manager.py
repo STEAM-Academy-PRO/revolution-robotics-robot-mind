@@ -16,7 +16,7 @@ from revvy.robot.robot import Robot
 from revvy.robot.remote_controller import RemoteController, RemoteControllerScheduler
 from revvy.robot.remote_controller import create_remote_controller_thread
 from revvy.robot.led_ring import RingLed
-from revvy.robot.robot_events import MotorChangeData, RobotEvent
+from revvy.robot.robot_events import ProgramStatusChange, RobotEvent
 from revvy.robot.robot_state import RobotState
 from revvy.robot.states.sensor_states import create_sensor_data_wrapper
 from revvy.robot.status import RobotStatus, RemoteControllerStatus
@@ -61,6 +61,8 @@ class RobotManager:
         self._remote_controller_scheduler = rcs
 
         self._connected_device_name = ''
+
+        self._sensor_reading_subscriptions = []
 
         self._remote_controller = rc
         self._remote_controller_thread = create_remote_controller_thread(rcs)
@@ -343,7 +345,14 @@ class RobotManager:
         for motor_id in config.drivetrain['right']:
             self._robot.drivetrain.add_right_motor(self._robot.motors[motor_id])
 
-        # set up sensors
+
+        # Clear sensor reading subscriptions.
+        for reading_subscription in self._sensor_reading_subscriptions:
+            reading_subscription.dispose()
+
+        self._sensor_reading_subscriptions.clear()
+
+        # Re-configure sensors, subscribe to their data's changes.
         for sensor_port in self._robot.sensors:
             self._log(f'Configuring sensor {sensor_port.id} {config.sensors[sensor_port.id]}')
             # Code smell: Instead of creating a new sensor object, we just
@@ -365,8 +374,13 @@ class RobotManager:
 
             sensor_port.configure(sensor_config)
 
-            create_sensor_data_wrapper(sensor_port, sensor_config, lambda event_data:
-                                         self.trigger(RobotEvent.SENSOR_VALUE_CHANGE, event_data))
+            # Empty sensors do not need a data wrapper subscription.
+            if sensor_config:
+                sensor_data_wrapper_subscription = create_sensor_data_wrapper(
+                    sensor_port, sensor_config,
+                    lambda event_data: self.trigger(RobotEvent.SENSOR_VALUE_CHANGE, event_data))
+
+                self._sensor_reading_subscriptions.append(sensor_data_wrapper_subscription)
 
             # Also, I'd love to see all the robot status changes WITHIN the robot in one place,
             # most probably in the robot object.
@@ -404,7 +418,7 @@ class RobotManager:
 
     def _on_script_running(self, script_handle: ScriptHandle, data=None):
         """ When script started, notify phone app. """
-        self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.START)
+        self.trigger(RobotEvent.PROGRAM_STATUS_CHANGE, ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.START))
 
     def _on_script_error(self, script_handle: ScriptHandle, ex):
         """
@@ -415,15 +429,13 @@ class RobotManager:
         self._log(f'ERROR:  {str(ex)}', LogLevel.ERROR)
         self._log(f'Source that caused the error: \n\n{script_handle.descriptor.source}\n\n', LogLevel.ERROR)
         self._log(f'{traceback.format_exc()}', LogLevel.ERROR)
-        self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.ERROR)
+
+        self.trigger(RobotEvent.PROGRAM_STATUS_CHANGE, ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.ERROR))
 
     def _on_script_stopped(self, script_handle: ScriptHandle, data=None):
         """ If we want to send back script status stopped change, this is the place. """
         # self._log(f'script: {script.name}')
-        self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.STOP)
-
-    # def _robot_configure(self, config):
-
+        self.trigger(RobotEvent.PROGRAM_STATUS_CHANGE, ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.STOP))
 
 
     def robot_stop(self, *args):

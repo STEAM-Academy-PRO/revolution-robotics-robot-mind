@@ -30,7 +30,7 @@ def create_sensor_data_wrapper(sensor_port, sensor, on_data_update):
         log(f'button {sensor_port.id}!')
         return ButtonSensorDataHandler(sensor_port, on_data_update)
 
-    log(f'what is this? {str(sensor)}')
+    log(f'Sensor is not among the known ones. {str(sensor)}')
 
 
 class UltrasonicSensorDataHandler:
@@ -72,11 +72,15 @@ class UltrasonicSensorDataHandler:
             self._value.set(value)
         # self._value.set(int(port.raw_value))
 
+    def dispose(self):
+        self._value.unsubscribe(self.notify)
+
 
 
 class ButtonSensorDataHandler:
     """ Button value handler """
     def __init__(self, sensor_port, on_data_update):
+        self._sensor_port_id = sensor_port.id
         sensor_port.on_status_changed.add(self.update)
         self._value = SmoothingObservable(value=0, window_size=3,
                 # Do not update more frequent than 200ms
@@ -86,12 +90,20 @@ class ButtonSensorDataHandler:
                     sum(last_values) / 2 > 0.5
                 )
         # Debug
-        self._value.subscribe(lambda v: log(f'btn {v}'))
+        # self._value.subscribe(lambda v: log(f'btn {v}'))
 
-        # This is tedious, but we need to convert it back to bits.
-        self._value.subscribe(lambda v: on_data_update(
-            SensorEventData(sensor_port.id, b'\x01' if v else b'\x00')))
+        self._value.subscribe(self.on_data_update)
+
+    def on_data_update(self, value):
+        """
+            We need to convert it back to bits
+            to send it back to the bluetooth interface.
+        """
+        SensorEventData(self._sensor_port_id, b'\x01' if value else b'\x00')
 
     def update(self, port: bytearray):
         """ dig out the first bit """
         self._value.set(port.raw_value[0])
+
+    def dispose(self):
+        self._value.unsubscribe(self.on_data_update)

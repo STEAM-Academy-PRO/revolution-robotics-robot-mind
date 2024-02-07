@@ -1,11 +1,14 @@
 """ Simple WebSocket Remote controller for robot """
 import asyncio
+from enum import Enum
 import json
 import struct
 import threading
+import websockets
+
 from revvy.robot.robot_events import RobotEvent
 from revvy.robot_manager import RobotManager
-import websockets
+
 
 from revvy.robot.rc_message_parser import parse_control_message
 from revvy.robot_config import RobotConfig
@@ -22,7 +25,9 @@ log = get_logger('WS')
 send_control_events = [RobotEvent.BATTERY_CHANGE,
                   RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE,
                   RobotEvent.ORIENTATION_CHANGE,
-                  RobotEvent.SCRIPT_VARIABLE_CHANGE
+                  RobotEvent.SCRIPT_VARIABLE_CHANGE,
+                  RobotEvent.PROGRAM_STATUS_CHANGE,
+                  RobotEvent.MOTOR_CHANGE
                   ]
 
 ignore_log_events = [
@@ -30,14 +35,36 @@ ignore_log_events = [
     RobotEvent.TIMER_TICK,
     RobotEvent.MCU_TICK,
     RobotEvent.GYRO_CHANGE,
-    RobotEvent.MOTOR_CHANGE
+    # RobotEvent.MOTOR_CHANGE,
+    RobotEvent.PROGRAM_STATUS_CHANGE
 ]
+
+
+
+# Function to check if an object is a named tuple
+def is_namedtuple(obj):
+    return isinstance(obj, tuple) and hasattr(obj, '_fields')
+
+class NamedTupleEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if is_namedtuple(obj):
+            return obj._asdict()  # Convert the named tuple to a dictionary
+        if isinstance(obj, Enum):
+            return obj.value
+        return super().default(obj)
+
+# Function to encode data dynamically
+def encode_data(data):
+    return json.dumps(data, cls=NamedTupleEncoder)
+
+
 
 class RobotWebSocketApi:
     def __init__(self, robot_manager: RobotManager):
         self._robot_manager = robot_manager
         self._connections = []
         self.thread()
+        self._event_loop = None
 
         robot_manager.on("all", self.all_event_capture)
 
@@ -47,22 +74,25 @@ class RobotWebSocketApi:
         if evt in send_control_events:
             self.send({
                 "event": evt,
-                "data": data
+                "data": (data)
             })
 
     def start(self):
+        """ Starts separate thread """
         asyncio.set_event_loop(asyncio.new_event_loop())
         log('Starting WebSocket server')
         server = websockets.serve(self.incoming_connection, "0.0.0.0", SERVER_PORT)
         log(f'Started WebSocket server on {SERVER_PORT}')
-        asyncio.get_event_loop().run_until_complete(server)
-        asyncio.get_event_loop().run_forever()
+        self._event_loop = asyncio.get_event_loop()
+        self._event_loop.run_until_complete(server)
+        self._event_loop.run_forever()
 
     def thread(self):
         websocket_thread = threading.Thread(target=self.start)
         websocket_thread.start()
 
     async def incoming_connection(self, websocket, path):
+        """ On new connection, a new this will be ran. """
         try:
             # Ditch former connections!
             # self._robot_manager.set_communication_interface_callbacks(self)
@@ -71,7 +101,12 @@ class RobotWebSocketApi:
             # Print a message when a new connection is established
             log(f"Client connected: '{path}' - {websocket.remote_address}")
 
-            await websocket.send(json.dumps(self._robot_manager._robot.battery))
+            # Initial state sends.
+            self.send({
+                "event": RobotEvent.BATTERY_CHANGE,
+                "data": self._robot_manager._robot.battery
+            })
+
 
             # Listen for incoming messages
             async for message_raw in websocket:
@@ -116,7 +151,7 @@ class RobotWebSocketApi:
     def send(self, message):
         for ws in self._connections:
             try:
-                ws.send(json.dumps(message))
+                asyncio.run_coroutine_threadsafe(ws.send(encode_data(message)), self._event_loop)
             except Exception as e:
                 log(f'send error {str(e)}')
                 log(f'{message}')
@@ -127,3 +162,4 @@ class RobotWebSocketApi:
             ws.close()
 
         self._connections = []
+

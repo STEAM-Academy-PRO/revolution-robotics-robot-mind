@@ -1,8 +1,8 @@
-
+""" Inertial Measurement Unit: gyro and accelerometer """
 import collections
 import struct
 
-from revvy.robot.ports.common import FunctionAggregator
+from revvy.robot.ports.common import SimpleEventEmitter
 
 Vector3D = collections.namedtuple('Vector3D', ['x', 'y', 'z'])
 Orientation3D = collections.namedtuple('Orientation3D', ['pitch', 'roll', 'yaw'])
@@ -16,7 +16,7 @@ class IMU:
         self._yaw_angle = 0
         self._relative_yaw_angle = 0
 
-        self._change_callbacks = FunctionAggregator()
+        self._change_callbacks = SimpleEventEmitter()
 
     @property
     def yaw_angle(self):
@@ -48,10 +48,12 @@ class IMU:
         # print('update_yaw_angles', data)
 
     def update_axl_data(self, data):
+        """ LIS3MDL sensor configuration constants """
         self._acceleration = self._read_vector(data, 0.061)
         # print('update_axl_data', data, self._acceleration)
 
     def update_gyro_data(self, data):
+        """ LIS3MDL sensor configuration constants """
         self._rotation = self._read_vector(data, 0.035*1.03)
         # print('update_gyro_data', data, self._rotation)
 

@@ -1,7 +1,7 @@
 
 from threading import Lock
 
-from revvy.robot.ports.common import FunctionAggregator
+from revvy.robot.ports.common import SimpleEventEmitter
 from revvy.utils.logger import get_logger, LogLevel
 
 
@@ -31,8 +31,8 @@ null_handle = NullHandle()
 class ResourceHandle:
     def __init__(self, resource: 'Resource'):
         self._resource = resource
-        self._on_interrupted = FunctionAggregator()
-        self._on_released = FunctionAggregator()
+        self._on_interrupted = SimpleEventEmitter()
+        self._on_released = SimpleEventEmitter()
         self._is_interrupted = False
 
     def __enter__(self):

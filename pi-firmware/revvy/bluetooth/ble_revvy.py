@@ -33,7 +33,7 @@ class RevvyBLE:
 
     def update_program_status(self, button_id, status: ScriptEvent):
         log(f'program status update: {button_id} {status}')
-        self._live.update_program_status(button_id, status.value)
+        self._live.update_program_status(button_id, status)
 
     def __init__(self, robot_manager: RobotManager):
         self._robot_manager = robot_manager
@@ -122,6 +122,9 @@ class RevvyBLE:
 
         self._robot_manager.on(RobotEvent.SCRIPT_VARIABLE_CHANGE, lambda ref,
                             variables: self._live.update_script_variables(variables))
+
+        self._robot_manager.on(RobotEvent.PROGRAM_STATUS_CHANGE, lambda ref, script_status_change:
+                               self.update_program_status(script_status_change.id, script_status_change.status.value))
 
         # Currently we are not doing anything in the app about
         # the motor angle changes, no way to display, no way to interact.

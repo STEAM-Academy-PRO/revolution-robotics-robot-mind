@@ -30,6 +30,9 @@ class Emitter(Generic[CustomEventType]):
         """ unsubscribe from event """
         self._events_handlers[event].remove(callback)
 
+    def clear(self):
+        self._events_handlers.clear()
+
     def trigger(self, event_type: CustomEventType, data=None):
         """ Triggers all the event handlers subscribed with on(event, callback) """
 

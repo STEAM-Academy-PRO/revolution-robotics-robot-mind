@@ -4,7 +4,7 @@ from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.logger import get_logger
 
 
-class FunctionAggregator:
+class SimpleEventEmitter:
     def __init__(self):
         self._callbacks = []
 
@@ -25,8 +25,9 @@ class PortDriver:
         self._driver = driver
         self._port = port
 
-        # TODO: How? Why? What is the function aggregator? What does this do?
-        self._on_status_changed = FunctionAggregator()
+        # Make the port STATUS subscribable.
+        # these callbacks will be called.
+        self._on_status_changed = SimpleEventEmitter()
         self.log = get_logger(f'{driver}', base=port.log)
 
     @property
@@ -72,7 +73,14 @@ class PortHandler:
         self._types = supported
         self._port_count = amount
         self._default_driver = default_driver
-        self._ports = {i: PortInstance(i, f'{name}Port', interface, self.configure_port) for i in range(1, amount + 1)}
+        self._ports = {
+            i: PortInstance(
+                i,
+                f'{name}Port',
+                interface,
+                self.configure_port)
+                    for i in range(1, amount + 1)
+        }
 
         # self._log(f'Created handler for {amount} ports')
         # self._log('Supported types:\n  {}'.format(", ".join(self.available_types)))
@@ -121,11 +129,10 @@ class PortInstance:
         self._configurator = configurator
         self._interface = interface
         self._driver = None
-        # WHY is this here? What does it do? What is a functionAggregator? Why is it needed?
-        # HOW do I see WHERE my port is configured?
-        # This is so overcomplicated, for no good reason.
-        # Why does it need a callback? Why can't it be sync?
-        self._config_changed_callbacks = FunctionAggregator()
+
+        # Make the port config change subscribable => When the port's type changes,
+        # these callbacks will be called.
+        self._config_changed_callbacks = SimpleEventEmitter()
 
     @property
     def id(self):
@@ -137,6 +144,7 @@ class PortInstance:
 
     @property
     def on_config_changed(self):
+        """ Subscribe to port configuration changes """
         return self._config_changed_callbacks
 
     def _configure(self, config):
