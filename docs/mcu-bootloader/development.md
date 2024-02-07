@@ -46,4 +46,4 @@ Debugging
 ---------
 
 VS Code comes with a launch configuration that can flash and connect to a debug bootloader
-automatically. To start this, open the `mcu-bootloader` folder in a new window and press F5.
+automatically. Follow the [Setup instructions](../setup.md) to set up your preferred debugger, then press F5.
