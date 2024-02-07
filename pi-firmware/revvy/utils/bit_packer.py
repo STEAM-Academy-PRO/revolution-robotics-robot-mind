@@ -5,9 +5,10 @@ import struct
 def pack_2_bit_number_array_32(numbers: [int]) -> bytearray:
     """
         returns 8 bytes, reversed bit order!
-        converts:  1 2 0 1 => REVERSE: 01 10 00 01 => b\x
+        converts:  1 2 0 1 => REVERSE: 01 10 00 01 => x81
         pads the last bytes with zeroes.
     """
+
     packed_value = 0
 
     if len(numbers) > 32:
