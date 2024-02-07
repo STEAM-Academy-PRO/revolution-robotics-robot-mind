@@ -224,7 +224,7 @@ class ProgramStatusCharacteristic(BrainToMobileFunctionCharacteristic):
 
         packed_byte_array = pack_2_bit_number_array(state_array)
 
-        log(f'Button state change: {packed_byte_array}')
+        # log(f'Button state change: {packed_byte_array}')
         # If there are multiple messages, here is where we want to throttle.
         self.update(packed_byte_array)
 

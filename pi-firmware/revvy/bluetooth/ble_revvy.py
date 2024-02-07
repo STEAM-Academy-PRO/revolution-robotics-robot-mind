@@ -32,7 +32,7 @@ class RevvyBLE:
     """
 
     def update_program_status(self, button_id, status: ScriptEvent):
-        log(f'program status update: {button_id} {status}')
+        #log(f'program status update: {button_id} {status}')
         self._live.update_program_status(button_id, status)
 
     def __init__(self, robot_manager: RobotManager):
