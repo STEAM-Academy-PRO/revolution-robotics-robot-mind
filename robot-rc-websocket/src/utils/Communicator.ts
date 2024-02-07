@@ -78,6 +78,7 @@ export function connectToRobot(
             case 'orientation_change': break
             case 'program_status_change': break
             case 'motor_change': break
+            case 'battery_change': break
             // case 'battery_change': break
             default:
                 console.warn(`[message] Data received from server: ${data.event}`, data.data);
