@@ -374,46 +374,44 @@ class RobotManager:
             # IF I dug it out right, currently we actually have ONE state for
             # ALL the background processes communicated in another BLE characteristic.
             # I did not touch that for now, but this yells for some legwork in design.
-            bg_script_handle.on(ScriptEvent.START,
-                        lambda ref, data: self._on_script_running(ref, None, send_status=False))
-            bg_script_handle.on(ScriptEvent.STOP,
-                        lambda ref, data:  self._on_script_stopped(ref, None, send_status=False))
-            bg_script_handle.on(ScriptEvent.ERROR,
-                        lambda ref, error: self._on_script_error(ref, error, send_status=False))
+            bg_script_handle.on(ScriptEvent.ERROR, self._show_script_error)
 
         self.remote_controller.reset_background_control_state()
         if config.background_initial_state == 'running':
             self._bg_controlled_scripts.start_all_scripts()
 
 
-    def _on_script_running(self, script_handle: ScriptHandle, data=None, send_status=True):
+    def _on_script_running(self, script_handle: ScriptHandle, data=None):
         """ When script started, notify phone app. """
-        if send_status:
-            self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.START)
+        self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.START)
 
-    def _on_script_error(self, script_handle: ScriptHandle, exception, send_status=True):
+    def _show_script_error(self, script_handle: ScriptHandle, exception: Exception):
         """
-            Handle runner script errors gracefully, and type out what caused it to bail!
-            These are user scripts, so we should consider sending them back via Bluetooth
+            On code execution error, do send visible signals
+            to the user about the code being broken.
         """
         self._log(f'ERROR in userscript: {script_handle.descriptor.name}', LogLevel.ERROR)
         self._log(f'ERROR:  {str(exception)}', LogLevel.ERROR)
         self._log(f'Source that caused the error: \n\n{script_handle.descriptor.source}\n\n', LogLevel.ERROR)
         self._log(f'{traceback.format_exc()}', LogLevel.ERROR)
-        if send_status:
-            self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.ERROR)
 
-        # On code execution error, do send visible signals to the user about the code being broken.
         self._robot.led.start_animation(RingLed.Bug)
         self._robot.sound.play_tune('uh_oh')
-        time.sleep(1)
+        time.sleep(2)
         self._robot.led.start_animation(RingLed.Off)
 
-    def _on_script_stopped(self, script_handle: ScriptHandle, data=None, send_status=True):
+    def _on_script_error(self, script_handle: ScriptHandle, exception):
+        """
+            Handle runner script errors gracefully, and type out what caused it to bail!
+            These are user scripts, so we should consider sending them back via Bluetooth
+        """
+        self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.ERROR)
+        self._show_script_error(script_handle, exception)
+
+    def _on_script_stopped(self, script_handle: ScriptHandle, data=None):
         """ If we want to send back script status stopped change, this is the place. """
         # self._log(f'script: {script.name}')
-        if send_status:
-            self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.STOP)
+        self._robot_interface.update_program_status(script_handle.descriptor.ref_id, ScriptEvent.STOP)
 
     def _robot_configure(self, config):
 
