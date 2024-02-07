@@ -1,7 +1,7 @@
 #include "DcMotor.h"
 
-#include "utils/converter.h"
-#include "utils/functions.h"
+#include "libraries/converter.h"
+#include "libraries/functions.h"
 #include "libraries/controller/pid.h"
 #include "libraries/interpolation/linear_interpolate.h"
 #include "utils.h"

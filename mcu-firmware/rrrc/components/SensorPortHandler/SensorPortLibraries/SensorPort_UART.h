@@ -1,7 +1,7 @@
 #ifndef SENSOR_PORT_UART_H_
 #define SENSOR_PORT_UART_H_
 
-#include "hal/sercom/sercom_uart.h"
+#include "libraries/sercom/sercom_uart.h"
 
 typedef enum {
     SensorPort_UART_Success,
