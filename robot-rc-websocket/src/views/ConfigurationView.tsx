@@ -4,7 +4,7 @@ import styles from './Config.module.css'
 
 import { RobotMessage, SocketWrapper } from '../utils/Communicator';
 import { uploadConfig } from '../utils/commands';
-import { BlocklyItem, DriveMode, RobotConfig } from '../utils/Config';
+import { BlocklyItem, DriveMode, RobotConfig, Sensor } from '../utils/Config';
 
 function ConfigurationView({
   config, setConfig,
@@ -17,6 +17,15 @@ function ConfigurationView({
   const [configString, setConfigString] = createSignal<string>('');
   const [editedIndex, setEditedIndex] = createSignal<number | null>(null);
   const [driveMode, setDriveMode] = createSignal<DriveMode>(DriveMode.drive_joystick)
+  const [sensors, setSensors] = createSignal<Array<Sensor | null>>([null, null, null, null])
+  const [motors, setMotors] = createSignal<Array<Sensor | null>>()
+  const [portsView, setPortsView] = createSignal<boolean>()
+
+  const goToPortsView = () => {
+    setPortsView(true)
+    setEditedIndex(null);
+    setEdited(null);
+  }
 
   createEffect(() => {
     try {
@@ -41,50 +50,10 @@ function ConfigurationView({
     setConfig(newConfig)
   }
 
-  const saveCode = () => {
-    const newConfig = Object.assign({}, config()) as RobotConfig
-    const editedCodeBlock = edited()
-    if (editedCodeBlock) {
-      editedCodeBlock.pythoncode = btoa(editedCode())
-    }
-    setConfig(newConfig)
-  }
 
-  const saveRawEnabled = createMemo(()=>{try{JSON.parse(configString()); return true} catch (e){}})
-
-  const saveRawConfig = () =>{
-    
-  }
 
   const updateConfigString = (e: Event) => setConfigString((e.target as HTMLTextAreaElement).value || '')
 
-  createEffect(() => setEditedCode(atob(edited()?.pythoncode || '')))
-
-  // const handleSendHTTP = async () => {
-
-  //   const parsedConfig = JSON.parse(config())
-  //   try {
-
-  //   // apparently, with no-cors you can not simply post a JSON...
-  //   // @see https://stackoverflow.com/questions/39689386/fetch-post-json-data-application-json-change-to-text-plain
-
-  //     const requestOptions = {
-  //       method: 'POST',
-  //       headers: {
-  //           'Accept': 'application/json',
-  //           'Content-Type': 'application/json'
-  //         },
-  //       body: JSON.stringify(parsedConfig)
-  //     };
-
-  //     const result = await fetch('http://' + endpoint() + ':8080/configure', requestOptions);
-  //     const data = await result.json();
-
-  //     setResponse(data);
-  //   } catch (error) {
-  //     console.error('Error sending request:', error);
-  //   }
-  // };
 
   return (
     <div >
@@ -98,28 +67,13 @@ function ConfigurationView({
               }</For>
             </select>
 
-            <h4>Button Bindings</h4>
-            <For each={config().blocklyList.filter((c) => !c.builtinScriptName)}>{(script, i) =>
-              <div class={styles.clickable} classList={{ [styles.active]: editedIndex() === i() }} onClick={() => {
-                setEdited(script)
-                setEditedIndex(i)
-                setConfigString('')
-              }}>{String(i())}</div>
-            }</For>
-
-            <p>
-              <Show when={edited() !== null}>
-                <button onClick={() => saveCode()}>SAVE CODE</button>
-              </Show>
-            </p>
-
             <p>
               <Show when={!configString()}>
-                <button onClick={() => {setConfigString(JSON.stringify(config(), null, 2)); setEdited(null)}}>RAW config</button>
+                <button onClick={() => { setConfigString(JSON.stringify(config(), null, 2)); setEdited(null) }}>RAW config</button>
               </Show>
-              <Show when={configString()}>
+              {/* <Show when={configString()}>
                 <button disabled={!saveRawEnabled()} onClick={() => saveRawConfig()}>SAVE RAW</button>
-              </Show>
+              </Show> */}
             </p>
 
             <p>
@@ -130,17 +84,40 @@ function ConfigurationView({
 
         </div>
         <div class={styles.editor}></div>
-        <Show when={edited() !== null}>
-          {/* <h3>Edit Python Code for button {editedIndex()}</h3> */}
-          <textarea value={editedCode()} onchange={(e) => setEditedCode(e.target.value)}></textarea>
-        </Show>
-
-        <Show when={configString()}>
-          <textarea value={configString()}
-            onChange={updateConfigString}
-            onKeyUp={updateConfigString}
-            ></textarea>
-        </Show>
+        <div>
+          <h3>Sensors</h3>
+          <table class={styles.configurationTable}>
+            <thead>
+              <tr>
+                <td>Index</td>
+                <td>Type</td>
+              </tr>
+            </thead>
+            <tbody>
+              {sensors().map((s, i) => (<tr>
+                <td>{i}</td>
+                <td>{!s ? (<>NULL</>) : (<>X</>)}</td>
+              </tr>))}
+            </tbody>
+          </table>
+        </div>
+        <div>
+        <h3>Motors</h3>
+          <table class={styles.configurationTable}>
+            <thead>
+              <tr>
+                <td>Index</td>
+                <td>Type</td>
+              </tr>
+            </thead>
+            <tbody>
+              {sensors().map((s, i) => (<tr>
+                <td>{i}</td>
+                <td>{!s ? (<>NULL</>) : (<>X</>)}</td>
+              </tr>))}
+            </tbody>
+          </table>
+        </div>
 
       </div>
 

@@ -27,7 +27,8 @@ send_control_events = [RobotEvent.BATTERY_CHANGE,
                   RobotEvent.ORIENTATION_CHANGE,
                   RobotEvent.SCRIPT_VARIABLE_CHANGE,
                   RobotEvent.PROGRAM_STATUS_CHANGE,
-                  RobotEvent.MOTOR_CHANGE
+                  RobotEvent.MOTOR_CHANGE,
+                  RobotEvent.SENSOR_VALUE_CHANGE
                   ]
 
 ignore_log_events = [

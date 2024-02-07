@@ -10,6 +10,7 @@ import { SocketWrapper, connectToRobot, disconnect } from './utils/Communicator'
 import DEFAULT_JSON from "./assets/robot-config.json"
 import { uploadConfig } from './utils/commands';
 import { RobotConfig } from './utils/Config';
+import CodeView from './views/CodeView';
 
 // Load default config as fallback.
 let defaultConfig: RobotConfig = DEFAULT_JSON as RobotConfig
@@ -50,6 +51,11 @@ function App() {
       id: 'configure',
       label: 'Configure',
       children: <ConfigurationView config={config} setConfig={setConfig} conn={conn} />
+    },
+    {
+      id: 'code',
+      label: 'Code',
+      children: <CodeView config={config} setConfig={setConfig} conn={conn} />
     },
     {
       id: 'play',

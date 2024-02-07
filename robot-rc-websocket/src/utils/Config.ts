@@ -2,7 +2,7 @@
 export enum DriveMode {
     drive_joystick = 'drive_joystick',
     drive_2sticks = 'drive_2sticks'
-  }
+}
 
 export interface BlocklyItem {
     assignments: {
@@ -10,14 +10,14 @@ export interface BlocklyItem {
             channels: number[]
             priority: number
         },
-        buttons?: {id: number, priority: number}[]
+        buttons?: { id: number, priority: number }[]
         variableSlots?: string[]
     },
     builtinScriptName?: DriveMode
     pythoncode?: string
 }
 
-interface SensorConfig {}
+interface SensorConfig { }
 
 interface MotorConfig {
     reversed: number // 0 1
@@ -33,4 +33,22 @@ export interface RobotConfig {
         motors: MotorConfig[]
     }
 
+}
+
+const Sensors = [{
+    "name": "distance_sensor",
+    "type": 1
+},
+{
+    "name": "button",
+    "type": 2
+},
+{
+    "name": "color_sensor",
+    "type": 4
+}]
+
+export interface Sensor {
+    name: string
+    type: number
 }

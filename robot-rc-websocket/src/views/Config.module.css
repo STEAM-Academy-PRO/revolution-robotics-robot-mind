@@ -14,3 +14,7 @@ pre{ text-align: left; overflow-x: auto }
 
 .clickable{ cursor: pointer; }
 .clickable:hover{ background-color: #ccc; }
+
+.configurationTable{
+    height: 200px;
+}
