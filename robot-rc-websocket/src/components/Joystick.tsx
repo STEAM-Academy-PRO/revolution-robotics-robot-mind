@@ -1,6 +1,7 @@
 import { Position } from "../utils/Position";
 import { createEffect, onCleanup, onMount } from "solid-js"
 import { clamp } from "../utils/mapping";
+import styles from "./Joystick.module.css"
 
 export function Joystick({ position }: { position: Position }) {
 
@@ -38,7 +39,7 @@ export function Joystick({ position }: { position: Position }) {
 
         // Limit the joystick position to stay within the circle
         const magnitude = Math.sqrt(normalizedX ** 2 + normalizedY ** 2);
-        const limitedMagnitude = Math.min(magnitude, 1);
+        const limitedMagnitude = Math.min(magnitude, 0.78);
         const limitedX = normalizedX / magnitude * limitedMagnitude;
         const limitedY = normalizedY / magnitude * limitedMagnitude;
 
@@ -91,14 +92,7 @@ export function Joystick({ position }: { position: Position }) {
     return <canvas
         width="200"
         height="200"
-        style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            cursor: 'grabbing',
-            border: 'solid 1px grey'
-        }}
+        class={styles.joystickCanvas}
         ref={canvas!}
     ></canvas>
 

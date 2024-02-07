@@ -1,0 +1,7 @@
+
+.joystickCanvas{
+    position: relative;
+    cursor: grabbing;
+    width: 200px;
+    height: 200px;
+}
