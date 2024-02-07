@@ -24,18 +24,15 @@ class SimpleEventEmitter:
 class PortDriver(ABC):
     """ A base class for motor and sensor drivers. """
 
-    def __init__(self, port: 'PortInstance', driver):
-        self._driver = driver
+    def __init__(self, port: 'PortInstance', driver_name: str):
+        self._driver_name = driver_name
         self._port = port
-
-        # Make the port STATUS subscribable.
-        # these callbacks will be called.
         self._on_status_changed = SimpleEventEmitter()
-        self.log = get_logger(f'{driver}', base=port.log)
+        self.log = get_logger(driver_name, base=port.log)
 
     @property
-    def driver(self):
-        return self._driver
+    def driver_name(self):
+        return self._driver_name
 
     @property
     def on_status_changed(self):
@@ -165,21 +162,6 @@ class PortInstance:
         self._default_driver = default_driver
         self._set_port_type = set_port_type
 
-    def _configure_port(self, config) -> PortDriver:
-        if config is None:
-            # self._log(f'set port {port.id} to not configured')
-            driver = self._default_driver(self)
-
-        else:
-            driver = config['driver'](self, config['config'])
-
-        # TODO: it smells that we set the port type after the driver is created. It means we can't
-        # use the constructor to perform the initialization.
-        self._set_port_type(self.id, self._supported[driver.driver])
-        driver.on_port_type_set()
-
-        return driver
-
     @property
     def id(self):
         return self._port_idx
@@ -204,8 +186,18 @@ class PortInstance:
         if self._driver:
             self._driver.uninitialize()
 
-        self._driver = self._configure_port(config)
+        if config is None:
+            # self._log(f'set port {port.id} to not configured')
+            driver = self._default_driver(self)
+        else:
+            driver = config['driver'](self, config['config'])
 
+        # TODO: it smells that we set the port type after the driver is created. It means we can't
+        # use the constructor to perform the initialization.
+        self._set_port_type(self.id, self._supported[driver.driver_name])
+        driver.on_port_type_set()
+
+        self._driver = driver
         self._config_changed_callbacks(self, config)
 
         return self._driver

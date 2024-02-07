@@ -129,7 +129,6 @@ class SensorPortWrapper(Wrapper):
         'NotConfigured': None,
         'BumperSwitch': Sensors.BumperSwitch,
         'HC_SR04': Sensors.Ultrasonic,
-        'EV3': None,
         'RGB': Sensors.SofteqCS,
     }
 
