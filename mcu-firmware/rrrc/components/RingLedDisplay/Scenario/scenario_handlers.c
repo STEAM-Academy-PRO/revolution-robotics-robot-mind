@@ -1,6 +1,6 @@
 #include "scenario_handlers.h"
 
-#include "utils/functions.h"
+#include "libraries/functions.h"
 #include "../RingLedDisplay.h"
 #include <math.h>
 

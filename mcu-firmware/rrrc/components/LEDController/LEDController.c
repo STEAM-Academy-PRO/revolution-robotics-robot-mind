@@ -5,7 +5,7 @@
 /* Begin User Code Section: Declarations */
 #include "rrrc_hal.h"
 #include "rrrc_indication.h"
-#include "utils/functions.h"
+#include "libraries/functions.h"
 
 #include <stdint.h>
 #include <string.h>

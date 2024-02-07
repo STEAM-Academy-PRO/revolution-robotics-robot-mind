@@ -3,7 +3,7 @@
 
 #include "Config/atmel_start_pins.h"
 #include "components/ErrorStorage/ErrorStorageTypes.h"
-#include "utils/color.h"
+#include "libraries/color.h"
 #include <float.h>
 #include <stdbool.h>
 #include <stdint.h>

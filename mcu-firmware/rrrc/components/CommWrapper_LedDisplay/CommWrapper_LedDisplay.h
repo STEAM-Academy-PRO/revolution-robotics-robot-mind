@@ -4,7 +4,7 @@
 #ifndef COMPONENT_TYPES_COMM_WRAPPER__LED_DISPLAY_H_
 #define COMPONENT_TYPES_COMM_WRAPPER__LED_DISPLAY_H_
 
-#include "utils/color.h"
+#include "libraries/color.h"
 #include <stdint.h>
 #include <stdio.h>
 

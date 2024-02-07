@@ -10,7 +10,7 @@
     "instance_variables": {},
     "types": {
         "rgb_t": {
-            "defined_in": "\"utils/color.h\"",
+            "defined_in": "\"libraries/color.h\"",
             "default_value": "(rgb_t){0, 0, 0}"
         },
         "RingLedScenario_t": {
