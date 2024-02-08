@@ -17,7 +17,7 @@ from typing import NamedTuple
 
 from revvy.utils.file_storage import StorageInterface, StorageError
 from revvy.utils.functions import split
-from revvy.utils.logger import get_logger
+from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.progress_indicator import ProgressIndicator
 from revvy.utils.functions import str_to_func
 
@@ -26,7 +26,7 @@ from revvy.robot.status import RobotStatus
 from revvy.robot_manager import RobotManager
 from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
 
-from revvy.scripting.runtime import ScriptDescriptor
+from revvy.scripting.runtime import ScriptDescriptor, ScriptEvent
 from revvy.utils.reverse_map_constant_name import get_constant_name
 
 
@@ -460,23 +460,31 @@ class LongMessageImplementation:
         # I would love to see this TEST_KIT!
 
         if message_type == LongMessageType.TEST_KIT:
+            # On the configuration screen, when selecting a sensor, there is a TEST button
+            # on the bottom left, right next to DONE button. that is very hard to notice.
+            # When that is pressed, custom test script is pushed down to the robot with this flag.
+
             test_script_source = message.data.decode()
             self._log(f'Running test script: \n{test_script_source}')
 
             script_descriptor = ScriptDescriptor("test_kit", str_to_func(test_script_source), 0, source = test_script_source)
 
-            def start_script():
-                self._log("Starting new test script")
-                ### -------------------------------------------------------------------------!!!
-                ### TODO: Wrong params, how is this ever used?
-                handle = self._robot_manager._scripts.add_script(script_descriptor, empty_robot_config)
-                on_script_stopped_fn = partial(self._robot_manager.robot_configure, None)
-                handle.on_stopped(on_script_stopped_fn)
+            self._robot_manager.robot_configure(empty_robot_config)
 
-                # start can't run in on_stopped handler because overwriting script causes deadlock
-                self._robot_manager.run_in_background(handle.start, 'LongMessageImplementation: on_message_updated start_script()')
+            self._log("Starting new test script")
 
-            self._robot_manager.robot_configure(empty_robot_config, start_script)
+            handle = self._robot_manager._scripts.add_script(script_descriptor, empty_robot_config)
+
+            def on_stopped(*args):
+                self._log('test script ended')
+                self._robot_manager.reset_configuration()
+
+            handle.on(ScriptEvent.STOP, on_stopped)
+            handle.on(ScriptEvent.ERROR, lambda ref, ex: self._log(f'{str(ex)}', LogLevel.ERROR))
+
+            # Run test in new thread.
+            self._robot_manager.run_in_background(handle.start, 'LongMessageImplementation: on_message_updated start_script()')
+
 
         if message_type == LongMessageType.CONFIGURATION_DATA:
             message_data = message.data.decode()

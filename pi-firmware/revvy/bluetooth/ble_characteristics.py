@@ -5,6 +5,7 @@ import traceback
 from pybleno import Characteristic, Descriptor
 from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_UNKNOWN
 from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
+from revvy.mcu.commands import BatteryStatus
 from revvy.utils.bit_packer import pack_2_bit_number_array_32, unpack_2_bit_number_array_32
 
 from revvy.utils.logger import get_logger
