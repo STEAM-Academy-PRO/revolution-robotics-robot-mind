@@ -3,7 +3,7 @@
 
 #include "Config/atmel_start_pins.h"
 #include "components/ErrorStorage/ErrorStorageTypes.h"
-#include "utils/color.h"
+#include "libraries/color.h"
 #include <float.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -91,7 +91,8 @@ typedef enum {
     RingLedScenario_BusyIndicator,
     RingLedScenario_BreathingGreen,
     RingLedScenario_Siren,
-    RingLedScenario_TrafficLight
+    RingLedScenario_TrafficLight,
+    RingLedScenario_BugIndicator
 } RingLedScenario_t;
 
 typedef enum {

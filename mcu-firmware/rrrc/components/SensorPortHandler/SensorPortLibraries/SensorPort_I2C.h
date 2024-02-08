@@ -1,7 +1,7 @@
 #ifndef SENSOR_PORT_I2C_H_
 #define SENSOR_PORT_I2C_H_
 
-#include "hal/sercom/sercom_i2c_master.h"
+#include "libraries/sercom/sercom_i2c_master.h"
 
 typedef struct {
     I2CMasterInstance_t sercom_instance;

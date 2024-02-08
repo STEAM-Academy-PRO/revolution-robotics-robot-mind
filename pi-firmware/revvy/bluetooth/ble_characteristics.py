@@ -5,8 +5,7 @@ import traceback
 from pybleno import Characteristic, Descriptor
 from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_UNKNOWN
 from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
-from revvy.mcu.commands import BatteryStatus
-from revvy.utils.pack_2_bit_number_array import pack_2_bit_number_array, unpack_2_bit_number_array
+from revvy.utils.bit_packer import pack_2_bit_number_array_32, unpack_2_bit_number_array_32
 
 from revvy.utils.logger import get_logger
 
@@ -218,11 +217,13 @@ class ProgramStatusCharacteristic(BrainToMobileFunctionCharacteristic):
         if not self._value:
             state_array = [0]*32
         else:
-            state_array = unpack_2_bit_number_array(self._value)
+            state_array = unpack_2_bit_number_array_32(self._value)
 
         state_array[button_id] = status
 
-        packed_byte_array = pack_2_bit_number_array(state_array)
+        log(f'button state array id:{button_id} => stat: {status}')
+
+        packed_byte_array = pack_2_bit_number_array_32(state_array)
 
         # log(f'Button state change: {packed_byte_array}')
         # If there are multiple messages, here is where we want to throttle.

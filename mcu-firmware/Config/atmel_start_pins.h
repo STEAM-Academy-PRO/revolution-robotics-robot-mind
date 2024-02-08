@@ -6,7 +6,7 @@
 
 typedef uint8_t gpio_pin_t;
 
-#include "hal/fast_gpio/fast_gpio.h"
+#include "libraries/fast_gpio/fast_gpio.h"
 
 #define GPIO_PIN_FUNCTION_A 0
 #define GPIO_PIN_FUNCTION_B 1

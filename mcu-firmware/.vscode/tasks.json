@@ -97,6 +97,18 @@
             "dependsOn": [
                 "make debug"
             ]
+        },
+        {
+            "label": "prepare debug binary and copy to pi-firmware folder",
+            "type": "shell",
+            "command": "cp ./Build/output/* ../pi-firmware/data/firmware",
+            "windows": {
+                "command": "cp ./Build/output/* ../pi-firmware/data/firmware"
+            },
+            "problemMatcher": [],
+            "dependsOn": [
+                "prepare debug binary"
+            ]
         }
     ]
 }
