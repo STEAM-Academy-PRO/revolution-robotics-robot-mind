@@ -47,7 +47,7 @@ class RobotState(Emitter[RobotEvent]):
 
         self._script_variables = Observable ([None]*4, throttle_interval=0.1)
 
-        self._background_control_state = Observable('', throttle_interval=0.1)
+        self._background_control_state = Observable(0, throttle_interval=0.1)
         self._timer = Observable(0, throttle_interval=1)
 
         self._motor_angles = Observable([0]*6, throttle_interval=0.5)
@@ -93,7 +93,7 @@ class RobotState(Emitter[RobotEvent]):
 
             self._battery.set(self._robot.battery)
 
-            # TODO: Check what this does, and WHY?
+            # Send back the timer to the mobile.
             self._remote_controller.timer_increment()
 
             # Rotation has pretty high noise. To filter it out, I am cutting off the
@@ -119,16 +119,12 @@ class RobotState(Emitter[RobotEvent]):
             # TODO: WHY is this necessary???
             self._timer.set(self._remote_controller.processing_time)
 
-
-            # self.process_run_in_bg_requests()
-            # For now, the above two are handling the variable changes.
-
-            # self.process_autonomous_requests()
-
+            # This is TEMPORARY and should not be here. Nothing should know about the MCU
+            # communication ticks.
             self.trigger(RobotEvent.MCU_TICK)
 
         except TransportException:
-            # TODO: This caused the whole app to quit. Why? What is this error?
+            # On MCU communication errors, we catch it, maybe it's temporary.
             log(traceback.format_exc(), LogLevel.ERROR)
             self.trigger(RobotEvent.FATAL_ERROR)
         except BrokenPipeError:

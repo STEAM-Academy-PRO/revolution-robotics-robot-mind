@@ -305,6 +305,12 @@ class RobotManager:
         self._robot.status.robot_status = RobotStatus.Configured
 
         self._remote_controller_thread.start()
+
+        # When configuration is done, in order to signal the app to enable
+        # the play button in autonomous mode, we need to indicate it
+        # with sending a status update.
+        self.trigger(RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE, self._remote_controller.background_control_state)
+
         ### This used to be called in a background process, I have no clue why, but I am removing it.
         # if self._robot.status.robot_status != RobotStatus.Stopped:
             # self.run_in_background(partial(self._robot_configure, config), 'robot_configuration_request')
