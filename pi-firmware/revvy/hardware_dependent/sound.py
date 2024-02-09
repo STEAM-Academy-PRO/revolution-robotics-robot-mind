@@ -1,10 +1,12 @@
 
 import subprocess
 import threading
+from typing import Callable
 
 from revvy.utils.functions import map_values, clip
-from revvy.utils.logger import get_logger
+from revvy.utils.logger import LogLevel, get_logger
 
+HAS_AUDIO = True
 
 class SoundControlBase:
     def __init__(self, commands, default_volume):
@@ -42,6 +44,13 @@ class SoundControlBase:
 
         return thread
 
+    def _play(self, sound, cb: Callable):
+        return self._run_command_with_callback([
+                self._commands['enable_amp'],
+                "mpg123 " + sound
+            ], cb)
+
+
     def _disable_amp_callback(self):
         # self._log('Disable amp callback')
         with self._lock:
@@ -59,18 +68,20 @@ class SoundControlBase:
 
     def play_sound(self, sound, callback=None):
         if len(self._processes) <= self._max_parallel_sounds:
-            self._log(f'Playing sound: {sound}')
+            if HAS_AUDIO:
+                self._log(f'Playing sound: {sound}')
 
-            def cb():
+                def cb():
+                    if callable(callback):
+                        callback()
+
+                    self._disable_amp_callback()
+
+                return self._play(sound, cb)
+            else:
+                self._log(f'MUTED! Would play sound: {sound}', LogLevel.WARNING)
                 if callable(callback):
                     callback()
-
-                self._disable_amp_callback()
-
-            return self._run_command_with_callback([
-                self._commands['enable_amp'],
-                "mpg123 " + sound
-            ], cb)
         else:
             self._log('Too many sounds are playing, skip')
 
