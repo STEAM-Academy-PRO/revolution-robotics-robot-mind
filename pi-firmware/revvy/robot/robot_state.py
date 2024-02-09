@@ -42,7 +42,6 @@ class RobotState(Emitter[RobotEvent]):
         # soon enough to notify.
         self._battery = BatteryState()
 
-        self._gyro = Observable([0]*3, throttle_interval=0.1)
         self._orientation = Observable([0]*3, throttle_interval=0.2)
 
         self._script_variables = Observable ([None]*4, throttle_interval=0.1)
@@ -57,7 +56,6 @@ class RobotState(Emitter[RobotEvent]):
         self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
 
         self._battery.subscribe(partial(self.trigger, RobotEvent.BATTERY_CHANGE))
-        self._gyro.subscribe(partial(self.trigger, RobotEvent.GYRO_CHANGE))
         self._orientation.subscribe(partial(self.trigger, RobotEvent.ORIENTATION_CHANGE))
         self._script_variables.subscribe(partial(self.trigger, RobotEvent.SCRIPT_VARIABLE_CHANGE))
 
@@ -96,15 +94,6 @@ class RobotState(Emitter[RobotEvent]):
             # Send back the timer to the mobile.
             self._remote_controller.timer_increment()
 
-            # Rotation has pretty high noise. To filter it out, I am cutting off the
-            # drops the small absolute value of the number properly below 0 and setting
-            # the precision to 2 degrees. There is most probably a better way to do this,
-            # but good enough for now.
-            self._gyro.set([
-                floor0(getattr(self._robot.imu.rotation, 'x'), 0.5),
-                floor0(getattr(self._robot.imu.rotation, 'y'), 0.5),
-                floor0(getattr(self._robot.imu.rotation, 'z'), 0.5)
-            ])
 
             # TODO: Debounce this a bit better: this is used for the angle.
             self._orientation.set([
@@ -123,8 +112,9 @@ class RobotState(Emitter[RobotEvent]):
             # communication ticks.
             self.trigger(RobotEvent.MCU_TICK)
 
-        except TransportException:
-            # On MCU communication errors, we catch it, maybe it's temporary.
+        except TransportException as e:
+            # On MCU communication errors, die.
+            log(f"{str(e)}", LogLevel.ERROR)
             log(traceback.format_exc(), LogLevel.ERROR)
             self.trigger(RobotEvent.FATAL_ERROR)
         except BrokenPipeError:
