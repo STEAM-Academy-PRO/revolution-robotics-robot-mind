@@ -211,7 +211,6 @@ class RobotManager:
         self.run_in_background(update, 'updater')
 
     def robot_start(self):
-        self._log('start')
         if self._robot.status.robot_status == RobotStatus.StartingUp:
             self._log('Waiting for MCU')
 
@@ -221,14 +220,9 @@ class RobotManager:
                 pass  # FIXME somehow handle a dead MCU
                       # I would add info on the main terminal screen.
 
-            self._log('Connection to MCU established')
-
-            self._robot.status.robot_status = RobotStatus.NotConfigured
-
-            # Initial robot reset.
-            self._robot.play_tune('robot2')
-            self._log('robot first configured with empty configuration object!')
-
+        self._log('Connection to MCU established')
+        self._robot.status.robot_status = RobotStatus.NotConfigured
+        self._robot.play_tune('robot2')
 
     # This is generally a pretty bad pattern, as anything that we want to run in the background
     # should have their own lifecycle, this obscures where things were created and called from.
@@ -476,9 +470,11 @@ class RobotManager:
     def _ping_robot(self, timeout=0):
         stopwatch = Stopwatch()
         retry_ping = True
+        self._log('pinging')
         while retry_ping:
             retry_ping = False
             try:
+                self._log('.')
                 self._robot.ping()
             except (BrokenPipeError, IOError, OSError):
                 retry_ping = True
