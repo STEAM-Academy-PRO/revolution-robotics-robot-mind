@@ -23,10 +23,7 @@ export default function ControllerView({
     return { get, set, status, setStatus }
   })
 
-  const motorAngles = [0, 1, 2, 3, 4, 5].map((i) => {
-    let [get, set] = createSignal<number>(0)
-    return { get, set }
-  })
+  const [motorAngles, setMotorAngles] = createSignal<Array<number>>([0, 0, 0, 0, 0, 0])
 
 
   createEffect(() => {
@@ -39,7 +36,7 @@ export default function ControllerView({
           setBattery(data.data)
           break
         case 'motor_change':
-          motorAngles[data.data[0]].set(data.data[1])
+          setMotorAngles(data.data)
           break
         case 'program_status_change':
           buttons[data.data[0]].setStatus(data.data[1])
@@ -117,7 +114,7 @@ export default function ControllerView({
       <div class={styles.statuses}>
         <span class={styles.status}>orientation: {orientation()?.join(' ')}</span>
         <span class={styles.status}>battery: {battery()?.join(' ')}</span>
-        <span class={styles.status}>motor angles: {motorAngles.map((x) => x.get())?.join(' ')}</span>
+        <span class={styles.status}>motor angles: {motorAngles()?.join(' ')}</span>
       </div>
       <div class={styles.controller}>
         <div class={styles.joystick}>

@@ -33,20 +33,20 @@ class RobotState(Emitter[RobotEvent]):
     """ Sustain a consistent event driven state of the robot """
 
     def __init__(self, robot: 'Robot', remote_controller: RemoteController):
+        super().__init__()
         self._robot = robot
         self._remote_controller = remote_controller
         self._status_update_thread:ThreadWrapper = None
 
         # Battery updates: every 2 seconds is enough, if it's unplugged, it's
         # soon enough to notify.
-        self._battery = BatteryState()
+        self._battery = BatteryState(throttle_interval=2)
 
-        self._gyro = Observable([0]*3, throttle_interval=0.1)
         self._orientation = Observable([0]*3, throttle_interval=0.2)
 
         self._script_variables = Observable ([None]*4, throttle_interval=0.1)
 
-        self._background_control_state = Observable('', throttle_interval=0.1)
+        self._background_control_state = Observable(0, throttle_interval=0.1)
         self._timer = Observable(0, throttle_interval=1)
 
         self._motor_angles = Observable([0]*6, throttle_interval=0.5)
@@ -56,7 +56,6 @@ class RobotState(Emitter[RobotEvent]):
         self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
 
         self._battery.subscribe(partial(self.trigger, RobotEvent.BATTERY_CHANGE))
-        self._gyro.subscribe(partial(self.trigger, RobotEvent.GYRO_CHANGE))
         self._orientation.subscribe(partial(self.trigger, RobotEvent.ORIENTATION_CHANGE))
         self._script_variables.subscribe(partial(self.trigger, RobotEvent.SCRIPT_VARIABLE_CHANGE))
 
@@ -92,18 +91,9 @@ class RobotState(Emitter[RobotEvent]):
 
             self._battery.set(self._robot.battery)
 
-            # TODO: Check what this does, and WHY?
+            # Send back the timer to the mobile.
             self._remote_controller.timer_increment()
 
-            # Rotation has pretty high noise. To filter it out, I am cutting off the
-            # drops the small absolute value of the number properly below 0 and setting
-            # the precision to 2 degrees. There is most probably a better way to do this,
-            # but good enough for now.
-            self._gyro.set([
-                floor0(getattr(self._robot.imu.rotation, 'x'), 0.5),
-                floor0(getattr(self._robot.imu.rotation, 'y'), 0.5),
-                floor0(getattr(self._robot.imu.rotation, 'z'), 0.5)
-            ])
 
             # TODO: Debounce this a bit better: this is used for the angle.
             self._orientation.set([
@@ -118,16 +108,13 @@ class RobotState(Emitter[RobotEvent]):
             # TODO: WHY is this necessary???
             self._timer.set(self._remote_controller.processing_time)
 
-
-            # self.process_run_in_bg_requests()
-            # For now, the above two are handling the variable changes.
-
-            # self.process_autonomous_requests()
-
+            # This is TEMPORARY and should not be here. Nothing should know about the MCU
+            # communication ticks.
             self.trigger(RobotEvent.MCU_TICK)
 
-        except TransportException:
-            # TODO: This caused the whole app to quit. Why? What is this error?
+        except TransportException as e:
+            # On MCU communication errors, die.
+            log(f"{str(e)}", LogLevel.ERROR)
             log(traceback.format_exc(), LogLevel.ERROR)
             self.trigger(RobotEvent.FATAL_ERROR)
         except BrokenPipeError:

@@ -7,7 +7,7 @@
 
 #include "RGB.h"
 #include "utils.h"
-#include "utils/color.h"
+#include "libraries/color.h"
 #include <hal_delay.h>
 #include <string.h>
 

@@ -4,7 +4,7 @@
 #ifndef COMPONENT_TYPES_LED_CONTROLLER_H_
 #define COMPONENT_TYPES_LED_CONTROLLER_H_
 
-#include "utils/color.h"
+#include "libraries/color.h"
 #include <stdint.h>
 
 

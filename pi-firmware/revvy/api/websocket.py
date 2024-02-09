@@ -35,8 +35,7 @@ ignore_log_events = [
     RobotEvent.ORIENTATION_CHANGE,
     RobotEvent.TIMER_TICK,
     RobotEvent.MCU_TICK,
-    RobotEvent.GYRO_CHANGE,
-    # RobotEvent.MOTOR_CHANGE,
+    RobotEvent.MOTOR_CHANGE,
     RobotEvent.PROGRAM_STATUS_CHANGE
 ]
 

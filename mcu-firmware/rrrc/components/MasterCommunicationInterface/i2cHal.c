@@ -107,10 +107,7 @@ static void i2c_hal_on_address_matched(const uint8_t dir)
 
 static void i2c_hal_on_error(void)
 {
-    /* ignore for now */
-#if 0
     i2c_hal_error_occurred();
-#endif
 }
 
 void i2c_hal_on_rx_done(const uint8_t data)

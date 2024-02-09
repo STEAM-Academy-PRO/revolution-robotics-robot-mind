@@ -10,7 +10,7 @@ from revvy.utils.thread_wrapper import ThreadWrapper, ThreadContext
 
 class TestThreadWrapper(unittest.TestCase):
     def test_thread_wrapper_can_be_exited_if_not_started(self):
-        tw = ThreadWrapper(lambda x: None)
+        tw = ThreadWrapper(lambda: None)
         tw.exit()
 
     def test_thread_wrapper_can_be_exited_if_started(self):
@@ -154,32 +154,30 @@ class TestThreadWrapper(unittest.TestCase):
         finally:
             tw.exit()
 
-    # WHY? What's the point of this?
+    def test_exiting_thread_can_not_be_restarted(self):
+        counter = 0
 
-    # def test_exiting_thread_can_not_be_restarted(self):
-    #     counter = 0
+        def thread_func(ctx):
+            nonlocal counter
+            counter += 1
+            while not ctx.stop_requested:
+                ctx.sleep(0.1)
 
-    #     def thread_func(ctx):
-    #         nonlocal counter
-    #         counter += 1
-    #         while not ctx.stop_requested:
-    #             ctx.sleep(0.1)
+        def _try_restart():
+            self.assertRaises(AssertionError, tw.start)
 
-    #     def _try_restart():
-    #         self.assertRaises(AssertionError, tw.start)
+        tw = ThreadWrapper(thread_func)
+        tw.on_stopped(_try_restart)
+        tw.start()
 
-    #     tw = ThreadWrapper(thread_func)
-    #     tw.on_stopped(_try_restart)
-    #     tw.start()
+        tw.exit()
+        self.assertEqual(1, counter)
 
-    #     tw.exit()
-    #     self.assertEqual(1, counter)
+    def test_exited_thread_can_not_be_restarted(self):
+        tw = ThreadWrapper(lambda x: None)
 
-    # def test_exited_thread_can_not_be_restarted(self):
-    #     tw = ThreadWrapper(lambda x: None)
-
-    #     tw.exit()
-    #     self.assertRaises(AssertionError, tw.start)
+        tw.exit()
+        self.assertRaises(AssertionError, tw.start)
 
     def test_starting_a_stopping_thread_restarts(self):
         allow_stop = Event()

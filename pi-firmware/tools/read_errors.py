@@ -147,6 +147,10 @@ if __name__ == "__main__":
 
     fw_version = robot_control.get_firmware_version()
 
+    # Error logs don't store the branch. Assume 'stable' so they compare equal if the
+    # version numbers are the same.
+    fw_version.branch = 'stable'
+
     if args.inject_test_error:
         print('Recording a test error')
         robot_control.error_memory_test()

@@ -17,7 +17,7 @@ from typing import NamedTuple
 
 from revvy.utils.file_storage import StorageInterface, StorageError
 from revvy.utils.functions import split
-from revvy.utils.logger import get_logger
+from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.progress_indicator import ProgressIndicator
 from revvy.utils.functions import str_to_func
 
@@ -26,7 +26,7 @@ from revvy.robot.status import RobotStatus
 from revvy.robot_manager import RobotManager
 from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
 
-from revvy.scripting.runtime import ScriptDescriptor
+from revvy.scripting.runtime import ScriptDescriptor, ScriptEvent
 from revvy.utils.reverse_map_constant_name import get_constant_name
 
 
@@ -398,9 +398,8 @@ def extract_asset_longmessage(storage, asset_dir):
 # Moved from main file, cleanup pending.
 class LongMessageImplementation:
     # TODO: this, together with the other long message classes is probably a lasagna worth simplifying
-    def __init__(self, robot_manager: RobotManager, storage: LongMessageStorage, asset_dir, ignore_config):
+    def __init__(self, robot_manager: RobotManager, storage: LongMessageStorage, asset_dir):
         self._robot_manager = robot_manager
-        self._ignore_config = ignore_config
         self._asset_dir = asset_dir
         self._progress = None
         self._storage = storage
@@ -408,20 +407,21 @@ class LongMessageImplementation:
         self._log = get_logger("LongMessageImplementation")
 
     def on_upload_started(self, message: ReceivedLongMessage):
-        """Visual indication that an upload has started
-
-        Requests LED ring change in the background"""
+        """
+            Visual indication that an upload has started.
+            Requests LED ring change in the background.
+        """
 
         message_type = message.message_type
         if message_type == LongMessageType.FRAMEWORK_DATA:
             self._progress = ProgressIndicator(self._robot_manager.robot.led, message.total_chunks, 0x00FF00, 0xFF00FF)
         else:
             self._progress = None
-            ### -------------------------------------------------------------------------!!!
+            # TODO: Is this the right place to change the robot's inner state?
             self._robot_manager.robot.status.robot_status = RobotStatus.Configuring
 
     def on_upload_progress(self, message: ReceivedLongMessage):
-        """Indicate long message download progress"""
+        """ Indicate long message download progress """
         if self._progress:
             if message.total_chunks == 0:
                 # calculate approximate chunk count
@@ -435,68 +435,84 @@ class LongMessageImplementation:
                 self._progress.update(message.received_chunks)
 
     def on_transmission_finished(self, message: ReceivedLongMessage):
-        """Visual indication that an upload has finished
-
-        Requests LED ring change in the background"""
+        """
+            Visual indication that an upload has finished.
+            Requests LED ring change in the background.
+        """
 
         message_type = message.message_type
         if message_type == LongMessageType.FRAMEWORK_DATA:
             if not message.is_valid:
                 self._log('Firmware update cancelled')
                 self._progress = None
-                ### -------------------------------------------------------------------------!!!
+                # TODO: Consider removing run_in_background.
                 self._robot_manager.run_in_background(
-                    partial(self._robot_manager.robot.led.start_animation, RingLed.BreathingGreen), 'LongMessageImplementation: on_transmission_finished: Firmware Update cancelled?')
+                    partial(self._robot_manager.robot.led.start_animation, RingLed.BreathingGreen),
+                    'LongMessageImplementation: on_transmission_finished: Firmware Update cancelled?')
         else:
-            # don't schedule on background, the robot will be restarted before setting the LEDs
+            # Indicate exiting with the rainbow effect while the PI program exits.
             if self._progress:
-                self._progress.set_indeterminate()
+                self._progress.show_indeterminate_loading_on_led_ring()
 
     def on_message_updated(self, message: ReceivedLongMessage):
+        """
+            When we received a long message, it's either a
+            - TEST_KIT: for sensor tests or a
+            - CONFIGURATION request (set up and enter play mode) or a
+            - FRAMEWORK update that we need to install.
+            - ASSET_DATA add new sound to the repertoire
+        """
         message_type = message.message_type
 
         self._log(f'Received message: {get_constant_name(message_type, LongMessageType)}')
 
-        # I would love to see this TEST_KIT!
+        # On the configuration screen, when selecting a sensor, there is a TEST button
+        # on the right panel's bottom left, right next to DONE button. that is very hard to notice.
+        # When that is pressed, custom test script is pushed down to the robot with this flag.
 
         if message_type == LongMessageType.TEST_KIT:
+
             test_script_source = message.data.decode()
             self._log(f'Running test script: \n{test_script_source}')
 
-            script_descriptor = ScriptDescriptor("test_kit", str_to_func(test_script_source), 0, source = test_script_source)
+            script_descriptor = ScriptDescriptor("test_kit",
+                        str_to_func(test_script_source), 0, source = test_script_source)
 
-            def start_script():
-                self._log("Starting new test script")
-                ### -------------------------------------------------------------------------!!!
-                ### TODO: Wrong params, how is this ever used?
-                handle = self._robot_manager._scripts.add_script(script_descriptor, empty_robot_config)
-                on_script_stopped_fn = partial(self._robot_manager.robot_configure, None)
-                handle.on_stopped(on_script_stopped_fn)
+            self._robot_manager.robot_configure(empty_robot_config)
 
-                # start can't run in on_stopped handler because overwriting script causes deadlock
-                self._robot_manager.run_in_background(handle.start, 'LongMessageImplementation: on_message_updated start_script()')
+            self._log("Starting new test script")
 
-            self._robot_manager.robot_configure(empty_robot_config, start_script)
+            handle = self._robot_manager._scripts.add_script(script_descriptor, empty_robot_config)
 
+            def on_stopped(*args):
+                self._log('test script ended')
+                self._robot_manager.reset_configuration()
+
+            handle.on(ScriptEvent.STOP, on_stopped)
+            handle.on(ScriptEvent.ERROR, lambda ref, ex: self._log(f'{str(ex)}', LogLevel.ERROR))
+
+            # Run test in new thread.
+            # This seems to kill the robot after the tests ran, and I have no clue why.
+            # Next session, it wasn't working, now at least the test starts running.
+            self._robot_manager.run_in_background(handle.start,
+                        'LongMessageImplementation: on_message_updated start_script()')
+
+        # Configuration request: how to set up ports, button bindings,
+        # background scripts, then starting the remote!
+        # Start the remote after!
         if message_type == LongMessageType.CONFIGURATION_DATA:
             message_data = message.data.decode()
 
             try:
                 parsed_config = RobotConfig.from_string(message_data)
-                # parsed_config = RobotConfig.from_string(string)
-
-                if self._ignore_config:
-                    self._log('New configuration ignored.')
-                else:
-                    ### -------------------------------------------------------------------------!!!
-                    self._robot_manager.robot_configure(parsed_config)
+                self._robot_manager.robot_configure(parsed_config)
             except ConfigError:
                 self._log(traceback.format_exc())
 
         elif message_type == LongMessageType.FRAMEWORK_DATA:
-            ### -------------------------------------------------------------------------!!!
+            # TODO: Eliminate calling robot status updates from the outside like this!
             self._robot_manager.robot.status.robot_status = RobotStatus.Updating
-            self._progress.set_indeterminate()
+            self._progress.show_indeterminate_loading_on_led_ring()
             self._robot_manager.request_update()
 
         elif message_type == LongMessageType.ASSET_DATA:

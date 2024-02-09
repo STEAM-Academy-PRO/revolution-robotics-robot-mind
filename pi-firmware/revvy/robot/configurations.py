@@ -38,7 +38,6 @@ class Sensors:
         'driver': bumper_switch,
         'config': {}
     }
-
     SofteqCS = {
         'driver': softeq_cs,
         'config': {}

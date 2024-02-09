@@ -8,39 +8,130 @@
 #include <peripheral_clk_config.h>
 #include <hal_flash.h>
 
+/**
+ * ErrorStorage implements EEPROM emulation in a few blocks of the MCU's internal flash memory.
+ * We refer to these blocks as non-volatile memory (NVM) storage. The flash memory is NOR flash,
+ * which we can erase in 8K blocks, and write in 4-byte words[*]. Erasing a block sets all bits
+ * to 1, and writing a byte sets the corresponding bits to 0. We can only change bits from 1 to 0,
+ * and we can only change bits to 1 by erasing the block.
+ *
+ * [*]: The SDK abstract away the 4-byte writes and exposes a function to program individual bytes.
+ */
+
+ /**
+ * The expected block layout version number.
+ *
+ * If we encounter a block with a different version byte, we erase the
+ * block and start over. This is to ensure that we don't try to read data with a different
+ * layout version, which could lead to undefined behavior. Also, erasing the block is the simplest
+ * migration strategy, as we don't have to worry about data migration.
+ */
 #define NVM_LAYOUT_VERSION   ((uint8_t) 0x02u)
 
-#define BLOCK_SIZE          (8192u)
+/**
+ * ErrorStorage works on a list of blocks. Each block is divided into 64 byte objects. The first
+ * object in each block is a header, and the rest are data objects. The header contains a version
+ * number, and the data objects contain the actual data. The data objects are further divided into
+ * a status byte and a data payload. The status byte contains flags that indicate if the object is
+ * allocated, valid, or deleted. The data payload contains the actual data.
+ */
+#define BLOCK_SIZE          (NVMCTRL_BLOCK_SIZE)
 #define HEADER_OBJECT_SIZE  (64u)
 #define DATA_OBJECT_SIZE    (64u)
 #define OBJECTS_PER_BLOCK   ((BLOCK_SIZE - HEADER_OBJECT_SIZE) / DATA_OBJECT_SIZE)
 
+/** Information about a flash block used by ErrorStorage. */
 typedef struct {
+    /** The starting address of the memory block */
     uint32_t base_address;
+
+    /**
+     * The number of objects that are currently in use, used to indicate where new data can be written to.
+     * This is populated by scanning the block.
+     */
     uint16_t allocated;
+
+    /**
+     * The number of deleted objects in the block, used to indicate where valid data can be read from.
+     * This is populated by scanning the block.
+     */
     uint16_t deleted;
 } BlockInfo_t;
 
+/** The  */
 static BlockInfo_t errorStorageBlocks[] = {
     { .base_address = 0x3C000u },
     { .base_address = 0x3E000u },
 };
 
 typedef struct {
+    /** Block layout version. */
     uint8_t layout_version;
+
+    /** Pad header to 64 bytes, and reserve some memory for future use. */
+    uint8_t reserved[63];
 } FlashHeader_t;
 
-typedef union {
-    FlashHeader_t header;
-    uint8_t raw[64];
-} FlashHeaderObject_t;
+typedef uint8_t FlashObjectStatus_t;
 
-typedef struct {
-    uint8_t reserved:5;
-    uint8_t deleted:1;
-    uint8_t valid:1;
-    uint8_t allocated:1;
-} FlashObjectStatus_t;
+/**
+ * Helper macros for bit manipulation in the data object status byte.
+ * An unset bit has the value of `1`, as dictated by the flash memory's properties.
+ */
+#define NVM_SET_BIT(storage, bit)  ((storage) & !(bit))
+#define NVM_IS_BIT_SET(storage, bit)  (((storage) & (bit)) == 0u)
+
+/**
+ * We use the data object status bits to indicate the state of the object. The status byte is
+ * structured as follows:
+ * - Bit 7: Allocated: the object is in use and should not be written to again.
+ * - Bit 6: Valid: the object contains finalized data and can be considered complete.
+ * - Bit 5: Deleted: the object is no longer in use and should be ignored or cleaned up.
+ * - Bits 4-0: Reserved
+ *
+ * The reserved bits are not used and are set to 1. This is to ensure that the status byte is
+ * never 0xFF, which would indicate an erased flash byte. The reserved bits are checked when
+ * reading the status byte to ensure that the object is not in an invalid state.
+ */
+#define ALLOCATED_BIT ((uint8_t) 0x80u)
+#define VALID_BIT ((uint8_t) 0x40u)
+#define DELETED_BIT ((uint8_t) 0x20u)
+
+static bool _is_object_valid(const FlashObjectStatus_t status)
+{
+    return NVM_IS_BIT_SET(status, VALID_BIT);
+}
+
+static bool _is_object_deleted(const FlashObjectStatus_t status)
+{
+    return NVM_IS_BIT_SET(status, DELETED_BIT);
+}
+
+static bool _is_object_allocated(const FlashObjectStatus_t status)
+{
+    return NVM_IS_BIT_SET(status, ALLOCATED_BIT);
+}
+
+static bool _is_object_reserved_bits_set(const FlashObjectStatus_t status)
+{
+    uint8_t mask = !(ALLOCATED_BIT | VALID_BIT | DELETED_BIT);
+    return (status & mask) != mask;
+}
+
+static void _mark_object_allocated(FlashObjectStatus_t* status)
+{
+    *status = NVM_SET_BIT(*status, ALLOCATED_BIT);
+}
+
+static void _mark_object_deleted(FlashObjectStatus_t* status)
+{
+    *status = NVM_SET_BIT(*status, DELETED_BIT);
+}
+
+static void _mark_object_valid(FlashObjectStatus_t* status)
+{
+    *status = NVM_SET_BIT(*status, VALID_BIT);
+}
 
 typedef struct __attribute__((packed)) {
     FlashObjectStatus_t status;
@@ -49,8 +140,8 @@ typedef struct __attribute__((packed)) {
 
 _Static_assert(NVM_LAYOUT_VERSION != 0xFFu, "NVM version can't be same as empty byte");
 
-/* this 32 bytes size is set in stone */
-_Static_assert(sizeof(FlashHeaderObject_t) == HEADER_OBJECT_SIZE, "Incorrect flash header size");
+/* this 64 byte size is set in stone */
+_Static_assert(sizeof(FlashHeader_t) == HEADER_OBJECT_SIZE, "Incorrect flash header size");
 
 /* this is not set in stone, depends on layout version */
 _Static_assert(sizeof(FlashData_t) == DATA_OBJECT_SIZE, "Incorrect flash data object size");
@@ -60,13 +151,11 @@ static struct flash_descriptor FLASH_0;
 static uint32_t esActiveBlock;
 static bool esInitialized = false;
 
-#define NVM_IS_BIT_SET(bit)  ((bit) == 0u)
-
-static void _count_objects_in_block(BlockInfo_t* block);
+static void _scan_block(BlockInfo_t* block);
 
 static const FlashHeader_t* _block_header(BlockInfo_t* block)
 {
-    return &((const FlashHeaderObject_t*) block->base_address)->header;
+    return (const FlashHeader_t*) block->base_address;
 }
 
 static bool _block_header_valid(const FlashHeader_t* header)
@@ -94,14 +183,6 @@ static FlashData_t _read_data_obj(const BlockInfo_t* block, uint8_t idx)
     return *ptr;
 }
 
-static FlashObjectStatus_t _read_data_obj_status(const BlockInfo_t* block, uint8_t idx)
-{
-    ASSERT (idx < OBJECTS_PER_BLOCK);
-
-    const FlashData_t* ptr = _get_object(block, idx);
-    return ptr->status;
-}
-
 static void _write_flash(uint32_t address, uint8_t* src, size_t size)
 {
     int32_t status = flash_append(&FLASH_0, address, src, size);
@@ -115,12 +196,12 @@ static void _delete_object(BlockInfo_t* block, uint8_t idx)
     const FlashData_t* ptr = _get_object(block, idx);
     FlashObjectStatus_t status = ptr->status;
 
-    if (!NVM_IS_BIT_SET(status.deleted) && (NVM_IS_BIT_SET(status.allocated) || NVM_IS_BIT_SET(status.valid)))
+    if (!_is_object_deleted(status) && (_is_object_allocated(status) || _is_object_valid(status)))
     {
         /* set the deleted bit on a copy */
-        status.deleted = 0u;
+        _mark_object_deleted(&status);
 
-        /* write the first 4 bytes back */
+        /* write the first byte back */
         _write_flash((uint32_t) ptr, (uint8_t*) &status, 1u);
     }
 }
@@ -132,6 +213,7 @@ static void _write_block_header(BlockInfo_t* block, FlashHeader_t* header)
 
 static void _store_object(BlockInfo_t* block, const void* data, size_t size)
 {
+    /* The caller shall select a non-full block as the storage destination. */
     ASSERT (block->allocated != OBJECTS_PER_BLOCK);
 
     /* it is possible handling the above assert changes the number of errors in the current block */
@@ -149,6 +231,7 @@ static void _store_object(BlockInfo_t* block, const void* data, size_t size)
             FlashHeader_t new_header = {
                 .layout_version = NVM_LAYOUT_VERSION
             };
+            memset(&new_header.reserved[0], 0xFFu, sizeof(new_header.reserved));
             _write_block_header(block, &new_header);
         }
     }
@@ -163,12 +246,12 @@ static void _store_object(BlockInfo_t* block, const void* data, size_t size)
     memset(&object, 0xFFu, sizeof(object));
 
     /* allocate flash and write data */
-    object.status.allocated = 0u;
+    _mark_object_allocated(&object.status);
     memcpy(&object.data[0], data, size);
     _write_flash(addr, (uint8_t*) &object, sizeof(object));
 
     /* finalize flash */
-    object.status.valid = 0u;
+    _mark_object_valid(&object.status);
     _write_flash(addr, (uint8_t*) &object, 1u);
 
     block->allocated += 1u;
@@ -196,36 +279,68 @@ static void _erase_block(BlockInfo_t* block)
     ASSERT(status == ERR_NONE);
 }
 
-static void _count_objects_in_block(BlockInfo_t* block)
+/**
+ * Collect usage information (number of allocated/deleted objects) about the block to initialize the
+ * in-memory representation.
+ */
+static void _scan_block(BlockInfo_t* block)
 {
     block->allocated = 0u;
     block->deleted = 0u;
 
-    /* walk through objects in valid used blocks */
+    /* Walk through objects in the block */
     for (size_t obj_idx = 0u; obj_idx < OBJECTS_PER_BLOCK; obj_idx++)
     {
-        FlashObjectStatus_t obj_status = _read_data_obj_status(block, obj_idx);
+        FlashData_t flashdata = _read_data_obj(block, obj_idx);
 
-        /* track available (actually, allocated) space in each block */
-        if (NVM_IS_BIT_SET(obj_status.valid))
+        if (_is_object_valid(flashdata.status))
         {
             block->allocated++;
-            if (NVM_IS_BIT_SET(obj_status.deleted))
+            /* If the object is not allocated but "valid", it is in fact invalid. */
+            if (_is_object_deleted(flashdata.status) || !_is_object_allocated(flashdata.status))
             {
                 block->deleted++;
             }
         }
         else
         {
-            /* object is not supposed to have any 0 bits */
-            if (NVM_IS_BIT_SET(obj_status.deleted) || NVM_IS_BIT_SET(obj_status.allocated))
+            /* Empty or invalid object */
+
+            /*
+               Object header is not supposed to have any 0 bits if it's not valid.
+               We can have an interrupted write (which can set the allocated bit),
+               or an otherwise dirty/invalid object.
+            */
+            bool is_dirty = _is_object_deleted(flashdata.status)
+                || _is_object_allocated(flashdata.status)
+                || _is_object_reserved_bits_set(flashdata.status);
+
+            if (!is_dirty) {
+                /* Header is fine, make sure the contents are empty, too! */
+                for (size_t i = 0u; i < sizeof(flashdata.data); i++)
+                {
+                    if (flashdata.data[i] != 0xFFu)
+                    {
+                        is_dirty = true;
+                        break;
+                    }
+                }
+            }
+
+            if (is_dirty)
             {
-                /* this is an invalid block, treat it as deleted */
+                /* This is an invalid object, treat it as deleted. */
                 block->allocated++;
                 block->deleted++;
             }
+            else
+            {
+                /* This is an empty object. */
+            }
         }
     }
+
+    ASSERT(block->allocated >= block->deleted);
 }
 
 static void _init_block(BlockInfo_t* block)
@@ -236,7 +351,6 @@ static void _init_block(BlockInfo_t* block)
     {
         block->allocated = 0u;
         block->deleted = 0u;
-        return;
     }
     else if (!_block_header_valid(header))
     {
@@ -245,7 +359,7 @@ static void _init_block(BlockInfo_t* block)
     }
     else
     {
-        _count_objects_in_block(block);
+        _scan_block(block);
 
         /* if all objects in the old block are marked as deleted, the block shall be erased */
         if (block->deleted == OBJECTS_PER_BLOCK)
@@ -329,6 +443,7 @@ void ErrorStorage_Run_Store(const ErrorInfo_t* data)
             _force_select_active_block();
         }
 
+        /* We copy the data to add the version info. */
         ErrorInfo_t copy = *data;
 
         copy.hardware_version = ErrorStorage_Read_HardwareVersion();
@@ -337,6 +452,10 @@ void ErrorStorage_Run_Store(const ErrorInfo_t* data)
         _store_object(&errorStorageBlocks[esActiveBlock], &copy, sizeof(ErrorInfo_t));
         _update_number_of_stored_errors();
         __set_PRIMASK(primask);
+    }
+    else
+    {
+        /* TODO: We can defer storing the error in OnInit */
     }
     /* End User Code Section: Store:run Start */
     /* Begin User Code Section: Store:run End */
@@ -350,7 +469,7 @@ bool ErrorStorage_Run_Read(uint32_t index, ErrorInfo_t* data)
     ASSERT (esInitialized);
 
     uint32_t distance = index;
-    /* NOTE: the errors are not returned in allocation order */
+    /* NOTE: because we use multiple blocks, the errors are not returned in allocation order. */
     for (size_t i = 0u; i < ARRAY_SIZE(errorStorageBlocks); i++)
     {
         const BlockInfo_t* block = &errorStorageBlocks[i];
@@ -363,13 +482,8 @@ bool ErrorStorage_Run_Read(uint32_t index, ErrorInfo_t* data)
         }
         else
         {
-            /* assume linear deletion */
+            /* Assume linear deletion, and assume correct entry. Reader will sort out the errors */
             FlashData_t flashdata = _read_data_obj(block, block->deleted + distance);
-
-            /* this MUST be our block */
-            ASSERT(NVM_IS_BIT_SET(flashdata.status.valid));
-            ASSERT(!NVM_IS_BIT_SET(flashdata.status.deleted));
-
             memcpy(data, &flashdata.data[0], sizeof(ErrorInfo_t));
             return true;
         }

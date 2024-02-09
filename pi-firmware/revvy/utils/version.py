@@ -62,46 +62,14 @@ class Version:
         match = version_re.match(ver_str)
         if not match:
             raise FormatError
-        self._major = int(match.group('major'))
-        self._minor = int(match.group('minor'))
-        self._rev = int(match.group('rev')) if match.group('rev') else 0
-        self._branch = match.group('branch') or 'stable'
-        if self._branch == 'stable':
-            self._normalized = f'{self._major}.{self._minor}.{self._rev}'
+        self.major = int(match.group('major'))
+        self.minor = int(match.group('minor'))
+        self.rev = int(match.group('rev')) if match.group('rev') else 0
+        self.branch = match.group('branch') or 'stable'
+        if self.branch == 'stable':
+            self._normalized = f'{self.major}.{self.minor}.{self.rev}'
         else:
-            self._normalized = f'{self._major}.{self._minor}.{self._rev}-{self._branch}'
-
-    @property
-    def major(self):
-        """
-        >>> Version('2.3').major
-        2
-        """
-        return self._major
-
-    @property
-    def minor(self):
-        """
-        >>> Version('2.3').minor
-        3
-        """
-        return self._minor
-
-    @property
-    def revision(self):
-        """
-        >>> Version('2.3.45').revision
-        45
-        """
-        return self._rev
-
-    @property
-    def branch(self):
-        """
-        >>> Version('2.3-foobranch').branch
-        'foobranch'
-        """
-        return self._branch
+            self._normalized = f'{self.major}.{self.minor}.{self.rev}-{self.branch}'
 
     def __le__(self, other):
         """
@@ -210,7 +178,7 @@ class Version:
         return self.compare(other) != -1
 
     # noinspection PyProtectedMember
-    def compare(self, other):
+    def compare(self, other: 'Version'):
         """
         >>> Version('1.0.0').compare(Version('1.0.0'))
         0
@@ -223,16 +191,16 @@ class Version:
         def cmp(a, b):
             return -1 if a < b else 1
 
-        if self._major == other._major:
-            if self._minor == other._minor:
-                if self._rev == other._rev:
+        if self.major == other.major:
+            if self.minor == other.minor:
+                if self.rev == other.rev:
                     return 0
                 else:
-                    return cmp(self._rev, other._rev)
+                    return cmp(self.rev, other.rev)
             else:
-                return cmp(self._minor, other._minor)
+                return cmp(self.minor, other.minor)
         else:
-            return cmp(self._major, other._major)
+            return cmp(self.major, other.major)
 
     def __str__(self) -> str:
         """

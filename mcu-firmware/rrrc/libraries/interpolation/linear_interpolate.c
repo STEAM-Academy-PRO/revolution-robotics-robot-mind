@@ -1,5 +1,5 @@
 #include "interpolate_common.h"
-#include "utils/functions.h"
+#include "libraries/functions.h"
 #include <math.h>
 
 float linear_interpolate(LUT_t lut, float value)

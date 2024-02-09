@@ -6,7 +6,7 @@ from pybleno import Characteristic, Descriptor
 from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_UNKNOWN
 from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
 from revvy.mcu.commands import BatteryStatus
-from revvy.utils.pack_2_bit_number_array import pack_2_bit_number_array, unpack_2_bit_number_array
+from revvy.utils.bit_packer import pack_2_bit_number_array_32, unpack_2_bit_number_array_32
 
 from revvy.utils.logger import get_logger
 
@@ -77,7 +77,7 @@ class CustomBatteryLevelCharacteristic(Characteristic):
         })
 
         self._updateValueCallback = None
-        self._value = [0,0,0,0]  # initial value only
+        self._value = 99  # initial value only
 
     def onReadRequest(self, offset, callback):
         if offset:
@@ -91,14 +91,14 @@ class CustomBatteryLevelCharacteristic(Characteristic):
     def onUnsubscribe(self):
         self._updateValueCallback = None
 
-    def update_value(self, battery_status):
-        if self._value == battery_status:   # don't update if there is no change
+    def update_value(self, value):
+        if self._value == value:   # don't update if there is no change
             return
-        self._value = battery_status
+        self._value = value
 
         update_value_callback = self._updateValueCallback
         if update_value_callback:
-            update_value_callback([battery_status])
+            update_value_callback([value])
 
 class RelativeFunctionCharacteristic(Characteristic):
     def __init__(self, uuid, description, callback):
@@ -218,13 +218,15 @@ class ProgramStatusCharacteristic(BrainToMobileFunctionCharacteristic):
         if not self._value:
             state_array = [0]*32
         else:
-            state_array = unpack_2_bit_number_array(self._value)
+            state_array = unpack_2_bit_number_array_32(self._value)
 
         state_array[button_id] = status
 
-        packed_byte_array = pack_2_bit_number_array(state_array)
+        log(f'button state array id:{button_id} => stat: {status}')
 
-        log(f'Button state change: {packed_byte_array}')
+        packed_byte_array = pack_2_bit_number_array_32(state_array)
+
+        # log(f'Button state change: {packed_byte_array}')
         # If there are multiple messages, here is where we want to throttle.
         self.update(packed_byte_array)
 

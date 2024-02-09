@@ -15,7 +15,7 @@ from revvy.robot.remote_controller import RemoteControllerCommand
 NUM_MOTOR_PORTS = 6
 NUM_SENSOR_PORTS = 4
 
-log = get_logger("Live Message Service", off=True)
+log = get_logger("Live Message Service", off=False)
 
 class LiveMessageService(BlenoPrimaryService):
     """ Handles short messages on the Bluetooth interface"""
@@ -100,6 +100,7 @@ class LiveMessageService(BlenoPrimaryService):
         })
 
     def validate_config_callback(self, data):
+        """ Currently unused """
         motor_bitmask, sensor0, sensor1, sensor2, sensor3, \
         motor_load_power, threshold = \
             struct.unpack('BBBBBBB', data)
@@ -128,6 +129,7 @@ class LiveMessageService(BlenoPrimaryService):
 
     def set_validation_result(self, success: bool,
         motors: list, sensors: list):
+        """ Currently unused """
 
         valitation_state = VALIDATE_CONFIG_STATE_UNKNOWN
         if success:
@@ -155,14 +157,18 @@ class LiveMessageService(BlenoPrimaryService):
 
 
     def control_message_handler(self, data):
-        # Simple control callback is run each time new controller data
-        # representing full state of joystick is sent over a BLE characteristic
-        # Analog values: X and Y axes of a joystick, mapped to 0-255, where 127
-        # is the middle value representing joystick axis in neutral state.
+        """
+            Simple control callback is run each time new controller data
+            representing full state of joystick is sent over a BLE characteristic
+            Analog values: X and Y axes of a joystick, mapped to 0-255, where 127
+            is the middle value representing joystick axis in neutral state.
+        """
 
         def joystick_axis_is_neutral(value):
-            # value is in 1 byte range 0-255, with 127 being the middle position
-            # of a joystick along that axis
+            """
+                Value is in 1 byte range 0-255, with 127 being the middle position
+                of a joystick along that axis
+            """
             return value == 127
 
         def joystick_xy_is_moved(analog_values):
@@ -200,7 +206,11 @@ class LiveMessageService(BlenoPrimaryService):
                                                     next_deadline=next_deadline))
         return True
 
+
     def state_control_callback(self, data):
+        """ Autonomous mode play/pause/stop/reset button from mobile to brain """
+
+        log(f"state_control_callback, coming from the mobile. {data}")
         background_control_command = int.from_bytes(data[2:], byteorder='big')
         message_handler = self._robot_manager.handle_periodic_control_message
         if message_handler:
@@ -211,6 +221,7 @@ class LiveMessageService(BlenoPrimaryService):
         return True
 
     def update_sensor(self, sensor, value):
+        """ Send back sensor value to mobile. """
         if 0 < sensor <= len(self._sensor_characteristics):
             self._sensor_characteristics[sensor - 1].update(value)
 
@@ -224,17 +235,20 @@ class LiveMessageService(BlenoPrimaryService):
         self._program_status_characteristic[0].update_button_value(button_id, status)
 
     def update_motor(self, motor, power, speed, position):
+        """ Send back motor angle value to mobile. NOT CURRENTLY USED """
         if 0 <= motor < len(self._motor_characteristics):
             data = list(struct.pack(">flb", speed, position, power))
             self._motor_characteristics[motor].update(data)
 
     def update_session_id(self, value):
-        log('update_session_id:' + str(value))
+        """ Send back session_id to mobile. """
         data = list(struct.pack('<I', value))
-        # WHAT are we using this for?
+        # TODO: Maybe this was supposed to be used for detecting MCU reset in the mobile, but
+        # currently it's not used.
         self._mobile_to_brain.update(data)
 
     def update_gyro(self, vector_list):
+        """ Send back gyro sensor value to mobile. NOT CURRENTLY USED """
         if type(vector_list) is list:
             buf = struct.pack('%sf' % len(vector_list), *vector_list)
             if self._buf_gyro is not buf:
@@ -242,6 +256,7 @@ class LiveMessageService(BlenoPrimaryService):
                 self._gyro_characteristic[0].update(self._buf_gyro)
 
     def update_orientation(self, vector_list):
+        """ Send back orientation to mobile. Used to display the yaw of the robot """
         if type(vector_list) is list:
             buf = struct.pack('%sf' % len(vector_list), *vector_list)
             if self._buf_orientation is not buf:
@@ -249,17 +264,21 @@ class LiveMessageService(BlenoPrimaryService):
                 self._orientation_characteristic[0].update(self._buf_orientation)
 
     def update_timer(self, data):
+        """ Send back timer tick every second to mobile. """
         buf = list(struct.pack(">bf", 4, data))
         if self._buf_timer != buf:
             self._buf_timer = buf
             self._timer_characteristic[0].update(self._buf_timer)
 
     def update_script_variables(self, script_variables):
-        # By characteristic protocol - maximum slots in BLE message is 4
-        MAX_VARIABLE_SLOTS = 4
+        """
+            In the mobile app, this data shows up when we track variables.
+            By characteristic protocol - maximum slots in BLE message is 4.
+        """
 
-        if len(script_variables) != MAX_VARIABLE_SLOTS:
-            log("Script variable size mismatch", LogLevel.WARNING)
+        # I believe this should be a constant that's coming from one centralized place, rather
+        # be wired in here. If this script sends more variables, we'll never know.
+        MAX_VARIABLE_SLOTS = 4
 
         # Message format:
         # offset:  0    1  2  3  4    5  6  7  8    9  10 11 12   13 14 15 16
@@ -280,18 +299,23 @@ class LiveMessageService(BlenoPrimaryService):
         mask = 0
         valuebuf = b''
 
-        for index, variable_value in enumerate(script_variables):
-            if variable_value is not None:
-                mask = mask | (1 << index)
+        for slot_idx in range(MAX_VARIABLE_SLOTS):
+            v = script_variables.get_variable(slot_idx)
+            if v.is_valid() and v.value_is_set():
+                value = v.get_value()
+                mask = mask | (1 << slot_idx)
             else:
-                variable_value = 0.0
-            valuebuf += struct.pack('f', variable_value)
+                value = 0.0
+            valuebuf += struct.pack('f', value)
 
         maskbuf = struct.pack('B', mask)
         msg = maskbuf + valuebuf
+
         self._read_variable_characteristic[0].update(msg)
 
     def update_state_control(self, state):
+        """ Send back the background programs' state. """
+        log(f"state control update, {state}")
         data = list(struct.pack(">bl", 4, state))
         self._state_control_characteristic[0].update(data)
 

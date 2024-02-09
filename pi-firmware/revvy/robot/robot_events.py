@@ -12,7 +12,6 @@ class RobotEvent:
     """
     BATTERY_CHANGE = "battery_change"
     ORIENTATION_CHANGE= "orientation_change"
-    GYRO_CHANGE="gyro_change"
     MOTOR_CHANGE="motor_change"
     SCRIPT_VARIABLE_CHANGE="script_variable_change"
     PROGRAM_STATUS_CHANGE="program_status_change"

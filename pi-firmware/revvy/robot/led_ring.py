@@ -11,6 +11,7 @@ class RingLed:
     BreathingGreen = 5
     Siren = 6
     TrafficLight = 7
+    Bug = 8
 
     def __init__(self, interface: RevvyControl):
         self._interface = interface

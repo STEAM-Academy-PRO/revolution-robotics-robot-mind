@@ -1,6 +1,6 @@
 #include "scenario_handlers.h"
 
-#include "utils/functions.h"
+#include "libraries/functions.h"
 #include "../RingLedDisplay.h"
 #include <math.h>
 
@@ -39,6 +39,7 @@ static void startup_indicator(void* data);
 
 static void siren(void* data);
 static void traffic_light(void* data);
+static void bugIndicator(void* data);
 
 static uint32_t time_data;
 
@@ -108,6 +109,13 @@ const indication_handler_t public_scenario_handlers[] =
         .uninit   = NULL,
         .userData = &time_data
     },
+    [RingLedScenario_BugIndicator] = {
+        .name     = "",
+        .init     = init_time,
+        .update   = bugIndicator,
+        .uninit   = NULL,
+        .userData = &time_data
+    }
 };
 
 static void init_time(void* data)
@@ -307,3 +315,29 @@ static void traffic_light(void* data)
         RingLedDisplay_Write_LedColor(i, color);
     }
 }
+
+
+// Light up every other LED blinking.
+static void bugIndicator(void* data)
+{
+    uint32_t* time_data = (uint32_t*) data;
+
+    *time_data = (*time_data + RING_LED_UPDATE_TIME) % 400u;
+
+    bool isOn = (*time_data / 200) % 2 == 0;
+
+    if (isOn) {
+        for (uint32_t i = 0u; i < RING_LEDS_AMOUNT; i++)
+        {
+            bool isEveryOtherLedOn = (i % 2) == 1;
+            rgb_t color = isEveryOtherLedOn ? (rgb_t)LED_RED : (rgb_t)LED_OFF;
+            RingLedDisplay_Write_LedColor(i, color );
+        }
+    } else {
+        for (uint32_t i = 0u; i < RING_LEDS_AMOUNT; i++)
+        {
+            RingLedDisplay_Write_LedColor(i, (rgb_t)LED_ORANGE);
+        }
+    }
+}
+
