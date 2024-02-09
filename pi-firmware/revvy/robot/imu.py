@@ -53,7 +53,7 @@ class IMU:
         # print('update_axl_data', data, self._acceleration)
 
     def update_gyro_data(self, data):
-        """ LIS3MDL sensor configuration constants """
+        """ LSM6DS3H sensor configuration constants """
         self._rotation = self._read_vector(data, 0.035*1.03)
         # print('update_gyro_data', data, self._rotation)
 
