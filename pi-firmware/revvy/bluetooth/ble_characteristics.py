@@ -77,7 +77,7 @@ class CustomBatteryLevelCharacteristic(Characteristic):
         })
 
         self._updateValueCallback = None
-        self._value = [0,0,0,0]  # initial value only
+        self._value = 99  # initial value only
 
     def onReadRequest(self, offset, callback):
         if offset:
@@ -91,14 +91,14 @@ class CustomBatteryLevelCharacteristic(Characteristic):
     def onUnsubscribe(self):
         self._updateValueCallback = None
 
-    def update_value(self, battery_status):
-        if self._value == battery_status:   # don't update if there is no change
+    def update_value(self, value):
+        if self._value == value:   # don't update if there is no change
             return
-        self._value = battery_status
+        self._value = value
 
         update_value_callback = self._updateValueCallback
         if update_value_callback:
-            update_value_callback([battery_status])
+            update_value_callback([value])
 
 class RelativeFunctionCharacteristic(Characteristic):
     def __init__(self, uuid, description, callback):
