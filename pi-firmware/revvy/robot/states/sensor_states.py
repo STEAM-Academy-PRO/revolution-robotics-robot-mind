@@ -4,6 +4,7 @@ from revvy.robot.ports.common import PortDriver
 from revvy.robot.robot_events import SensorEventData
 from revvy.utils.logger import get_logger
 from revvy.utils.observable import SmoothingObservable
+from revvy.utils.subscription import Disposable
 
 # Sensor does send some noise up, seems to be not working above
 # around two meters, but let's be optimistic here.
@@ -11,7 +12,7 @@ MAX_ULTRASONIC_SENSOR_DISTANCE = 700 # cm
 
 log = get_logger('sensor states')
 
-def create_sensor_data_wrapper(sensor_port, sensor, on_data_update):
+def create_sensor_data_wrapper(sensor_port, sensor, on_data_update) -> Disposable:
     """
     Currently our sensors send up pretty much RAW data from the MCU
     which is ok, but unfortunately that code is all around the place too,
@@ -33,7 +34,7 @@ def create_sensor_data_wrapper(sensor_port, sensor, on_data_update):
     log(f'Sensor is not among the known ones. {str(sensor)}')
 
 
-class UltrasonicSensorDataHandler:
+class UltrasonicSensorDataHandler(Disposable):
     """ Ultrasonic value handler """
     def __init__(self, sensor_port: PortDriver, on_data_update):
         self._on_data_update = on_data_update
@@ -77,7 +78,7 @@ class UltrasonicSensorDataHandler:
 
 
 
-class ButtonSensorDataHandler:
+class ButtonSensorDataHandler(Disposable):
     """ Button value handler """
     def __init__(self, sensor_port, on_data_update):
         self._sensor_port_id = sensor_port.id

@@ -25,6 +25,7 @@ from revvy.scripting.robot_interface import MotorConstants
 from revvy.scripting.runtime import ScriptEvent, ScriptHandle, ScriptManager
 from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.stopwatch import Stopwatch
+from revvy.utils.subscription import DisposableArray
 
 class RevvyStatusCode(enum.IntEnum):
     """ Exit codes we used to tell the loader what happened """
@@ -62,7 +63,7 @@ class RobotManager:
 
         self._connected_device_name = ''
 
-        self._sensor_reading_subscriptions = []
+        self._sensor_data_subscriptions = DisposableArray()
 
         self._remote_controller = rc
         self._remote_controller_thread = create_remote_controller_thread(rcs)
@@ -77,7 +78,7 @@ class RobotManager:
         self._status_code = RevvyStatusCode.OK
         self.exited = Event()
 
-        self.__session_id = 0
+        self._session_id = 0
 
         self.on_joystick_action = self._remote_controller.on_joystick_action
 
@@ -98,19 +99,17 @@ class RobotManager:
         self.on(RobotEvent.MCU_TICK, lambda *args: self.process_autonomous_requests())
 
 
-    # WARNING: not used.
+    # TODO: not used.
     def validate_config_async(self, motors, sensors, motor_load_power,
         threshold, callback):
-        """ This does not seem to be used currently, consider removing the `run_in_background` when touching next time! """
         self.run_in_background(partial(self.validate_config, motors,
             sensors, motor_load_power, threshold, callback), '__on_validate_config_requested')
 
         self._log('Validation request: motors={}, sensors={},pwr:{},sen:{}'.format(
             motors, sensors, motor_load_power, threshold))
 
-    # WARNING: not used.
+    # TODO: not used.
     def validate_config(self, motors, sensors, motor_load_power, threshold, callback):
-        """ This does not seem to be used currently """
         self._log('validate req: motors={}, sensors={},pwr:{},sen:{}'.format(
             motors, sensors, motor_load_power, threshold))
 
@@ -147,10 +146,10 @@ class RobotManager:
 
         callback(success, motors_result, sensors_result)
 
-    # @deprecated - This is an obscure way of doing things, as it's not even showing
+    # This is an obscure way of doing things, as it's not even showing
     # the names, makes it hard to debug what's happening in the background.
     # It's linked with `run_in_background` function, and called for after configuration,
-    # on update, on config validation, on
+    # on update, on config validation. This is a bad pattern to be eliminated.
     def process_run_in_bg_requests(self):
         functions = self._background_fns
         self._background_fns = []
@@ -220,6 +219,7 @@ class RobotManager:
                 self._ping_robot()
             except TimeoutError:
                 pass  # FIXME somehow handle a dead MCU
+                      # I would add info on the main terminal screen.
 
             self._log('Connection to MCU established')
 
@@ -272,14 +272,13 @@ class RobotManager:
     def reset_configuration(self):
         """ When RC disconnects """
         self._robot.status.robot_status = RobotStatus.NotConfigured
-        self._remote_controller_thread.stop()
+        self._remote_controller_thread.stop().wait()
         self._scripts.stop_all_scripts()
         for scr in [self._scripts, self._bg_controlled_scripts]:
             scr.reset()
             scr.assign('Motor', MotorConstants)
             scr.assign('RingLed', RingLed)
 
-        self._remote_controller_thread.stop()
 
         for res in self._robot._resources.values():
             res.reset()
@@ -299,9 +298,9 @@ class RobotManager:
 
         self.reset_configuration()
 
-        self.__session_id += 1
-        self.trigger(RobotEvent.SESSION_ID_CHANGE, self.__session_id)
-        self._log(f"New Configuration with session ID: {self.__session_id}")
+        self._session_id += 1
+        self.trigger(RobotEvent.SESSION_ID_CHANGE, self._session_id)
+        self._log(f"New Configuration with session ID: {self._session_id}")
 
         self._robot.script_variables.reset()
 
@@ -333,11 +332,8 @@ class RobotManager:
             self._robot.drivetrain.add_right_motor(self._robot.motors[motor_id])
 
 
-        # Clear sensor reading subscriptions.
-        for reading_subscription in self._sensor_reading_subscriptions:
-            reading_subscription.dispose()
-
-        self._sensor_reading_subscriptions.clear()
+        # Dispose sensor reading subscriptions.
+        self._sensor_data_subscriptions.dispose()
 
         # Re-configure sensors, subscribe to their data's changes.
         for sensor_port in self._robot.sensors:
@@ -367,7 +363,7 @@ class RobotManager:
                     sensor_port, sensor_config,
                     lambda event_data: self.trigger(RobotEvent.SENSOR_VALUE_CHANGE, event_data))
 
-                self._sensor_reading_subscriptions.append(sensor_data_wrapper_subscription)
+                self._sensor_data_subscriptions.add(sensor_data_wrapper_subscription)
 
             # Also, I'd love to see all the robot status changes WITHIN the robot in one place,
             # most probably in the robot object.
