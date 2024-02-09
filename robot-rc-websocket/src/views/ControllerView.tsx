@@ -16,6 +16,7 @@ export default function ControllerView({
   const [orientation, setOrientation] = createSignal<Array<number>>()
   const [battery, setBattery] = createSignal<Array<number>>()
   const [buttonProgramStates, setButtonProgramStates] = createSignal<Array<int>>()
+  const [version, setVersion] = createSignal<string>()
 
   const buttons = [0, 1, 2, 3].map((i) => {
     let [get, set] = createSignal<boolean>(false)
@@ -37,6 +38,12 @@ export default function ControllerView({
           break
         case 'motor_change':
           setMotorAngles(data.data)
+          break
+        case 'version_info':
+          setVersion(Object.keys(data.data).map((k)=>`${k}: ${data.data[k]}`).join(' '))
+          break
+        case 'program_status_change':
+          buttons[data.data[0]].setStatus(data.data[1])
           break
         case 'program_status_change':
           buttons[data.data[0]].setStatus(data.data[1])
@@ -112,6 +119,7 @@ export default function ControllerView({
     <div>
       <h1>Controller</h1>
       <div class={styles.statuses}>
+        <span class={styles.status}>version: {version()}</span>
         <span class={styles.status}>orientation: {orientation()?.join(' ')}</span>
         <span class={styles.status}>battery: {battery()?.join(' ')}</span>
         <span class={styles.status}>motor angles: {motorAngles()?.join(' ')}</span>

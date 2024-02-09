@@ -10,10 +10,10 @@
     flex-direction: row;
     margin-bottom: 30px;
 }
-.status{ margin: 3px; padding: 10px; background: #eee}
+.status{ margin: 3px; padding: 10px; background: #eee7; color: white}
 
 .joystick{
-    background: #ccc;
+    background: var(--button-bg);
     border-radius: 100px;
     display: flex
 }
@@ -29,7 +29,8 @@
 }
 
 .log {
-    background: rgb(203, 223, 203)
+    background: var(--log-bg);
+    padding: 10px
 }
 
 .matrixRow {

@@ -5,6 +5,8 @@ import styles from './Config.module.css'
 import { RobotMessage, SocketWrapper } from '../utils/Communicator';
 import { uploadConfig } from '../utils/commands';
 import { BlocklyItem, DriveMode, RobotConfig, Sensor } from '../utils/Config';
+import CodeEditor from './CodeEditor';
+
 
 function CodeView({
   config, setConfig,
@@ -43,7 +45,24 @@ function CodeView({
 
   const updateConfigString = (e: Event) => setConfigString((e.target as HTMLTextAreaElement).value || '')
 
+  // function tabHandler (e: KeyboardEvent) {
+  //   const textarea = this
+  //   if (e.key === 'Tab') {
+  //     e.preventDefault(); // Prevent the default tab behavior (focus change)
+  //     const start = textarea.selectionStart;
+  //     const end = textarea.selectionEnd;
+
+  //     // Set the value of the textarea to: text before caret + tab + text after caret
+  //     textarea.value = textarea.value.substring(0, start) + '\t' + textarea.value.substring(end);
+
+  //     // Move the caret to the right of the inserted tab
+  //     textarea.selectionStart = textarea.selectionEnd = start + 1;
+  //   }
+  // }
+
   createEffect(() => setEditedCode(atob(edited()?.pythoncode || '')))
+
+  let editor
 
   return (
     <div >
@@ -54,6 +73,7 @@ function CodeView({
             <h4>Button Bindings</h4>
             <For each={config().blocklyList.filter((c) => !c.builtinScriptName)}>{(script, i) =>
               <div class={styles.clickable} classList={{ [styles.active]: editedIndex() === i() }} onClick={() => {
+                setEdited(null)
                 setEdited(script)
                 setEditedIndex(i)
                 setConfigString('')
@@ -82,7 +102,8 @@ function CodeView({
         <div class={styles.editor}></div>
         <Show when={edited() !== null}>
           {/* <h3>Edit Python Code for button {editedIndex()}</h3> */}
-          <textarea value={editedCode()} onchange={(e) => setEditedCode(e.target.value)}></textarea>
+          {/* <textarea value={editedCode()} onchange={(e) => setEditedCode(e.target.value)} onKeyDown={tabHandler}></textarea> */}
+          <CodeEditor value={editedCode} setValue={setEditedCode}></CodeEditor>
         </Show>
 
         <Show when={configString()}>
@@ -90,6 +111,7 @@ function CodeView({
             onChange={updateConfigString}
             onKeyUp={updateConfigString}
             ></textarea>
+            <div ref={editor}></div>
         </Show>
 
 

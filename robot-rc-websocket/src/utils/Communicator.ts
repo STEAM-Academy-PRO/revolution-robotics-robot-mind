@@ -79,10 +79,11 @@ export function connectToRobot(
             case 'program_status_change': break
             case 'motor_change': break
             case 'battery_change': break
-            // case 'battery_change': break
+            case 'version_info': break
             default:
                 console.warn(`[message] Data received from server: ${data.event}`, data.data);
-                log(data)
+
+                log(`${data.event}: ${JSON.stringify(data.data)}`)
         }
     })
     socket.on(WSEventType.onOpen, (e) => {

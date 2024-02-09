@@ -4,6 +4,8 @@ from enum import Enum
 import json
 import struct
 import threading
+from revvy.utils.version import VERSION
+
 import websockets
 
 from revvy.robot.robot_events import RobotEvent
@@ -14,7 +16,7 @@ from revvy.robot.rc_message_parser import parse_control_message
 from revvy.robot_config import RobotConfig
 
 from revvy.robot.remote_controller import RemoteControllerCommand
-from revvy.utils.logger import get_logger
+from revvy.utils.logger import LogLevel, get_logger
 
 log = get_logger('WebSocket')
 
@@ -74,7 +76,7 @@ class RobotWebSocketApi:
         if evt in send_control_events:
             self.send({
                 "event": evt,
-                "data": (data)
+                "data": data
             })
 
     def start(self):
@@ -104,9 +106,13 @@ class RobotWebSocketApi:
             # Initial state sends.
             self.send({
                 "event": RobotEvent.BATTERY_CHANGE,
-                "data": self._robot_manager._robot.battery
+                "data": self._robot_manager.robot.battery
             })
 
+            self.send({
+                "event": "version_info",
+                "data": VERSION.get()
+            })
 
             # Listen for incoming messages
             async for message_raw in websocket:
@@ -153,7 +159,8 @@ class RobotWebSocketApi:
             try:
                 asyncio.run_coroutine_threadsafe(ws.send(encode_data(message)), self._event_loop)
             except Exception as e:
-                log(f'send error {str(e)}')
+                log(f'send error {str(e)}', LogLevel.ERROR)
+                print (message)
                 log(f'{message}')
 
     def disconnect(self):
