@@ -271,14 +271,17 @@ class RobotManager:
 
     def reset_configuration(self):
         """ When RC disconnects """
+        self._log("RESET config")
         self._robot.status.robot_status = RobotStatus.NotConfigured
-        self._remote_controller_thread.stop().wait()
+        self._remote_controller_thread.stop()
+        self._log('RC stopped')
         self._scripts.stop_all_scripts()
         for scr in [self._scripts, self._bg_controlled_scripts]:
             scr.reset()
             scr.assign('Motor', MotorConstants)
             scr.assign('RingLed', RingLed)
 
+        self._remote_controller_thread.stop()
 
         for res in self._robot._resources.values():
             res.reset()
