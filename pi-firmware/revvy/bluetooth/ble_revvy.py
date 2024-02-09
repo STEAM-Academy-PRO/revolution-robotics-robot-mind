@@ -134,13 +134,10 @@ class RevvyBLE:
                 lambda ref, background_script_status_change:
                                self._live.update_state_control(background_script_status_change))
 
-        # Currently we are not doing anything in the app about
-        # the motor angle changes, no way to display, no way to interact.
-        # there is no point of sending it up.
-        # self._robot_manager.on(RobotEvent.MOTOR_CHANGE, self.update_motor)
+        self._robot_manager.on(RobotEvent.MOTOR_CHANGE, self.update_motor)
 
     def update_motor(self, ref, motor_angles: [int]):
-        """ Currently unused, as we are not doin anything with it in the app. """
+        """ Currently unused, as we are not doing anything with it in the app. """
         for angle, index in enumerate(motor_angles):
             self._live.update_motor(index, 0, 0, angle)
 
