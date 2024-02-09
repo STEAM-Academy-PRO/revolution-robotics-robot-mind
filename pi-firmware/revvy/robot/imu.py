@@ -48,7 +48,7 @@ class IMU:
         # print('update_yaw_angles', data)
 
     def update_axl_data(self, data):
-        """ LIS3MDL sensor configuration constants """
+        """ LSM6DS3H sensor configuration constants """
         self._acceleration = self._read_vector(data, 0.061)
         # print('update_axl_data', data, self._acceleration)
 
