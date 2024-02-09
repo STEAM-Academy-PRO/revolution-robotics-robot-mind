@@ -84,7 +84,7 @@ class RobotManager:
 
         self.handle_periodic_control_message = self._remote_controller_scheduler.periodic_control_message_handler
 
-        self._robot_state.on(RobotEvent.FATAL_ERROR, self.exit)
+        self._robot_state.on(RobotEvent.FATAL_ERROR, lambda *args: self.exit(RevvyStatusCode.ERROR))
 
         # Start reading status from the robot.
         self._robot_state.start_polling_mcu()
