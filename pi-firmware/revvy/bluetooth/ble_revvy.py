@@ -197,6 +197,6 @@ class RevvyBLE:
         self._robot_manager.robot_start()
 
     def stop(self):
-        """ Quiting the program """
+        """ Quit the program """
         self._bleno.stopAdvertising()
         self._bleno.disconnect()
