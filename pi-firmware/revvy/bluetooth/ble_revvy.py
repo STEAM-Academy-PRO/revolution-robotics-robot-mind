@@ -147,7 +147,7 @@ class RevvyBLE:
         self._robot_manager.on_connected(c)
 
     def _on_disconnect(self, *args):
-        """ Just reset the robot. """
+        """ When ble drops connection, call the robot manager's disconnect handler """
         log('BLE interface disconnected!')
         self._robot_manager.on_disconnected()
 
@@ -173,7 +173,7 @@ class RevvyBLE:
             self._bleno.stopAdvertising()
 
     def _start_advertising(self):
-        """ This is what makes the app list our robot, like an SSID for wifi """
+        """ This is what makes the app find the robot """
         self._log('Start advertising as {}'.format(get_device_name()))
         self._bleno.startAdvertising(get_device_name(), self._advertised_uuid_list)
 
