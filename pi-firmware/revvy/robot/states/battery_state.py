@@ -6,8 +6,8 @@ from revvy.utils.observable import Observable, SmoothingObservable
 
 class BatteryState(Observable):
     """ Manage and smoothen battery state level values """
-    def __init__(self):
-        super().__init__(throttle_interval=2)
+    def __init__(self, throttle_interval):
+        super().__init__(throttle_interval)
         # Battery gets checked every 5ms and it reads out a DAC value, which has plenty of noise.
         # To smoothen that out, here is a 10000 sized min calculator, meaning: takes every 5ms measurement,
         # puts it in an array, gets the min value, rounds it to disable flickering between values.

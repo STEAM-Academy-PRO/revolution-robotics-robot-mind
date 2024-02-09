@@ -40,7 +40,7 @@ class RobotState(Emitter[RobotEvent]):
 
         # Battery updates: every 2 seconds is enough, if it's unplugged, it's
         # soon enough to notify.
-        self._battery = BatteryState()
+        self._battery = BatteryState(throttle_interval=2)
 
         self._orientation = Observable([0]*3, throttle_interval=0.2)
 
