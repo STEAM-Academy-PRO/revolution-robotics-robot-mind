@@ -16,7 +16,7 @@ class Emitter(Generic[CustomEventType]):
         self._events_handlers: Dict[CustomEventType, List[Callable]] = {}
         self._all_handlers = []
 
-    def on(self, event: CustomEventType, callback):
+    def on(self, event: CustomEventType, callback: Callable):
         """ Subscribe to script runner events """
         if event == 'all':
             self._all_handlers.append(callback)
