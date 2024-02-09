@@ -16,8 +16,6 @@ from revvy.robot.status import RobotStatusIndicator, RobotStatus
 from revvy.robot.status_updater import McuStatusUpdater
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import RobotInterface
-from revvy.utils.assets import Assets
-from revvy.utils.directories import WRITEABLE_ASSETS_DIR
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.version import VERSION, Version
@@ -55,12 +53,6 @@ class Robot(RobotInterface):
 
         self._comm_interface = self._bus_factory()
 
-        self._assets = Assets()
-
-        # This both were called, I have no clue why.
-        self._assets.add_source(os.path.join('data', 'assets'))
-        self._assets.add_source(WRITEABLE_ASSETS_DIR)
-
         self._log = get_logger('Robot')
 
         self._script_variables = VariableSlot(4)
@@ -76,7 +68,7 @@ class Robot(RobotInterface):
         }
 
         self._ring_led = RingLed(self._robot_control)
-        self._sound = Sound(setup[VERSION.hw](), self._assets.category_loader('sounds'))
+        self._sound = Sound(setup[VERSION.hw]())
 
         self._status = RobotStatusIndicator(self._robot_control)
         self._status_updater = McuStatusUpdater(self._robot_control)
@@ -122,10 +114,6 @@ class Robot(RobotInterface):
     @property
     def script_variables(self):
         return self._script_variables
-
-    @property
-    def assets(self):
-        return self._assets
 
     @property
     def robot_control(self):
