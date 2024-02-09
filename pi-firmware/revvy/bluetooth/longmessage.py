@@ -398,9 +398,8 @@ def extract_asset_longmessage(storage, asset_dir):
 # Moved from main file, cleanup pending.
 class LongMessageImplementation:
     # TODO: this, together with the other long message classes is probably a lasagna worth simplifying
-    def __init__(self, robot_manager: RobotManager, storage: LongMessageStorage, asset_dir, ignore_config):
+    def __init__(self, robot_manager: RobotManager, storage: LongMessageStorage, asset_dir):
         self._robot_manager = robot_manager
-        self._ignore_config = ignore_config
         self._asset_dir = asset_dir
         self._progress = None
         self._storage = storage
@@ -408,24 +407,25 @@ class LongMessageImplementation:
         self._log = get_logger("LongMessageImplementation")
 
     def on_upload_started(self, message: ReceivedLongMessage):
-        """Visual indication that an upload has started
-
-        Requests LED ring change in the background"""
+        """
+            Visual indication that an upload has started.
+            Requests LED ring change in the background.
+        """
 
         message_type = message.message_type
         if message_type == LongMessageType.FRAMEWORK_DATA:
             self._progress = ProgressIndicator(self._robot_manager.robot.led, message.total_chunks, 0x00FF00, 0xFF00FF)
         else:
             self._progress = None
-            # Is this the right place to change the robot's inner state?
+            # TODO: Is this the right place to change the robot's inner state?
             self._robot_manager.robot.status.robot_status = RobotStatus.Configuring
 
     def on_upload_progress(self, message: ReceivedLongMessage):
-        """Indicate long message download progress"""
+        """ Indicate long message download progress """
         if self._progress:
             if message.total_chunks == 0:
                 # calculate approximate chunk count
-                expected_size = 250000 # LOL - the size could be in the first request message.
+                expected_size = 250000
                 chunk_size = len(message.data) / message.received_chunks
                 message.total_chunks = expected_size / chunk_size
                 self._progress.end = message.total_chunks
@@ -436,8 +436,8 @@ class LongMessageImplementation:
 
     def on_transmission_finished(self, message: ReceivedLongMessage):
         """
-            Visual indication that an upload has finished
-            Requests LED ring change in the background
+            Visual indication that an upload has finished.
+            Requests LED ring change in the background.
         """
 
         message_type = message.message_type
@@ -445,12 +445,12 @@ class LongMessageImplementation:
             if not message.is_valid:
                 self._log('Firmware update cancelled')
                 self._progress = None
-                ### Consider removing run_in_background.
+                # TODO: Consider removing run_in_background.
                 self._robot_manager.run_in_background(
                     partial(self._robot_manager.robot.led.start_animation, RingLed.BreathingGreen),
                     'LongMessageImplementation: on_transmission_finished: Firmware Update cancelled?')
         else:
-            # If there is more to come, we do not know how long it will take.
+            # Indicate exiting with the rainbow effect while the PI program exits.
             if self._progress:
                 self._progress.show_indeterminate_loading_on_led_ring()
 
@@ -460,13 +460,14 @@ class LongMessageImplementation:
             - TEST_KIT: for sensor tests or a
             - CONFIGURATION request (set up and enter play mode) or a
             - FRAMEWORK update that we need to install.
+            - ASSET_DATA add new sound to the repertoire
         """
         message_type = message.message_type
 
         self._log(f'Received message: {get_constant_name(message_type, LongMessageType)}')
 
         # On the configuration screen, when selecting a sensor, there is a TEST button
-        # on the bottom left, right next to DONE button. that is very hard to notice.
+        # on the right panel's bottom left, right next to DONE button. that is very hard to notice.
         # When that is pressed, custom test script is pushed down to the robot with this flag.
 
         if message_type == LongMessageType.TEST_KIT:
@@ -504,17 +505,12 @@ class LongMessageImplementation:
 
             try:
                 parsed_config = RobotConfig.from_string(message_data)
-
-                # TODO: Code smell: WHYY????
-                if self._ignore_config:
-                    self._log('New configuration ignored.')
-                else:
-                    self._robot_manager.robot_configure(parsed_config)
+                self._robot_manager.robot_configure(parsed_config)
             except ConfigError:
                 self._log(traceback.format_exc())
 
         elif message_type == LongMessageType.FRAMEWORK_DATA:
-            # TODO: Another outside call to robot_status.
+            # TODO: Eliminate calling robot status updates from the outside like this!
             self._robot_manager.robot.status.robot_status = RobotStatus.Updating
             self._progress.show_indeterminate_loading_on_led_ring()
             self._robot_manager.request_update()

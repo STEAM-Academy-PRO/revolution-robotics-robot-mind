@@ -52,7 +52,7 @@ class RevvyBLE:
         extract_asset_longmessage(long_message_storage, WRITEABLE_ASSETS_DIR)
         self.long_message_handler = LongMessageHandler(long_message_storage)
 
-        lmi = LongMessageImplementation(robot_manager, long_message_storage, WRITEABLE_ASSETS_DIR, False)
+        lmi = LongMessageImplementation(robot_manager, long_message_storage, WRITEABLE_ASSETS_DIR)
         self.long_message_handler.on_upload_started(lmi.on_upload_started)
         self.long_message_handler.on_upload_progress(lmi.on_upload_progress)
         self.long_message_handler.on_upload_finished(lmi.on_transmission_finished)

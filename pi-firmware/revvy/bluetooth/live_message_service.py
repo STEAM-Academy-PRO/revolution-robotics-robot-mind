@@ -243,7 +243,8 @@ class LiveMessageService(BlenoPrimaryService):
     def update_session_id(self, value):
         """ Send back session_id to mobile. """
         data = list(struct.pack('<I', value))
-        # WHAT are we using this for?
+        # TODO: Maybe this was supposed to be used for detecting MCU reset in the mobile, but
+        # currently it's not used.
         self._mobile_to_brain.update(data)
 
     def update_gyro(self, vector_list):
@@ -274,10 +275,10 @@ class LiveMessageService(BlenoPrimaryService):
             In the mobile app, this data shows up when we track variables.
             By characteristic protocol - maximum slots in BLE message is 4.
         """
-        MAX_VARIABLE_SLOTS = 4
 
-        if len(script_variables) != MAX_VARIABLE_SLOTS:
-            log("Script variable size mismatch", LogLevel.WARNING)
+        # I believe this should be a constant that's coming from one centralized place, rather
+        # be wired in here. If this script sends more variables, we'll never know.
+        MAX_VARIABLE_SLOTS = 4
 
         # Message format:
         # offset:  0    1  2  3  4    5  6  7  8    9  10 11 12   13 14 15 16
@@ -298,19 +299,22 @@ class LiveMessageService(BlenoPrimaryService):
         mask = 0
         valuebuf = b''
 
-        for index, variable_value in enumerate(script_variables):
-            if variable_value is not None:
-                mask = mask | (1 << index)
+        for slot_idx in range(MAX_VARIABLE_SLOTS):
+            v = script_variables.get_variable(slot_idx)
+            if v.is_valid() and v.value_is_set():
+                value = v.get_value()
+                mask = mask | (1 << slot_idx)
             else:
-                variable_value = 0.0
-            valuebuf += struct.pack('f', variable_value)
+                value = 0.0
+            valuebuf += struct.pack('f', value)
 
         maskbuf = struct.pack('B', mask)
         msg = maskbuf + valuebuf
+
         self._read_variable_characteristic[0].update(msg)
 
     def update_state_control(self, state):
-        """ Send back the background program's state. """
+        """ Send back the background programs' state. """
         log(f"state control update, {state}")
         data = list(struct.pack(">bl", 4, state))
         self._state_control_characteristic[0].update(data)
