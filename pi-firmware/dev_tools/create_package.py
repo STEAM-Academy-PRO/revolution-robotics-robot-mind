@@ -35,14 +35,9 @@ if __name__ == "__main__":
         # Generate empty manifest to allow editing files, do not install requirements at every packing.
         manifest_source = []
     else:
-        # Only download python packages on prod build
-        print('Downloading requirements')
-        os.popen('pip3 download -r install/requirements.txt -d install/packages --platform arm --no-deps').read()
-
         manifest_source = [
             'data/',
             'install/requirements.txt',
-            'install/packages/',
             'revvy/',
             'revvy.py'
         ]
@@ -53,7 +48,6 @@ if __name__ == "__main__":
     package_sources = [
         'revvy/',
         'install/requirements.txt',
-        'install/packages/',
         'data/',
         'revvy.py',
         '__init__.py',
@@ -70,10 +64,6 @@ if __name__ == "__main__":
     create_package(package_sources, package_path)
 
     shutil.copy(package_path, data_path)
-
-    if not args.dev:
-        print('Remove downloaded packages')
-        shutil.rmtree('install/packages')
 
     file_hash = file_hash(package_path)
     file_size = os.stat(package_path).st_size
