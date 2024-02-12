@@ -106,7 +106,7 @@ def add_component(g: Digraph, component_name, component_data):
         port_type_data = rt.port_types[port_data['port_type']]
         port_display_data = {'name': port_name, 'style': port_styles.get(port_data['port_type'], empty_style)}
 
-        if port_data['port_type'] == 'Runnable':
+        if port_data['port_type'] in ['Runnable', 'AsyncRunnable']:
             runnables.append(port_display_data)
         elif port_data['port_type'] in ['ServerCall', 'AsyncServerCall']:
             provider_ports.append(port_display_data)
@@ -233,9 +233,9 @@ def draw_global_graph(context, dirname, filename, ignored_components, display=Tr
     prepare_graph(g, context, components_to_draw, edges_to_draw, ignored_components)
 
     if display:
-        g.view(directory=dirname, cleanup=True)
+        g.view(directory=dirname, cleanup=False)
     else:
-        g.render(directory=dirname, cleanup=True)
+        g.render(directory=dirname, cleanup=False)
 
 
 if __name__ == "__main__":
