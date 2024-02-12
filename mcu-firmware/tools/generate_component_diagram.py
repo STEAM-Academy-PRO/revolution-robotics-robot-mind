@@ -4,70 +4,54 @@ import chevron
 from graphviz import Digraph
 
 from cglue.plugins.AsyncServerCalls import async_server_calls, AsyncServerCallSignal
-from cglue.plugins.BuiltinDataTypes import builtin_data_types, QueueSignal, ArraySignal, ConstantArraySignal, \
-    ConstantSignal, VariableSignal
+from cglue.plugins.BuiltinDataTypes import builtin_data_types
 from cglue.plugins.Locks import locks
 from cglue.plugins.ProjectConfigCompactor import project_config_compactor
-from cglue.plugins.RuntimeEvents import runtime_events, ServerCallSignal, EventSignal
+from cglue.plugins.RuntimeEvents import runtime_events, ServerCallSignal
 from cglue.plugins.UserCodePlugin import user_code_plugin
 from cglue.cglue import CGlue
 
 component_template = '''<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="5" STYLE="ROUNDED" BGCOLOR="#ffffff">
     <TR>
         <TD COLSPAN="2" BORDER="1" SIDES="B">
-            <FONT POINT-SIZE="22" FACE="Calibri">
-                <B>{{ component_name }}</B>
-            </FONT>
+            <FONT POINT-SIZE="22" FACE="Calibri"> <B>{{ component_name }}</B> </FONT>
         </TD>
     </TR>
     <TR>
         <TD>
             {{# has_consumers }}
-            <TABLE BORDER="0">
-            {{# has_runnables }}
-                <TR>
-                    <TD BORDER="0">
-                    <TABLE FIXEDSIZE="TRUE" WIDTH="0" HEIGHT="0" ALIGN="LEFT" BORDER="0" CELLBORDER="1" CELLSPACING="0">
-                        {{# runnables }}
-                        <TR>
-                            <TD PORT="C{{ component_name }}/{{ name }}" BGCOLOR="lightgrey">&gt;</TD>
-                            <TD ALIGN="LEFT" BGCOLOR="{{ style.bgcolor }}">
-                                <FONT COLOR="{{ style.color }}">{{ name }}</FONT>
-                            </TD>
-                        </TR>
-                        {{/ runnables }}
-                    </TABLE>
-                    </TD>
-                </TR>
-            {{/ has_runnables }}
-            {{# has_consumer_ports }}
-                <TR>
-                    <TD BORDER="0">
-                    <TABLE FIXEDSIZE="TRUE" WIDTH="0" HEIGHT="0" ALIGN="LEFT" BORDER="0" CELLBORDER="1" CELLSPACING="0">
-                        {{# consumer_ports }}
-                        <TR>
-                            <TD PORT="C{{ component_name }}/{{ name }}" BGCOLOR="lightgrey">&gt;</TD>
-                            <TD ALIGN="LEFT" BGCOLOR="{{ style.bgcolor }}"><FONT COLOR="{{ style.color }}">{{ name }}</FONT></TD>
-                        </TR>
-                        {{/ consumer_ports }}
-                    </TABLE>
-                    </TD>
-                </TR>
-            {{/ has_consumer_ports }}
+            <TABLE BORDER="0" FIXEDSIZE="TRUE" WIDTH="0" HEIGHT="0" ALIGN="LEFT" CELLBORDER="1" CELLSPACING="0">
+            {{# runnables }}
+            <TR>
+                <TD PORT="{{ name }}" BGCOLOR="lightgrey">&gt;</TD>
+                <TD ALIGN="LEFT" BGCOLOR="{{ style.bgcolor }}"> <FONT COLOR="{{ style.color }}">{{ name }}</FONT> </TD>
+            </TR>
+            {{/ runnables }}
+
+            {{# has_runnables_and_consumers }}
+                <TR><TD BORDER="0"></TD></TR>
+            {{/ has_runnables_and_consumers }}
+
+            {{# consumer_ports }}
+            <TR>
+                <TD PORT="{{ name }}" BGCOLOR="lightgrey">&gt;</TD>
+                <TD ALIGN="LEFT" BGCOLOR="{{ style.bgcolor }}"> <FONT COLOR="{{ style.color }}">{{ name }}</FONT> </TD>
+            </TR>
+            {{/ consumer_ports }}
             </TABLE>
             {{/ has_consumers }}
         </TD>
-        <TD VALIGN="TOP">
-            {{# has_provider_ports }}
+        <TD>
+            {{# has_providers }}
             <TABLE FIXEDSIZE="TRUE" WIDTH="0" HEIGHT="0" ALIGN="RIGHT" BORDER="0" CELLBORDER="1" CELLSPACING="0">
                 {{# provider_ports }}
                 <TR>
-                    <TD ALIGN="RIGHT" BGCOLOR="{{ style.bgcolor }}"><FONT COLOR="{{ style.color }}">{{ name }}</FONT></TD>
-                    <TD PORT="P{{ component_name }}/{{ name }}" BGCOLOR="lightgrey">&gt;</TD>
+                    <TD ALIGN="RIGHT" BGCOLOR="{{ style.bgcolor }}"> <FONT COLOR="{{ style.color }}">{{ name }}</FONT> </TD>
+                    <TD PORT="{{ name }}" BGCOLOR="lightgrey">&gt;</TD>
                 </TR>
                 {{/ provider_ports }}
             </TABLE>
-            {{/ has_provider_ports }}
+            {{/ has_providers }}
         </TD>
     </TR>
 </TABLE>>
@@ -106,7 +90,7 @@ def add_component(g: Digraph, component_name, component_data):
         port_type_data = rt.port_types[port_data['port_type']]
         port_display_data = {'name': port_name, 'style': port_styles.get(port_data['port_type'], empty_style)}
 
-        if port_data['port_type'] == 'Runnable':
+        if port_data['port_type'] in ['Runnable', 'AsyncRunnable']:
             runnables.append(port_display_data)
         elif port_data['port_type'] in ['ServerCall', 'AsyncServerCall']:
             provider_ports.append(port_display_data)
@@ -129,11 +113,10 @@ def add_component(g: Digraph, component_name, component_data):
         'provider_ports': provider_ports,
         'runnables': runnables,
 
-        'has_runnables': len(runnables) > 0,
-        'has_consumer_ports': len(consumer_ports) > 0,
-        'has_provider_ports': len(provider_ports) > 0,
+        'has_providers': len(provider_ports) > 0,
+        'has_consumers': len(runnables) + len(consumer_ports) > 0,
 
-        'has_consumers': len(runnables) + len(consumer_ports) > 0
+        'has_runnables_and_consumers': len(consumer_ports) > 0 and len(runnables) > 0
     }
 
     g.node(component_name, label=chevron.render(component_template, data=template_ctx))
@@ -155,18 +138,18 @@ def connections(signals):
             for signal in consumer_connections_list:
                 for consumer in signal.consumers:
                     if type(signal.signal) in invert_signals:
-                        yield consumer[0], provider_name, str(type(signal.signal))
+                        yield consumer[0], provider_name
                     else:
-                        yield provider_name, consumer[0], str(type(signal.signal))
+                        yield provider_name, consumer[0]
 
 
 def create_graph(filename, format):
     g = Digraph(engine='dot', filename=filename, format=format)
     g.attr('node', shape='plaintext')
+    g.attr('node', margin='0,0.5')
     g.attr('graph', rankdir='LR')
-    g.attr('graph', ranksep='3')
-    g.attr('graph', splines='polyline')
-    g.attr('graph', concentrate='true')
+    g.attr('graph', ranksep='4')
+    g.attr('graph', splines='spline')
     g.attr('graph', bgcolor='#fdf9f9')
     g.attr('graph', margin='0')
 
@@ -181,27 +164,15 @@ def prepare_graph(g, context, components_to_draw, edges_to_draw, ignored_compone
     if ignored_components is None:
         ignored_components = []
 
-    signal_styles = {
-        str(EventSignal): 'dot',
-        str(ServerCallSignal): 'odot',
-        str(AsyncServerCallSignal): 'obox',
-
-        str(VariableSignal): 'normal',
-        str(ArraySignal): 'inv',
-        str(QueueSignal): 'diamond',
-        str(ConstantSignal): 'empty',
-        str(ConstantArraySignal): 'invempty',
-    }
-
-    for provider_name, consumer_name, signal_type in edges_to_draw:
-        pc = provider_name.split('/')[0]
-        cc = consumer_name.split('/')[0]
-        if pc in ignored_components or cc in ignored_components:
+    for provider_name, consumer_name in edges_to_draw:
+        p_component, p_port = provider_name.split('/')
+        c_component, c_port = consumer_name.split('/')
+        if p_component in ignored_components or c_component in ignored_components:
             continue
         g.edge(
-            '{}:P{}:e'.format(pc, provider_name),
-            '{}:C{}:w'.format(cc, consumer_name),
-            arrowhead=signal_styles.get(signal_type, 'normal')
+            '{}:{}:e'.format(p_component, p_port),
+            '{}:{}:w'.format(c_component, c_port),
+            arrowhead='normal'
         )
 
 
@@ -210,13 +181,13 @@ def draw_single_component_graph(context, component, dirname, filename):
 
     components_to_draw = set()
     edges_to_draw = []
-    for provider_name, consumer_name, signal_type in connections(context['signals']):
+    for provider_name, consumer_name in connections(context['signals']):
         pc = provider_name.split('/')[0]
         cc = consumer_name.split('/')[0]
         if pc == component or cc == component:
             components_to_draw.add(pc)
             components_to_draw.add(cc)
-            edges_to_draw.append((provider_name, consumer_name, signal_type))
+            edges_to_draw.append((provider_name, consumer_name))
 
     prepare_graph(g, context, components_to_draw, edges_to_draw)
 
