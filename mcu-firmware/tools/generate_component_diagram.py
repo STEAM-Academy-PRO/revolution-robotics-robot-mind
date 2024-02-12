@@ -23,51 +23,40 @@ component_template = '''<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="5" STYLE=
     <TR>
         <TD>
             {{# has_consumers }}
-            <TABLE BORDER="0">
-            {{# has_runnables }}
-                <TR>
-                    <TD BORDER="0">
-                    <TABLE FIXEDSIZE="TRUE" WIDTH="0" HEIGHT="0" ALIGN="LEFT" BORDER="0" CELLBORDER="1" CELLSPACING="0">
-                        {{# runnables }}
-                        <TR>
-                            <TD PORT="C{{ component_name }}/{{ name }}" BGCOLOR="lightgrey">&gt;</TD>
-                            <TD ALIGN="LEFT" BGCOLOR="{{ style.bgcolor }}">
-                                <FONT COLOR="{{ style.color }}">{{ name }}</FONT>
-                            </TD>
-                        </TR>
-                        {{/ runnables }}
-                    </TABLE>
-                    </TD>
-                </TR>
-            {{/ has_runnables }}
-            {{# has_consumer_ports }}
-                <TR>
-                    <TD BORDER="0">
-                    <TABLE FIXEDSIZE="TRUE" WIDTH="0" HEIGHT="0" ALIGN="LEFT" BORDER="0" CELLBORDER="1" CELLSPACING="0">
-                        {{# consumer_ports }}
-                        <TR>
-                            <TD PORT="C{{ component_name }}/{{ name }}" BGCOLOR="lightgrey">&gt;</TD>
-                            <TD ALIGN="LEFT" BGCOLOR="{{ style.bgcolor }}"><FONT COLOR="{{ style.color }}">{{ name }}</FONT></TD>
-                        </TR>
-                        {{/ consumer_ports }}
-                    </TABLE>
-                    </TD>
-                </TR>
-            {{/ has_consumer_ports }}
+            <TABLE BORDER="0" FIXEDSIZE="TRUE" WIDTH="0" HEIGHT="0" ALIGN="LEFT" CELLBORDER="1" CELLSPACING="0">
+            {{# runnables }}
+            <TR>
+                <TD PORT="{{ name }}" BGCOLOR="lightgrey">&gt;</TD>
+                <TD ALIGN="LEFT" BGCOLOR="{{ style.bgcolor }}">
+                    <FONT COLOR="{{ style.color }}">{{ name }}</FONT>
+                </TD>
+            </TR>
+            {{/ runnables }}
+
+            {{# has_runnables_and_consumers }}
+                <TR><TD BORDER="0"></TD></TR>
+            {{/ has_runnables_and_consumers }}
+
+            {{# consumer_ports }}
+            <TR>
+                <TD PORT="{{ name }}" BGCOLOR="lightgrey">&gt;</TD>
+                <TD ALIGN="LEFT" BGCOLOR="{{ style.bgcolor }}"><FONT COLOR="{{ style.color }}">{{ name }}</FONT></TD>
+            </TR>
+            {{/ consumer_ports }}
             </TABLE>
             {{/ has_consumers }}
         </TD>
         <TD VALIGN="TOP">
-            {{# has_provider_ports }}
+            {{# has_providers }}
             <TABLE FIXEDSIZE="TRUE" WIDTH="0" HEIGHT="0" ALIGN="RIGHT" BORDER="0" CELLBORDER="1" CELLSPACING="0">
                 {{# provider_ports }}
                 <TR>
                     <TD ALIGN="RIGHT" BGCOLOR="{{ style.bgcolor }}"><FONT COLOR="{{ style.color }}">{{ name }}</FONT></TD>
-                    <TD PORT="P{{ component_name }}/{{ name }}" BGCOLOR="lightgrey">&gt;</TD>
+                    <TD PORT="{{ name }}" BGCOLOR="lightgrey">&gt;</TD>
                 </TR>
                 {{/ provider_ports }}
             </TABLE>
-            {{/ has_provider_ports }}
+            {{/ has_providers }}
         </TD>
     </TR>
 </TABLE>>
@@ -129,11 +118,10 @@ def add_component(g: Digraph, component_name, component_data):
         'provider_ports': provider_ports,
         'runnables': runnables,
 
-        'has_runnables': len(runnables) > 0,
-        'has_consumer_ports': len(consumer_ports) > 0,
-        'has_provider_ports': len(provider_ports) > 0,
+        'has_providers': len(provider_ports) > 0,
+        'has_consumers': len(runnables) + len(consumer_ports) > 0,
 
-        'has_consumers': len(runnables) + len(consumer_ports) > 0
+        'has_runnables_and_consumers': len(consumer_ports) > 0 and len(runnables) > 0
     }
 
     g.node(component_name, label=chevron.render(component_template, data=template_ctx))
@@ -166,7 +154,6 @@ def create_graph(filename, format):
     g.attr('graph', rankdir='LR')
     g.attr('graph', ranksep='3')
     g.attr('graph', splines='polyline')
-    g.attr('graph', concentrate='true')
     g.attr('graph', bgcolor='#fdf9f9')
     g.attr('graph', margin='0')
 
@@ -194,13 +181,13 @@ def prepare_graph(g, context, components_to_draw, edges_to_draw, ignored_compone
     }
 
     for provider_name, consumer_name, signal_type in edges_to_draw:
-        pc = provider_name.split('/')[0]
-        cc = consumer_name.split('/')[0]
-        if pc in ignored_components or cc in ignored_components:
+        p_component, p_port = provider_name.split('/')
+        c_component, c_port = consumer_name.split('/')
+        if p_component in ignored_components or c_component in ignored_components:
             continue
         g.edge(
-            '{}:P{}:e'.format(pc, provider_name),
-            '{}:C{}:w'.format(cc, consumer_name),
+            '{}:{}'.format(p_component, p_port),
+            '{}:{}'.format(c_component, c_port),
             arrowhead=signal_styles.get(signal_type, 'normal')
         )
 
@@ -233,9 +220,9 @@ def draw_global_graph(context, dirname, filename, ignored_components, display=Tr
     prepare_graph(g, context, components_to_draw, edges_to_draw, ignored_components)
 
     if display:
-        g.view(directory=dirname, cleanup=False)
+        g.view(directory=dirname, cleanup=True)
     else:
-        g.render(directory=dirname, cleanup=False)
+        g.render(directory=dirname, cleanup=True)
 
 
 if __name__ == "__main__":
