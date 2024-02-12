@@ -4,11 +4,10 @@ import chevron
 from graphviz import Digraph
 
 from cglue.plugins.AsyncServerCalls import async_server_calls, AsyncServerCallSignal
-from cglue.plugins.BuiltinDataTypes import builtin_data_types, QueueSignal, ArraySignal, ConstantArraySignal, \
-    ConstantSignal, VariableSignal
+from cglue.plugins.BuiltinDataTypes import builtin_data_types
 from cglue.plugins.Locks import locks
 from cglue.plugins.ProjectConfigCompactor import project_config_compactor
-from cglue.plugins.RuntimeEvents import runtime_events, ServerCallSignal, EventSignal
+from cglue.plugins.RuntimeEvents import runtime_events, ServerCallSignal
 from cglue.plugins.UserCodePlugin import user_code_plugin
 from cglue.cglue import CGlue
 
