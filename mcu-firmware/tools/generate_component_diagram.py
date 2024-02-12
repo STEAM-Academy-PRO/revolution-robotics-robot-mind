@@ -265,7 +265,7 @@ if __name__ == "__main__":
 
     # render
     if '/' in args.output:
-        dirname, filename = args.output.rsplit('/', 2)
+        dirname, filename = args.output.rsplit('/', 1)
     else:
         dirname = '.'
         filename = args.output

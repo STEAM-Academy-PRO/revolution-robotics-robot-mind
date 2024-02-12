@@ -33,9 +33,9 @@
         {
             "label": "generate documentation",
             "type": "shell",
-            "command": "${config:python.pythonPath.linux} -m tools.generate_component_diagram --ignore-components=Runtime --output=docs/map --display",
+            "command": "${config:python.pythonPath.linux} -m tools.generate_component_diagram --ignore-components=Runtime --output=Build/output/map --display",
             "windows": {
-                "command": "${config:python.pythonPath.windows} -m tools.generate_component_diagram --ignore-components=Runtime --output=docs/map --display"
+                "command": "${config:python.pythonPath.windows} -m tools.generate_component_diagram --ignore-components=Runtime --output=Build/output/map --display"
             },
             "problemMatcher": []
         },
