@@ -143,17 +143,18 @@ def connections(signals):
             for signal in consumer_connections_list:
                 for consumer in signal.consumers:
                     if type(signal.signal) in invert_signals:
-                        yield consumer[0], provider_name, str(type(signal.signal))
+                        yield consumer[0], provider_name
                     else:
-                        yield provider_name, consumer[0], str(type(signal.signal))
+                        yield provider_name, consumer[0]
 
 
 def create_graph(filename, format):
     g = Digraph(engine='dot', filename=filename, format=format)
     g.attr('node', shape='plaintext')
+    g.attr('node', margin='0,0.5')
     g.attr('graph', rankdir='LR')
-    g.attr('graph', ranksep='3')
-    g.attr('graph', splines='polyline')
+    g.attr('graph', ranksep='4')
+    g.attr('graph', splines='spline')
     g.attr('graph', bgcolor='#fdf9f9')
     g.attr('graph', margin='0')
 
@@ -168,27 +169,15 @@ def prepare_graph(g, context, components_to_draw, edges_to_draw, ignored_compone
     if ignored_components is None:
         ignored_components = []
 
-    signal_styles = {
-        str(EventSignal): 'dot',
-        str(ServerCallSignal): 'odot',
-        str(AsyncServerCallSignal): 'obox',
-
-        str(VariableSignal): 'normal',
-        str(ArraySignal): 'inv',
-        str(QueueSignal): 'diamond',
-        str(ConstantSignal): 'empty',
-        str(ConstantArraySignal): 'invempty',
-    }
-
-    for provider_name, consumer_name, signal_type in edges_to_draw:
+    for provider_name, consumer_name in edges_to_draw:
         p_component, p_port = provider_name.split('/')
         c_component, c_port = consumer_name.split('/')
         if p_component in ignored_components or c_component in ignored_components:
             continue
         g.edge(
-            '{}:{}'.format(p_component, p_port),
-            '{}:{}'.format(c_component, c_port),
-            arrowhead=signal_styles.get(signal_type, 'normal')
+            '{}:{}:e'.format(p_component, p_port),
+            '{}:{}:w'.format(c_component, c_port),
+            arrowhead='normal'
         )
 
 
@@ -197,13 +186,13 @@ def draw_single_component_graph(context, component, dirname, filename):
 
     components_to_draw = set()
     edges_to_draw = []
-    for provider_name, consumer_name, signal_type in connections(context['signals']):
+    for provider_name, consumer_name in connections(context['signals']):
         pc = provider_name.split('/')[0]
         cc = consumer_name.split('/')[0]
         if pc == component or cc == component:
             components_to_draw.add(pc)
             components_to_draw.add(cc)
-            edges_to_draw.append((provider_name, consumer_name, signal_type))
+            edges_to_draw.append((provider_name, consumer_name))
 
     prepare_graph(g, context, components_to_draw, edges_to_draw)
 
