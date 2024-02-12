@@ -15,9 +15,7 @@ from cglue.cglue import CGlue
 component_template = '''<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="5" STYLE="ROUNDED" BGCOLOR="#ffffff">
     <TR>
         <TD COLSPAN="2" BORDER="1" SIDES="B">
-            <FONT POINT-SIZE="22" FACE="Calibri">
-                <B>{{ component_name }}</B>
-            </FONT>
+            <FONT POINT-SIZE="22" FACE="Calibri"> <B>{{ component_name }}</B> </FONT>
         </TD>
     </TR>
     <TR>
@@ -27,9 +25,7 @@ component_template = '''<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="5" STYLE=
             {{# runnables }}
             <TR>
                 <TD PORT="{{ name }}" BGCOLOR="lightgrey">&gt;</TD>
-                <TD ALIGN="LEFT" BGCOLOR="{{ style.bgcolor }}">
-                    <FONT COLOR="{{ style.color }}">{{ name }}</FONT>
-                </TD>
+                <TD ALIGN="LEFT" BGCOLOR="{{ style.bgcolor }}"> <FONT COLOR="{{ style.color }}">{{ name }}</FONT> </TD>
             </TR>
             {{/ runnables }}
 
@@ -40,18 +36,18 @@ component_template = '''<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="5" STYLE=
             {{# consumer_ports }}
             <TR>
                 <TD PORT="{{ name }}" BGCOLOR="lightgrey">&gt;</TD>
-                <TD ALIGN="LEFT" BGCOLOR="{{ style.bgcolor }}"><FONT COLOR="{{ style.color }}">{{ name }}</FONT></TD>
+                <TD ALIGN="LEFT" BGCOLOR="{{ style.bgcolor }}"> <FONT COLOR="{{ style.color }}">{{ name }}</FONT> </TD>
             </TR>
             {{/ consumer_ports }}
             </TABLE>
             {{/ has_consumers }}
         </TD>
-        <TD VALIGN="TOP">
+        <TD>
             {{# has_providers }}
             <TABLE FIXEDSIZE="TRUE" WIDTH="0" HEIGHT="0" ALIGN="RIGHT" BORDER="0" CELLBORDER="1" CELLSPACING="0">
                 {{# provider_ports }}
                 <TR>
-                    <TD ALIGN="RIGHT" BGCOLOR="{{ style.bgcolor }}"><FONT COLOR="{{ style.color }}">{{ name }}</FONT></TD>
+                    <TD ALIGN="RIGHT" BGCOLOR="{{ style.bgcolor }}"> <FONT COLOR="{{ style.color }}">{{ name }}</FONT> </TD>
                     <TD PORT="{{ name }}" BGCOLOR="lightgrey">&gt;</TD>
                 </TR>
                 {{/ provider_ports }}
