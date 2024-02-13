@@ -1,5 +1,5 @@
 from revvy.robot.ports.motors.dc_motor import DcMotorController
-from revvy.robot.ports.sensors.simple import hcsr04, bumper_switch, softeq_cs
+from revvy.robot.ports.sensors.simple import BumperSwitch, Hcsr04, ColorSensor
 
 
 class Motors:
@@ -29,16 +29,17 @@ class Motors:
     }
 
 
+# TODO: named tuples instead of dicts
 class Sensors:
     Ultrasonic = {
-        'driver': hcsr04,
+        'driver': Hcsr04,
         'config': {}
     }
     BumperSwitch = {
-        'driver': bumper_switch,
+        'driver': BumperSwitch,
         'config': {}
     }
     SofteqCS = {
-        'driver': softeq_cs,
+        'driver': ColorSensor,
         'config': {}
     }

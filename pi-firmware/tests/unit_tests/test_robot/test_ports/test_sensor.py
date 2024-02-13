@@ -4,8 +4,7 @@ import unittest
 from mock import Mock
 
 from revvy.robot.ports.common import PortInstance
-from revvy.robot.ports.sensor import SensorPortHandler
-from revvy.robot.ports.sensors.base import BaseSensorPortDriver
+from revvy.robot.ports.sensors.base import SensorPortHandler
 
 
 class TestSensorPortHandler(unittest.TestCase):
@@ -72,15 +71,3 @@ def create_port():
     port.interface.get_sensor_port_value = Mock()
 
     return port
-
-
-class TestBaseSensorPortDriver(unittest.TestCase):
-
-    def test_port_has_no_data_before_first_read(self):
-        port = create_port()
-
-        sensor = BaseSensorPortDriver("driver_name", port)
-        port.interface.get_sensor_port_value.return_value = [1, 2, 3, 4]
-        sensor.convert_sensor_value = Mock(return_value=5)
-
-        self.assertFalse(sensor.has_data)

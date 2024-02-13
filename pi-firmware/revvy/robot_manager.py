@@ -417,7 +417,7 @@ class RobotManager:
         self.trigger(RobotEvent.PROGRAM_STATUS_CHANGE,
                      ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.STOP))
 
-    def robot_stop(self, *args):
+    def robot_stop(self):
         """ On exiting let's reset all states. """
         self._robot_state.stop_polling_mcu()
         self._robot.status.controller_status = RemoteControllerStatus.NotConnected
@@ -435,7 +435,6 @@ class RobotManager:
         while retry_ping:
             retry_ping = False
             try:
-                self._log('.')
                 self._robot.ping()
             except (BrokenPipeError, IOError, OSError):
                 retry_ping = True

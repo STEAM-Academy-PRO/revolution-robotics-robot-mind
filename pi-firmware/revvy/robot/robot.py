@@ -8,7 +8,7 @@ from revvy.robot.imu import IMU
 from revvy.robot.led_ring import RingLed
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motor import MotorPortHandler
-from revvy.robot.ports.sensor import SensorPortHandler
+from revvy.robot.ports.sensors.base import SensorPortHandler
 from revvy.robot.sound import Sound
 from revvy.robot.status import RobotStatusIndicator, RobotStatus
 from revvy.robot.status_updater import McuStatusUpdater
