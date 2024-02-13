@@ -3,7 +3,7 @@ from enum import Enum
 from functools import partial
 
 from revvy.robot.ports.common import PortInstance, PortDriver
-from revvy.robot.ports.motor import MotorConstants
+from revvy.robot.ports.motors.base import MotorConstants
 from revvy.utils.awaiter import AwaiterImpl, Awaiter
 from revvy.utils.functions import clip
 

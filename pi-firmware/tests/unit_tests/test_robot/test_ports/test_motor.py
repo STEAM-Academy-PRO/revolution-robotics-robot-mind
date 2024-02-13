@@ -5,7 +5,7 @@ from unittest.mock import call
 from mock import Mock
 
 from revvy.robot.ports.common import PortInstance, PortDriver
-from revvy.robot.ports.motor import MotorPortHandler
+from revvy.robot.ports.motors.base import MotorPortHandler
 from revvy.robot.ports.motors.dc_motor import DcMotorController
 
 

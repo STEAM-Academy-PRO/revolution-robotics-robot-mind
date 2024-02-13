@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 from revvy.robot.configurations import Motors, Sensors
 from revvy.robot.led_ring import RingLed
-from revvy.robot.ports.motor import MotorConstants
+from revvy.robot.ports.motors.base import MotorConstants
 from revvy.robot.sound import Sound
 from revvy.scripting.resource import Resource
 from revvy.scripting.color_functions import rgb_to_hsv_gray,\
