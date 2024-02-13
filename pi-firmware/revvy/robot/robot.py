@@ -1,10 +1,7 @@
-
-import os
-
 from functools import partial
+from typing import NamedTuple
 
 from revvy.hardware_dependent.sound import SoundControlV1, SoundControlV2
-from revvy.mcu.commands import BatteryStatus
 from revvy.mcu.rrrc_control import RevvyTransportBase
 from revvy.robot.drivetrain import DifferentialDrivetrain
 from revvy.robot.imu import IMU
@@ -37,6 +34,13 @@ def to_sensor_type_index(expected_sensor):
     if expected_sensor == SENSOR_ON_PORT_RGB:
         return 3
     return None
+
+
+class BatteryStatus(NamedTuple):
+    chargerStatus: int
+    motor_battery_present: int
+    main: int
+    motor: int
 
 
 class Robot(RobotInterface):
@@ -73,7 +77,12 @@ class Robot(RobotInterface):
 
         self._status = RobotStatusIndicator(self._robot_control)
         self._status_updater = McuStatusUpdater(self._robot_control)
-        self._battery = BatteryStatus(0, 0, 0, 0)
+        self._battery = BatteryStatus(
+            chargerStatus=0,
+            motor_battery_present=0,
+            main=0,
+            motor=0
+        )
 
         self._imu = IMU()
 
