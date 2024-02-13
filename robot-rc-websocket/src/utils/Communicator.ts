@@ -5,7 +5,7 @@ import { RobotConfig } from "./Config";
 const PORT = 8765
 
 export type SocketWrapper = {
-    send: (type: RobotMessage, message: any) => void
+    send: (type: RobotMessage, message?: any) => void
     close: () => void
     on: (type: WSEventType, callback: WSEventCallback) => void
 }
@@ -19,7 +19,9 @@ export enum WSEventType {
 
 export enum RobotMessage {
     configure = 'configure',
-    control = 'control'
+    control = 'control',
+    startCamera = 'camera_start',
+    stopCamera = 'camera_stop',
 }
 
 export type WSEventResult = string | Event | boolean | undefined
@@ -57,8 +59,10 @@ export function connectSocket(ip: string): SocketWrapper {
         emitter.emit(WSEventType.onError, e)
     };
     return {
-        send: (type: RobotMessage, msg: any) =>
-            socket.send(JSON.stringify({ type, body: msg })),
+        send: (type: RobotMessage, msg: any) => {
+            if(type!== RobotMessage.control) console.log('send', type, msg)
+            return socket.send(JSON.stringify({ type, body: msg }))
+        },
         close: () => socket.close(),
         on: emitter.on
     }
@@ -70,16 +74,18 @@ export function connectToRobot(
     endpoint: Accessor<string>,
     configString: Accessor<RobotConfig>,
     log: (msg: any) => void) {
-        log(`Connecting to ${endpoint()}`)
+    log(`Connecting to ${endpoint()}`)
     setConnLoading(true)
     const socket = connectSocket(endpoint())
     socket.on(WSEventType.onMessage, (data) => {
-        switch (data.event){
+        switch (data.event) {
             case 'orientation_change': break
             case 'program_status_change': break
             case 'motor_change': break
             case 'battery_change': break
             case 'version_info': break
+            case 'camera_started': break
+            case 'camera_stopped': break
             default:
                 console.warn(`[message] Data received from server: ${data.event}`, data.data);
 

@@ -5,6 +5,12 @@
     width: 100%;
 }
 
+.camera{
+    max-height: 600px;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
 .statuses{
     display: flex;
     flex-direction: row;
@@ -15,13 +21,15 @@
 .joystick{
     background: var(--button-bg);
     border-radius: 100px;
-    display: flex
+    display: flex;
+    height: 200px;
 }
 
 
 .placeholder{
     display: flex;
     flex-grow: 1;
+    position: relative;
 }
 
 .controllerButtons{
@@ -58,3 +66,9 @@
   .buttonRunning{ box-shadow: 0 0 0 4px rgba(57, 255, 57, 1); transition: all 0.1s ease; }
   .buttonError{ box-shadow: 0 0 0 4px rgba(255, 37, 37, 1); transition: all 0.1s ease; }
 
+.cameraOn{}
+.cameraOff{}
+.cameraButtonWrapper{
+    position: absolute;
+    top: 0px; left: 0px; width: 100%
+}

@@ -4,6 +4,7 @@ from enum import Enum
 import json
 import struct
 import threading
+from revvy.api.camera import Camera
 from revvy.utils.version import VERSION
 
 import websockets
@@ -30,7 +31,10 @@ send_control_events = [RobotEvent.BATTERY_CHANGE,
                   RobotEvent.SCRIPT_VARIABLE_CHANGE,
                   RobotEvent.PROGRAM_STATUS_CHANGE,
                   RobotEvent.MOTOR_CHANGE,
-                  RobotEvent.SENSOR_VALUE_CHANGE
+                  RobotEvent.SENSOR_VALUE_CHANGE,
+                  RobotEvent.CAMERA_STARTED,
+                  RobotEvent.CAMERA_STOPPED,
+                  RobotEvent.CAMERA_ERROR
                   ]
 
 ignore_log_events = [
@@ -67,6 +71,11 @@ class RobotWebSocketApi:
         self._connections = []
         self.thread()
         self._event_loop = None
+
+        # Loosely connected module, so I do not write the camera
+        # into the robot manager, as it's not currently used in prod.
+        # Sends events through robot state!
+        self._camera = Camera(robot_manager._robot_state.trigger)
 
         robot_manager.on("all", self.all_event_capture)
 
@@ -123,6 +132,12 @@ class RobotWebSocketApi:
                 message_type = message["type"]
 
                 try:
+                    if message_type == 'camera_start':
+                        self._camera.start()
+
+                    if message_type == 'camera_stop':
+                        self._camera.stop()
+
                     if message_type == 'configure':
                         log(f'Incoming Configuration Message: [{message_type}]')
 

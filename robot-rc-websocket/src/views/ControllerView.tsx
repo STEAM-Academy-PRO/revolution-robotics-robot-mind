@@ -4,18 +4,19 @@ import { Position } from '../utils/Position';
 import { mapAnalogNormal, toByte } from '../utils/mapping';
 import { Joystick } from '../components/Joystick';
 import styles from './Controller.module.css'
+import { CameraView } from './CameraView';
 
 export default function ControllerView({
   conn, isActive,
-  log, setLog
+  log, setLog,
+  endpoint
 }: {
   conn: Accessor<SocketWrapper | null>, isActive: Accessor<boolean>,
-  log: Accessor<string>, setLog: Setter<string>
+  log: Accessor<string>, setLog: Setter<string>, endpoint: Accessor<string>
 }) {
 
   const [orientation, setOrientation] = createSignal<Array<number>>()
   const [battery, setBattery] = createSignal<Array<number>>()
-  const [buttonProgramStates, setButtonProgramStates] = createSignal<Array<int>>()
   const [version, setVersion] = createSignal<string>()
 
   const buttons = [0, 1, 2, 3].map((i) => {
@@ -117,6 +118,7 @@ export default function ControllerView({
 
   return (
     <div>
+
       <h1>Controller</h1>
       <div class={styles.statuses}>
         <span class={styles.status}>version: {version()}</span>
@@ -128,7 +130,9 @@ export default function ControllerView({
         <div class={styles.joystick}>
           <Joystick position={position}></Joystick>
         </div>
-        <div class={styles.placeholder}></div>
+        <div class={styles.placeholder}>
+          <CameraView conn={conn} endpoint={endpoint} />
+        </div>
         <div class={styles.controllerButtons}>
           <Buttons list={buttons} />
         </div>
@@ -156,6 +160,7 @@ function Button({ label, setter, getter, status }:
       [styles.buttonError]: status() === 2,
       [styles.buttonRunning]: status() === 1
     }}
+    onTouchStart={() => setter(true)} onTouchEnd={() => setter(false)}
     onMouseDown={() => setter(true)} onMouseUp={() => setter(false)}>{label}</button>
 }
 

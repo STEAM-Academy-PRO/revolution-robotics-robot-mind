@@ -25,6 +25,9 @@ class RobotEvent:
     SESSION_ID_CHANGE="session_id_change"
     STOPPED="stopped"
 
+    CAMERA_STARTED="camera_started"
+    CAMERA_STOPPED="camera_stopped"
+    CAMERA_ERROR="camera_error"
 
 
 class ProgramStatusChange(NamedTuple):

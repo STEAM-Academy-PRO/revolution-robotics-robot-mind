@@ -60,7 +60,7 @@ function App() {
     {
       id: 'play',
       label: 'Play',
-      children: <ControllerView conn={conn} isActive={isActive} log={_log} setLog={setLog}/>
+      children: <ControllerView conn={conn} isActive={isActive} log={_log} setLog={setLog} endpoint={endpoint}/>
     },
     {
       id: 'connect',
