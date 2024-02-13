@@ -15,7 +15,11 @@ class Sound:
 
         # Load sounds from the assets folder.
         self._assets = Assets()
+
+        # Package sounds
         self._assets.add_source(os.path.join('data', 'assets'))
+
+        # User can upload  their own sounds in the writeable assets folder.
         self._assets.add_source(WRITEABLE_ASSETS_DIR)
 
         self._get_sound_path = self._assets.category_loader('sounds')

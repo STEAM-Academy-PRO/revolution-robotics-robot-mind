@@ -8,7 +8,7 @@ from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_DONE,
 from revvy.robot.rc_message_parser import parse_control_message
 from revvy.robot_manager import RobotManager
 
-from revvy.utils.logger import LogLevel, get_logger
+from revvy.utils.logger import get_logger
 
 from revvy.robot.remote_controller import RemoteControllerCommand
 
@@ -243,7 +243,7 @@ class LiveMessageService(BlenoPrimaryService):
     def update_session_id(self, value):
         """ Send back session_id to mobile. """
         data = list(struct.pack('<I', value))
-        # TODO: Maybe this was supposed to be used for detecting MCU reset in the mobile, but
+        # Maybe this was supposed to be used for detecting MCU reset in the mobile, but
         # currently it's not used.
         self._mobile_to_brain.update(data)
 
@@ -300,9 +300,8 @@ class LiveMessageService(BlenoPrimaryService):
         valuebuf = b''
 
         for slot_idx in range(MAX_VARIABLE_SLOTS):
-            v = script_variables.get_variable(slot_idx)
-            if v.is_valid() and v.value_is_set():
-                value = v.get_value()
+            value = script_variables[slot_idx]
+            if (value):
                 mask = mask | (1 << slot_idx)
             else:
                 value = 0.0

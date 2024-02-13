@@ -53,15 +53,11 @@ class RobotManager:
         self._configuring = False
         self._robot = Robot()
 
-        self._background_fns = []
-
         rc = RemoteController()
         rcs = RemoteControllerScheduler(rc)
         rcs.on_controller_detected(self._on_controller_detected)
         rcs.on_controller_lost(self._on_controller_lost)
         self._remote_controller_scheduler = rcs
-
-        self._connected_device_name = ''
 
         self._sensor_data_subscriptions = DisposableArray()
 
@@ -92,18 +88,15 @@ class RobotManager:
         self.on = self._robot_state.on
         self.trigger = self._robot_state.trigger
 
-        # TODO: This is temporary until I figure out WHY we need to run this every 5ms
-        # Manages the variable readings bubbling to the interface.
-        self.on(RobotEvent.MCU_TICK, lambda *args: self.process_run_in_bg_requests())
-
         self.on(RobotEvent.MCU_TICK, lambda *args: self.process_autonomous_requests())
 
 
     # TODO: not used.
     def validate_config_async(self, motors, sensors, motor_load_power,
         threshold, callback):
-        self.run_in_background(partial(self.validate_config, motors,
-            sensors, motor_load_power, threshold, callback), '__on_validate_config_requested')
+        # TODO: no longer run in background.
+        #self.run_in_background(partial(self.validate_config, motors,
+        #    sensors, motor_load_power, threshold, callback), '__on_validate_config_requested')
 
         self._log('Validation request: motors={}, sensors={},pwr:{},sen:{}'.format(
             motors, sensors, motor_load_power, threshold))
@@ -145,17 +138,6 @@ class RobotManager:
             sensors_result.append(tested_type)
 
         callback(success, motors_result, sensors_result)
-
-    # This is an obscure way of doing things, as it's not even showing
-    # the names, makes it hard to debug what's happening in the background.
-    # It's linked with `run_in_background` function, and called for after configuration,
-    # on update, on config validation. This is a bad pattern to be eliminated.
-    def process_run_in_bg_requests(self):
-        functions = self._background_fns
-        self._background_fns = []
-        for i, f in enumerate(functions):
-            self._log(f'Running {i}/{len(functions)} background functions')
-            f()
 
     # Not sure if this is the right place for this. Maybe an autonomous handler should
     # be linked with the robot's state handler.
@@ -200,16 +182,6 @@ class RobotManager:
         self.exited.wait()
         return self._status_code
 
-    def request_update(self):
-        """ This is a fairly important function, would loved to have tests! """
-        def update():
-            self._log('Exiting to update')
-            time.sleep(1)
-            self.exit(RevvyStatusCode.UPDATE_REQUEST)
-
-        # WHY would this run as background process???
-        self.run_in_background(update, 'updater')
-
     def robot_start(self):
         if self._robot.status.robot_status == RobotStatus.StartingUp:
             self._log('Waiting for MCU')
@@ -224,26 +196,15 @@ class RobotManager:
         self._robot.status.robot_status = RobotStatus.NotConfigured
         self._robot.play_tune('robot2')
 
-    # This is generally a pretty bad pattern, as anything that we want to run in the background
-    # should have their own lifecycle, this obscures where things were created and called from.
-    # I am leaving it in as it's used by multiple things we do not have tests for.
-    def run_in_background(self, callback, name=''):
-        if callable(callback):
-            self._log(f'DEPRECATED: Registering new background function {name}', LogLevel.WARNING)
-            self._background_fns.append(callback)
-        else:
-            raise ValueError('callback is not callable')
-
     def on_connected(self, device_name):
         """ When interface connects """
-        self._connected_device_name = device_name
         self._log(f"{device_name} device connected!")
         self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
         self._robot.play_tune('bell')
 
     def on_disconnected(self):
         """ Reset, play tune """
-        self._log(f"Device disconnected: {self._connected_device_name}")
+        self._log("Device disconnected!")
         self._robot.status.controller_status = RemoteControllerStatus.NotConnected
         self._robot.play_tune('disconnect')
         self.reset_configuration()
@@ -267,7 +228,6 @@ class RobotManager:
         """ When RC disconnects """
         self._log("RESET config")
         self._robot.status.robot_status = RobotStatus.NotConfigured
-        self._remote_controller_thread.stop()
         self._log('RC stopped')
         self._scripts.stop_all_scripts()
         for scr in [self._scripts, self._bg_controlled_scripts]:

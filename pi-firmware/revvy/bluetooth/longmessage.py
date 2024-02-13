@@ -6,6 +6,7 @@ import io
 import os
 import tarfile
 import shutil
+import threading
 import traceback
 import hashlib
 import struct
@@ -23,7 +24,7 @@ from revvy.utils.functions import str_to_func
 
 from revvy.robot.led_ring import RingLed
 from revvy.robot.status import RobotStatus
-from revvy.robot_manager import RobotManager
+from revvy.robot_manager import RevvyStatusCode, RobotManager
 from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
 
 from revvy.scripting.runtime import ScriptDescriptor, ScriptEvent
@@ -445,10 +446,7 @@ class LongMessageImplementation:
             if not message.is_valid:
                 self._log('Firmware update cancelled')
                 self._progress = None
-                # TODO: Consider removing run_in_background.
-                self._robot_manager.run_in_background(
-                    partial(self._robot_manager.robot.led.start_animation, RingLed.BreathingGreen),
-                    'LongMessageImplementation: on_transmission_finished: Firmware Update cancelled?')
+                self._robot_manager.robot.led.start_animation(RingLed.BreathingGreen)
         else:
             # Indicate exiting with the rainbow effect while the PI program exits.
             if self._progress:
@@ -492,10 +490,7 @@ class LongMessageImplementation:
             handle.on(ScriptEvent.ERROR, lambda ref, ex: self._log(f'{str(ex)}', LogLevel.ERROR))
 
             # Run test in new thread.
-            # This seems to kill the robot after the tests ran, and I have no clue why.
-            # Next session, it wasn't working, now at least the test starts running.
-            self._robot_manager.run_in_background(handle.start,
-                        'LongMessageImplementation: on_message_updated start_script()')
+            handle.start()
 
         # Configuration request: how to set up ports, button bindings,
         # background scripts, then starting the remote!
@@ -513,7 +508,12 @@ class LongMessageImplementation:
             # TODO: Eliminate calling robot status updates from the outside like this!
             self._robot_manager.robot.status.robot_status = RobotStatus.Updating
             self._progress.show_indeterminate_loading_on_led_ring()
-            self._robot_manager.request_update()
+
+            # We wait for the bluetooth to respond with the final message.
+            # We need to open a new thread for that so it lets this thread finish.
+            timer = threading.Timer(1.0, lambda:
+                    self._robot_manager.exit(RevvyStatusCode.UPDATE_REQUEST))
+            timer.start()
 
         elif message_type == LongMessageType.ASSET_DATA:
             extract_asset_longmessage(self._storage, self._asset_dir)

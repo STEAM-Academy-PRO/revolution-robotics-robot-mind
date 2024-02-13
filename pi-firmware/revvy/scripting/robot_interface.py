@@ -716,11 +716,6 @@ class RobotWrapper(RobotInterface):
     def motors(self):
         return self._motors
 
-    # TODO: This is actually a sensor port, not the sensor itself, just named badly.
-    # Blockly generates `robot.sensors["button"].read()` blocks for button pressed, which is
-    # 1.- super not safe, e.g. if there is no button sensor, but in the code there is, it fails
-    # 2.- there is no way to wrap it to make it safe
-    # 3.- no support for multiple buttons
     @property
     def sensors(self):
         return self._sensors
