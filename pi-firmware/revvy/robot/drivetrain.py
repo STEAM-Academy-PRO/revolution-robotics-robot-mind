@@ -5,6 +5,7 @@ from threading import Timer
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.imu import IMU
 from revvy.robot.ports.common import PortInstance
+from revvy.robot.ports.motors.base import MotorPortDriver
 from revvy.robot.ports.motors.dc_motor import MotorStatus, MotorConstants
 from revvy.utils.awaiter import AwaiterImpl, Awaiter, AwaiterSignal
 from revvy.utils.functions import clip
@@ -97,9 +98,9 @@ class DifferentialDrivetrain:
 
     def __init__(self, interface: RevvyControl, imu: IMU):
         self._interface = interface
-        self._motors: list[PortInstance] = []
-        self._left_motors: list[PortInstance] = []
-        self._right_motors: list[PortInstance] = []
+        self._motors: list[PortInstance[MotorPortDriver]] = []
+        self._left_motors: list[PortInstance[MotorPortDriver]] = []
+        self._right_motors: list[PortInstance[MotorPortDriver]] = []
 
         self._log = get_logger('Drivetrain', off=True)
         self._imu = imu
@@ -110,15 +111,15 @@ class DifferentialDrivetrain:
         return self._imu.yaw_angle
 
     @property
-    def motors(self) -> list[PortInstance]:
+    def motors(self) -> list[PortInstance[MotorPortDriver]]:
         return self._motors
 
     @property
-    def left_motors(self) -> list[PortInstance]:
+    def left_motors(self) -> list[PortInstance[MotorPortDriver]]:
         return self._left_motors
 
     @property
-    def right_motors(self) -> list[PortInstance]:
+    def right_motors(self) -> list[PortInstance[MotorPortDriver]]:
         return self._right_motors
 
     def _abort_controller(self):
@@ -138,23 +139,23 @@ class DifferentialDrivetrain:
         self._left_motors.clear()
         self._right_motors.clear()
 
-    def _add_motor(self, motor: PortInstance):
+    def _add_motor(self, motor: PortInstance[MotorPortDriver]):
         self._motors.append(motor)
 
         motor.driver.on_status_changed.add(self._on_motor_status_changed)
         motor.on_config_changed.add(self._on_motor_config_changed)
 
-    def add_left_motor(self, motor: PortInstance):
+    def add_left_motor(self, motor: PortInstance[MotorPortDriver]):
         self._log(f'Add motor {motor.id} to left side')
         self._left_motors.append(motor)
         self._add_motor(motor)
 
-    def add_right_motor(self, motor: PortInstance):
+    def add_right_motor(self, motor: PortInstance[MotorPortDriver]):
         self._log(f'Add motor {motor.id} to right side')
         self._right_motors.append(motor)
         self._add_motor(motor)
 
-    def _on_motor_config_changed(self, motor: PortInstance, _):
+    def _on_motor_config_changed(self, motor: PortInstance[MotorPortDriver], _):
         # if a motor config changes, remove the motor from the drivetrain
         self._motors.remove(motor)
 

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Callable, Generic, TypeVar
 
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.emitter import SimpleEventEmitter
@@ -58,14 +59,16 @@ class PortCollection:
         return self._ports.__iter__()
 
 
-class PortHandler:
+DriverType = TypeVar('DriverType')
+
+class PortHandler(Generic[DriverType]):
     """
     This class represents a port type (motor or sensor) and includes all ports of the same type.
     
     The class acts as a 1-based array so that users can index into it to get a specific port, or
     iterate over all ports.
     """
-    def __init__(self, name, interface: RevvyControl, default_driver, amount: int, supported: dict, set_port_type):
+    def __init__(self, name, interface: RevvyControl, default_driver: Callable[[], DriverType], amount: int, supported: dict, set_port_type):
         """
         Creates a new port handler for the given amount of ports.
 
@@ -119,14 +122,14 @@ class PortHandler:
             port.uninitialize()
 
 
-class PortInstance:
+class PortInstance(Generic[DriverType]):
     """
     A single motor or sensor port.
     
     This class is responsible for handling port configuration and driver initialization.
     """
 
-    def __init__(self, port_idx, name, interface: RevvyControl, default_driver, supported, set_port_type):
+    def __init__(self, port_idx, name, interface: RevvyControl, default_driver: Callable[[], DriverType], supported, set_port_type):
         """
         
         :param port_idx: The index of the port (1-based)
@@ -159,10 +162,10 @@ class PortInstance:
         return self._config_changed_callbacks
 
     @property
-    def driver(self) -> PortDriver:
+    def driver(self) -> DriverType:
         return self._driver
 
-    def configure(self, config) -> PortDriver:
+    def configure(self, config) -> DriverType:
         """
         Configures the port with the given driver and configuration.
         If config is None, the port is set to not configured.

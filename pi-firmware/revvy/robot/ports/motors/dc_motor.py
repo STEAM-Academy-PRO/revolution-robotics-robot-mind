@@ -1,9 +1,8 @@
 import struct
-from enum import Enum
 from functools import partial
 
-from revvy.robot.ports.common import PortInstance, PortDriver
-from revvy.robot.ports.motors.base import MotorConstants, MotorPortDriver
+from revvy.robot.ports.common import PortInstance
+from revvy.robot.ports.motors.base import MotorConstants, MotorStatus, MotorPortDriver
 from revvy.utils.awaiter import AwaiterImpl, Awaiter
 from revvy.utils.functions import clip
 
@@ -45,12 +44,6 @@ def dc_motor_position_request(port_idx, request_type, position, speed_limit=None
             control = struct.pack("<lff", position, speed_limit, power_limit)
 
     return motor_port_control_command(port_idx, request_type, *control)
-
-
-class MotorStatus(Enum):
-    NORMAL = 0
-    BLOCKED = 1
-    GOAL_REACHED = 2
 
 
 class DcMotorController(MotorPortDriver):
@@ -169,7 +162,7 @@ class DcMotorController(MotorPortDriver):
         return awaiter
 
     @property
-    def status(self):
+    def status(self) -> MotorStatus:
         return self._status
 
     def _update_motor_status(self, status: MotorStatus):

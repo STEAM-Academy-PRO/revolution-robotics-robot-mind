@@ -3,13 +3,6 @@ from revvy.robot.ports.common import PortDriver, PortInstance
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler
 
-class SensorPortHandler(PortHandler):
-    def __init__(self, interface: RevvyControl):
-        port_amount = interface.get_sensor_port_amount()
-        port_types = interface.get_sensor_port_types()
-
-        super().__init__("Sensor", interface, NullSensor, port_amount, port_types, interface.set_sensor_port_type)
-
 
 class SensorPortDriver(PortDriver):
     def __init__(self, port: PortInstance, driver_name: str):
@@ -52,6 +45,14 @@ class SensorPortDriver(PortDriver):
 
     @abstractmethod
     def convert_sensor_value(self, raw): raise NotImplementedError
+
+
+class SensorPortHandler(PortHandler[SensorPortDriver]):
+    def __init__(self, interface: RevvyControl):
+        port_amount = interface.get_sensor_port_amount()
+        port_types = interface.get_sensor_port_types()
+
+        super().__init__("Sensor", interface, NullSensor, port_amount, port_types, interface.set_sensor_port_type)
 
 
 class NullSensor(SensorPortDriver):

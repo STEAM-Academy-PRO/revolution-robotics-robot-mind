@@ -4,7 +4,7 @@ Whatever code blockly generates, it compiles to python
 code that uses these functions.
 
 DANGER!!!!
-Do not delete any headers, even if they are not used,
+Do not delete any imports, even if they are not used,
 as the generated code MAY use it!
 
 """
@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING
 
 # # To have types, use this to avoid circular dependencies.
 if TYPE_CHECKING:
+    from revvy.scripting.runtime import ScriptHandle
     from revvy.robot_config import RobotConfig
 
 
@@ -99,7 +100,7 @@ class ResourceWrapper:
 
 
 class Wrapper:
-    def __init__(self, script, resource: ResourceWrapper):
+    def __init__(self, script: 'ScriptHandle', resource: ResourceWrapper):
         self._resource = resource
         self._script = script
 
@@ -214,14 +215,14 @@ class MotorPortWrapper(Wrapper):
         'RevvyMotor_CCW': Motors.RevvyMotor_CCW
     }
 
-    def __init__(self, script, motor: PortInstance, resource: ResourceWrapper):
+    def __init__(self, script: 'ScriptHandle', motor: PortInstance, resource: ResourceWrapper):
         super().__init__(script, resource)
         self._log_prefix = f"MotorPortWrapper[motor {motor.id}]: "
         self._motor = motor
 
     @property
     def pos(self):
-        return self._motor.pos
+        return self._motor.driver.pos
 
     @pos.setter
     def pos(self, val):
@@ -675,7 +676,7 @@ class RobotInterface:
 class RobotWrapper(RobotInterface):
     """Wrapper class that exposes API to user-written scripts"""
 
-    def __init__(self, script, robot: RobotInterface, config: 'RobotConfig', resources: dict, priority=0):
+    def __init__(self, script: 'ScriptHandle', robot: RobotInterface, config: 'RobotConfig', resources: dict, priority=0):
         self._resources = {name: ResourceWrapper(resources[name], priority) for name in resources}
         self._robot = robot
 

@@ -1,3 +1,5 @@
+from abc import abstractmethod
+from enum import Enum
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler, PortDriver, PortInstance
 
@@ -23,17 +25,28 @@ class MotorConstants:
     ACTION_RELEASE = 1
 
 
-class MotorPortHandler(PortHandler):
-    def __init__(self, interface: RevvyControl):
-        port_amount = interface.get_motor_port_amount()
-        port_types = interface.get_motor_port_types()
-
-        super().__init__("Motor", interface, NullMotor, port_amount, port_types, interface.set_motor_port_type)
+class MotorStatus(Enum):
+    NORMAL = 0
+    BLOCKED = 1
+    GOAL_REACHED = 2
 
 
 class MotorPortDriver(PortDriver):
     def __init__(self, port: PortInstance, driver_name: str):
         super().__init__(port, driver_name)
+
+    @property
+    @abstractmethod
+    def status(self) -> MotorStatus:
+        pass
+
+
+class MotorPortHandler(PortHandler[MotorPortDriver]):
+    def __init__(self, interface: RevvyControl):
+        port_amount = interface.get_motor_port_amount()
+        port_types = interface.get_motor_port_types()
+
+        super().__init__("Motor", interface, NullMotor, port_amount, port_types, interface.set_motor_port_type)
 
 
 class NullMotor(MotorPortDriver):
@@ -42,6 +55,10 @@ class NullMotor(MotorPortDriver):
 
     def on_port_type_set(self):
         pass
+
+    @property
+    def status(self) -> MotorStatus:
+        return MotorStatus.NORMAL
 
     @property
     def speed(self):
