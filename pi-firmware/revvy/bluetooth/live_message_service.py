@@ -8,7 +8,7 @@ from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_DONE,
 from revvy.robot.rc_message_parser import parse_control_message
 from revvy.robot_manager import RobotManager
 
-from revvy.utils.logger import LogLevel, get_logger
+from revvy.utils.logger import get_logger
 
 from revvy.robot.remote_controller import RemoteControllerCommand
 

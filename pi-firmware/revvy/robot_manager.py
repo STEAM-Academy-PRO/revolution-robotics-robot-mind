@@ -210,21 +210,6 @@ class RobotManager:
         self.reset_configuration()
 
 
-    def on_connected(self, device_name):
-        """ When interface connects """
-        self._connected_device_name = device_name
-        self._log(f"{device_name} device connected!")
-        self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
-        self._robot.play_tune('bell')
-
-    def on_disconnected(self):
-        """ Reset, play tune """
-        self._log(f"Device disconnected: {self._connected_device_name}")
-        self._robot.status.controller_status = RemoteControllerStatus.NotConnected
-        self._robot.play_tune('disconnect')
-        self.reset_configuration()
-
-
     def on_connection_changed(self, is_connected):
         self._log('Phone connected' if is_connected else 'Phone disconnected')
 

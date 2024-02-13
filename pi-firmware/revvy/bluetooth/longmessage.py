@@ -446,9 +446,7 @@ class LongMessageImplementation:
             if not message.is_valid:
                 self._log('Firmware update cancelled')
                 self._progress = None
-                ### -------------------------------------------------------------------------!!!
-                self._robot_manager.run_in_background(
-                    partial(self._robot_manager.robot.led.start_animation, RingLed.BreathingGreen), 'LongMessageImplementation: on_transmission_finished: Firmware Update cancelled?')
+                self._robot_manager.robot.led.start_animation(RingLed.BreathingGreen)
         else:
             # Indicate exiting with the rainbow effect while the PI program exits.
             if self._progress:
@@ -480,20 +478,24 @@ class LongMessageImplementation:
 
             self._robot_manager.robot_configure(empty_robot_config)
 
-            def start_script():
-                self._log("Starting new test script")
-                ### -------------------------------------------------------------------------!!!
-                ### TODO: Wrong params, how is this ever used?
-                handle = self._robot_manager._scripts.add_script(script_descriptor)
-                on_script_stopped_fn = partial(self._robot_manager.robot_configure, None)
-                handle.on_stopped(on_script_stopped_fn)
+            self._log("Starting new test script")
 
-                # start can't run in on_stopped handler because overwriting script causes deadlock
-                self._robot_manager.run_in_background(handle.start, 'LongMessageImplementation: on_message_updated start_script()')
+            handle = self._robot_manager._scripts.add_script(script_descriptor, empty_robot_config)
 
-            self._robot_manager.robot_configure(empty_robot_config, start_script)
+            def on_stopped(*args):
+                self._log('test script ended')
+                self._robot_manager.reset_configuration()
 
-        elif message_type == LongMessageType.CONFIGURATION_DATA:
+            handle.on(ScriptEvent.STOP, on_stopped)
+            handle.on(ScriptEvent.ERROR, lambda ref, ex: self._log(f'{str(ex)}', LogLevel.ERROR))
+
+            # Run test in new thread.
+            handle.start()
+
+        # Configuration request: how to set up ports, button bindings,
+        # background scripts, then starting the remote!
+        # Start the remote after!
+        if message_type == LongMessageType.CONFIGURATION_DATA:
             message_data = message.data.decode()
 
             try:
@@ -505,8 +507,13 @@ class LongMessageImplementation:
         elif message_type == LongMessageType.FRAMEWORK_DATA:
             # TODO: Eliminate calling robot status updates from the outside like this!
             self._robot_manager.robot.status.robot_status = RobotStatus.Updating
-            self._progress.set_indeterminate()
-            self._robot_manager.request_update()
+            self._progress.show_indeterminate_loading_on_led_ring()
+
+            # We wait for the bluetooth to respond with the final message.
+            # We need to open a new thread for that so it lets this thread finish.
+            timer = threading.Timer(1.0, lambda:
+                    self._robot_manager.exit(RevvyStatusCode.UPDATE_REQUEST))
+            timer.start()
 
         elif message_type == LongMessageType.ASSET_DATA:
             extract_asset_longmessage(self._storage, self._asset_dir)
