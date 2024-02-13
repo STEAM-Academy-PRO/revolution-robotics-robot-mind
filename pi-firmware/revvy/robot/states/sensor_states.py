@@ -1,6 +1,6 @@
 """ Sensor value wrapper: manages throttling of sensor readings """
 from revvy.robot.configurations import Sensors
-from revvy.robot.ports.common import PortDriver
+from revvy.robot.ports.common import PortDriver, PortInstance
 from revvy.robot.robot_events import SensorEventData
 from revvy.utils.logger import get_logger
 from revvy.utils.observable import SmoothingObservable
@@ -12,7 +12,7 @@ MAX_ULTRASONIC_SENSOR_DISTANCE = 700 # cm
 
 log = get_logger('sensor states')
 
-def create_sensor_data_wrapper(sensor_port, sensor, on_data_update) -> Disposable:
+def create_sensor_data_wrapper(sensor_port: PortInstance, sensor, on_data_update) -> Disposable:
     """
     Currently our sensors send up pretty much RAW data from the MCU
     which is ok, but unfortunately that code is all around the place too,
@@ -36,7 +36,7 @@ def create_sensor_data_wrapper(sensor_port, sensor, on_data_update) -> Disposabl
 
 class UltrasonicSensorDataHandler(Disposable):
     """ Ultrasonic value handler """
-    def __init__(self, sensor_port: PortDriver, on_data_update):
+    def __init__(self, sensor_port: PortInstance, on_data_update):
         self._on_data_update = on_data_update
         self._sensor_port = sensor_port
 
@@ -80,7 +80,7 @@ class UltrasonicSensorDataHandler(Disposable):
 
 class ButtonSensorDataHandler(Disposable):
     """ Button value handler """
-    def __init__(self, sensor_port, on_data_update):
+    def __init__(self, sensor_port: PortInstance, on_data_update):
         self._sensor_port_id = sensor_port.id
         sensor_port.on_status_changed.add(self.update)
         self._value = SmoothingObservable(value=0, window_size=3,

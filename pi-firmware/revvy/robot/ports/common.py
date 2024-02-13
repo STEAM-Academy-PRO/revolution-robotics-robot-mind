@@ -124,9 +124,6 @@ class PortInstance:
     This class is responsible for handling port configuration and driver initialization.
     """
 
-    # TODO: remove the attribute delegation to the driver. Instead, expose the driver as a property.
-    props = ['log', '_port_idx', '_interface', '_driver', '_config_changed_callbacks', '_supported', '_default_driver', '_set_port_type']
-
     def __init__(self, port_idx, name, interface: RevvyControl, default_driver, supported, set_port_type):
         """
         
@@ -140,7 +137,7 @@ class PortInstance:
         self.log = get_logger(f'{name} {port_idx}')
         self._port_idx = port_idx
         self._interface = interface
-        self._driver = None
+        self._driver: PortDriver = None
         self._config_changed_callbacks = SimpleEventEmitter()
         self._supported = supported
         self._default_driver = default_driver
@@ -189,14 +186,3 @@ class PortInstance:
     def uninitialize(self):
         # self.log('Set to not configured')
         self.configure(None)
-
-    # TODO: remove
-    def __getattr__(self, key):
-        return getattr(self._driver, key)
-
-    # TODO: remove
-    def __setattr__(self, key, value):
-        if key in self.props:
-            self.__dict__[key] = value
-        else:
-            setattr(self._driver, key, value)

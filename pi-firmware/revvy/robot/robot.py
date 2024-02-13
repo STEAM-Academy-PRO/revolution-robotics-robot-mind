@@ -134,11 +134,11 @@ class Robot(RobotInterface):
         return self._status
 
     @property
-    def motors(self):
+    def motors(self) -> MotorPortHandler:
         return self._motor_ports
 
     @property
-    def sensors(self):
+    def sensors(self) -> SensorPortHandler:
         return self._sensor_ports
 
     @property
