@@ -136,7 +136,7 @@ class PortInstance:
         :param supported: A dictionary of supported drivers
         :param set_port_type: A function that sets the port type on the MCU
         """
-        self.log = get_logger(f'{name} {port_idx}')
+        self.log = get_logger(f'{name} {port_idx}', off=True)
         self._port_idx = port_idx
         self._interface = interface
         self._driver = default_driver(self)
@@ -174,10 +174,11 @@ class PortInstance:
         self.driver.uninitialize()
 
         if config is None:
-            # self._log(f'set port {port.id} to not configured')
             self._driver = self._default_driver(self)
         else:
             self._driver = config['driver'](self, config['config'])
+
+        self.log(f'set to {self.driver.driver_name}')
 
         # TODO: it smells that we set the port type after the driver is created. It means we can't
         # use the constructor to perform the initialization.
