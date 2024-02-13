@@ -168,8 +168,6 @@ class ThreadWrapper:
             # thread will see STOPPED state and will exit
             self._control.set()
 
-            self._log('joining thread')
-            self._thread.join()
             self._log('exited')
 
     def on_stopped(self, callback):

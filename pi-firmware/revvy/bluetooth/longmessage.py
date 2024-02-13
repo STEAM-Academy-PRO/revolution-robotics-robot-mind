@@ -6,6 +6,7 @@ import io
 import os
 import tarfile
 import shutil
+import threading
 import traceback
 import hashlib
 import struct
@@ -23,7 +24,7 @@ from revvy.utils.functions import str_to_func
 
 from revvy.robot.led_ring import RingLed
 from revvy.robot.status import RobotStatus
-from revvy.robot_manager import RobotManager
+from revvy.robot_manager import RevvyStatusCode, RobotManager
 from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
 
 from revvy.scripting.runtime import ScriptDescriptor, ScriptEvent
@@ -445,10 +446,9 @@ class LongMessageImplementation:
             if not message.is_valid:
                 self._log('Firmware update cancelled')
                 self._progress = None
-                # TODO: Consider removing run_in_background.
+                ### -------------------------------------------------------------------------!!!
                 self._robot_manager.run_in_background(
-                    partial(self._robot_manager.robot.led.start_animation, RingLed.BreathingGreen),
-                    'LongMessageImplementation: on_transmission_finished: Firmware Update cancelled?')
+                    partial(self._robot_manager.robot.led.start_animation, RingLed.BreathingGreen), 'LongMessageImplementation: on_transmission_finished: Firmware Update cancelled?')
         else:
             # Indicate exiting with the rainbow effect while the PI program exits.
             if self._progress:
@@ -480,27 +480,20 @@ class LongMessageImplementation:
 
             self._robot_manager.robot_configure(empty_robot_config)
 
-            self._log("Starting new test script")
+            def start_script():
+                self._log("Starting new test script")
+                ### -------------------------------------------------------------------------!!!
+                ### TODO: Wrong params, how is this ever used?
+                handle = self._robot_manager._scripts.add_script(script_descriptor)
+                on_script_stopped_fn = partial(self._robot_manager.robot_configure, None)
+                handle.on_stopped(on_script_stopped_fn)
 
-            handle = self._robot_manager._scripts.add_script(script_descriptor, empty_robot_config)
+                # start can't run in on_stopped handler because overwriting script causes deadlock
+                self._robot_manager.run_in_background(handle.start, 'LongMessageImplementation: on_message_updated start_script()')
 
-            def on_stopped(*args):
-                self._log('test script ended')
-                self._robot_manager.reset_configuration()
+            self._robot_manager.robot_configure(empty_robot_config, start_script)
 
-            handle.on(ScriptEvent.STOP, on_stopped)
-            handle.on(ScriptEvent.ERROR, lambda ref, ex: self._log(f'{str(ex)}', LogLevel.ERROR))
-
-            # Run test in new thread.
-            # This seems to kill the robot after the tests ran, and I have no clue why.
-            # Next session, it wasn't working, now at least the test starts running.
-            self._robot_manager.run_in_background(handle.start,
-                        'LongMessageImplementation: on_message_updated start_script()')
-
-        # Configuration request: how to set up ports, button bindings,
-        # background scripts, then starting the remote!
-        # Start the remote after!
-        if message_type == LongMessageType.CONFIGURATION_DATA:
+        elif message_type == LongMessageType.CONFIGURATION_DATA:
             message_data = message.data.decode()
 
             try:
@@ -512,7 +505,7 @@ class LongMessageImplementation:
         elif message_type == LongMessageType.FRAMEWORK_DATA:
             # TODO: Eliminate calling robot status updates from the outside like this!
             self._robot_manager.robot.status.robot_status = RobotStatus.Updating
-            self._progress.show_indeterminate_loading_on_led_ring()
+            self._progress.set_indeterminate()
             self._robot_manager.request_update()
 
         elif message_type == LongMessageType.ASSET_DATA:
