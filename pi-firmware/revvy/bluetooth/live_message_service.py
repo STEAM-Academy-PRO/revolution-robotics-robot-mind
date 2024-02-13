@@ -129,7 +129,7 @@ class LiveMessageService(BlenoPrimaryService):
 
     def set_validation_result(self, success: bool,
         motors: list, sensors: list):
-        """ Currently unused """
+        """ FIXME: Currently unused """
 
         valitation_state = VALIDATE_CONFIG_STATE_UNKNOWN
         if success:
