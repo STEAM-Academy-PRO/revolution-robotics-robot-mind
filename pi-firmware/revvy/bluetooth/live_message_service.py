@@ -100,7 +100,7 @@ class LiveMessageService(BlenoPrimaryService):
         })
 
     def validate_config_callback(self, data):
-        """ Currently unused """
+        """ FIXME: Currently unused """
         motor_bitmask, sensor0, sensor1, sensor2, sensor3, \
         motor_load_power, threshold = \
             struct.unpack('BBBBBBB', data)
