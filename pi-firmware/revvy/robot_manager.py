@@ -280,7 +280,7 @@ class RobotManager:
             # Note that we reduce the ID here, so we do not need that anywhere else.
             # This way we have motors 0-5 in RobotState already. Just a simple array.
             motor.driver.on_status_changed.add(lambda p:
-                                        self._robot_state.set_motor_angle(p.id - 1, p.pos))
+                                        self._robot_state.set_motor_angle(p.id - 1, p.driver.pos))
 
         for motor_id in config.drivetrain['left']:
             self._robot.drivetrain.add_left_motor(self._robot.motors[motor_id])

@@ -6,7 +6,7 @@ from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.imu import IMU
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motors.dc_motor import MotorStatus, MotorConstants
-from revvy.utils.awaiter import AwaiterImpl, Awaiter
+from revvy.utils.awaiter import AwaiterImpl, Awaiter, AwaiterSignal
 from revvy.utils.functions import clip
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
@@ -58,17 +58,21 @@ class TurnController(DrivetrainController):
 
     def update(self):
         yaw = self._drivetrain.yaw
-        if self._last_yaw_angle != yaw:
+        error = self._target_angle - yaw
+
+        if abs(error) < 1:
+            # goal reached
+            self._awaiter.finish()
+
+        elif self._last_yaw_angle != yaw:
             self._last_yaw_angle = yaw
             self._last_yaw_change_time.reset()
-            error = self._target_angle - yaw
-            if abs(error) < 1:
-                # goal reached
-                self._awaiter.finish()
-            else:
-                # Kp=10, saturate on max allowed wheel speed
-                p = clip(error * self.Kp, -self._max_turn_wheel_speed, self._max_turn_wheel_speed)
-                self._drivetrain._apply_speeds(-p, p, self._max_turn_power)
+
+            # try Kp=10 and saturate on max allowed wheel speed?
+
+            # update motor speeds using a P regulator
+            p = clip(error * self.Kp, -self._max_turn_wheel_speed, self._max_turn_wheel_speed)
+            self._drivetrain._apply_speeds(-p, p, self._max_turn_power)
 
         elif self._last_yaw_change_time.elapsed > 3:
             # yaw angle has not changed for 3 seconds
@@ -97,7 +101,7 @@ class DifferentialDrivetrain:
         self._left_motors: list[PortInstance] = []
         self._right_motors: list[PortInstance] = []
 
-        self._log = get_logger('Drivetrain')
+        self._log = get_logger('Drivetrain', off=True)
         self._imu = imu
         self._controller = None
 
@@ -162,6 +166,7 @@ class DifferentialDrivetrain:
 
     def _on_motor_status_changed(self, _):
         if all(m.status == MotorStatus.BLOCKED for m in self._motors):
+            self._log('All motors blocked, releasing')
             self._abort_controller()
         else:
             controller = self._controller
@@ -211,7 +216,7 @@ class DifferentialDrivetrain:
         self._apply_release()
 
     def set_speeds(self, left, right, power_limit=None):
-        # self._log(f'set speeds: {left}  {right}  {power_limit}')
+        self._log(f'set speeds: {left}  {right}  {power_limit}')
         self._abort_controller()
 
         self._apply_speeds(left, right, power_limit)
@@ -257,7 +262,7 @@ class DifferentialDrivetrain:
         return self._controller.awaiter
 
     def turn(self, direction, rotation, unit_rotation, speed, unit_speed):
-        self._log("turn")
+        self._log("turn: {direction} {rotation} {unit_rotation} {speed} {unit_speed}")
         self._abort_controller()
 
         multipliers = {
@@ -280,12 +285,18 @@ class DifferentialDrivetrain:
                                               turn_angle=rotation * multipliers[direction],
                                               wheel_speed=speed,
                                               power_limit=power)
+            
+            # We need to call update() because we only get notified about changes.
             self._controller.update()
 
+            # NOTE: update() may immediately complete the turn. This can call _apply_release()
+            # which immediately sets _controller to None.
         else:
             raise ValueError(f'Invalid unit_rotation: {unit_rotation}')
 
-        # BUG: If the user tried to turn 0 degrees we do not get a controller back.
-        if self._controller and self._controller.awaiter:
-            return self._controller.awaiter
+        if self._controller is not None:
+            awaiter = self._controller.awaiter
+        else:
+            awaiter = AwaiterImpl.from_state(AwaiterSignal.FINISHED)
 
+        return awaiter
