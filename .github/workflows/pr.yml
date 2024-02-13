@@ -90,6 +90,7 @@ jobs:
           pip --version
           echo 'Install pip requirements'
           pip install -r tools/requirements.txt
+          sudo apt-get install graphviz
 
       - name: Install compiler
         if: steps.filter.outputs.mcu-firmware == 'true'
@@ -110,6 +111,12 @@ jobs:
           # cglue --generate --cglue-output=rrrc/generated_runtime
           make all config=debug
           python -m tools.prepare --debug
+
+      - name: Visualize architecture
+        if: steps.filter.outputs.mcu-firmware == 'true'
+        run: |
+          cd mcu-firmware
+          python -m tools.generate_component_diagram --ignore-components=Runtime --output=Build/output/map
 
       - name: Upload artifacts
         if: steps.filter.outputs.mcu-firmware == 'true' && github.event.pull_request.draft == false
