@@ -84,7 +84,7 @@ class MoveController(DrivetrainController):
         drivetrain._apply_positions(left, right, left_speed, right_speed, power_limit)
 
     def update(self):
-        if all(m.status == MotorStatus.GOAL_REACHED for m in self._drivetrain.motors):
+        if all(m.driver.status == MotorStatus.GOAL_REACHED for m in self._drivetrain.motors):
             self._awaiter.finish()
 
 
@@ -93,9 +93,9 @@ class DifferentialDrivetrain:
 
     def __init__(self, interface: RevvyControl, imu: IMU):
         self._interface = interface
-        self._motors = []
-        self._left_motors = []
-        self._right_motors = []
+        self._motors: list[PortInstance] = []
+        self._left_motors: list[PortInstance] = []
+        self._right_motors: list[PortInstance] = []
 
         self._log = get_logger('Drivetrain')
         self._imu = imu
@@ -106,15 +106,15 @@ class DifferentialDrivetrain:
         return self._imu.yaw_angle
 
     @property
-    def motors(self):
+    def motors(self) -> list[PortInstance]:
         return self._motors
 
     @property
-    def left_motors(self):
+    def left_motors(self) -> list[PortInstance]:
         return self._left_motors
 
     @property
-    def right_motors(self):
+    def right_motors(self) -> list[PortInstance]:
         return self._right_motors
 
     def _abort_controller(self):
@@ -127,7 +127,7 @@ class DifferentialDrivetrain:
         self._abort_controller()
 
         for motor in self._motors:
-            motor.on_status_changed.remove(self._on_motor_status_changed)
+            motor.driver.on_status_changed.remove(self._on_motor_status_changed)
             motor.on_config_changed.remove(self._on_motor_config_changed)
 
         self._motors.clear()
@@ -137,7 +137,7 @@ class DifferentialDrivetrain:
     def _add_motor(self, motor: PortInstance):
         self._motors.append(motor)
 
-        motor.on_status_changed.add(self._on_motor_status_changed)
+        motor.driver.on_status_changed.add(self._on_motor_status_changed)
         motor.on_config_changed.add(self._on_motor_config_changed)
 
     def add_left_motor(self, motor: PortInstance):
@@ -150,7 +150,7 @@ class DifferentialDrivetrain:
         self._right_motors.append(motor)
         self._add_motor(motor)
 
-    def _on_motor_config_changed(self, motor, _):
+    def _on_motor_config_changed(self, motor: PortInstance, _):
         # if a motor config changes, remove the motor from the drivetrain
         self._motors.remove(motor)
 
