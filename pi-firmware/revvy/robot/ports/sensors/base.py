@@ -2,7 +2,7 @@ from revvy.robot.ports.common import PortDriver, PortInstance
 
 
 class NullSensor(PortDriver):
-    def __init__(self, port):
+    def __init__(self, port: PortInstance):
         super().__init__(port, 'NotConfigured')
 
     def on_port_type_set(self):

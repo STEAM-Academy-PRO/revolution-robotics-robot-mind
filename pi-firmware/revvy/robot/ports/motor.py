@@ -1,11 +1,11 @@
-
 from revvy.mcu.rrrc_control import RevvyControl
-from revvy.robot.ports.common import PortHandler, PortDriver
+from revvy.robot.ports.common import PortHandler, PortDriver, PortInstance
 
 from revvy.utils.awaiter import Awaiter, AwaiterSignal, AwaiterImpl
 
 
 class MotorConstants:
+    """ A bunch of constants that blockly can pass to motor APIs """
     DIRECTION_FWD = 0
     DIRECTION_BACK = 1
     DIRECTION_LEFT = 2
@@ -32,7 +32,7 @@ class MotorPortHandler(PortHandler):
 
 
 class NullMotor(PortDriver):
-    def __init__(self, port):
+    def __init__(self, port: PortInstance):
         super().__init__(port, 'NotConfigured')
 
     def on_port_type_set(self):

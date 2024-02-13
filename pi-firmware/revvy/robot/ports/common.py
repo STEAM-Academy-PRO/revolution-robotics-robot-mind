@@ -59,7 +59,12 @@ class PortCollection:
 
 
 class PortHandler:
-    """ This class represents a port type (motor or sensor) and includes all ports of the same type. """
+    """
+    This class represents a port type (motor or sensor) and includes all ports of the same type.
+    
+    The class acts as a 1-based array so that users can index into it to get a specific port, or
+    iterate over all ports.
+    """
     def __init__(self, name, interface: RevvyControl, default_driver, amount: int, supported: dict, set_port_type):
         """
         Creates a new port handler for the given amount of ports.
@@ -85,9 +90,6 @@ class PortHandler:
             )
             for i in range(1, amount + 1) 
         ]
-
-        # self._log(f'Created handler for {amount} ports')
-        # self._log('Supported types:\n  {}'.format(", ".join(self.available_types)))
 
     def __getitem__(self, port_idx: int) -> 'PortInstance':
         """
@@ -137,7 +139,7 @@ class PortInstance:
         self.log = get_logger(f'{name} {port_idx}')
         self._port_idx = port_idx
         self._interface = interface
-        self._driver: PortDriver = None
+        self._driver = default_driver(self)
         self._config_changed_callbacks = SimpleEventEmitter()
         self._supported = supported
         self._default_driver = default_driver
@@ -161,27 +163,30 @@ class PortInstance:
         return self._driver
 
     def configure(self, config) -> PortDriver:
+        """
+        Configures the port with the given driver and configuration.
+        If config is None, the port is set to not configured.
+        """
+
         # Temporarily disable reading port by emitting an event that announced the port is not configured
         self._config_changed_callbacks(self, None)
 
-        if self._driver:
-            self._driver.uninitialize()
+        self.driver.uninitialize()
 
         if config is None:
             # self._log(f'set port {port.id} to not configured')
-            driver = self._default_driver(self)
+            self._driver = self._default_driver(self)
         else:
-            driver = config['driver'](self, config['config'])
+            self._driver = config['driver'](self, config['config'])
 
         # TODO: it smells that we set the port type after the driver is created. It means we can't
         # use the constructor to perform the initialization.
-        self._set_port_type(self.id, self._supported[driver.driver_name])
-        driver.on_port_type_set()
+        self._set_port_type(self.id, self._supported[self.driver.driver_name])
+        self.driver.on_port_type_set()
 
-        self._driver = driver
         self._config_changed_callbacks(self, config)
 
-        return self._driver
+        return self.driver
 
     def uninitialize(self):
         # self.log('Set to not configured')
