@@ -31,7 +31,12 @@ class MotorPortHandler(PortHandler):
         super().__init__("Motor", interface, NullMotor, port_amount, port_types, interface.set_motor_port_type)
 
 
-class NullMotor(PortDriver):
+class MotorPortDriver(PortDriver):
+    def __init__(self, port: PortInstance, driver_name: str):
+        super().__init__(port, driver_name)
+
+
+class NullMotor(MotorPortDriver):
     def __init__(self, port: PortInstance):
         super().__init__(port, 'NotConfigured')
 

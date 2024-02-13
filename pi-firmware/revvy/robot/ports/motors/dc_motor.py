@@ -3,7 +3,7 @@ from enum import Enum
 from functools import partial
 
 from revvy.robot.ports.common import PortInstance, PortDriver
-from revvy.robot.ports.motors.base import MotorConstants
+from revvy.robot.ports.motors.base import MotorConstants, MotorPortDriver
 from revvy.utils.awaiter import AwaiterImpl, Awaiter
 from revvy.utils.functions import clip
 
@@ -53,7 +53,7 @@ class MotorStatus(Enum):
     GOAL_REACHED = 2
 
 
-class DcMotorController(PortDriver):
+class DcMotorController(MotorPortDriver):
     """Generic driver for dc motors"""
     def __init__(self, port: PortInstance, port_config):
         super().__init__(port, 'DcMotor')
