@@ -26,7 +26,7 @@ class ProgressIndicator:
         self._minor_color = minor_color
         self.end = end
 
-        self.set_indeterminate()
+        self.show_indeterminate_loading_on_led_ring()
 
     def update(self, progress):
         full_leds, minor_progress = _progress(progress, self.end, 12)
@@ -36,5 +36,5 @@ class ProgressIndicator:
 
         self._led.display_user_frame(leds)
 
-    def set_indeterminate(self):
+    def show_indeterminate_loading_on_led_ring(self):
         self._led.start_animation(RingLed.ColorWheel)

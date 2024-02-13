@@ -5,6 +5,7 @@ import traceback
 from pybleno import Characteristic, Descriptor
 from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_UNKNOWN
 from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
+from revvy.mcu.commands import BatteryStatus
 from revvy.utils.bit_packer import pack_2_bit_number_array_32, unpack_2_bit_number_array_32
 
 from revvy.utils.logger import get_logger
@@ -225,7 +226,7 @@ class ProgramStatusCharacteristic(BrainToMobileFunctionCharacteristic):
 
         packed_byte_array = pack_2_bit_number_array_32(state_array)
 
-        log(f'Button state change: {packed_byte_array}')
+        # log(f'Button state change: {packed_byte_array}')
         # If there are multiple messages, here is where we want to throttle.
         self.update(packed_byte_array)
 
@@ -410,19 +411,14 @@ class UnifiedBatteryInfoCharacteristic(CustomBatteryLevelCharacteristic):
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def update_value(self,
-        core_battery_level,
-        core_battery_status,
-        motor_battery_level,
-        motor_battery_present):
+    def update_value(self, battery_status: BatteryStatus):
 
         new_value = [
-            core_battery_level,
-            core_battery_status,
-            motor_battery_level,
-            motor_battery_present
+            round(battery_status.main),
+            battery_status.chargerStatus,
+            round(battery_status.motor),
+            battery_status.motor_battery_present
         ]
-
         if new_value == self._value:
             return
 

@@ -37,8 +37,8 @@ export function connectSocket(ip: string): SocketWrapper {
     };
 
     socket.onmessage = function (event) {
-        console.warn(`[message] Data received from server: ${event.data}`);
-        emitter.emit(WSEventType.onMessage, event.data)
+        const data = JSON.parse(event.data)
+        emitter.emit(WSEventType.onMessage, data)
     };
 
     socket.onclose = function (event) {
@@ -73,7 +73,18 @@ export function connectToRobot(
         log(`Connecting to ${endpoint()}`)
     setConnLoading(true)
     const socket = connectSocket(endpoint())
-    socket.on(WSEventType.onMessage, (e) => { log(e) })
+    socket.on(WSEventType.onMessage, (data) => {
+        switch (data.event){
+            case 'orientation_change': break
+            case 'program_status_change': break
+            case 'motor_change': break
+            case 'battery_change': break
+            // case 'battery_change': break
+            default:
+                console.warn(`[message] Data received from server: ${data.event}`, data.data);
+                log(data)
+        }
+    })
     socket.on(WSEventType.onOpen, (e) => {
         log('Socket Connection Established!')
         setConn(socket)

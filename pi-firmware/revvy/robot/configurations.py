@@ -30,6 +30,15 @@ class Motors:
 
 
 class Sensors:
-    Ultrasonic = {'driver': hcsr04, 'config': {}}
-    BumperSwitch = {'driver': bumper_switch, 'config': {}}
-    SofteqCS = {'driver': softeq_cs, 'config': {}}
+    Ultrasonic = {
+        'driver': hcsr04,
+        'config': {}
+    }
+    BumperSwitch = {
+        'driver': bumper_switch,
+        'config': {}
+    }
+    SofteqCS = {
+        'driver': softeq_cs,
+        'config': {}
+    }

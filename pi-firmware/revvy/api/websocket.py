@@ -1,10 +1,14 @@
 """ Simple WebSocket Remote controller for robot """
 import asyncio
+from enum import Enum
 import json
 import struct
 import threading
-from revvy.robot_manager import RobotManager
 import websockets
+
+from revvy.robot.robot_events import RobotEvent
+from revvy.robot_manager import RobotManager
+
 
 from revvy.robot.rc_message_parser import parse_control_message
 from revvy.robot_config import RobotConfig
@@ -18,34 +22,90 @@ SERVER_PORT=8765
 
 log = get_logger('WS')
 
+send_control_events = [RobotEvent.BATTERY_CHANGE,
+                  RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE,
+                  RobotEvent.ORIENTATION_CHANGE,
+                  RobotEvent.SCRIPT_VARIABLE_CHANGE,
+                  RobotEvent.PROGRAM_STATUS_CHANGE,
+                  RobotEvent.MOTOR_CHANGE
+                  ]
+
+ignore_log_events = [
+    RobotEvent.ORIENTATION_CHANGE,
+    RobotEvent.TIMER_TICK,
+    RobotEvent.MCU_TICK,
+    RobotEvent.MOTOR_CHANGE,
+    RobotEvent.PROGRAM_STATUS_CHANGE
+]
+
+
+
+# Function to check if an object is a named tuple
+def is_namedtuple(obj):
+    return isinstance(obj, tuple) and hasattr(obj, '_fields')
+
+class NamedTupleEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if is_namedtuple(obj):
+            return obj._asdict()  # Convert the named tuple to a dictionary
+        if isinstance(obj, Enum):
+            return obj.value
+        return super().default(obj)
+
+# Function to encode data dynamically
+def encode_data(data):
+    return json.dumps(data, cls=NamedTupleEncoder)
+
+
+
 class RobotWebSocketApi:
     def __init__(self, robot_manager: RobotManager):
         self._robot_manager = robot_manager
         self._connections = []
         self.thread()
+        self._event_loop = None
+
+        robot_manager.on("all", self.all_event_capture)
+
+    def all_event_capture(self, object_ref, evt, data=None):
+        if evt not in ignore_log_events:
+            log(f'{evt} {str(data)}')
+        if evt in send_control_events:
+            self.send({
+                "event": evt,
+                "data": (data)
+            })
 
     def start(self):
+        """ Starts separate thread """
         asyncio.set_event_loop(asyncio.new_event_loop())
         log('Starting WebSocket server')
         server = websockets.serve(self.incoming_connection, "0.0.0.0", SERVER_PORT)
-        log('Started WebSocket server')
-        asyncio.get_event_loop().run_until_complete(server)
-        asyncio.get_event_loop().run_forever()
+        log(f'Started WebSocket server on {SERVER_PORT}')
+        self._event_loop = asyncio.get_event_loop()
+        self._event_loop.run_until_complete(server)
+        self._event_loop.run_forever()
 
     def thread(self):
         websocket_thread = threading.Thread(target=self.start)
         websocket_thread.start()
 
     async def incoming_connection(self, websocket, path):
+        """ On new connection, a new this will be ran. """
         try:
             # Ditch former connections!
             # self._robot_manager.set_communication_interface_callbacks(self)
-            # self._connections.append(websocket)
+            self._connections.append(websocket)
 
             # Print a message when a new connection is established
             log(f"Client connected: '{path}' - {websocket.remote_address}")
 
-            await websocket.send(json.dumps(self._robot_manager._robot.battery))
+            # Initial state sends.
+            self.send({
+                "event": RobotEvent.BATTERY_CHANGE,
+                "data": self._robot_manager._robot.battery
+            })
+
 
             # Listen for incoming messages
             async for message_raw in websocket:
@@ -60,8 +120,7 @@ class RobotWebSocketApi:
                         log(f'Incoming Configuration Message: [{message_type}]')
 
                         parsed_config = RobotConfig.from_string(message["body"])
-                        self._robot_manager.robot_configure(parsed_config,
-                            self._robot_manager.start_remote_controller)
+                        self._robot_manager.robot_configure(parsed_config)
 
                     if message_type == 'control':
                         json_data = message["body"]
@@ -91,7 +150,7 @@ class RobotWebSocketApi:
     def send(self, message):
         for ws in self._connections:
             try:
-                ws.send(json.dumps(message))
+                asyncio.run_coroutine_threadsafe(ws.send(encode_data(message)), self._event_loop)
             except Exception as e:
                 log(f'send error {str(e)}')
                 log(f'{message}')
@@ -102,33 +161,4 @@ class RobotWebSocketApi:
             ws.close()
 
         self._connections = []
-
-    def update_session_id(self, id):
-        self.send(['session_id', id])
-
-    def update_orientation(self, vector_orientation):
-        self.send(['orientation', vector_orientation])
-
-    def update_gyro(self, vector_list):
-        self.send(['gyro', vector_list])
-
-    def update_motor(self, id, power, speed, pos):
-        self.send(['motor', id, power, speed, pos])
-
-    def update_sensor(self, raw_value):
-        self.send(['sensor', raw_value])
-
-    def update_script_variable(self, script_variables):
-        # self.send(['script_var', script_variables])
-        pass
-
-    def update_state_control(self, control_state):
-        self.send(['state', control_state])
-
-    def update_timer(self, time):
-        self.send(['timer', time])
-
-    def update_battery(self, bat_main, charger_status, motor, motor_present):
-        log('bat update')
-        self.send(['battery', bat_main, charger_status, motor, motor_present])
 

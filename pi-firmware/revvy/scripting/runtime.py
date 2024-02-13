@@ -4,6 +4,7 @@ from enum import Enum
 import time
 
 from typing import TYPE_CHECKING
+from revvy.utils.emitter import Emitter
 
 # To have types, use this to avoid circular dependencies.
 if TYPE_CHECKING:
@@ -40,13 +41,14 @@ class TimeWrapper:
         self.sleep = ctx.sleep
 
 
-class ScriptHandle:
+class ScriptHandle(Emitter[ScriptEvent]):
     """ Creates a controller from a script descirptor """
     def _default_sleep(self, _):
         self.log('Error: default sleep called')
         raise Exception('Script not running')
 
     def __init__(self, owner: 'ScriptManager', descriptor, name, global_variables: dict):
+        super().__init__()
         self._owner = owner
         self._globals = global_variables.copy()
         self._inputs = {}
@@ -77,16 +79,6 @@ class ScriptHandle:
     def _on_error(self, error):
         self.trigger(ScriptEvent.ERROR, error)
 
-
-    def on(self, event: ScriptEvent, callback):
-        """ Subscribe to script runner events """
-        self._events_handlers[event].append(callback)
-
-    def trigger(self, event: ScriptEvent, data=None):
-        for event_handler in self._events_handlers[event]:
-            # Important to pass down self, so we have the reference of
-            # the handler one level up.
-            event_handler(self, data)
 
     @property
     def is_stop_requested(self):

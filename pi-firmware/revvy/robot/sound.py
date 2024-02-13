@@ -1,16 +1,28 @@
 from functools import partial
+import os
 
 from revvy.hardware_dependent.sound import SoundControlBase
+from revvy.utils.assets import Assets
+from revvy.utils.directories import WRITEABLE_ASSETS_DIR
 from revvy.utils.logger import get_logger
 
 
 class Sound:
-    def __init__(self, sound_interface: SoundControlBase, sounds):
+    def __init__(self, sound_interface: SoundControlBase):
         self._sound = sound_interface
         self._playing = {}
         self._key = 0
 
-        self._get_sound_path = sounds
+        # Load sounds from the assets folder.
+        self._assets = Assets()
+
+        # Package sounds
+        self._assets.add_source(os.path.join('data', 'assets'))
+
+        # User can upload  their own sounds in the writeable assets folder.
+        self._assets.add_source(WRITEABLE_ASSETS_DIR)
+
+        self._get_sound_path = self._assets.category_loader('sounds')
         self.set_volume = sound_interface.set_volume
         self.reset_volume = sound_interface.reset_volume
 

@@ -51,9 +51,6 @@ class BaseSensorPortDriver(PortDriver):
         if converted is not None:
             self._value = converted
 
-        if self.driver == 'RGB':
-            self._raw_value = self._value
-
         self.on_status_changed(self._port)
 
     @property
@@ -64,4 +61,5 @@ class BaseSensorPortDriver(PortDriver):
     def raw_value(self):
         return self._raw_value
 
+    # Surprise.
     def convert_sensor_value(self, raw): raise NotImplementedError

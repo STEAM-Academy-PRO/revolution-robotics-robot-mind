@@ -84,7 +84,10 @@ class Logger(BaseLogger):
         """ Dump flashed framework version"""
         with create_unique_file(os.path.join(WRITEABLE_DATA_DIR, 'revvy_log')) as file:
             file.write(f"Framework version: {self.sw_version}-{self.branch}\n")
-            file.writelines(self._buffer)
+            try:
+                file.writelines(self._buffer)
+            except Exception as e:
+                file.writelines('logger failed!')
         self._buffer.clear()
 
 

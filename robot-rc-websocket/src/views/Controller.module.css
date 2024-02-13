@@ -1,0 +1,59 @@
+.controller{
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    width: 100%;
+}
+
+.statuses{
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 30px;
+}
+.status{ margin: 3px; padding: 10px; background: #eee}
+
+.joystick{
+    background: #ccc;
+    border-radius: 100px;
+    display: flex
+}
+
+
+.placeholder{
+    display: flex;
+    flex-grow: 1;
+}
+
+.controllerButtons{
+    display: flex
+}
+
+.log {
+    background: rgb(203, 223, 203)
+}
+
+.matrixRow {
+    display: flex;
+    gap: 10px; /* Adjust the space between cells */
+}
+
+.matrix {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Adjust the space between rows */
+}
+
+.matrixCell {
+    width: 60px; /* Adjust cell width */
+    height: 60px; /* Adjust cell height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* border: 1px solid #000; Cell border */
+  }
+
+  .button{width: 100%; height: 100%; border: 0; border-radius: 30px; transition: all 0.1s ease;}
+  .buttonPressed{background: #f6f04f74}
+  .buttonRunning{ box-shadow: 0 0 0 4px rgba(57, 255, 57, 1); transition: all 0.1s ease; }
+  .buttonError{ box-shadow: 0 0 0 4px rgba(255, 37, 37, 1); transition: all 0.1s ease; }
+
