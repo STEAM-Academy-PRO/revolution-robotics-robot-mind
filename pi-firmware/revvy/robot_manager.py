@@ -316,6 +316,7 @@ class RobotManager:
 
             # Empty sensors do not need a data wrapper subscription.
             if sensor_config:
+                # Create a data wrapper that exposes sensor data to the mobile app.
                 sensor_data_wrapper_subscription = create_sensor_data_wrapper(
                     sensor_port, sensor_config,
                     lambda event_data: self.trigger(RobotEvent.SENSOR_VALUE_CHANGE, event_data))

@@ -1,6 +1,6 @@
-""" Sensor value wrapper: manages throttling of sensor readings """
+""" Sensor value wrapper: manages throttling of sensor readings for the mobile app """
 from revvy.robot.configurations import Sensors
-from revvy.robot.ports.common import PortDriver, PortInstance
+from revvy.robot.ports.common import PortInstance
 from revvy.robot.robot_events import SensorEventData
 from revvy.utils.logger import get_logger
 from revvy.utils.observable import SmoothingObservable
@@ -14,15 +14,20 @@ log = get_logger('sensor states')
 
 def create_sensor_data_wrapper(sensor_port: PortInstance, sensor, on_data_update) -> Disposable:
     """
-    Currently our sensors send up pretty much RAW data from the MCU
-    which is ok, but unfortunately that code is all around the place too,
-    so for the time being I create an extra data layer over the sensor
-    port readings to debounce/throttle the surfacing values and not read
-    trash.
-    Ideally, we'll dig down into the bottoms of the drivers and clean the
-    data there and only surface it when it's actually good and reliable.
-    Until now, here is a wrapper.
+    Create wrappers that convert raw sensor value into a more
+    directly usable one. This is a temporary solution to the problem.
     """
+
+    # Currently our sensors send up pretty much RAW data from the MCU
+    # which is ok, but unfortunately that code is all around the place too,
+    # so for the time being I create an extra data layer over the sensor
+    # port readings to debounce/throttle the surfacing values and not read
+    # trash.
+    #
+    # Ideally, we'll dig down into the bottoms of the drivers and clean the
+    # data there and only surface it when it's actually good and reliable.
+    # Until now, here is a wrapper.
+
     if sensor is Sensors.Ultrasonic:
         log(f'ultrasonic on port {sensor_port.id}!')
         return UltrasonicSensorDataHandler(sensor_port, on_data_update)
@@ -40,7 +45,7 @@ class UltrasonicSensorDataHandler(Disposable):
         self._on_data_update = on_data_update
         self._sensor_port = sensor_port
 
-        sensor_port.on_status_changed.add(self.update)
+        sensor_port.driver.on_status_changed.add(self.update)
 
         self._value = SmoothingObservable(value=0, window_size=3,
                 # Do not update more frequent than 200ms
@@ -81,8 +86,9 @@ class UltrasonicSensorDataHandler(Disposable):
 class ButtonSensorDataHandler(Disposable):
     """ Button value handler """
     def __init__(self, sensor_port: PortInstance, on_data_update):
+        self._on_data_update = on_data_update
         self._sensor_port_id = sensor_port.id
-        sensor_port.on_status_changed.add(self.update)
+        sensor_port.driver.on_status_changed.add(self.update)
         self._value = SmoothingObservable(value=0, window_size=3,
                 # Do not update more frequent than 200ms
                 throttle_interval=0.2,
@@ -90,8 +96,6 @@ class ButtonSensorDataHandler(Disposable):
                     # Simple last 3 window debounce.
                     sum(last_values) / 2 > 0.5
                 )
-        # Debug
-        # self._value.subscribe(lambda v: log(f'btn {v}'))
 
         self._value.subscribe(self.on_data_update)
 
@@ -100,7 +104,8 @@ class ButtonSensorDataHandler(Disposable):
             We need to convert it back to bits
             to send it back to the bluetooth interface.
         """
-        SensorEventData(self._sensor_port_id, b'\x01' if value else b'\x00')
+        self._on_data_update(
+            SensorEventData(self._sensor_port_id, b'\x01' if value else b'\x00'))
 
     def update(self, port: bytearray):
         """ dig out the first bit """
