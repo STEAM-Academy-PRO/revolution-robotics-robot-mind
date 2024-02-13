@@ -1,24 +1,8 @@
 from abc import ABC, abstractmethod
-from contextlib import suppress
 
 from revvy.mcu.rrrc_control import RevvyControl
+from revvy.utils.emitter import SimpleEventEmitter
 from revvy.utils.logger import get_logger
-
-
-class SimpleEventEmitter:
-    def __init__(self):
-        self._callbacks = []
-
-        self.add = self._callbacks.append
-        self.clear = self._callbacks.clear
-
-    def remove(self, callback):
-        with suppress(ValueError):
-            self._callbacks.remove(callback)
-
-    def __call__(self, *args, **kwargs):
-        for func in self._callbacks:
-            func(*args, **kwargs)
 
 
 class PortDriver(ABC):
@@ -35,7 +19,7 @@ class PortDriver(ABC):
         return self._driver_name
 
     @property
-    def on_status_changed(self):
+    def on_status_changed(self) -> SimpleEventEmitter:
         return self._on_status_changed
 
     def uninitialize(self):
