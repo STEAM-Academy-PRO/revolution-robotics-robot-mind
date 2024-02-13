@@ -66,13 +66,13 @@ class UltrasonicSensorDataHandler(Disposable):
         self._on_data_update(
             SensorEventData(self._sensor_port.id, byte_array_value))
 
-    def update(self, port: bytearray):
+    def update(self, port: PortInstance):
         """
             Dig out the first two bites.
         """
 
         # This layer should NOT contain bit hacking.
-        value = int.from_bytes(port.raw_value[0:2], 'little')
+        value = int.from_bytes(port.driver.raw_value[0:2], 'little')
         # log(f'ultrasonic sensor value {value}')
         if 0 < value < MAX_ULTRASONIC_SENSOR_DISTANCE:
             self._value.set(value)
@@ -107,9 +107,9 @@ class ButtonSensorDataHandler(Disposable):
         self._on_data_update(
             SensorEventData(self._sensor_port_id, b'\x01' if value else b'\x00'))
 
-    def update(self, port: bytearray):
+    def update(self, port: PortInstance):
         """ dig out the first bit """
-        self._value.set(port.raw_value[0])
+        self._value.set(port.driver.raw_value[0])
 
     def dispose(self):
         self._value.unsubscribe(self.on_data_update)
