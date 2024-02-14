@@ -34,7 +34,7 @@ from revvy.scripting.color_functions import rgb_to_hsv_gray,\
     detect_line_background_colors, ColorDataUndefined, color_name_to_rgb
 
 from revvy.utils.functions import hex2rgb
-from revvy.robot.ports.common import PortInstance, PortCollection
+from revvy.robot.ports.common import PortInstance
 
 from revvy.utils.functions import map_values
 from revvy.utils.logger import get_logger
@@ -639,6 +639,33 @@ class LineDriver:
             self.__turn_left()
         self.__prev_current = current
         return LineDriver.FOLLOW_LINE_RESULT_CONTINUE
+
+
+class PortCollection:
+    """
+    Provides named access to a list of ports.
+    
+    Used by blockly to access ports by mobile-configured names.
+    """
+    def __init__(self, ports):
+        self._ports = list(ports)
+        self._alias_map = {}
+
+    @property
+    def aliases(self):
+        return self._alias_map
+
+    def __getitem__(self, item):
+        if type(item) is str:
+            if item in self._alias_map.keys():
+                item = self._alias_map[item]
+            else:
+                key_list = self._alias_map.keys()
+                raise KeyError(f"key '{item}' not found in alias map. Available keys: {key_list}")
+        return self._ports[item - 1]
+
+    def __iter__(self):
+        return self._ports.__iter__()
 
 
 class RobotInterface:

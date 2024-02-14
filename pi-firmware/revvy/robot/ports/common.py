@@ -46,33 +46,6 @@ class PortDriver(ABC):
         pass
 
 
-class PortCollection:
-    """
-    Provides named access to a list of ports.
-    
-    Used by blockly to access ports by mobile-configured names.
-    """
-    def __init__(self, ports):
-        self._ports = list(ports)
-        self._alias_map = {}
-
-    @property
-    def aliases(self):
-        return self._alias_map
-
-    def __getitem__(self, item):
-        if type(item) is str:
-            if item in self._alias_map.keys():
-                item = self._alias_map[item]
-            else:
-                key_list = self._alias_map.keys()
-                raise KeyError(f"key '{item}' not found in alias map. Available keys: {key_list}")
-        return self._ports[item - 1]
-
-    def __iter__(self):
-        return self._ports.__iter__()
-
-
 class DriverConfig(NamedTuple):
     driver: type
     config: dict
