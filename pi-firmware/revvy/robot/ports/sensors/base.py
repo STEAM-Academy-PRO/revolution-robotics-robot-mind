@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from revvy.robot.ports.common import PortDriver, PortInstance
+from revvy.robot.ports.common import DriverConfig, PortDriver, PortInstance
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler
 
@@ -51,11 +51,11 @@ class SensorPortHandler(PortHandler[SensorPortDriver]):
         port_amount = interface.get_sensor_port_amount()
         port_types = interface.get_sensor_port_types()
 
-        super().__init__("Sensor", interface, NullSensor, port_amount, port_types, interface.set_sensor_port_type)
+        super().__init__("Sensor", interface, DriverConfig(driver = NullSensor, config = {}), port_amount, port_types, interface.set_sensor_port_type)
 
 
 class NullSensor(SensorPortDriver):
-    def __init__(self, port: PortInstance):
+    def __init__(self, port: PortInstance, config):
         super().__init__(port, 'NotConfigured')
 
     def update_status(self, data):

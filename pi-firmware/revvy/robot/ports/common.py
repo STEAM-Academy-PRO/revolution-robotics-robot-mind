@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Generic, TypeVar
+from typing import Generic, NamedTuple, TypeVar
 
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.emitter import SimpleEventEmitter
 from revvy.utils.logger import get_logger
-
 
 class PortDriver(ABC):
     """ A base class for motor and sensor drivers. """
@@ -54,7 +53,17 @@ class PortCollection:
         return self._ports.__iter__()
 
 
+class DriverConfig(NamedTuple):
+    driver: type
+    config: dict
+
+    def create(self, port: 'PortInstance'):
+        """ Creates a new driver instance for the given port. """
+        return self.driver(port, self.config)
+
+
 DriverType = TypeVar('DriverType', bound=PortDriver)
+
 
 class PortHandler(Generic[DriverType]):
     """
@@ -63,13 +72,13 @@ class PortHandler(Generic[DriverType]):
     The class acts as a 1-based array so that users can index into it to get a specific port, or
     iterate over all ports.
     """
-    def __init__(self, name, interface: RevvyControl, default_driver: Callable[[], DriverType], amount: int, supported: dict, set_port_type):
+    def __init__(self, name, interface: RevvyControl, default_driver: DriverConfig, amount: int, supported: dict, set_port_type):
         """
         Creates a new port handler for the given amount of ports.
 
         :param name: The name of the port type (e.g. "Motor" or "Sensor")
         :param interface: The RevvyControl instance to use for communication
-        :param default_driver: The default driver to use for unconfigured ports
+        :param default_driver: The default driver configuration to use for unconfigured ports
         :param amount: The amount of ports of this type
         :param supported: A dictionary of supported drivers
         :param set_port_type: A function that sets the port type on the MCU
@@ -124,13 +133,13 @@ class PortInstance(Generic[DriverType]):
     This class is responsible for handling port configuration and driver initialization.
     """
 
-    def __init__(self, port_idx, name, interface: RevvyControl, default_driver: Callable[[], DriverType], supported, set_port_type):
+    def __init__(self, port_idx, name, interface: RevvyControl, default_driver: DriverConfig, supported, set_port_type):
         """
         
         :param port_idx: The index of the port (1-based)
         :param name: The name of the port type (e.g. "Motor" or "Sensor")
         :param interface: The RevvyControl instance to use for communication
-        :param default_driver: The default driver to use for unconfigured ports
+        :param default_driver: The default driver config to use for unconfigured ports
         :param supported: A dictionary of supported drivers
         :param set_port_type: A function that sets the port type on the MCU
         """
@@ -141,7 +150,7 @@ class PortInstance(Generic[DriverType]):
         self._supported = supported
         self._default_driver = default_driver
         self._set_port_type = set_port_type
-        self._driver = default_driver(self)
+        self._driver = default_driver.create(self)
 
     @property
     def id(self):
@@ -153,14 +162,14 @@ class PortInstance(Generic[DriverType]):
 
     @property
     def on_config_changed(self):
-        """ Subscribe to port configuration changes """
+        """ Port configuration change event emitter """
         return self._config_changed_callbacks
 
     @property
     def driver(self) -> DriverType:
         return self._driver
 
-    def configure(self, config) -> DriverType:
+    def configure(self, config: 'DriverConfig') -> DriverType:
         """
         Configures the port with the given driver and configuration.
         If config is None, the port is set to not configured.
@@ -171,10 +180,8 @@ class PortInstance(Generic[DriverType]):
 
         self.driver.uninitialize()
 
-        if config is None:
-            self._driver = self._default_driver(self)
-        else:
-            self._driver = config['driver'](self, config['config'])
+        driver_config = config or self._default_driver
+        self._driver = driver_config.create(self)
 
         self.log(f'set to {self.driver.driver_name}')
 

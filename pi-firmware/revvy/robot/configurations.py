@@ -1,11 +1,12 @@
+from revvy.robot.ports.common import DriverConfig
 from revvy.robot.ports.motors.dc_motor import DcMotorController
 from revvy.robot.ports.sensors.simple import BumperSwitch, Hcsr04, ColorSensor
 
 
 class Motors:
-    RevvyMotor = {
-        'driver': DcMotorController,
-        'config': {
+    RevvyMotor = DriverConfig(
+        driver = DcMotorController,
+        config = {
             'speed_controller': [0.6065, 0.3935, 0, -150, 150],
             'position_controller': [0.1, 0.0000, 0, -150, 150],
             'acceleration_limits': [500, 500],
@@ -14,10 +15,10 @@ class Motors:
             'encoder_resolution': 12,
             'gear_ratio': 64.8
         }
-    }
-    RevvyMotor_CCW = {
-        'driver': DcMotorController,
-        'config': {
+    )
+    RevvyMotor_CCW = DriverConfig(
+        driver = DcMotorController,
+        config = {
             'speed_controller': [0.6065, 0.3935, 0, -150, 150],
             'position_controller': [0.1, 0.0000, 0, -150, 150],
             'acceleration_limits': [500, 500],
@@ -26,20 +27,21 @@ class Motors:
             'encoder_resolution': -12,
             'gear_ratio': 64.8
         }
-    }
+    )
 
 
-# TODO: named tuples instead of dicts
 class Sensors:
-    Ultrasonic = {
-        'driver': Hcsr04,
-        'config': {}
-    }
-    BumperSwitch = {
-        'driver': BumperSwitch,
-        'config': {}
-    }
-    SofteqCS = {
-        'driver': ColorSensor,
-        'config': {}
-    }
+    Ultrasonic = DriverConfig(
+        driver = Hcsr04,
+        config = {}
+    )
+
+    BumperSwitch = DriverConfig(
+        driver = BumperSwitch,
+        config = {}
+    )
+
+    SofteqCS = DriverConfig(
+        driver = ColorSensor,
+        config = {}
+    )

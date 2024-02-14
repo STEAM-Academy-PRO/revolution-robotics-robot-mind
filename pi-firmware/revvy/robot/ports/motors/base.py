@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from enum import Enum
 from revvy.mcu.rrrc_control import RevvyControl
+from revvy.robot.configurations import DriverConfig
 from revvy.robot.ports.common import PortHandler, PortDriver, PortInstance
 
 from revvy.utils.awaiter import Awaiter, AwaiterSignal, AwaiterImpl
@@ -83,11 +84,11 @@ class MotorPortHandler(PortHandler[MotorPortDriver]):
         port_amount = interface.get_motor_port_amount()
         port_types = interface.get_motor_port_types()
 
-        super().__init__("Motor", interface, NullMotor, port_amount, port_types, interface.set_motor_port_type)
+        super().__init__("Motor", interface, DriverConfig(driver = NullMotor, config = {}), port_amount, port_types, interface.set_motor_port_type)
 
 
 class NullMotor(MotorPortDriver):
-    def __init__(self, port: PortInstance):
+    def __init__(self, port: PortInstance, config):
         super().__init__(port, 'NotConfigured')
 
     @property

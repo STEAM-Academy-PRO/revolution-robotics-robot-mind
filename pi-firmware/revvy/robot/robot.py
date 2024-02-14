@@ -86,9 +86,9 @@ class Robot(RobotInterface):
 
         self._imu = IMU()
 
-        def _set_updater(slot_name, port: PortInstance[PortDriver], config_name):
+        def _set_updater(slot_name, port: PortInstance[PortDriver], config):
             """ Controls reading a port's status information from the MCU. """
-            if config_name is None:
+            if config is None:
                 self._status_updater.disable_slot(slot_name)
             else:
                 self._status_updater.enable_slot(slot_name, port.driver.update_status)
