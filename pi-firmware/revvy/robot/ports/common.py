@@ -54,7 +54,7 @@ class PortCollection:
         return self._ports.__iter__()
 
 
-DriverType = TypeVar('DriverType')
+DriverType = TypeVar('DriverType', bound=PortDriver)
 
 class PortHandler(Generic[DriverType]):
     """
