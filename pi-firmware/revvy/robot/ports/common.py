@@ -1,3 +1,18 @@
+"""
+This module contains port driver implementations.
+
+There are two kinds of ports: motor ports and sensor ports. The ports are grouped into
+PortHandlers. Each port has a driver that implements the port's functionality.
+
+The port drivers have counterparts on the MCU side. The PortHandler implementations read the
+list of supported drivers from the MCU and this list can be used to map driver names to driver
+IDs. The driver IDs are used to select the port drivers on the MCU.
+
+The port drivers are responsible for handling the port's configuration and for sending commands and
+processing the data coming from the MCU. The port drivers emit `on_status_changed` events whenever
+the MCU reads new data from a particular port.
+"""
+
 from abc import ABC, abstractmethod
 from typing import Generic, NamedTuple, TypeVar
 
@@ -32,6 +47,11 @@ class PortDriver(ABC):
 
 
 class PortCollection:
+    """
+    Provides named access to a list of ports.
+    
+    Used by blockly to access ports by mobile-configured names.
+    """
     def __init__(self, ports):
         self._ports = list(ports)
         self._alias_map = {}
