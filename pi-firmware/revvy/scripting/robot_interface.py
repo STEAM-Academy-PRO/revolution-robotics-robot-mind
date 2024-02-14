@@ -657,11 +657,14 @@ class PortCollection:
 
     def __getitem__(self, item):
         if type(item) is str:
+            # access by name
             if item in self._alias_map.keys():
                 item = self._alias_map[item]
             else:
                 key_list = self._alias_map.keys()
                 raise KeyError(f"key '{item}' not found in alias map. Available keys: {key_list}")
+
+        # access by (1-based) position
         return self._ports[item - 1]
 
     def __iter__(self):
