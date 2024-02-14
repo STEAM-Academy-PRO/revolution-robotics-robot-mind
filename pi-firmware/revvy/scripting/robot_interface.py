@@ -712,13 +712,14 @@ class RobotWrapper(RobotInterface):
 
         motor_wrappers = [MotorPortWrapper(script, port, self._resources[f'motor_{port.id}'])
                           for port in robot.motors]
+        self._motors = PortCollection(motor_wrappers)
+        self._motors.aliases.update(config.motors.names)
+
         sensor_wrappers = [SensorPortWrapper(script, port, self._resources[f'sensor_{port.id}'])
                            for port in robot.sensors]
-        self._motors = PortCollection(motor_wrappers)
         self._sensors = PortCollection(sensor_wrappers)
-        motor_names = config.motors.names
-        self._motors.aliases.update(motor_names)
         self._sensors.aliases.update(config.sensors.names)
+
         self._sound = SoundWrapper(script, robot.sound, self._resources['sound'])
         self._ring_led = RingLedWrapper(script, robot.led, self._resources['led_ring'])
         self._drivetrain = DriveTrainWrapper(script, robot.drivetrain, self._resources['drivetrain'])
