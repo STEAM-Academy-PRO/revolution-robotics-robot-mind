@@ -40,6 +40,41 @@ class MotorPortDriver(PortDriver):
     def status(self) -> MotorStatus:
         pass
 
+    @property
+    @abstractmethod
+    def speed(self):
+        pass
+
+    @property
+    @abstractmethod
+    def pos(self):
+        pass
+
+    @property
+    @abstractmethod
+    def power(self):
+        pass
+
+    @abstractmethod
+    def set_speed(self, speed, power_limit=None):
+        pass
+
+    @abstractmethod
+    def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute') -> Awaiter:
+        pass
+
+    @abstractmethod
+    def set_power(self, power):
+        pass
+
+    @abstractmethod
+    def update_status(self, data):
+        pass
+
+    @abstractmethod
+    def stop(self, _=MotorConstants.ACTION_RELEASE):
+        pass
+
 
 class MotorPortHandler(PortHandler[MotorPortDriver]):
     def __init__(self, interface: RevvyControl):
@@ -65,16 +100,12 @@ class NullMotor(MotorPortDriver):
         return 0
 
     @property
-    def position(self):
+    def pos(self):
         return 0
 
     @property
     def power(self):
         return 0
-
-    @property
-    def is_moving(self):
-        return False
 
     def set_speed(self, speed, power_limit=None):
         pass

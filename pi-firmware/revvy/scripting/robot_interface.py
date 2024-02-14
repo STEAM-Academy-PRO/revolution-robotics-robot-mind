@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 from revvy.robot.configurations import Motors, Sensors
 from revvy.robot.led_ring import RingLed
-from revvy.robot.ports.motors.base import MotorConstants
+from revvy.robot.ports.motors.base import MotorConstants, MotorPortDriver
 from revvy.robot.sound import Sound
 from revvy.scripting.resource import Resource
 from revvy.scripting.color_functions import rgb_to_hsv_gray,\
@@ -215,7 +215,7 @@ class MotorPortWrapper(Wrapper):
         'RevvyMotor_CCW': Motors.RevvyMotor_CCW
     }
 
-    def __init__(self, script: 'ScriptHandle', motor: PortInstance, resource: ResourceWrapper):
+    def __init__(self, script: 'ScriptHandle', motor: PortInstance[MotorPortDriver], resource: ResourceWrapper):
         super().__init__(script, resource)
         self._log_prefix = f"MotorPortWrapper[motor {motor.id}]: "
         self._motor = motor
