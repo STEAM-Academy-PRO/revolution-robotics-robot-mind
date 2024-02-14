@@ -20,7 +20,7 @@ class Sound:
         # Package sounds
         self._assets.add_source(os.path.join('data', 'assets'))
 
-        # User can upload  their own sounds in the writeable assets folder.
+        # Users can upload their own sounds in the writeable assets folder.
         self._assets.add_source(WRITEABLE_ASSETS_DIR)
 
         self._get_sound_path = self._assets.category_loader('sounds')
@@ -29,17 +29,23 @@ class Sound:
 
         self._log = get_logger('Sound')
 
-        sound_config = {
+        default_sound_config = {
             "default_volume": 90
         }
-        with open(os.path.join(WRITEABLE_DATA_DIR, 'sound.conf'), "w") as sound_config_file:
-            try:
-                sound_config = json.load(sound_config_file)
-            except json.JSONDecodeError as e:
-                self._log(f"Failed to load sound config: {e}. Using default.", LogLevel.WARN)
-                pass
 
-        self.set_volume(sound_config["default_volume"])
+        # noinspection PyBroadException
+        try:
+            with open(os.path.join(WRITEABLE_DATA_DIR, 'config', 'sound.json'), "r") as sound_config_file:
+                sound_config = json.load(sound_config_file)
+        except Exception as e:
+            self._log(f"Failed to load sound config: {e}. Using default.", LogLevel.WARNING)
+            sound_config = {}
+
+        # merge missing keys from default
+        sound_config = {**default_sound_config, **sound_config}
+
+        sound_interface.set_default_volume(sound_config["default_volume"])
+        sound_interface.set_volume(sound_config["default_volume"])
 
 
     def play_tune(self, name, callback=None):
