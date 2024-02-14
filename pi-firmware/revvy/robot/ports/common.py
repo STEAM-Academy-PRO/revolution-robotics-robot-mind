@@ -27,11 +27,6 @@ class PortDriver(ABC):
         self._on_status_changed.clear()
 
     @abstractmethod
-    def on_port_type_set(self):
-        """ Performs driver-specific initialization as part of the port configuration. """
-        pass
-
-    @abstractmethod
     def update_status(self, data):
         """ Processes port-specific data coming from the MCU. """
         pass
@@ -142,11 +137,11 @@ class PortInstance(Generic[DriverType]):
         self.log = get_logger(f'{name} {port_idx}', off=True)
         self._port_idx = port_idx
         self._interface = interface
-        self._driver = default_driver(self)
         self._config_changed_callbacks = SimpleEventEmitter()
         self._supported = supported
         self._default_driver = default_driver
         self._set_port_type = set_port_type
+        self._driver = default_driver(self)
 
     @property
     def id(self):
@@ -182,11 +177,6 @@ class PortInstance(Generic[DriverType]):
             self._driver = config['driver'](self, config['config'])
 
         self.log(f'set to {self.driver.driver_name}')
-
-        # TODO: it smells that we set the port type after the driver is created. It means we can't
-        # use the constructor to perform the initialization.
-        self._set_port_type(self.id, self._supported[self.driver.driver_name])
-        self.driver.on_port_type_set()
 
         self._config_changed_callbacks(self, config)
 

@@ -11,8 +11,7 @@ class SensorPortDriver(PortDriver):
         self._value = None
         self._raw_value = None
 
-    def on_port_type_set(self):
-        pass
+        port.interface.set_sensor_port_type(port.id, port._supported[driver_name])
 
     @property
     def has_data(self):

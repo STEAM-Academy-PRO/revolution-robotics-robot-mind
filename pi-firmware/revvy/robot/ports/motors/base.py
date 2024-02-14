@@ -35,6 +35,8 @@ class MotorPortDriver(PortDriver):
     def __init__(self, port: PortInstance, driver_name: str):
         super().__init__(port, driver_name)
 
+        port.interface.set_motor_port_type(port.id, port._supported[driver_name])
+
     @property
     @abstractmethod
     def status(self) -> MotorStatus:
@@ -87,9 +89,6 @@ class MotorPortHandler(PortHandler[MotorPortDriver]):
 class NullMotor(MotorPortDriver):
     def __init__(self, port: PortInstance):
         super().__init__(port, 'NotConfigured')
-
-    def on_port_type_set(self):
-        pass
 
     @property
     def status(self) -> MotorStatus:

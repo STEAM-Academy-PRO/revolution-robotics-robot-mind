@@ -43,10 +43,10 @@ class TestSensorPortHandler(unittest.TestCase):
         ports = SensorPortHandler(mock_control)
 
         self.assertIs(PortInstance, type(ports[1]))
-        self.assertEqual(0, mock_control.set_sensor_port_type.call_count)
+        self.assertEqual(4, mock_control.set_sensor_port_type.call_count)
 
         self.assertRaises(KeyError, lambda: ports[1].configure({'driver': "NonExistentDriver"}))
-        self.assertEqual(0, mock_control.set_sensor_port_type.call_count)
+        self.assertEqual(4, mock_control.set_sensor_port_type.call_count)
 
     def test_unconfiguring_not_configured_port_does_nothing(self):
         mock_control = Mock()

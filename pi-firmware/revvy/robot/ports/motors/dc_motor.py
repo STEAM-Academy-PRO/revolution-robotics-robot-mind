@@ -53,8 +53,6 @@ class DcMotorController(MotorPortDriver):
         self._port = port
         self._port_config = port_config
 
-        self._configure = partial(port.interface.set_motor_port_config, port.id)
-
         self._pos = 0
         self._speed = 0
         self._power = 0
@@ -70,7 +68,6 @@ class DcMotorController(MotorPortDriver):
         self.create_absolute_position_command = partial(dc_motor_position_request, self._port.id - 1, 2)
         self.create_relative_position_command = partial(dc_motor_position_request, self._port.id - 1, 3)
 
-    def on_port_type_set(self):
         (posP, posI, posD, speedLowerLimit, speedUpperLimit) = self._port_config['position_controller']
         (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = self._port_config['speed_controller']
         (decMax, accMax) = self._port_config['acceleration_limits']
@@ -90,7 +87,7 @@ class DcMotorController(MotorPortDriver):
 
         # self.log(f'Sending configuration: {config}')
 
-        self._configure(config)
+        port.interface.set_motor_port_config(port.id, config)
 
     def _cancel_awaiter(self):
         awaiter, self._awaiter = self._awaiter, None
