@@ -1,10 +1,11 @@
 from functools import partial
+import json
 import os
 
 from revvy.hardware_dependent.sound import SoundControlBase
 from revvy.utils.assets import Assets
-from revvy.utils.directories import WRITEABLE_ASSETS_DIR
-from revvy.utils.logger import get_logger
+from revvy.utils.directories import WRITEABLE_DATA_DIR, WRITEABLE_ASSETS_DIR
+from revvy.utils.logger import LogLevel, get_logger
 
 
 class Sound:
@@ -27,6 +28,19 @@ class Sound:
         self.reset_volume = sound_interface.reset_volume
 
         self._log = get_logger('Sound')
+
+        sound_config = {
+            "default_volume": 90
+        }
+        with open(os.path.join(WRITEABLE_DATA_DIR, 'sound.conf'), "w") as sound_config_file:
+            try:
+                sound_config = json.load(sound_config_file)
+            except json.JSONDecodeError as e:
+                self._log(f"Failed to load sound config: {e}. Using default.", LogLevel.WARN)
+                pass
+
+        self.set_volume(sound_config["default_volume"])
+
 
     def play_tune(self, name, callback=None):
         try:
