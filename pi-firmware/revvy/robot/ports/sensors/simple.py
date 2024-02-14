@@ -4,7 +4,7 @@ from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.sensors.base import SensorPortDriver
 
 class BumperSwitch(SensorPortDriver):
-    def __init__(self, port: PortInstance, config):
+    def __init__(self, port: PortInstance[SensorPortDriver], config):
         super().__init__(port, 'BumperSwitch')
 
     def convert_sensor_value(self, raw):
@@ -13,7 +13,7 @@ class BumperSwitch(SensorPortDriver):
 
 
 class Hcsr04(SensorPortDriver):
-    def __init__(self, port: PortInstance, config):
+    def __init__(self, port: PortInstance[SensorPortDriver], config):
         super().__init__(port, 'HC_SR04')
 
     def convert_sensor_value(self, raw):
@@ -25,7 +25,7 @@ class Hcsr04(SensorPortDriver):
 
 
 class ColorSensor(SensorPortDriver):
-    def __init__(self, port: PortInstance, config):
+    def __init__(self, port: PortInstance[SensorPortDriver], config):
         super().__init__(port, 'RGB')
 
     def convert_sensor_value(self, raw):

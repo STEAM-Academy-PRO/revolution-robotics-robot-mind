@@ -48,7 +48,7 @@ def dc_motor_position_request(port_idx, request_type, position, speed_limit=None
 
 class DcMotorController(MotorPortDriver):
     """Generic driver for dc motors"""
-    def __init__(self, port: PortInstance, port_config):
+    def __init__(self, port: PortInstance[MotorPortDriver], port_config):
         super().__init__(port, 'DcMotor')
         self._port = port
         self._port_config = port_config
