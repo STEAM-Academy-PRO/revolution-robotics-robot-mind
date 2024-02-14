@@ -41,9 +41,7 @@ class LiveMessageService(BlenoPrimaryService):
             GyroCharacteristic('4337a7c2-cae9-4c88-8908-8810ee013fcb', b'Orientation')
         ]
 
-        self._timer_characteristic = [
-            TimerCharacteristic('c0e913da-5fdd-4a17-90b4-47758d449306', b'Timer'),
-        ]
+        self._timer_characteristic = TimerCharacteristic('c0e913da-5fdd-4a17-90b4-47758d449306', b'Timer')
 
         self._program_status_characteristic = [
             ProgramStatusCharacteristic('7b988246-56c3-4a90-a6e8-e823ea287730', b'ProgramStatus')
@@ -82,7 +80,6 @@ class LiveMessageService(BlenoPrimaryService):
         self._buf_gyro = b'\xff'
         self._buf_orientation = b'\xff'
         self._buf_script_variables = b'\xff'
-        self._buf_timer = b'\xff'
 
         super().__init__({
             'uuid':            'd2d5558c-5b9d-11e9-8647-d663bd873d93',
@@ -94,7 +91,7 @@ class LiveMessageService(BlenoPrimaryService):
                 *self._orientation_characteristic,
                 *self._read_variable_characteristic,
                 *self._state_control_characteristic,
-                *self._timer_characteristic,
+                self._timer_characteristic,
                 *self._program_status_characteristic
             ]
         })
@@ -265,10 +262,8 @@ class LiveMessageService(BlenoPrimaryService):
 
     def update_timer(self, data):
         """ Send back timer tick every second to mobile. """
-        buf = list(struct.pack(">bf", 4, data))
-        if self._buf_timer != buf:
-            self._buf_timer = buf
-            self._timer_characteristic[0].update(self._buf_timer)
+        buf = list(struct.pack(">bf", 4, round(data, 0)))
+        self._timer_characteristic.update(buf)
 
     def update_script_variables(self, script_variables):
         """

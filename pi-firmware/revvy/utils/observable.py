@@ -1,11 +1,15 @@
-""" Simple observable implementation. """
+"""
+Observable value implementation.
+
+An observable value raises an event when its value changes.
+Outside code can subscribe to these events and react to them.
+"""
 
 import copy
 import threading
 from time import time
 
 from typing import Generic, TypeVar, Callable, List
-
 
 
 VariableType = TypeVar('VariableType')
@@ -28,26 +32,27 @@ class Observable(Generic[VariableType]):
         self._observers.remove(observer)
 
     def notify(self):
-        """ If not throttling, effects are instant. If throttling, effects are delayed. """
+        """ If not throttling, observers are notified instantly. If throttling is enabled, events are emitted at most once per period. """
         if self._throttle_interval == 0:
             for observer in self._observers:
                 observer(self._data)
         else:
             current_time = time()
-            if current_time - self._last_update_time > self._throttle_interval:
+            since_last_emit = current_time - self._last_update_time
+            if since_last_emit >= self._throttle_interval:
                 for observer in self._observers:
                     observer(self._data)
                 self._last_update_time = current_time
                 self._update_pending = False
             else:
+                # set up a recall for the next period, counted from the last event
                 if not self._update_pending:
                     self._update_pending = True
-                    threading.Timer(self._throttle_interval, self._check_pending_update).start()
+                    threading.Timer(self._throttle_interval - since_last_emit, self._check_pending_update).start()
 
     def _check_pending_update(self):
         if self._update_pending:
             self.notify()
-
 
     def set(self, new_data: VariableType):
         if new_data != self._data:
