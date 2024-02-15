@@ -6,8 +6,6 @@ from typing import Callable
 from revvy.utils.functions import map_values, clip
 from revvy.utils.logger import LogLevel, get_logger
 
-HAS_AUDIO = True
-
 class SoundControlBase:
     def __init__(self, commands, default_volume):
         self._default_volume = default_volume
@@ -59,29 +57,28 @@ class SoundControlBase:
                 # self._log('Turning amp off')
                 self._run_command(self._commands['disable_amp'])
 
+    def set_default_volume(self, volume):
+        self._default_volume = volume
+
     def set_volume(self, volume):
-        scaled = map_values(clip(volume, 0, 100), 0, 100, -10239, 400)
-        self._run_command(f'amixer cset numid=1 -- {scaled}')
+        self._log(f'Setting volume to {volume}')
+        volume = clip(volume, 0, 100)
+        self._run_command(f'amixer sset Master {volume}%')
 
     def reset_volume(self):
         self.set_volume(self._default_volume)
 
     def play_sound(self, sound, callback=None):
         if len(self._processes) <= self._max_parallel_sounds:
-            if HAS_AUDIO:
-                self._log(f'Playing sound: {sound}')
+            self._log(f'Playing sound: {sound}')
 
-                def cb():
-                    if callable(callback):
-                        callback()
-
-                    self._disable_amp_callback()
-
-                return self._play(sound, cb)
-            else:
-                self._log(f'MUTED! Would play sound: {sound}', LogLevel.WARNING)
+            def cb():
                 if callable(callback):
                     callback()
+
+                self._disable_amp_callback()
+
+            return self._play(sound, cb)
         else:
             self._log('Too many sounds are playing, skip')
 
