@@ -49,7 +49,7 @@ class RobotState(Emitter[RobotEvent]):
         self._background_control_state = Observable(0, throttle_interval=0.1)
         self._timer = Observable(0, throttle_interval=1)
 
-        self._motor_angles = Observable([0]*6, throttle_interval=0.5)
+        self._motor_angles = Observable([0]*6, throttle_interval=0.1)
 
     def start_polling_mcu(self):
         """ Starts a new thread that runs every 5ms to check on MCU status. """
@@ -93,7 +93,7 @@ class RobotState(Emitter[RobotEvent]):
 
             # Send back the timer to the mobile.
             self._remote_controller.timer_increment()
-
+            self._timer.set(self._remote_controller.processing_time)
 
             # TODO: Debounce this a bit better: this is used for the angle.
             self._orientation.set([
@@ -104,9 +104,6 @@ class RobotState(Emitter[RobotEvent]):
 
             self._script_variables.set(self._robot.script_variables.get_variable_values())
             self._background_control_state.set(self._remote_controller.background_control_state)
-
-            # TODO: WHY is this necessary???
-            self._timer.set(self._remote_controller.processing_time)
 
             # This is TEMPORARY and should not be here. Nothing should know about the MCU
             # communication ticks.

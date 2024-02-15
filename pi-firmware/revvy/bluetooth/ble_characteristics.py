@@ -170,9 +170,6 @@ class BrainToMobileFunctionCharacteristic(Characteristic):
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
     def onSubscribe(self, max_value_size, update_value_callback):
-        # TODO Bad naming. Subscribe would suggest that we can do it multiple times.
-        # However this is more like "setCallback"
-
         self._updateValueCallback = update_value_callback
 
     def onUnsubscribe(self):
@@ -184,7 +181,6 @@ class BrainToMobileFunctionCharacteristic(Characteristic):
         callback = self._updateValueCallback
         if callback:
             callback(value)
-
 
 
 class StateControlCharacteristic(RelativeFunctionCharacteristic):
