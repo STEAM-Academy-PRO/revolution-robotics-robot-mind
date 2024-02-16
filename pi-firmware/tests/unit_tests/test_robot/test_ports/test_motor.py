@@ -126,7 +126,11 @@ class TestDcMotorDriver(unittest.TestCase):
         (passed_port_id, passed_config) = port.interface.set_motor_port_config.call_args[0]
 
         self.assertEqual(3, passed_port_id)
-        self.assertEqual(56 + 2 * 8, len(passed_config))
+
+        configs = 56
+        linearity_table = 6 * 8
+        expected_bytes = configs + linearity_table
+        self.assertEqual(expected_bytes, len(passed_config))
 
     def test_set_pos_changes_read_value(self):
         port = self.create_port()
