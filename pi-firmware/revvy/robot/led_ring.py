@@ -27,12 +27,24 @@ class RingLed:
         return self._current_scenario
 
     def start_animation(self, scenario):
+        """
+        Selects and starts a new animation scenario on the LED ring.
+        """
         self._current_scenario = scenario
         self._interface.ring_led_set_scenario(scenario)
 
     def upload_user_frame(self, frame):
+        """
+        Updates the MCU's LED ring buffer with a new frame. The frame is not displayed unless
+        the UserFrame scenario is active.
+
+        A frame is an array with 12 RGB color values encoded as integers.
+        """
         self._interface.ring_led_set_user_frame(frame)
 
     def display_user_frame(self, frame):
+        """
+        Uploads and displays a new frame on the LED ring.
+        """
         self.upload_user_frame(frame)
         self.start_animation(self.UserFrame)
