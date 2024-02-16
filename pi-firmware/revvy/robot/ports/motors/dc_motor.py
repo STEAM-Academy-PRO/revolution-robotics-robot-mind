@@ -141,7 +141,7 @@ class DcMotorController(MotorPortDriver):
             self.set_power(0)
 
         awaiter = Awaiter()
-        awaiter.on_result(_finished)
+        awaiter.on_finished(_finished)
         awaiter.on_cancelled(_canceled)
 
         self._awaiter = awaiter

@@ -3,7 +3,7 @@ from enum import Enum
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import DriverConfig, PortHandler, PortDriver, PortInstance
 
-from revvy.utils.awaiter import Awaiter, AwaiterSignal, Awaiter
+from revvy.utils.awaiter import Awaiter, AwaiterState, Awaiter
 
 
 class MotorConstants:
@@ -110,7 +110,7 @@ class NullMotor(MotorPortDriver):
         pass
 
     def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute') -> Awaiter:
-        return Awaiter.from_state(AwaiterSignal.FINISHED)
+        return Awaiter.from_state(AwaiterState.FINISHED)
 
     def set_power(self, power):
         pass

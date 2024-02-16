@@ -6,7 +6,7 @@ from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.imu import IMU
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motors.base import MotorPortDriver, MotorStatus, MotorConstants
-from revvy.utils.awaiter import Awaiter, AwaiterSignal
+from revvy.utils.awaiter import Awaiter, AwaiterState
 from revvy.utils.functions import clip
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
@@ -18,7 +18,7 @@ class DrivetrainController:
         self._drivetrain = drivetrain
         self._awaiter = Awaiter()
         self._awaiter.on_cancelled(self._drivetrain._apply_release)
-        self._awaiter.on_result(self._drivetrain._apply_release)
+        self._awaiter.on_finished(self._drivetrain._apply_release)
 
     @property
     def awaiter(self) -> Awaiter:
@@ -297,6 +297,6 @@ class DifferentialDrivetrain:
         if self._controller is not None:
             awaiter = self._controller.awaiter
         else:
-            awaiter = Awaiter.from_state(AwaiterSignal.FINISHED)
+            awaiter = Awaiter.from_state(AwaiterState.FINISHED)
 
         return awaiter
