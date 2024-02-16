@@ -113,7 +113,7 @@ class LinearityConfig:
 
     def serialize(self) -> bytes:
         config = []
-        for x, y in self._points.items():
+        for x, y in self._points:
             config += struct.pack("<ff", x, y)
         config
 
