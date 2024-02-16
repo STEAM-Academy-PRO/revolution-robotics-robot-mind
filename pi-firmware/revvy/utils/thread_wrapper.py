@@ -66,7 +66,6 @@ class ThreadWrapper:
                     self._log('' + traceback.format_exc(), LogLevel.ERROR)
                     for error_callback in self._error_callbacks:
                         error_callback(e)
-                    self._log.flush()
                 finally:
                     self._enter_stopped()
         finally:

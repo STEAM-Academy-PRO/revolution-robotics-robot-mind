@@ -7,8 +7,6 @@ from revvy.utils.directories import WRITEABLE_DATA_DIR
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.write_unique_file import create_unique_file
 
-_log_lock = Lock()
-
 class LogLevel:
     DEBUG = 0
     INFO = 1
@@ -16,7 +14,7 @@ class LogLevel:
     ERROR = 3
 
 
-levels = (
+LEVELS = (
     '\x1b[90mDebug\x1b[0m',
     '\x1b[32mInfo\x1b[0m',
     '\x1b[33mWarning\x1b[0m',
@@ -55,76 +53,32 @@ def hash_to_color(text):
 
     return colored_text
 
+START_TIME = Stopwatch()
 
-class BaseLogger:
-    def log(self, message, level):
-        pass
-
-    def flush(self):
-        pass
-
-
-class Logger(BaseLogger):
-    def __init__(self, buffer_size=1000):
-        self._sw = Stopwatch()
-        self._buffer = deque(maxlen=buffer_size)
-        self.minimum_level = LogLevel.INFO
-        self.branch = "dev"
-        self.sw_version = "not_set"
-        self.on_flush = None
-
-    def log(self, message, level=LogLevel.INFO):
-        if level >= self.minimum_level:
-            message = f'[{self._sw.elapsed:.2f}] [{levels[level]}] {message}'
-            print(message)
-            self._buffer.append(message + '\n')
-
-
-    def flush(self):
-        """ Dump flashed framework version"""
-        with create_unique_file(os.path.join(WRITEABLE_DATA_DIR, 'revvy_log')) as file:
-            file.write(f"Framework version: {self.sw_version}-{self.branch}\n")
-            try:
-                file.writelines(self._buffer)
-            except Exception as e:
-                file.writelines('logger failed!')
-        self._buffer.clear()
-
-
-class LogWrapper(BaseLogger):
-    def __init__(self, logger: BaseLogger, tag, default_log_level=LogLevel.INFO, min_log_level=LogLevel.DEBUG):
-        self._min_log_level = min_log_level
-        if isinstance(tag, str):
-            self._tag = '[' + hash_to_color(tag) + '] '
-        elif isinstance(tag, list):
-            self._tag = ''
-            for t in tag:
-                self._tag += '[' + hash_to_color(t) + '] '
-
-        self._logger = logger
+class Logger:
+    def __init__(self, tag, parent_logger: 'Logger', default_log_level=LogLevel.INFO, min_log_level=LogLevel.DEBUG):
         self._default_log_level = default_log_level
+        self._min_log_level = min_log_level
+
+        if not isinstance(tag, list):
+            tag = [tag]
+
+        self._tag = parent_logger._tag if parent_logger else ''
+        for t in tag:
+            self._tag += '[' + hash_to_color(t) + ']'
 
     def log(self, message, level=None):
-        message = self._tag + message
         if level is None:
             level = self._default_log_level
+
         if level >= self._min_log_level:
-            self._logger.log(message, level)
+            message = f'[{START_TIME.elapsed:.2f}][{LEVELS[level]}]{self._tag} {message}'
+            print(message)
 
     def __call__(self, message, level=None):
         self.log(message, level)
 
-    def flush(self):
-        self._logger.flush()
 
-
-logger = Logger()
-
-def empty(*args):
-    """ dummy """
-    pass
-
-def get_logger(tag, default_log_level=LogLevel.INFO, base=None, off=False):
-    return LogWrapper(base or logger, tag, default_log_level, min_log_level=LogLevel.ERROR if off else LogLevel.DEBUG)
-
+def get_logger(tag, default_log_level=LogLevel.INFO, base: Logger=None, off=False):
+    return Logger(tag, base, default_log_level, min_log_level=LogLevel.ERROR if off else LogLevel.DEBUG)
 

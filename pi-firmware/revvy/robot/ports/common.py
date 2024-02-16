@@ -61,7 +61,7 @@ DriverType = TypeVar('DriverType', bound=PortDriver)
 class PortHandler(Generic[DriverType]):
     """
     This class represents a port type (motor or sensor) and includes all ports of the same type.
-    
+
     The class acts as a 1-based array so that users can index into it to get a specific port, or
     iterate over all ports.
     """
@@ -88,7 +88,7 @@ class PortHandler(Generic[DriverType]):
                 supported,
                 set_port_type
             )
-            for i in range(1, amount + 1) 
+            for i in range(1, amount + 1)
         ]
 
     def __getitem__(self, port_idx: int) -> 'PortInstance':
