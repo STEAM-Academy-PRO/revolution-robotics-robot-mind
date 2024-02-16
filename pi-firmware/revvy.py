@@ -5,6 +5,7 @@
 
 
 import argparse
+from ast import arg
 import sys
 import traceback
 from revvy.firmware_updater import update_firmware_if_needed
@@ -28,6 +29,8 @@ parser = argparse.ArgumentParser(description='Revvy PI firmware')
 parser.add_argument('--debug', action='store_true', help='Enable debug mode')
 args = parser.parse_args()
 
+if not args.debug:
+    revvy_error_handler.register_uncaught_exception_handler()
 
 if __name__ == "__main__":
     log(f'pack: {CURRENT_INSTALLATION_PATH}')

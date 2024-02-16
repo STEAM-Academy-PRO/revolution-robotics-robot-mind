@@ -81,7 +81,7 @@ class ErrorHandler:
     def __init__(self):
         self._error_queue : List[RobotError] = []
         self._error_map : Dict[int, RobotError] = {}
-        self.register_uncaught_exception_handler()
+        # self.register_uncaught_exception_handler()
 
     def handle_uncaught_system_exception(self, exception_type, value, trace):
         """ Log uncaught exceptions and put them in a queue for reporting."""
