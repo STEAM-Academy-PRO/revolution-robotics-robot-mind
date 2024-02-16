@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 from revvy.robot.configurations import Motors, Sensors
 from revvy.robot.led_ring import RingLed
 from revvy.robot.ports.motors.base import MotorConstants, MotorPortDriver
+from revvy.robot.ports.sensors.base import SensorPortDriver
 from revvy.robot.sound import Sound
 from revvy.scripting.resource import Resource
 from revvy.scripting.color_functions import rgb_to_hsv_gray,\
@@ -126,6 +127,7 @@ class Wrapper:
 class SensorPortWrapper(Wrapper):
     """Wrapper class to expose sensor ports to user scripts"""
 
+    # TODO: move these to configurations.py
     _named_configurations = {
         'NotConfigured': None,
         'BumperSwitch': Sensors.BumperSwitch,
@@ -133,7 +135,7 @@ class SensorPortWrapper(Wrapper):
         'RGB': Sensors.SofteqCS,
     }
 
-    def __init__(self, script, sensor: PortInstance, resource: ResourceWrapper):
+    def __init__(self, script, sensor: PortInstance[SensorPortDriver], resource: ResourceWrapper):
         super().__init__(script, resource)
         self._sensor = sensor
 
@@ -148,10 +150,10 @@ class SensorPortWrapper(Wrapper):
         if self._script.is_stop_requested:
             raise InterruptedError
 
-        while not self._sensor.has_data:
+        while not self._sensor.driver.has_data:
             self.sleep(0.1)
 
-        return self._sensor.value
+        return self._sensor.driver.value
 
 
 def color_string_to_rgb(color_string):
@@ -209,6 +211,7 @@ class MotorPortWrapper(Wrapper):
     max_rpm = 150
     timeout = 5
 
+    # TODO: move these to configurations.py
     _named_configurations = {
         'NotConfigured': None,
         'RevvyMotor': Motors.RevvyMotor,
@@ -250,29 +253,29 @@ class MotorPortWrapper(Wrapper):
         set_fns = {
             MotorConstants.UNIT_DEG: {
                 MotorConstants.UNIT_SPEED_RPM: {
-                    MotorConstants.DIRECTION_FWD: lambda: self._motor.set_position(amount,
+                    MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_position(amount,
                                                                                    speed_limit=limit,
                                                                                    pos_type='relative'),
-                    MotorConstants.DIRECTION_BACK: lambda: self._motor.set_position(-amount,
+                    MotorConstants.DIRECTION_BACK: lambda: self._motor.driver.set_position(-amount,
                                                                                     speed_limit=limit,
                                                                                     pos_type='relative'),
                 },
                 MotorConstants.UNIT_SPEED_PWR: {
-                    MotorConstants.DIRECTION_FWD: lambda: self._motor.set_position(amount, power_limit=limit,
+                    MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_position(amount, power_limit=limit,
                                                                                    pos_type='relative'),
-                    MotorConstants.DIRECTION_BACK: lambda: self._motor.set_position(-amount, power_limit=limit,
+                    MotorConstants.DIRECTION_BACK: lambda: self._motor.driver.set_position(-amount, power_limit=limit,
                                                                                     pos_type='relative')
                 }
             },
 
             MotorConstants.UNIT_SEC: {
                 MotorConstants.UNIT_SPEED_RPM: {
-                    MotorConstants.DIRECTION_FWD: lambda: self._motor.set_speed(limit),
-                    MotorConstants.DIRECTION_BACK: lambda: self._motor.set_speed(-limit),
+                    MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_speed(limit),
+                    MotorConstants.DIRECTION_BACK: lambda: self._motor.driver.set_speed(-limit),
                 },
                 MotorConstants.UNIT_SPEED_PWR: {
-                    MotorConstants.DIRECTION_FWD: lambda: self._motor.set_power(limit),
-                    MotorConstants.DIRECTION_BACK: lambda: self._motor.set_power(-limit),
+                    MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_power(limit),
+                    MotorConstants.DIRECTION_BACK: lambda: self._motor.driver.set_power(-limit),
                 }
             }
         }
@@ -295,7 +298,7 @@ class MotorPortWrapper(Wrapper):
 
                 elif unit_amount == MotorConstants.UNIT_SEC:
                     self.sleep(amount)
-                    resource.run_uninterruptable(partial(self._motor.set_power, 0))
+                    resource.run_uninterruptable(partial(self._motor.driver.set_power, 0))
                 self.log("movement finished")
 
     def spin(self, direction, rotation, unit_rotation):
@@ -303,12 +306,12 @@ class MotorPortWrapper(Wrapper):
         self.log("spin")
         set_speed_fns = {
             MotorConstants.UNIT_SPEED_RPM: {
-                MotorConstants.DIRECTION_FWD: lambda: self._motor.set_speed(rotation),
-                MotorConstants.DIRECTION_BACK: lambda: self._motor.set_speed(-rotation)
+                MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_speed(rotation),
+                MotorConstants.DIRECTION_BACK: lambda: self._motor.driver.set_speed(-rotation)
             },
             MotorConstants.UNIT_SPEED_PWR: {
-                MotorConstants.DIRECTION_FWD: lambda: self._motor.set_power(rotation),
-                MotorConstants.DIRECTION_BACK: lambda: self._motor.set_power(-rotation)
+                MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_power(rotation),
+                MotorConstants.DIRECTION_BACK: lambda: self._motor.driver.set_power(-rotation)
             }
         }
 
