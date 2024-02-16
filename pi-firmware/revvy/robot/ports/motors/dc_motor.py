@@ -91,7 +91,7 @@ class PidConfig:
         self._upper_output_limit = upper_limit
 
     def serialize(self) -> bytes:
-        struct.pack(
+        return struct.pack(
             "<5f", self._p, self._i, self._d, self._lower_output_limit, self._upper_output_limit
         )
 
@@ -104,7 +104,7 @@ class AccelerationLimitConfig:
         self._acceleration = accMax
 
     def serialize(self) -> bytes:
-        struct.pack("<ff", self._deceleration, self._acceleration)
+        return struct.pack("<ff", self._deceleration, self._acceleration)
 
 
 class LinearityConfig:
@@ -115,7 +115,7 @@ class LinearityConfig:
         config = []
         for x, y in self._points:
             config += struct.pack("<ff", x, y)
-        config
+        return config
 
 
 class DcMotorDriverConfig:
