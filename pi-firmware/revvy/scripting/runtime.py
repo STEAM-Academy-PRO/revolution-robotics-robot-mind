@@ -70,8 +70,6 @@ class ScriptHandle(Emitter[ScriptEvent]):
 
         self._thread.on_error(self._on_error)
 
-        self._events_handlers = {event: [] for event in ScriptEvent}
-
         assert(callable(self._runnable))
 
         self.log('Created')

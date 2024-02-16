@@ -169,7 +169,7 @@ class PortInstance(Generic[DriverType]):
         """
 
         # Temporarily disable reading port by emitting an event that announced the port is not configured
-        self._config_changed_callbacks(self, None)
+        self._config_changed_callbacks.trigger(self, None)
 
         self.driver.uninitialize()
 
@@ -178,7 +178,7 @@ class PortInstance(Generic[DriverType]):
 
         self.log(f'set to {self.driver.driver_name}')
 
-        self._config_changed_callbacks(self, config)
+        self._config_changed_callbacks.trigger(self, config)
 
         return self.driver
 
