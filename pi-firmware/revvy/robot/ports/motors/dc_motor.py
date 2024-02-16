@@ -80,27 +80,38 @@ class SetPositionCommand(MotorCommand):
         return control
 
 
+class PidConfig:
+    def __init__(self, config):
+        (p, i, d, lower_limit, upper_limit) = config
+
+        self._p = p
+        self._i = i
+        self._d = d
+        self._lower_output_limit = lower_limit
+        self._upper_output_limit = upper_limit
+
+    def serialize(self) -> bytes:
+        struct.pack(
+            "<5f", self._p, self._i, self._d, self._lower_output_limit, self._upper_output_limit
+        )
+
+
 class DcMotorDriverConfig:
     def __init__(self, port_config):
         self._port_config = port_config
+        self._position_pid = PidConfig(self._port_config["position_controller"])
+        self._speed_pid = PidConfig(self._port_config["speed_controller"])
 
     def serialize(self) -> bytes:
-        (posP, posI, posD, speedLowerLimit, speedUpperLimit) = self._port_config[
-            "position_controller"
-        ]
-        (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = self._port_config[
-            "speed_controller"
-        ]
         (decMax, accMax) = self._port_config["acceleration_limits"]
         max_current = self._port_config["max_current"]
-
         resolution = self._port_config["encoder_resolution"] * self._port_config["gear_ratio"]
 
         # TODO: break this monster up
         config = [
             *struct.pack("<f", resolution),
-            *struct.pack("<5f", posP, posI, posD, speedLowerLimit, speedUpperLimit),
-            *struct.pack("<5f", speedP, speedI, speedD, powerLowerLimit, powerUpperLimit),
+            *self._position_pid.serialize(),
+            *self._speed_pid.serialize(),
             *struct.pack("<ff", decMax, accMax),
             *struct.pack("<f", max_current),
         ]
