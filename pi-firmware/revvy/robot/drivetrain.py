@@ -165,7 +165,7 @@ class DifferentialDrivetrain:
             self._right_motors.remove(motor)
 
     def _on_motor_status_changed(self, _):
-        if all(m.status == MotorStatus.BLOCKED for m in self._motors):
+        if all(m.driver.status == MotorStatus.BLOCKED for m in self._motors):
             self._log('All motors blocked, releasing')
             self._abort_controller()
         else:
@@ -180,22 +180,22 @@ class DifferentialDrivetrain:
         # leave long after it is actually finished
         self._controller = None
         commands = itertools.chain(
-            *(motor.create_set_power_command(0) for motor in self._left_motors),
-            *(motor.create_set_power_command(0) for motor in self._right_motors)
+            *(motor.driver.create_set_power_command(0) for motor in self._left_motors),
+            *(motor.driver.create_set_power_command(0) for motor in self._right_motors)
         )
         self._interface.set_motor_port_control_value(bytes(commands))
 
     def _apply_speeds(self, left, right, power_limit):
         commands = itertools.chain(
-            *(motor.create_set_speed_command(left, power_limit) for motor in self._left_motors),
-            *(motor.create_set_speed_command(right, power_limit) for motor in self._right_motors)
+            *(motor.driver.create_set_speed_command(left, power_limit) for motor in self._left_motors),
+            *(motor.driver.create_set_speed_command(right, power_limit) for motor in self._right_motors)
         )
         self._interface.set_motor_port_control_value(bytes(commands))
 
     def _apply_positions(self, left, right, left_speed, right_speed, power_limit):
         commands = itertools.chain(
-            *(motor.create_relative_position_command(left, left_speed, power_limit) for motor in self._left_motors),
-            *(motor.create_relative_position_command(right, right_speed, power_limit) for motor in self._right_motors)
+            *(motor.driver.create_relative_position_command(left, left_speed, power_limit) for motor in self._left_motors),
+            *(motor.driver.create_relative_position_command(right, right_speed, power_limit) for motor in self._right_motors)
         )
         self._interface.set_motor_port_control_value(bytes(commands))
 
@@ -285,7 +285,7 @@ class DifferentialDrivetrain:
                                               turn_angle=rotation * multipliers[direction],
                                               wheel_speed=speed,
                                               power_limit=power)
-            
+
             # We need to call update() because we only get notified about changes.
             self._controller.update()
 
