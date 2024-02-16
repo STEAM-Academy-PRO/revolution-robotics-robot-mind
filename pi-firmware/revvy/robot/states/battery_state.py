@@ -1,8 +1,7 @@
 """ Battery status debouncer. """
 
-from revvy.mcu.commands import BatteryStatus
 from revvy.utils.observable import Observable, SmoothingObservable
-
+from revvy.robot.robot import BatteryStatus
 
 class BatteryState(Observable):
     """ Manage and smoothen battery state level values """

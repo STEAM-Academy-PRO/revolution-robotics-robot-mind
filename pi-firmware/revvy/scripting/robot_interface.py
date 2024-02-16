@@ -4,7 +4,7 @@ Whatever code blockly generates, it compiles to python
 code that uses these functions.
 
 DANGER!!!!
-Do not delete any headers, even if they are not used,
+Do not delete any imports, even if they are not used,
 as the generated code MAY use it!
 
 """
@@ -21,19 +21,20 @@ from typing import TYPE_CHECKING
 
 # # To have types, use this to avoid circular dependencies.
 if TYPE_CHECKING:
+    from revvy.scripting.runtime import ScriptHandle
     from revvy.robot_config import RobotConfig
 
 
 from revvy.robot.configurations import Motors, Sensors
 from revvy.robot.led_ring import RingLed
-from revvy.robot.ports.motor import MotorConstants
+from revvy.robot.ports.motors.base import MotorConstants, MotorPortDriver
 from revvy.robot.sound import Sound
 from revvy.scripting.resource import Resource
 from revvy.scripting.color_functions import rgb_to_hsv_gray,\
     detect_line_background_colors, ColorDataUndefined, color_name_to_rgb
 
 from revvy.utils.functions import hex2rgb
-from revvy.robot.ports.common import PortInstance, PortCollection
+from revvy.robot.ports.common import PortInstance
 
 from revvy.utils.functions import map_values
 from revvy.utils.logger import get_logger
@@ -99,7 +100,7 @@ class ResourceWrapper:
 
 
 class Wrapper:
-    def __init__(self, script, resource: ResourceWrapper):
+    def __init__(self, script: 'ScriptHandle', resource: ResourceWrapper):
         self._resource = resource
         self._script = script
 
@@ -129,7 +130,6 @@ class SensorPortWrapper(Wrapper):
         'NotConfigured': None,
         'BumperSwitch': Sensors.BumperSwitch,
         'HC_SR04': Sensors.Ultrasonic,
-        'EV3': None,
         'RGB': Sensors.SofteqCS,
     }
 
@@ -215,14 +215,14 @@ class MotorPortWrapper(Wrapper):
         'RevvyMotor_CCW': Motors.RevvyMotor_CCW
     }
 
-    def __init__(self, script, motor: PortInstance, resource: ResourceWrapper):
+    def __init__(self, script: 'ScriptHandle', motor: PortInstance[MotorPortDriver], resource: ResourceWrapper):
         super().__init__(script, resource)
         self._log_prefix = f"MotorPortWrapper[motor {motor.id}]: "
         self._motor = motor
 
     @property
     def pos(self):
-        return self._motor.pos
+        return self._motor.driver.pos
 
     @pos.setter
     def pos(self, val):
@@ -641,6 +641,36 @@ class LineDriver:
         return LineDriver.FOLLOW_LINE_RESULT_CONTINUE
 
 
+class PortCollection:
+    """
+    Provides named access to a list of ports.
+    
+    Used by blockly to access ports by mobile-configured names.
+    """
+    def __init__(self, ports):
+        self._ports = list(ports)
+        self._alias_map = {}
+
+    @property
+    def aliases(self):
+        return self._alias_map
+
+    def __getitem__(self, item):
+        if type(item) is str:
+            # access by name
+            if item in self._alias_map.keys():
+                item = self._alias_map[item]
+            else:
+                key_list = self._alias_map.keys()
+                raise KeyError(f"key '{item}' not found in alias map. Available keys: {key_list}")
+
+        # access by (1-based) position
+        return self._ports[item - 1]
+
+    def __iter__(self):
+        return self._ports.__iter__()
+
+
 class RobotInterface:
     def time(self):
         raise NotImplementedError
@@ -676,19 +706,20 @@ class RobotInterface:
 class RobotWrapper(RobotInterface):
     """Wrapper class that exposes API to user-written scripts"""
 
-    def __init__(self, script, robot: RobotInterface, config: 'RobotConfig', resources: dict, priority=0):
+    def __init__(self, script: 'ScriptHandle', robot: RobotInterface, config: 'RobotConfig', resources: dict, priority=0):
         self._resources = {name: ResourceWrapper(resources[name], priority) for name in resources}
         self._robot = robot
 
         motor_wrappers = [MotorPortWrapper(script, port, self._resources[f'motor_{port.id}'])
                           for port in robot.motors]
+        self._motors = PortCollection(motor_wrappers)
+        self._motors.aliases.update(config.motors.names)
+
         sensor_wrappers = [SensorPortWrapper(script, port, self._resources[f'sensor_{port.id}'])
                            for port in robot.sensors]
-        self._motors = PortCollection(motor_wrappers)
         self._sensors = PortCollection(sensor_wrappers)
-        motor_names = config.motors.names
-        self._motors.aliases.update(motor_names)
         self._sensors.aliases.update(config.sensors.names)
+
         self._sound = SoundWrapper(script, robot.sound, self._resources['sound'])
         self._ring_led = RingLedWrapper(script, robot.led, self._resources['led_ring'])
         self._drivetrain = DriveTrainWrapper(script, robot.drivetrain, self._resources['drivetrain'])

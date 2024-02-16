@@ -2,8 +2,6 @@
 import collections
 import struct
 
-from revvy.robot.ports.common import SimpleEventEmitter
-
 Vector3D = collections.namedtuple('Vector3D', ['x', 'y', 'z'])
 Orientation3D = collections.namedtuple('Orientation3D', ['pitch', 'roll', 'yaw'])
 
@@ -15,8 +13,6 @@ class IMU:
         self._orientation = Orientation3D(0, 0, 0)
         self._yaw_angle = 0
         self._relative_yaw_angle = 0
-
-        self._change_callbacks = SimpleEventEmitter()
 
     @property
     def yaw_angle(self):

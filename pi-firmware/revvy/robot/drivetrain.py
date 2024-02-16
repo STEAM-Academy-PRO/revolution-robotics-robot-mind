@@ -5,8 +5,9 @@ from threading import Timer
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.imu import IMU
 from revvy.robot.ports.common import PortInstance
+from revvy.robot.ports.motors.base import MotorPortDriver
 from revvy.robot.ports.motors.dc_motor import MotorStatus, MotorConstants
-from revvy.utils.awaiter import AwaiterImpl, Awaiter
+from revvy.utils.awaiter import AwaiterImpl, Awaiter, AwaiterSignal
 from revvy.utils.functions import clip
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
@@ -58,17 +59,21 @@ class TurnController(DrivetrainController):
 
     def update(self):
         yaw = self._drivetrain.yaw
-        if self._last_yaw_angle != yaw:
+        error = self._target_angle - yaw
+
+        if abs(error) < 1:
+            # goal reached
+            self._awaiter.finish()
+
+        elif self._last_yaw_angle != yaw:
             self._last_yaw_angle = yaw
             self._last_yaw_change_time.reset()
-            error = self._target_angle - yaw
-            if abs(error) < 1:
-                # goal reached
-                self._awaiter.finish()
-            else:
-                # Kp=10, saturate on max allowed wheel speed
-                p = clip(error * self.Kp, -self._max_turn_wheel_speed, self._max_turn_wheel_speed)
-                self._drivetrain._apply_speeds(-p, p, self._max_turn_power)
+
+            # try Kp=10 and saturate on max allowed wheel speed?
+
+            # update motor speeds using a P regulator
+            p = clip(error * self.Kp, -self._max_turn_wheel_speed, self._max_turn_wheel_speed)
+            self._drivetrain._apply_speeds(-p, p, self._max_turn_power)
 
         elif self._last_yaw_change_time.elapsed > 3:
             # yaw angle has not changed for 3 seconds
@@ -84,7 +89,7 @@ class MoveController(DrivetrainController):
         drivetrain._apply_positions(left, right, left_speed, right_speed, power_limit)
 
     def update(self):
-        if all(m.status == MotorStatus.GOAL_REACHED for m in self._drivetrain.motors):
+        if all(m.driver.status == MotorStatus.GOAL_REACHED for m in self._drivetrain.motors):
             self._awaiter.finish()
 
 
@@ -93,11 +98,11 @@ class DifferentialDrivetrain:
 
     def __init__(self, interface: RevvyControl, imu: IMU):
         self._interface = interface
-        self._motors = []
-        self._left_motors = []
-        self._right_motors = []
+        self._motors: list[PortInstance[MotorPortDriver]] = []
+        self._left_motors: list[PortInstance[MotorPortDriver]] = []
+        self._right_motors: list[PortInstance[MotorPortDriver]] = []
 
-        self._log = get_logger('Drivetrain')
+        self._log = get_logger('Drivetrain', off=True)
         self._imu = imu
         self._controller = None
 
@@ -106,15 +111,15 @@ class DifferentialDrivetrain:
         return self._imu.yaw_angle
 
     @property
-    def motors(self):
+    def motors(self) -> list[PortInstance[MotorPortDriver]]:
         return self._motors
 
     @property
-    def left_motors(self):
+    def left_motors(self) -> list[PortInstance[MotorPortDriver]]:
         return self._left_motors
 
     @property
-    def right_motors(self):
+    def right_motors(self) -> list[PortInstance[MotorPortDriver]]:
         return self._right_motors
 
     def _abort_controller(self):
@@ -127,30 +132,30 @@ class DifferentialDrivetrain:
         self._abort_controller()
 
         for motor in self._motors:
-            motor.on_status_changed.remove(self._on_motor_status_changed)
+            motor.driver.on_status_changed.remove(self._on_motor_status_changed)
             motor.on_config_changed.remove(self._on_motor_config_changed)
 
         self._motors.clear()
         self._left_motors.clear()
         self._right_motors.clear()
 
-    def _add_motor(self, motor: PortInstance):
+    def _add_motor(self, motor: PortInstance[MotorPortDriver]):
         self._motors.append(motor)
 
-        motor.on_status_changed.add(self._on_motor_status_changed)
+        motor.driver.on_status_changed.add(self._on_motor_status_changed)
         motor.on_config_changed.add(self._on_motor_config_changed)
 
-    def add_left_motor(self, motor: PortInstance):
+    def add_left_motor(self, motor: PortInstance[MotorPortDriver]):
         self._log(f'Add motor {motor.id} to left side')
         self._left_motors.append(motor)
         self._add_motor(motor)
 
-    def add_right_motor(self, motor: PortInstance):
+    def add_right_motor(self, motor: PortInstance[MotorPortDriver]):
         self._log(f'Add motor {motor.id} to right side')
         self._right_motors.append(motor)
         self._add_motor(motor)
 
-    def _on_motor_config_changed(self, motor, _):
+    def _on_motor_config_changed(self, motor: PortInstance[MotorPortDriver], _):
         # if a motor config changes, remove the motor from the drivetrain
         self._motors.remove(motor)
 
@@ -162,6 +167,7 @@ class DifferentialDrivetrain:
 
     def _on_motor_status_changed(self, _):
         if all(m.status == MotorStatus.BLOCKED for m in self._motors):
+            self._log('All motors blocked, releasing')
             self._abort_controller()
         else:
             controller = self._controller
@@ -211,7 +217,7 @@ class DifferentialDrivetrain:
         self._apply_release()
 
     def set_speeds(self, left, right, power_limit=None):
-        # self._log(f'set speeds: {left}  {right}  {power_limit}')
+        self._log(f'set speeds: {left}  {right}  {power_limit}')
         self._abort_controller()
 
         self._apply_speeds(left, right, power_limit)
@@ -257,7 +263,7 @@ class DifferentialDrivetrain:
         return self._controller.awaiter
 
     def turn(self, direction, rotation, unit_rotation, speed, unit_speed):
-        self._log("turn")
+        self._log("turn: {direction} {rotation} {unit_rotation} {speed} {unit_speed}")
         self._abort_controller()
 
         multipliers = {
@@ -280,12 +286,18 @@ class DifferentialDrivetrain:
                                               turn_angle=rotation * multipliers[direction],
                                               wheel_speed=speed,
                                               power_limit=power)
+            
+            # We need to call update() because we only get notified about changes.
             self._controller.update()
 
+            # NOTE: update() may immediately complete the turn. This can call _apply_release()
+            # which immediately sets _controller to None.
         else:
             raise ValueError(f'Invalid unit_rotation: {unit_rotation}')
 
-        # BUG: If the user tried to turn 0 degrees we do not get a controller back.
-        if self._controller and self._controller.awaiter:
-            return self._controller.awaiter
+        if self._controller is not None:
+            awaiter = self._controller.awaiter
+        else:
+            awaiter = AwaiterImpl.from_state(AwaiterSignal.FINISHED)
 
+        return awaiter
