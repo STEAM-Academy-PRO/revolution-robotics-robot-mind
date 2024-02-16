@@ -5,7 +5,6 @@
 
 
 import argparse
-from ast import arg
 import sys
 import traceback
 from revvy.firmware_updater import update_firmware_if_needed
@@ -20,7 +19,6 @@ from tools.check_manifest import check_manifest
 
 # Load the error reporter and init the singleton that'll catch system errors.
 # noinspection unused-import
-# pylint: disable=unused-import, ungrouped-imports
 from revvy.utils.error_reporter import revvy_error_handler
 
 log = get_logger('revvy.py')
