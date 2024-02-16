@@ -96,29 +96,49 @@ class PidConfig:
         )
 
 
+class AccelerationLimitConfig:
+    def __init__(self, config):
+        (decMax, accMax) = config
+
+        self._deceleration = decMax
+        self._acceleration = accMax
+
+    def serialize(self) -> bytes:
+        struct.pack("<ff", self._deceleration, self._acceleration)
+
+
+class LinearityConfig:
+    def __init__(self, config):
+        self._points = config
+
+    def serialize(self) -> bytes:
+        config = []
+        for x, y in self._points.items():
+            config += struct.pack("<ff", x, y)
+        config
+
+
 class DcMotorDriverConfig:
     def __init__(self, port_config):
         self._port_config = port_config
         self._position_pid = PidConfig(self._port_config["position_controller"])
         self._speed_pid = PidConfig(self._port_config["speed_controller"])
+        self._acceleration_limits = AccelerationLimitConfig(port_config["acceleration_limits"])
+
+        self._max_current = port_config["max_current"]
+        self._resolution = port_config["encoder_resolution"] * port_config["gear_ratio"]
+
+        self._linearity = LinearityConfig(port_config.get("linearity", {}))
 
     def serialize(self) -> bytes:
-        (decMax, accMax) = self._port_config["acceleration_limits"]
-        max_current = self._port_config["max_current"]
-        resolution = self._port_config["encoder_resolution"] * self._port_config["gear_ratio"]
-
-        # TODO: break this monster up
-        config = [
-            *struct.pack("<f", resolution),
+        return [
+            *struct.pack("<f", self._resolution),
             *self._position_pid.serialize(),
             *self._speed_pid.serialize(),
-            *struct.pack("<ff", decMax, accMax),
-            *struct.pack("<f", max_current),
+            *self._acceleration_limits.serialize(),
+            *struct.pack("<f", self._max_current),
+            *self._linearity.serialize(),
         ]
-        for x, y in self._port_config.get("linearity", {}).items():
-            config += struct.pack("<ff", x, y)
-
-        return config
 
 
 class DcMotorController(MotorPortDriver):
