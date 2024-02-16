@@ -446,38 +446,35 @@ class LineDriver:
         self.__search_line_state_duration = 0
         self.__next_motion_duration = 0
         self.__prev_current = None
-        self.__show_debug_msg = False
         self.__do_debug_stops = False
         self.__base_speed = 20
         self.__straight_speed_mult = 1.5
-        self.__log = get_logger('LineDriver')
+        self.__log = get_logger('LineDriver', off=True)
 
-    def __log_debug(self, msg):
-        if self.__show_debug_msg:
-            self.__log(msg)
+    @property
+    def read_rgb(self, channel: RGBChannelSensor):
+        sensors = self.__color_reader.read_rgb_sensor_data()
+        # returns ColorData.name
+        return sensors[channel.value].name
 
     @property
     def __rgb_front(self):
-        sensors = self.__color_reader.read_rgb_sensor_data()
-        return sensors[RGBChannelSensor.FRONT.value].name
+        return self.read_rgb(RGBChannelSensor.FRONT)
 
     @property
     def __rgb_left(self):
-        sensors = self.__color_reader.read_rgb_sensor_data()
-        return sensors[RGBChannelSensor.LEFT.value].name
+        return self.read_rgb(RGBChannelSensor.LEFT)
 
     @property
     def __rgb_right(self):
-        sensors = self.__color_reader.read_rgb_sensor_data()
-        return sensors[RGBChannelSensor.RIGHT.value].name
+        return self.read_rgb(RGBChannelSensor.RIGHT)
 
     @property
     def __rgb_rear(self):
-        sensors = self.__color_reader.read_rgb_sensor_data()
-        return sensors[RGBChannelSensor.REAR.value].name
+        return self.read_rgb(RGBChannelSensor.REAR)
 
     def __go_inclined_forward(self, inclination):
-        self.__log_debug('INCLINED_FORWARD')
+        self.__log('INCLINED_FORWARD')
         speed_left = speed_right = self.__base_speed * self.__straight_speed_mult
         if inclination < 0:
             speed_left -= self.__base_speed * (-inclination)
@@ -486,24 +483,24 @@ class LineDriver:
         self.__drivetrain.set_speeds(speed_left, speed_right)
 
     def __turn_left(self):
-        self.__log_debug('TURN_LEFT')
+        self.__log('TURN_LEFT')
         self.__drivetrain.set_speeds(
           self.__base_speed * -0.25,
           self.__base_speed)
 
     def __turn_right(self):
-        self.__log_debug('TURN_RIGHT')
+        self.__log('TURN_RIGHT')
         self.__drivetrain.set_speeds(
           self.__base_speed,
           self.__base_speed * -0.25)
 
     def __go_straight(self):
-        self.__log_debug('GO_STRAIGHT')
+        self.__log('GO_STRAIGHT')
         speed = self.__base_speed * self.__straight_speed_mult
         self.__drivetrain.set_speeds(speed, speed)
 
     def __stop(self):
-        self.__log_debug('STOP')
+        self.__log('STOP')
         self.__drivetrain.set_speeds(0, 0)
 
     def stop(self):
@@ -530,18 +527,18 @@ class LineDriver:
         self.__search_line_motion_time += 1
         if self.__search_line_motion_time < self.__search_line_state_duration:
             to_go = self.__search_line_state_duration - self.__search_line_motion_time
-            self.__log_debug(f'search:state_timeout:{to_go}')
+            self.__log(f'search:state_timeout:{to_go}')
             return False
 
         self.__search_line_motion_time = 0
         self.__next_motion_duration += 10
         if self.__state == LineDriver.SEARCH_LINE_FORWARD_MOTION:
-            self.__log_debug('search::rotate 90')
+            self.__log('search::rotate 90')
             self.__search_line_state_duration = 15
             self.__state = LineDriver.SEARCH_LINE_ROTATE_90
             self.__turn_left()
         elif self.__state == LineDriver.SEARCH_LINE_ROTATE_90:
-            self.__log_debug('search:inclined forward')
+            self.__log('search:inclined forward')
             self.__search_line_state_duration = 40 + self.__next_motion_duration
             self.__state = LineDriver.SEARCH_LINE_FORWARD_MOTION
             self.__go_inclined_forward(-0.2)
@@ -560,8 +557,7 @@ class LineDriver:
         current = RelativeToLineState(front_match, rear_match, left_match, right_match)
 
         # Function to debug line following algorithm. To use:
-        # 1. in __init__ enable self.__do_debug_stops
-        # 2. and enable self.__show_debug_msg
+        # in __init__ enable self.__do_debug_stops and set logger's `off` to False
         def debug_stop(current, sleep_sec):
             if not self.__do_debug_stops:
                 return
@@ -579,27 +575,27 @@ class LineDriver:
         elif current == on_line:
             self.__go_straight()
         elif current == on_line_hole:
-            self.__log_debug('LINE_HOLE')
+            self.__log('LINE_HOLE')
             self.__go_straight()
         elif current == on_line_near_left:
-            self.__log_debug('NEAR_LEFT')
+            self.__log('NEAR_LEFT')
             # No need to make full rotation, smooth center out
             self.__go_inclined_forward(0.2)
         elif current == on_line_near_right:
-            self.__log_debug('NEAR_RIGHT')
+            self.__log('NEAR_RIGHT')
             # No need to make full rotation, smooth center out
             self.__go_inclined_forward(-0.2)
         elif current == on_line_too_wide:
-            self.__log_debug('TOO_WIDE')
+            self.__log('TOO_WIDE')
             self.__go_straight()
         elif current == on_line_rear_left:
-            self.__log_debug('REAR-LEFT')
+            self.__log('REAR-LEFT')
             self.__turn_left()
         elif current == on_line_rear_right:
-            self.__log_debug('REAR-RIGHT')
+            self.__log('REAR-RIGHT')
             self.__turn_right()
         elif current == off_line:
-            self.__log_debug('OFF')
+            self.__log('OFF')
             if self.__prev_current != off_line:
                 if random.random() > 0.5:
                     self.__turn_left()
@@ -609,35 +605,35 @@ class LineDriver:
                 self.__stop()
                 return LineDriver.FOLLOW_LINE_RESULT_LOST
         elif current == off_line_left_right:
-            self.__log_debug('OFF-LEFT-RIGHT')
+            self.__log('OFF-LEFT-RIGHT')
             debug_stop(current, 1)
             self.__turn_left()
         elif current == on_line_perpendicular:
-            self.__log_debug('OFF-LEFT-RIGHT')
+            self.__log('OFF-LEFT-RIGHT')
             debug_stop(current, 1)
             self.__turn_left()
         elif current == off_line_near_front:
-            self.__log_debug('OFF-FRONT')
+            self.__log('OFF-FRONT')
             debug_stop(current, 1)
             self.__go_straight()
         elif current == off_line_near_front_left:
-            self.__log_debug('OFF-FRONT-LEFT')
+            self.__log('OFF-FRONT-LEFT')
             debug_stop(current, 1)
             self.__go_inclined_forward(0.2)
         elif current == off_line_near_front_right:
-            self.__log_debug('OFF-FRONT-RIGHT')
+            self.__log('OFF-FRONT-RIGHT')
             debug_stop(current, 1)
             self.__go_inclined_forward(-0.2)
         elif current == off_line_near_left:
-            self.__log_debug('OFF-LEFT')
+            self.__log('OFF-LEFT')
             debug_stop(current, 1)
             self.__turn_left()
         elif current == off_line_near_right:
-            self.__log_debug('OFF-RIGHT')
+            self.__log('OFF-RIGHT')
             debug_stop(current, 1)
             self.__turn_right()
         elif current == on_line_perpendicular:
-            self.__log_debug('PERPENDICULAR')
+            self.__log('PERPENDICULAR')
             debug_stop(current, 4)
             self.__turn_left()
         self.__prev_current = current
@@ -647,7 +643,7 @@ class LineDriver:
 class PortCollection:
     """
     Provides named access to a list of ports.
-    
+
     Used by blockly to access ports by mobile-configured names.
     """
     def __init__(self, ports):

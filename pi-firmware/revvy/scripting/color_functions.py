@@ -6,12 +6,12 @@ log=get_logger('ColorSensorFunctions')
 
 class ColorData:
     def __init__(self, r, g, b, h, s, v, gray, name):
-      self.red = r;
-      self.green = g;
-      self.blue = b;
-      self.hue = h;
-      self.saturation = s;
-      self.value = v;
+      self.red = r
+      self.green = g
+      self.blue = b
+      self.hue = h
+      self.saturation = s
+      self.value = v
       self.gray = gray
       self.name = name
 
