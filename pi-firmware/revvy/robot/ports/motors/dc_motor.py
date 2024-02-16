@@ -158,28 +158,29 @@ class DcMotorController(MotorPortDriver):
         self._status = MotorStatus.NORMAL
 
         self._timeout = 0
-
-        # TODO: remove these in favour of "Command to ports" API. Keep in mind that drivetrain
-        # sends multiple commands in one go.
-        port_idx = self._port.id - 1
-        self.create_set_power_command = lambda power: SetPowerCommand(power).command_to_port(
-            port_idx
-        )
-        self.create_set_speed_command = lambda speed, power_limit=None: SetSpeedCommand(
-            speed, power_limit
-        ).command_to_port(port_idx)
-        self.create_absolute_position_command = (
-            lambda position, speed_limit=None, power_limit=None: SetPositionCommand(
-                SetPositionCommand.REQUEST_ABSOLUTE, position, speed_limit, power_limit
-            ).command_to_port(port_idx)
-        )
-        self.create_relative_position_command = (
-            lambda position, speed_limit=None, power_limit=None: SetPositionCommand(
-                SetPositionCommand.REQUEST_RELATIVE, position, speed_limit, power_limit
-            ).command_to_port(port_idx)
-        )
-
         port.interface.set_motor_port_config(port.id, self._port_config.serialize())
+
+    # TODO: remove these in favour of "Command to ports" API? Keep in mind that drivetrain
+    # sends multiple commands in one go.
+    def create_set_power_command(self, power) -> bytes:
+        return SetPowerCommand(power).command_to_port(self._port.id - 1)
+
+    def create_set_speed_command(self, speed, power_limit=None) -> bytes:
+        return SetSpeedCommand(speed, power_limit).command_to_port(self._port.id - 1)
+
+    def create_absolute_position_command(
+        self, position, speed_limit=None, power_limit=None
+    ) -> bytes:
+        return SetPositionCommand(
+            SetPositionCommand.REQUEST_ABSOLUTE, position, speed_limit, power_limit
+        ).command_to_port(self._port.id - 1)
+
+    def create_relative_position_command(
+        self, position, speed_limit=None, power_limit=None
+    ) -> bytes:
+        return SetPositionCommand(
+            SetPositionCommand.REQUEST_RELATIVE, position, speed_limit, power_limit
+        ).command_to_port(self._port.id - 1)
 
     def _cancel_awaiter(self):
         awaiter, self._awaiter = self._awaiter, None
