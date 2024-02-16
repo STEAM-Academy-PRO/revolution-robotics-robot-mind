@@ -47,25 +47,7 @@ class WaitableValue:
         with self._condition:
             return callback(self._value)
 
-
 class Awaiter:
-    def on_cancelled(self, callback):
-        """Register a callback to be called when the awaiter is cancelled or times out"""
-        raise NotImplementedError
-
-    def on_result(self, callback):
-        """Register a callback to be called when the awaiter has finished successfully"""
-        raise NotImplementedError
-
-    def cancel(self):
-        """Cancel the pending awaiter. Does nothing if the awaiter has already finished"""
-        raise NotImplementedError
-
-    def wait(self, timeout=None):
-        raise NotImplementedError
-
-
-class AwaiterImpl(Awaiter):
     @classmethod
     def from_state(cls, state):
         return cls(state)
@@ -91,12 +73,15 @@ class AwaiterImpl(Awaiter):
             callback()
 
     def on_cancelled(self, callback):
+        """Register a callback to be called when the awaiter is cancelled or times out"""
         self._add_callback(self._cancellation_callbacks, callback, AwaiterSignal.CANCEL)
 
     def on_result(self, callback):
+        """Register a callback to be called when the awaiter has finished successfully"""
         self._add_callback(self._completion_callbacks, callback, AwaiterSignal.FINISHED)
 
     def cancel(self):
+        """Cancel the pending awaiter. Does nothing if the awaiter has already finished"""
         if self._signal.exchange_if(AwaiterSignal.NONE, AwaiterSignal.CANCEL) == AwaiterSignal.NONE:
             for callback in self._cancellation_callbacks:
                 callback()

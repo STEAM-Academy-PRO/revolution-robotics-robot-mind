@@ -8,7 +8,7 @@ from revvy.robot.configurations import DriverConfig
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motors.base import MotorConstants, MotorPortDriver, MotorPortHandler, MotorStatus
 from revvy.robot.ports.motors.dc_motor import DcMotorController
-from revvy.utils.awaiter import Awaiter, AwaiterImpl, AwaiterSignal
+from revvy.utils.awaiter import Awaiter, AwaiterSignal
 
 
 class TestDriver(MotorPortDriver):
@@ -35,7 +35,7 @@ class TestDriver(MotorPortDriver):
         pass
 
     def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute') -> Awaiter:
-        return AwaiterImpl.from_state(AwaiterSignal.FINISHED)
+        return Awaiter.from_state(AwaiterSignal.FINISHED)
 
     def set_power(self, power):
         pass

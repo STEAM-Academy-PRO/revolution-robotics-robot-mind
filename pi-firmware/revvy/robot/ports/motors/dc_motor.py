@@ -3,7 +3,7 @@ from functools import partial
 
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motors.base import MotorConstants, MotorStatus, MotorPortDriver
-from revvy.utils.awaiter import AwaiterImpl, Awaiter
+from revvy.utils.awaiter import Awaiter, Awaiter
 from revvy.utils.functions import clip
 
 
@@ -140,7 +140,7 @@ class DcMotorController(MotorPortDriver):
         def _canceled():
             self.set_power(0)
 
-        awaiter = AwaiterImpl()
+        awaiter = Awaiter()
         awaiter.on_result(_finished)
         awaiter.on_cancelled(_canceled)
 
