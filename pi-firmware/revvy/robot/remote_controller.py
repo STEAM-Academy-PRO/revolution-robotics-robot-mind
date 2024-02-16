@@ -18,7 +18,7 @@ class RemoteControllerCommand(NamedTuple):
     background_command: bytearray
     next_deadline: bytearray
 
-log = get_logger('RemoteController', off=True)
+log = get_logger('RemoteController')
 
 class BleAutonomousCmd:
     START  = 10
@@ -352,6 +352,7 @@ class RemoteControllerScheduler:
                     self._controller.process_control_message(self._message)
 
             if not ctx.stop_requested:
+                log('Controller lost due to timeout!', LogLevel.WARNING)
                 if self._controller_lost_callback:
                     self._controller_lost_callback()
 

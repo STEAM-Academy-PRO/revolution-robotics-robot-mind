@@ -1,7 +1,7 @@
 from collections import deque
 import hashlib
 import os
-from threading import Lock
+from threading import Lock, current_thread
 from revvy.utils.directories import WRITEABLE_DATA_DIR
 
 from revvy.utils.stopwatch import Stopwatch
@@ -75,7 +75,7 @@ class Logger(BaseLogger):
 
     def log(self, message, level=LogLevel.INFO):
         if level >= self.minimum_level:
-            message = f'[{self._sw.elapsed:.2f}] [{levels[level]}] {message}'
+            message = f'[{self._sw.elapsed:.2f}] [{levels[level]}] [{hash_to_color(current_thread().name)}] {message}'
             print(message)
             self._buffer.append(message + '\n')
 

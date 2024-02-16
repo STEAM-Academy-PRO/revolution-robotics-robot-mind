@@ -12,13 +12,12 @@ import hashlib
 import struct
 
 from contextlib import suppress
-from functools import partial
 from json import JSONDecodeError
 from typing import NamedTuple
 
 from revvy.utils.file_storage import StorageInterface, StorageError
 from revvy.utils.functions import split
-from revvy.utils.logger import LogLevel, get_logger
+from revvy.utils.logger import get_logger
 from revvy.utils.progress_indicator import ProgressIndicator
 from revvy.utils.functions import str_to_func
 
@@ -29,7 +28,7 @@ from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
 
 from revvy.scripting.runtime import ScriptDescriptor, ScriptEvent
 from revvy.utils.reverse_map_constant_name import get_constant_name
-
+from revvy.utils.error_reporter import RobotErrorType, revvy_error_handler
 
 
 def hex2byte(h):
@@ -486,8 +485,12 @@ class LongMessageImplementation:
                 self._log('test script ended')
                 self._robot_manager.reset_configuration()
 
+            def on_error(*args):
+                revvy_error_handler.report_error(
+                            RobotErrorType.SYSTEM, traceback.format_exc())
+
             handle.on(ScriptEvent.STOP, on_stopped)
-            handle.on(ScriptEvent.ERROR, lambda ref, ex: self._log(f'{str(ex)}', LogLevel.ERROR))
+            handle.on(ScriptEvent.ERROR, on_error)
 
             # Run test in new thread.
             handle.start()

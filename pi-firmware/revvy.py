@@ -17,17 +17,16 @@ from revvy.utils.directories import CURRENT_INSTALLATION_PATH
 
 from tools.check_manifest import check_manifest
 
+# Load the error reporter and init the singleton that'll catch system errors.
+# noinspection unused-import
+# pylint: disable=unused-import, ungrouped-imports
+from revvy.utils.error_reporter import revvy_error_handler
+
 log = get_logger('revvy.py')
 
 parser = argparse.ArgumentParser(description='Revvy PI firmware')
 parser.add_argument('--debug', action='store_true', help='Enable debug mode')
 args = parser.parse_args()
-
-if args.debug:
-    log("Debug mode")
-else:
-    from revvy.utils.error_handler import register_uncaught_exception_handler
-    register_uncaught_exception_handler()
 
 
 if __name__ == "__main__":

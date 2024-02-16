@@ -100,7 +100,7 @@ class CustomBatteryLevelCharacteristic(Characteristic):
         if update_value_callback:
             update_value_callback([value])
 
-class RelativeFunctionCharacteristic(Characteristic):
+class BackgroundProgramControlCharacteristic(Characteristic):
     def __init__(self, uuid, description, callback):
         self._value = []
         self._updateValueCallback = None
@@ -147,7 +147,7 @@ class RelativeFunctionCharacteristic(Characteristic):
             callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
 
-class BrainToMobileFunctionCharacteristic(Characteristic):
+class BrainToMobileCharacteristic(Characteristic):
     def __init__(self, uuid, description):
         self._value = []
         self._updateValueCallback = None
@@ -183,33 +183,32 @@ class BrainToMobileFunctionCharacteristic(Characteristic):
             callback(value)
 
 
-class StateControlCharacteristic(RelativeFunctionCharacteristic):
+class StateControlCharacteristic(BackgroundProgramControlCharacteristic):
     pass
 
 
-class SensorCharacteristic(BrainToMobileFunctionCharacteristic):
+class SensorCharacteristic(BrainToMobileCharacteristic):
     def update(self, value):
         # FIXME: prefix with data length is probably unnecessary
         super().update([len(value), *value])
 
 
-class MotorCharacteristic(BrainToMobileFunctionCharacteristic):
+class MotorCharacteristic(BrainToMobileCharacteristic):
     pass
 
 
-class GyroCharacteristic(BrainToMobileFunctionCharacteristic):
+class GyroCharacteristic(BrainToMobileCharacteristic):
     pass
 
 
-class TimerCharacteristic(BrainToMobileFunctionCharacteristic):
+class TimerCharacteristic(BrainToMobileCharacteristic):
     pass
 
 
-class ReadVariableCharacteristic(BrainToMobileFunctionCharacteristic):
+class ReadVariableCharacteristic(BrainToMobileCharacteristic):
     pass
 
-
-class ProgramStatusCharacteristic(BrainToMobileFunctionCharacteristic):
+class ProgramStatusCharacteristic(BrainToMobileCharacteristic):
     """ Store/send button script states to mobile. """
     def update_button_value(self, button_id: int, status: int):
         """ Handles low level packing. """
@@ -410,7 +409,6 @@ class UnifiedBatteryInfoCharacteristic(CustomBatteryLevelCharacteristic):
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
     def update_value(self, battery_status: BatteryStatus):
-
         new_value = [
             round(battery_status.main),
             battery_status.chargerStatus,
