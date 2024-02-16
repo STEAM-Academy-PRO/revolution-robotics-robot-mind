@@ -1,8 +1,7 @@
 from abc import abstractmethod
 from enum import Enum
 from revvy.mcu.rrrc_control import RevvyControl
-from revvy.robot.configurations import DriverConfig
-from revvy.robot.ports.common import PortHandler, PortDriver, PortInstance
+from revvy.robot.ports.common import DriverConfig, PortHandler, PortDriver, PortInstance
 
 from revvy.utils.awaiter import Awaiter, AwaiterSignal, AwaiterImpl
 
