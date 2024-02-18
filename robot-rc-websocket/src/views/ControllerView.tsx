@@ -6,6 +6,7 @@ import { Joystick } from '../components/Joystick';
 import styles from './Controller.module.css'
 import { CameraView } from './CameraView';
 import { clearLog, getLog, log } from '../utils/log';
+import { RobotConfig, SensorConfig, SensorType, SensorTypeResolve } from '../utils/Config';
 
 const BUTTON_MAP_XBOX: {[id:number]: number} = {
   2: 0,
@@ -16,17 +17,37 @@ const BUTTON_MAP_XBOX: {[id:number]: number} = {
 
 export default function ControllerView({
   conn, isActive,
-  endpoint
+  endpoint,
+  config,
 }: {
   conn: Accessor<SocketWrapper | null>, isActive: Accessor<boolean>,
-  endpoint: Accessor<string>
+  endpoint: Accessor<string>,
+  config: Accessor<RobotConfig>
 }) {
 
   const [orientation, setOrientation] = createSignal<Array<number>>()
   const [battery, setBattery] = createSignal<Array<number>>()
   const [version, setVersion] = createSignal<string>()
-
   const [hasGamepad, setHasGamepad] = createSignal<boolean>(false)
+  // Extend the values!
+  const sensors : {[id: number]: {value: Accessor<any>, setValue: Accessor<any>, type: SensorType}} = {}
+  config().robotConfig.sensors.map(
+    (config, i)=>{
+      if (config) {
+        const [value, setValue] = createSignal()
+        sensors[i + 1] = {value, setValue, type: config.type}
+      }
+    })
+
+
+  let logElement: HTMLPreElement;
+
+  createEffect(()=>{
+    getLog()
+    if (logElement){
+      logElement.scrollTop = logElement.scrollHeight
+    }
+  })
 
   window.addEventListener('gamepadconnected', (event) => {
     log('✅ 🎮 A gamepad was connected');
@@ -67,6 +88,13 @@ export default function ControllerView({
         case 'program_status_change':
           buttons[data.data[0]].setStatus(data.data[1])
           break
+        case 'sensor_value_change': 
+          const sensorId = data.data[0]
+          const sensorValue = data.data[1]
+          console.log(sensorId, sensorValue)
+
+          sensors[sensorId].setValue(sensorValue)
+        break
         default:
           console.warn(`[message] Data received from server: ${data.event}`);
       }
@@ -88,6 +116,10 @@ export default function ControllerView({
 
     last.x = position.x()
     last.y = position.y()
+
+    // Only allow gamepad, if we are not having the joystick on the screen
+    // set to a value to avoid flickering.
+    // const isScreenControllerIsAtCenter = (!position.x() && !position.y())
 
     // Gamepad support!
     if (hasGamepad()){
@@ -150,6 +182,12 @@ export default function ControllerView({
         <span class={styles.status}>orientation: {orientation()?.join(' ')}</span>
         <span class={styles.status}>battery: {battery()?.join(' ')}</span>
         <span class={styles.status}>motor angles: {motorAngles()?.join(' ')}</span>
+        {Object.keys(sensors).map((sensorKey)=>(
+          <span class={styles.status}>
+              { SensorTypeResolve[sensors[sensorKey].type] }:
+               {sensors[sensorKey].value() || 0}
+          </span>
+        ))}
       </div>
       <div class={styles.controller}>
         <div class={styles.joystick}>
@@ -168,7 +206,7 @@ export default function ControllerView({
         <Show when={getLog()}>
           <button onClick={() => clearLog()}>clear</button>
         </Show>
-        <pre class={styles.log}>
+        <pre ref={logElement} class={styles.log}>
           {getLog()}
         </pre>
       </div>

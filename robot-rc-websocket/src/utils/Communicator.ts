@@ -74,6 +74,11 @@ export function connectToRobot(
     setConnLoading: Setter<boolean>,
     endpoint: Accessor<string>,
     configString: Accessor<RobotConfig>) {
+
+    if (!endpoint()){
+        log('Please enter an IP address to connect to your robot!')
+        throw new Error('Missing IP address!')
+    }    
     log(`Connecting to ${endpoint()}`)
     setConnLoading(true)
     const socket = connectSocket(endpoint())
@@ -86,6 +91,7 @@ export function connectToRobot(
             case 'version_info': break
             case 'camera_started': break
             case 'camera_stopped': break
+            case 'sensor_value_change': break
             default:
                 console.warn(`[message] Data received from server: ${data.event}`, data.data);
 

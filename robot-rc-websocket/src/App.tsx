@@ -39,6 +39,7 @@ function App() {
 
   createEffect(() => {
     config()
+    console.warn('saving config', config())
     localStorage.setItem('config', JSON.stringify(config()));
   });
 
@@ -55,7 +56,7 @@ function App() {
     {
       id: 'play',
       label: 'Play',
-      children: <ControllerView conn={conn} isActive={isActive} endpoint={endpoint}/>
+      children: <ControllerView conn={conn} isActive={isActive} endpoint={endpoint} config={config}/>
     },
     {
       id: 'connect',

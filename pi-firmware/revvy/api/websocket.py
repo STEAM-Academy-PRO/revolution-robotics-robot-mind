@@ -25,7 +25,8 @@ SERVER_PORT=8765
 
 log = get_logger('WS')
 
-send_control_events = [RobotEvent.BATTERY_CHANGE,
+send_control_events = [
+                  RobotEvent.BATTERY_CHANGE,
                   RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE,
                   RobotEvent.ORIENTATION_CHANGE,
                   RobotEvent.SCRIPT_VARIABLE_CHANGE,
@@ -42,7 +43,8 @@ ignore_log_events = [
     RobotEvent.TIMER_TICK,
     RobotEvent.MCU_TICK,
     RobotEvent.MOTOR_CHANGE,
-    RobotEvent.PROGRAM_STATUS_CHANGE
+    RobotEvent.PROGRAM_STATUS_CHANGE,
+    RobotEvent.BATTERY_CHANGE
 ]
 
 
@@ -57,6 +59,8 @@ class NamedTupleEncoder(json.JSONEncoder):
             return obj._asdict()  # Convert the named tuple to a dictionary
         if isinstance(obj, Enum):
             return obj.value
+        if isinstance(obj, bytes):
+            return str(obj)
         return super().default(obj)
 
 # Function to encode data dynamically
