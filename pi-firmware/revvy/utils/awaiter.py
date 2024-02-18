@@ -88,12 +88,12 @@ class Awaiter:
     def cancel(self):
         """Cancel the pending awaiter. Does nothing if the awaiter has already finished"""
         if self._signal.exchange_if(AwaiterState.NONE, AwaiterState.CANCEL) == AwaiterState.NONE:
-            self._cancellation_callbacks()
+            self._cancellation_callbacks.trigger()
 
     def finish(self):
         """Mark the pending awaiter as finished."""
         if self._signal.exchange_if(AwaiterState.NONE, AwaiterState.FINISHED) == AwaiterState.NONE:
-            self._completion_callbacks()
+            self._completion_callbacks.trigger()
 
     @property
     def state(self):
