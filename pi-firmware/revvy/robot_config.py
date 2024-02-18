@@ -63,9 +63,6 @@ class RemoteControlConfig:
 class ConfigError(Exception):
     pass
 
-class MotorType(Enum):
-    DRIVE=2
-    MOTOR=1
 
 def make_script_name_common(script_idx, assignment_type, detail):
     return 'script_{}_{}_{}'.format(
@@ -215,10 +212,9 @@ class RobotConfig:
                 if not motor:
                     motor = {'type': 0}
 
-                if motor['type'] == MotorType.DRIVE:
+                if motor['type'] == 2:
                     # drivetrain
-                    side = motor['side'] # left, right
-                    motor_type = motor_types[MotorType.DRIVE][side][motor['reversed']]
+                    motor_type = motor_types[2][motor['side']][motor['reversed']]
                     config.drivetrain[motor_sides[motor['side']]].append(i)
 
                 else:
