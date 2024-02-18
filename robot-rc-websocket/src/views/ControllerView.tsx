@@ -91,12 +91,11 @@ export default function ControllerView({
         case 'sensor_value_change': 
           const sensorId = data.data[0]
           const sensorValue = data.data[1]
-          console.log(sensorId, sensorValue)
 
           sensors[sensorId].setValue(sensorValue)
         break
         default:
-          console.warn(`[message] Data received from server: ${data.event}`);
+          console.log(`[message] Data received from server: ${data.event}`);
       }
     })
   })
@@ -121,6 +120,8 @@ export default function ControllerView({
     // set to a value to avoid flickering.
     // const isScreenControllerIsAtCenter = (!position.x() && !position.y())
 
+    const twoOtherAnalogs = {x: 0, y: 0}
+
     // Gamepad support!
     if (hasGamepad()){
       const gamepads = navigator.getGamepads();
@@ -130,6 +131,8 @@ export default function ControllerView({
         // Analog controls for drive.
         position.setX(gamepad.axes[0] * 0.8)
         position.setY((-gamepad.axes[1]) * 0.8)
+        twoOtherAnalogs.x = gamepad.axes[2]
+        twoOtherAnalogs.y = gamepad.axes[3]
 
         // Process the gamepad buttons, map them to the controller. See map up there.
         Object.keys(BUTTON_MAP_XBOX).map((keySrt) => {
@@ -147,8 +150,8 @@ export default function ControllerView({
       mapAnalogNormal(position.x()), // UInt8, left-right analog, value range: 0-255
       mapAnalogNormal(position.y()), // UInt8, bottom-top analog, value range: 0-255
 
-      0, // unused analog
-      0, // unused analog
+      twoOtherAnalogs.x, // Gamepad 2 analog
+      twoOtherAnalogs.y, // Gamepad 3 analog
       0, // unused analog
       0, // unused analog
 
