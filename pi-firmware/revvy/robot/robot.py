@@ -1,16 +1,14 @@
-
-import os
-
 from functools import partial
+from typing import NamedTuple
 
 from revvy.hardware_dependent.sound import SoundControlV1, SoundControlV2
-from revvy.mcu.commands import BatteryStatus
 from revvy.mcu.rrrc_control import RevvyTransportBase
 from revvy.robot.drivetrain import DifferentialDrivetrain
 from revvy.robot.imu import IMU
 from revvy.robot.led_ring import RingLed
-from revvy.robot.ports.motor import create_motor_port_handlers
-from revvy.robot.ports.sensor import create_sensor_port_handlers
+from revvy.robot.ports.common import PortDriver, PortInstance
+from revvy.robot.ports.motors.base import MotorPortHandler
+from revvy.robot.ports.sensors.base import SensorPortHandler
 from revvy.robot.sound import Sound
 from revvy.robot.status import RobotStatusIndicator, RobotStatus
 from revvy.robot.status_updater import McuStatusUpdater
@@ -36,6 +34,13 @@ def to_sensor_type_index(expected_sensor):
     if expected_sensor == SENSOR_ON_PORT_RGB:
         return 3
     return None
+
+
+class BatteryStatus(NamedTuple):
+    chargerStatus: int
+    motor_battery_present: int
+    main: int
+    motor: int
 
 
 class Robot(RobotInterface):
@@ -72,21 +77,27 @@ class Robot(RobotInterface):
 
         self._status = RobotStatusIndicator(self._robot_control)
         self._status_updater = McuStatusUpdater(self._robot_control)
-        self._battery = BatteryStatus(0, 0, 0, 0)
+        self._battery = BatteryStatus(
+            chargerStatus=0,
+            motor_battery_present=0,
+            main=0,
+            motor=0
+        )
 
         self._imu = IMU()
 
-        def _set_updater(slot_name, port, config_name):
-            if config_name is None:
+        def _set_updater(slot_name, port: PortInstance[PortDriver], config):
+            """ Controls reading a port's status information from the MCU. """
+            if config is None:
                 self._status_updater.disable_slot(slot_name)
             else:
-                self._status_updater.enable_slot(slot_name, port.update_status)
+                self._status_updater.enable_slot(slot_name, port.driver.update_status)
 
-        self._motor_ports = create_motor_port_handlers(self._robot_control)
+        self._motor_ports = MotorPortHandler(self._robot_control)
         for port in self._motor_ports:
             port.on_config_changed.add(partial(_set_updater, f'motor_{port.id}'))
 
-        self._sensor_ports = create_sensor_port_handlers(self._robot_control)
+        self._sensor_ports = SensorPortHandler(self._robot_control)
         for port in self._sensor_ports:
             port.on_config_changed.add(partial(_set_updater, f'sensor_{port.id}'))
 
@@ -132,11 +143,11 @@ class Robot(RobotInterface):
         return self._status
 
     @property
-    def motors(self):
+    def motors(self) -> MotorPortHandler:
         return self._motor_ports
 
     @property
-    def sensors(self):
+    def sensors(self) -> SensorPortHandler:
         return self._sensor_ports
 
     @property

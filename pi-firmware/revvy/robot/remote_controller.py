@@ -292,7 +292,7 @@ class RemoteController:
 
     @property
     def processing_time(self):
-        return round(self._processing_time, 2)
+        return self._processing_time
 
     @property
     def background_control_state(self):

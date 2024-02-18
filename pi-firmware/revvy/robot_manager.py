@@ -279,8 +279,8 @@ class RobotManager:
             # Angle could however be sent back up.
             # Note that we reduce the ID here, so we do not need that anywhere else.
             # This way we have motors 0-5 in RobotState already. Just a simple array.
-            motor.on_status_changed.add(lambda p:
-                                        self._robot_state.set_motor_angle(p.id - 1, p.pos))
+            motor.driver.on_status_changed.add(lambda p:
+                                        self._robot_state.set_motor_angle(p.id - 1, p.driver.pos))
 
         for motor_id in config.drivetrain['left']:
             self._robot.drivetrain.add_left_motor(self._robot.motors[motor_id])
@@ -316,6 +316,7 @@ class RobotManager:
 
             # Empty sensors do not need a data wrapper subscription.
             if sensor_config:
+                # Create a data wrapper that exposes sensor data to the mobile app.
                 sensor_data_wrapper_subscription = create_sensor_data_wrapper(
                     sensor_port, sensor_config,
                     lambda event_data: self.trigger(RobotEvent.SENSOR_VALUE_CHANGE, event_data))
@@ -416,7 +417,7 @@ class RobotManager:
         self.trigger(RobotEvent.PROGRAM_STATUS_CHANGE,
                      ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.STOP))
 
-    def robot_stop(self, *args):
+    def robot_stop(self):
         """ On exiting let's reset all states. """
         self._robot_state.stop_polling_mcu()
         self._robot.status.controller_status = RemoteControllerStatus.NotConnected
@@ -434,7 +435,6 @@ class RobotManager:
         while retry_ping:
             retry_ping = False
             try:
-                self._log('.')
                 self._robot.ping()
             except (BrokenPipeError, IOError, OSError):
                 retry_ping = True

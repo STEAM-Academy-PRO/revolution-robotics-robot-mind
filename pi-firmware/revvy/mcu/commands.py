@@ -3,7 +3,6 @@ import struct
 import traceback
 from abc import ABC
 from enum import Enum
-from typing import NamedTuple
 
 from revvy.utils.functions import split
 from revvy.utils.logger import get_logger
@@ -91,13 +90,6 @@ class ReadHardwareVersionCommand(ReadVersionCommand):
 class ReadFirmwareVersionCommand(ReadVersionCommand):
     @property
     def command_id(self): return 0x02
-
-
-class BatteryStatus(NamedTuple):
-    chargerStatus: int
-    motor_battery_present: int
-    main: int
-    motor: int
 
 
 class SetMasterStatusCommand(Command):

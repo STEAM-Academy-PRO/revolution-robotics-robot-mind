@@ -1,7 +1,6 @@
-
 from threading import Lock
 
-from revvy.robot.ports.common import SimpleEventEmitter
+from revvy.utils.emitter import SimpleEventEmitter
 from revvy.utils.logger import get_logger, LogLevel
 
 
@@ -45,11 +44,11 @@ class ResourceHandle:
         return True
 
     @property
-    def on_interrupted(self):
+    def on_interrupted(self) -> SimpleEventEmitter:
         return self._on_interrupted
 
     @property
-    def on_released(self):
+    def on_released(self) -> SimpleEventEmitter:
         return self._on_released
 
     def release(self):

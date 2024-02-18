@@ -29,31 +29,14 @@ class LiveMessageService(BlenoPrimaryService):
         # characteristic
         # self.__joystick_action_cb = None
 
-        self._read_variable_characteristic = [
-            ReadVariableCharacteristic('d4ad2a7b-57be-4803-8df0-6807073961ad', b'Variable Slots')
-        ]
-
-        self._gyro_characteristic = [
-            GyroCharacteristic('d5bd4300-7c49-4108-8500-8716ffd39de8', b'Gyro'),
-        ]
-
-        self._orientation_characteristic = [
-            GyroCharacteristic('4337a7c2-cae9-4c88-8908-8810ee013fcb', b'Orientation')
-        ]
-
-        self._timer_characteristic = [
-            TimerCharacteristic('c0e913da-5fdd-4a17-90b4-47758d449306', b'Timer'),
-        ]
-
-        self._program_status_characteristic = [
-            ProgramStatusCharacteristic('7b988246-56c3-4a90-a6e8-e823ea287730', b'ProgramStatus')
-        ]
-
-        self._state_control_characteristic = [
-            RelativeFunctionCharacteristic(
-                '53881a54-d519-40f7-8cbf-d43ced67f315', b'State Control', self.state_control_callback
-            )
-        ]
+        self._read_variable_characteristic = ReadVariableCharacteristic('d4ad2a7b-57be-4803-8df0-6807073961ad', b'Variable Slots')
+        self._gyro_characteristic = GyroCharacteristic('d5bd4300-7c49-4108-8500-8716ffd39de8', b'Gyro')
+        self._orientation_characteristic = GyroCharacteristic('4337a7c2-cae9-4c88-8908-8810ee013fcb', b'Orientation')
+        self._timer_characteristic = TimerCharacteristic('c0e913da-5fdd-4a17-90b4-47758d449306', b'Timer')
+        self._program_status_characteristic = ProgramStatusCharacteristic('7b988246-56c3-4a90-a6e8-e823ea287730', b'ProgramStatus')
+        self._state_control_characteristic = RelativeFunctionCharacteristic(
+            '53881a54-d519-40f7-8cbf-d43ced67f315', b'State Control', self.state_control_callback
+        )
 
         self._sensor_characteristics = [
             SensorCharacteristic('135032e6-3e86-404f-b0a9-953fd46dcb17', b'Sensor 1'),
@@ -82,25 +65,25 @@ class LiveMessageService(BlenoPrimaryService):
         self._buf_gyro = b'\xff'
         self._buf_orientation = b'\xff'
         self._buf_script_variables = b'\xff'
-        self._buf_timer = b'\xff'
 
         super().__init__({
             'uuid':            'd2d5558c-5b9d-11e9-8647-d663bd873d93',
-            'characteristics': [self._mobile_to_brain,
+            'characteristics': [
+                self._mobile_to_brain,
                 self._validate_config_characteristic,
                 *self._sensor_characteristics,
                 *self._motor_characteristics,
-                *self._gyro_characteristic,
-                *self._orientation_characteristic,
-                *self._read_variable_characteristic,
-                *self._state_control_characteristic,
-                *self._timer_characteristic,
-                *self._program_status_characteristic
+                self._gyro_characteristic,
+                self._orientation_characteristic,
+                self._read_variable_characteristic,
+                self._state_control_characteristic,
+                self._timer_characteristic,
+                self._program_status_characteristic
             ]
         })
 
     def validate_config_callback(self, data):
-        """ FIXME: Currently unused """
+        # FIXME: Currently unused
         motor_bitmask, sensor0, sensor1, sensor2, sensor3, \
         motor_load_power, threshold = \
             struct.unpack('BBBBBBB', data)
@@ -129,7 +112,7 @@ class LiveMessageService(BlenoPrimaryService):
 
     def set_validation_result(self, success: bool,
         motors: list, sensors: list):
-        """ FIXME: Currently unused """
+        # FIXME: Currently unused
 
         valitation_state = VALIDATE_CONFIG_STATE_UNKNOWN
         if success:
@@ -232,10 +215,11 @@ class LiveMessageService(BlenoPrimaryService):
          so we keep the struct up-to-date.
         """
 
-        self._program_status_characteristic[0].update_button_value(button_id, status)
+        self._program_status_characteristic.update_button_value(button_id, status)
 
     def update_motor(self, motor, power, speed, position):
-        """ Send back motor angle value to mobile. NOT CURRENTLY USED """
+        """ Send back motor angle value to mobile. """
+        # TODO: unused?
         if 0 <= motor < len(self._motor_characteristics):
             data = list(struct.pack(">flb", speed, position, power))
             self._motor_characteristics[motor].update(data)
@@ -248,12 +232,13 @@ class LiveMessageService(BlenoPrimaryService):
         self._mobile_to_brain.update(data)
 
     def update_gyro(self, vector_list):
-        """ Send back gyro sensor value to mobile. NOT CURRENTLY USED """
+        """ Send back gyro sensor value to mobile. """
+        # TODO: unused?
         if type(vector_list) is list:
             buf = struct.pack('%sf' % len(vector_list), *vector_list)
             if self._buf_gyro is not buf:
                 self._buf_gyro = buf
-                self._gyro_characteristic[0].update(self._buf_gyro)
+                self._gyro_characteristic.update(self._buf_gyro)
 
     def update_orientation(self, vector_list):
         """ Send back orientation to mobile. Used to display the yaw of the robot """
@@ -261,14 +246,12 @@ class LiveMessageService(BlenoPrimaryService):
             buf = struct.pack('%sf' % len(vector_list), *vector_list)
             if self._buf_orientation is not buf:
                 self._buf_orientation = buf
-                self._orientation_characteristic[0].update(self._buf_orientation)
+                self._orientation_characteristic.update(self._buf_orientation)
 
     def update_timer(self, data):
         """ Send back timer tick every second to mobile. """
-        buf = list(struct.pack(">bf", 4, data))
-        if self._buf_timer != buf:
-            self._buf_timer = buf
-            self._timer_characteristic[0].update(self._buf_timer)
+        buf = list(struct.pack(">bf", 4, round(data, 0)))
+        self._timer_characteristic.update(buf)
 
     def update_script_variables(self, script_variables):
         """
@@ -310,12 +293,12 @@ class LiveMessageService(BlenoPrimaryService):
         maskbuf = struct.pack('B', mask)
         msg = maskbuf + valuebuf
 
-        self._read_variable_characteristic[0].update(msg)
+        self._read_variable_characteristic.update(msg)
 
     def update_state_control(self, state):
         """ Send back the background programs' state. """
         log(f"state control update, {state}")
         data = list(struct.pack(">bl", 4, state))
-        self._state_control_characteristic[0].update(data)
+        self._state_control_characteristic.update(data)
 
 

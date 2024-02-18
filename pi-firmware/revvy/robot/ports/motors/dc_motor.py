@@ -1,10 +1,9 @@
 import struct
-from enum import Enum
 from functools import partial
 
-from revvy.robot.ports.common import PortInstance, PortDriver
-from revvy.robot.ports.motor import MotorConstants
-from revvy.utils.awaiter import AwaiterImpl, Awaiter
+from revvy.robot.ports.common import PortInstance
+from revvy.robot.ports.motors.base import MotorConstants, MotorStatus, MotorPortDriver
+from revvy.utils.awaiter import Awaiter, Awaiter
 from revvy.utils.functions import clip
 
 
@@ -47,20 +46,12 @@ def dc_motor_position_request(port_idx, request_type, position, speed_limit=None
     return motor_port_control_command(port_idx, request_type, *control)
 
 
-class MotorStatus(Enum):
-    NORMAL = 0
-    BLOCKED = 1
-    GOAL_REACHED = 2
-
-
-class DcMotorController(PortDriver):
+class DcMotorController(MotorPortDriver):
     """Generic driver for dc motors"""
-    def __init__(self, port: PortInstance, port_config):
+    def __init__(self, port: PortInstance[MotorPortDriver], port_config):
         super().__init__(port, 'DcMotor')
         self._port = port
         self._port_config = port_config
-
-        self._configure = partial(port.interface.set_motor_port_config, port.id)
 
         self._pos = 0
         self._speed = 0
@@ -77,7 +68,6 @@ class DcMotorController(PortDriver):
         self.create_absolute_position_command = partial(dc_motor_position_request, self._port.id - 1, 2)
         self.create_relative_position_command = partial(dc_motor_position_request, self._port.id - 1, 3)
 
-    def on_port_type_set(self):
         (posP, posI, posD, speedLowerLimit, speedUpperLimit) = self._port_config['position_controller']
         (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = self._port_config['speed_controller']
         (decMax, accMax) = self._port_config['acceleration_limits']
@@ -97,7 +87,7 @@ class DcMotorController(PortDriver):
 
         # self.log(f'Sending configuration: {config}')
 
-        self._configure(config)
+        port.interface.set_motor_port_config(port.id, config)
 
     def _cancel_awaiter(self):
         awaiter, self._awaiter = self._awaiter, None
@@ -150,8 +140,8 @@ class DcMotorController(PortDriver):
         def _canceled():
             self.set_power(0)
 
-        awaiter = AwaiterImpl()
-        awaiter.on_result(_finished)
+        awaiter = Awaiter()
+        awaiter.on_finished(_finished)
         awaiter.on_cancelled(_canceled)
 
         self._awaiter = awaiter
@@ -169,7 +159,7 @@ class DcMotorController(PortDriver):
         return awaiter
 
     @property
-    def status(self):
+    def status(self) -> MotorStatus:
         return self._status
 
     def _update_motor_status(self, status: MotorStatus):
