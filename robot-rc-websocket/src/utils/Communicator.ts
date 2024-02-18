@@ -1,6 +1,7 @@
 import { Accessor, Setter } from "solid-js"
 import { createEmitter } from "@solid-primitives/event-bus";
 import { RobotConfig } from "./Config";
+import { log } from "./log";
 
 const PORT = 8765
 
@@ -72,8 +73,7 @@ export function connectToRobot(
     setConn: Setter<SocketWrapper | null>,
     setConnLoading: Setter<boolean>,
     endpoint: Accessor<string>,
-    configString: Accessor<RobotConfig>,
-    log: (msg: any) => void) {
+    configString: Accessor<RobotConfig>) {
     log(`Connecting to ${endpoint()}`)
     setConnLoading(true)
     const socket = connectSocket(endpoint())

@@ -5,19 +5,37 @@ import { mapAnalogNormal, toByte } from '../utils/mapping';
 import { Joystick } from '../components/Joystick';
 import styles from './Controller.module.css'
 import { CameraView } from './CameraView';
+import { clearLog, getLog, log } from '../utils/log';
+
+const BUTTON_MAP_XBOX: {[id:number]: number} = {
+  2: 0,
+  3: 2,
+  0: 3,
+  1: 1
+}
 
 export default function ControllerView({
   conn, isActive,
-  log, setLog,
   endpoint
 }: {
   conn: Accessor<SocketWrapper | null>, isActive: Accessor<boolean>,
-  log: Accessor<string>, setLog: Setter<string>, endpoint: Accessor<string>
+  endpoint: Accessor<string>
 }) {
 
   const [orientation, setOrientation] = createSignal<Array<number>>()
   const [battery, setBattery] = createSignal<Array<number>>()
   const [version, setVersion] = createSignal<string>()
+
+  const [hasGamepad, setHasGamepad] = createSignal<boolean>(false)
+
+  window.addEventListener('gamepadconnected', (event) => {
+    log('✅ 🎮 A gamepad was connected');
+    setHasGamepad(true)
+  });
+  window.addEventListener('gamepaddisconnected', (event) => {
+    log('❌ 🎮 A gamepad was disconnected:');
+    setHasGamepad(false)
+  });
 
   const buttons = [0, 1, 2, 3].map((i) => {
     let [get, set] = createSignal<boolean>(false)
@@ -27,7 +45,7 @@ export default function ControllerView({
 
   const [motorAngles, setMotorAngles] = createSignal<Array<number>>([0, 0, 0, 0, 0, 0])
 
-
+  // Process incoming messages.
   createEffect(() => {
     conn()?.on(WSEventType.onMessage, (data) => {
       switch (data.event) {
@@ -55,35 +73,42 @@ export default function ControllerView({
     })
   })
 
-
-
   const position = new Position()
 
   let i = 0
 
-
   let last = { x: 0, y: 0 }
 
-
-  // let doSendMove = false
   // We have to send the control messages whenever we uploaded it, or else it resets configuration state.
   // Try uncommenting the lines with doSendMove in them. The first time it stops receiving the messages
   // on the robot the state resets to not configured.
 
   const interval = setInterval(() => {
-    // if (!on){ return }
-    // const controlMessage
-    // doSendMove = Boolean(last.x || last.y || (position.x() || position.y()))
-
     if (!isActive()) { return }
 
     last.x = position.x()
     last.y = position.y()
 
-    // if (!doSendMove) { return }
+    // Gamepad support!
+    if (hasGamepad()){
+      const gamepads = navigator.getGamepads();
+      for (const gamepad of gamepads) {
+        // Disregard empty slots.
+        if (!gamepad) { continue; }
+        // Analog controls for drive.
+        position.setX(gamepad.axes[0] * 0.8)
+        position.setY((-gamepad.axes[1]) * 0.8)
+
+        // Process the gamepad buttons, map them to the controller. See map up there.
+        Object.keys(BUTTON_MAP_XBOX).map((keySrt) => {
+          const key = parseInt(keySrt)
+          const value = gamepad.buttons[BUTTON_MAP_XBOX[key]].pressed
+          buttons[key].set(value)
+        })
+      }
+    }
 
     const buttonByte = toByte(buttons.map((b) => b.get()))
-    // console.warn(buttonByte)
 
     const ctrlArray = new Uint8Array([
       i++ % 127, // keepalive - no need to change this as it's bluetooth specific
@@ -109,7 +134,7 @@ export default function ControllerView({
     ])
 
     isActive() && conn()?.send(RobotMessage.control, ctrlArray)
-  }, 100)
+  }, 25)
 
   onCleanup(() => {
     clearInterval(interval)
@@ -140,11 +165,11 @@ export default function ControllerView({
       {/* {buttons.map((b)=>b.get()?<>1</>:<>0</>)} */}
 
       <div>
-        <Show when={log()}>
-          <button onClick={() => setLog('')}>clear</button>
+        <Show when={getLog()}>
+          <button onClick={() => clearLog()}>clear</button>
         </Show>
         <pre class={styles.log}>
-          {log()}
+          {getLog()}
         </pre>
       </div>
     </div>

@@ -22,23 +22,18 @@ function App() {
   const [config, setConfig] = createSignal<RobotConfig>(defaultConfig);
   const [tab, setTab] = createSignal('configure')
   const [endpoint, setEndpoint] = createSignal(localStorage.getItem('endpoint') || '');
-  const [_log, setLog] = createSignal<string>('')
 
   const isActive = createMemo(()=>tab() === 'play')
 
   // When switching to play mode, automatically upload the config!
   createEffect(()=>{if (tab() === 'play') {uploadConfig(conn(), config())};})
 
-  const log = (msg: any) => {
-    if (!msg) return
-    setLog(_log() + `\n[${new Date().toLocaleTimeString('en-US', { hour12: false })}] ${msg}`)
-  }
 
   const connectOrDisconnect = ()=>{
     if (conn()){
       disconnect(conn, setConn)
     } else {
-      connectToRobot(setConn, setConnLoading, endpoint, config, log)
+      connectToRobot(setConn, setConnLoading, endpoint, config)
     }
   }
 
@@ -60,17 +55,16 @@ function App() {
     {
       id: 'play',
       label: 'Play',
-      children: <ControllerView conn={conn} isActive={isActive} log={_log} setLog={setLog} endpoint={endpoint}/>
+      children: <ControllerView conn={conn} isActive={isActive} endpoint={endpoint}/>
     },
     {
       id: 'connect',
       label: 'Connection',
       children: <ConnectionView
         endpoint={endpoint} setEndpoint={setEndpoint}
-        connect={()=>connectToRobot(setConn, setConnLoading, endpoint, config, log)}
+        connect={()=>connectToRobot(setConn, setConnLoading, endpoint, config)}
         disconnect={()=>disconnect(conn, setConn)}
         connection={conn}
-        log={_log} setLog={setLog}
       />
     }
   ]
