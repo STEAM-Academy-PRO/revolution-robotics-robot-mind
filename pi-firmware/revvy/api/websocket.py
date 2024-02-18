@@ -4,6 +4,7 @@ from enum import Enum
 import json
 import struct
 import threading
+import traceback
 from revvy.api.camera import Camera
 from revvy.utils.version import VERSION
 
@@ -44,7 +45,8 @@ ignore_log_events = [
     RobotEvent.MCU_TICK,
     RobotEvent.MOTOR_CHANGE,
     RobotEvent.PROGRAM_STATUS_CHANGE,
-    RobotEvent.BATTERY_CHANGE
+    RobotEvent.BATTERY_CHANGE,
+    RobotEvent.SENSOR_VALUE_CHANGE
 ]
 
 
@@ -163,6 +165,8 @@ class RobotWebSocketApi:
                                                         next_deadline=next_deadline))
                 except Exception as e:
                     log(f'Control message failed: {message_type}: {e}')
+                    log(traceback.format_exc())
+                    self.send({'event': "ERROR", 'data': f'Control message failed: {message_type}: {e}'})
                 # Send the received message back to the client
                 # await websocket.send(f"Received: {message_raw}")
 
