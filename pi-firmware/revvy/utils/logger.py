@@ -1,6 +1,7 @@
 import hashlib
 from threading import current_thread
 
+from revvy.utils.stopwatch import Stopwatch
 
 class LogLevel:
     DEBUG = 0

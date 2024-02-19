@@ -91,13 +91,10 @@ class ErrorHandler:
         self.report_error(RobotErrorType.SYSTEM, trace)
 
         log(log_message, LogLevel.ERROR)
-        log.flush()
-
 
     def register_uncaught_exception_handler(self) -> None:
         sys.excepthook = self.handle_uncaught_system_exception
         log('Uncaught exception handler registered')
-        log.flush()
 
     def pop_error(self):
         """ Remove and return the last element of the array """
