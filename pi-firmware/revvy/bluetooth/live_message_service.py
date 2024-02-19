@@ -11,12 +11,18 @@ from revvy.bluetooth.ble_characteristics import (
     ReadVariableCharacteristic,
     BackgroundProgramControlCharacteristic,
     SensorCharacteristic,
-    MotorData,
     TimerCharacteristic,
     ValidateConfigCharacteristic,
 )
 from revvy.bluetooth.queue_characteristic import QueueCharacteristic
-from revvy.bluetooth.data_types import BackgroundControlState, GyroData, ScriptVariables, TimerData
+from revvy.bluetooth.data_types import (
+    MotorData,
+    BackgroundControlState,
+    GyroData,
+    ScriptVariables,
+    SensorData,
+    TimerData,
+)
 from revvy.bluetooth.validate_config_statuses import (
     VALIDATE_CONFIG_STATE_DONE,
     VALIDATE_CONFIG_STATE_IN_PROGRESS,
@@ -232,7 +238,7 @@ class LiveMessageService(BlenoPrimaryService):
             )
         )
 
-    def update_sensor(self, sensor, value):
+    def update_sensor(self, sensor, value: SensorData):
         """Send back sensor value to mobile."""
         if 0 < sensor <= len(self._sensor_characteristics):
             self._sensor_characteristics[sensor - 1].update(value)

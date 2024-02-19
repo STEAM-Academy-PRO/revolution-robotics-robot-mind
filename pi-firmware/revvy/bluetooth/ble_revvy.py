@@ -3,7 +3,6 @@
 import os
 from typing import List
 from pybleno import Bleno
-from revvy.bluetooth.ble_characteristics import GyroData
 
 from revvy.bluetooth.services.battery import CustomBatteryService
 from revvy.bluetooth.services.device_information import DeviceInformationService

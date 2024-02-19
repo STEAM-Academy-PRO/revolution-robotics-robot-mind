@@ -114,3 +114,12 @@ class BackgroundControlState(Serialize):
 BackgroundControlState.STOPPED = BackgroundControlState(1)
 BackgroundControlState.RUNNING = BackgroundControlState(2)
 BackgroundControlState.PAUSED  = BackgroundControlState(3)
+
+
+# TODO: make this a base class for sensors to implement
+class SensorData(Serialize):
+    def __init__(self, value):
+        self.value = value
+
+    def serialize(self):
+        return self.value
