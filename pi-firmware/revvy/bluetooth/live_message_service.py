@@ -168,11 +168,11 @@ class LiveMessageService(BlenoPrimaryService):
                     return True
             return False
 
-        [analog_values, next_deadline, button_values] = parse_control_message(data)
+        command = parse_control_message(data)
 
         # This seems like it's doing nothing...
-        joystick_xy_action = joystick_xy_is_moved(analog_values)
-        joystick_button_action = any(button_values)
+        joystick_xy_action = joystick_xy_is_moved(command.analog)
+        joystick_button_action = any(command.buttons)
 
         # log(f'data: {str(data)}')
         # log(f'analog_values: {str(analog_values)}')
@@ -186,10 +186,7 @@ class LiveMessageService(BlenoPrimaryService):
 
         message_handler = self._robot_manager.handle_periodic_control_message
         if message_handler:
-            message_handler(RemoteControllerCommand(analog=analog_values,
-                                                    buttons=button_values,
-                                                    background_command=None,
-                                                    next_deadline=next_deadline))
+            message_handler(command)
         return True
 
 
@@ -197,12 +194,11 @@ class LiveMessageService(BlenoPrimaryService):
         """ Autonomous mode play/pause/stop/reset button from mobile to brain """
 
         log(f"state_control_callback, coming from the mobile. {data}")
-        background_control_command = int.from_bytes(data[2:], byteorder='big')
         message_handler = self._robot_manager.handle_periodic_control_message
         if message_handler:
             message_handler(RemoteControllerCommand(analog=bytearray(b'\x7f\x7f\x00\x00\x00\x00\x00\x00\x00\x00'),
                                                     buttons=[False]*32,
-                                                    background_command=background_control_command,
+                                                    background_command=int.from_bytes(data[2:], byteorder='big'),
                                                     next_deadline=None))
 
     def update_sensor(self, sensor, value):

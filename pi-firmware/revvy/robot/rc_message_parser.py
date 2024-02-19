@@ -5,13 +5,19 @@
 
 
 import struct
+from revvy.robot.remote_controller import RemoteControllerCommand
 from revvy.utils.functions import bits_to_bool_list
 
-def parse_control_message(data):
+def parse_control_message(data) -> RemoteControllerCommand:
     """ From a control message, parse out analog values, deadlines, and button values """
     analog_values = data[1:7]
     deadline_packed = data[7:11]
     next_deadline = struct.unpack('<I', deadline_packed)[0]
     button_values = bits_to_bool_list(data[11:15])
 
-    return [analog_values, next_deadline, button_values]
+    return RemoteControllerCommand(
+        analog=analog_values,
+        buttons=button_values,
+        background_command=None,
+        next_deadline=next_deadline
+    )
