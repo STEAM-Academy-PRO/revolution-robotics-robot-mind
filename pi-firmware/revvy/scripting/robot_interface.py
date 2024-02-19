@@ -321,7 +321,7 @@ class MotorPortWrapper(Wrapper):
         self.using_resource(partial(self._motor.driver.stop, action))
 
 
-def wrap_async_method(owner, method):
+def wrap_async_method(owner: Wrapper, method):
     def _wrapper(*args, **kwargs):
         def _interrupted():
             if awaiter:
