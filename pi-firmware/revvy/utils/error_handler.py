@@ -12,6 +12,5 @@ def register_uncaught_exception_handler():
         log_message = f'Uncaught exception: {exctype}\nValue: {value}\nTraceback: \n\t{trace}\n\n'
 
         log(log_message, LogLevel.ERROR)
-        log.flush()
 
     sys.excepthook = log_uncaught_exception

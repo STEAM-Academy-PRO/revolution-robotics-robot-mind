@@ -32,7 +32,7 @@ class SensorPortDriver(PortDriver):
         if converted is not None:
             self._value = converted
 
-        self.on_status_changed(self._port)
+        self.on_status_changed.trigger(self._port)
 
     @property
     def value(self):

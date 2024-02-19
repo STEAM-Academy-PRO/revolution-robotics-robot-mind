@@ -11,13 +11,15 @@ from time import time
 
 from typing import Generic, TypeVar, Callable, List
 
+from revvy.utils.emitter import SimpleEventEmitter
+
 
 VariableType = TypeVar('VariableType')
 
 class Observable(Generic[VariableType]):
     """ Simple Observable Implementation """
     def __init__(self, value=None, throttle_interval=0):
-        self._observers = []
+        self._on_value_changed = SimpleEventEmitter()
         self._data: VariableType = value
 
         # Throttling
@@ -26,22 +28,20 @@ class Observable(Generic[VariableType]):
         self._update_pending = False
 
     def subscribe(self, observer: Callable):
-        self._observers.append(observer)
+        self._on_value_changed.add(observer)
 
     def unsubscribe(self, observer: Callable):
-        self._observers.remove(observer)
+        self._on_value_changed.remove(observer)
 
     def notify(self):
         """ If not throttling, observers are notified instantly. If throttling is enabled, events are emitted at most once per period. """
         if self._throttle_interval == 0:
-            for observer in self._observers:
-                observer(self._data)
+            self._on_value_changed.trigger(self._data)
         else:
             current_time = time()
             since_last_emit = current_time - self._last_update_time
             if since_last_emit >= self._throttle_interval:
-                for observer in self._observers:
-                    observer(self._data)
+                self._on_value_changed.trigger(self._data)
                 self._last_update_time = current_time
                 self._update_pending = False
             else:

@@ -2,14 +2,9 @@
 import time
 from threading import Event, Thread, Lock, RLock
 import traceback
+from revvy.utils.emitter import SimpleEventEmitter
 
 from revvy.utils.logger import LogLevel, get_logger
-
-# TODO: This busted the list it was given, so e.g. script stop callbacks would not get called
-# back multiple times. I have no clue how many other things this broke.
-def _call_callbacks(cb_list: list):
-    for cb in cb_list:
-        cb()
 
 
 class ThreadWrapper:
@@ -31,9 +26,9 @@ class ThreadWrapper:
         self._lock = Lock()  # lock used to ensure internal consistency
         self._interface_lock = RLock()  # prevent concurrent access. RLock so that callbacks may restart the thread
         self._func = func
-        self._stopped_callbacks = []
-        self._stop_requested_callbacks = []
-        self._error_callbacks = []
+        self._stopped_callbacks = SimpleEventEmitter()
+        self._stop_requested_callbacks = SimpleEventEmitter()
+        self._error_callbacks = SimpleEventEmitter()
         self._pause_flag = Event()
         self._pause_flag.set() # when set, the code can run
         self._control = Event()  # used to wake up thread function when it is stopped
@@ -64,9 +59,7 @@ class ThreadWrapper:
                     self._log('interrupted')
                 except Exception as e:
                     self._log('' + traceback.format_exc(), LogLevel.ERROR)
-                    for error_callback in self._error_callbacks:
-                        error_callback(e)
-                    self._log.flush()
+                    self._error_callbacks.trigger(e)
                 finally:
                     self._enter_stopped()
         finally:
@@ -86,7 +79,7 @@ class ThreadWrapper:
             self._thread_running_event.clear()
             self._thread_stopped_event.set()
             self._log('call stopped callbacks')
-            _call_callbacks(self._stopped_callbacks)
+            self._stopped_callbacks.trigger()
 
     @property
     def state(self):
@@ -150,7 +143,7 @@ class ThreadWrapper:
 
                 if call_callbacks:
                     self._log('call stop requested callbacks')
-                    _call_callbacks(self._stop_requested_callbacks)
+                    self._stop_requested_callbacks.trigger()
                     self._log('stop requested callbacks finished')
 
             return self._thread_stopped_event
@@ -171,16 +164,16 @@ class ThreadWrapper:
             self._log('exited')
 
     def on_stopped(self, callback):
-        self._stopped_callbacks.append(callback)
+        self._stopped_callbacks.add(callback)
 
     def on_error(self, callback):
-        self._error_callbacks.append(callback)
+        self._error_callbacks.add(callback)
 
     def on_stop_requested(self, callback):
         if self._state == ThreadWrapper.STOPPING:
             callback()
         else:
-            self._stop_requested_callbacks.append(callback)
+            self._stop_requested_callbacks.add(callback)
 
     def pause_thread(self):
         self._log('pause thread')
