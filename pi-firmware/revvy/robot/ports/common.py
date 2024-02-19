@@ -27,7 +27,7 @@ class PortDriver(ABC):
         self._driver_name = driver_name
         self._port = port
         self._on_status_changed = SimpleEventEmitter()
-        self.log = get_logger(driver_name, base=port.log)
+        self.log = get_logger(driver_name, base=port.log, off=True)
 
     @property
     def driver_name(self):

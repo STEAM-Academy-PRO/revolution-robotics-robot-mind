@@ -3,7 +3,8 @@
 import struct
 
 from pybleno import BlenoPrimaryService
-from revvy.bluetooth.ble_characteristics import GyroCharacteristic, MobileToBrainFunctionCharacteristic, MotorCharacteristic, ProgramStatusCharacteristic, ReadVariableCharacteristic, RelativeFunctionCharacteristic, SensorCharacteristic, TimerCharacteristic, ValidateConfigCharacteristic
+from revvy.bluetooth.ble_characteristics import GyroCharacteristic, MobileToBrainFunctionCharacteristic, MotorCharacteristic, ProgramStatusCharacteristic, ReadVariableCharacteristic, BackgroundProgramControlCharacteristic, SensorCharacteristic, TimerCharacteristic, ValidateConfigCharacteristic
+from revvy.bluetooth.queue_characteristic import QueueCharacteristic
 from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_DONE, VALIDATE_CONFIG_STATE_IN_PROGRESS, VALIDATE_CONFIG_STATE_UNKNOWN
 from revvy.robot.rc_message_parser import parse_control_message
 from revvy.robot_manager import RobotManager
@@ -34,9 +35,10 @@ class LiveMessageService(BlenoPrimaryService):
         self._orientation_characteristic = GyroCharacteristic('4337a7c2-cae9-4c88-8908-8810ee013fcb', b'Orientation')
         self._timer_characteristic = TimerCharacteristic('c0e913da-5fdd-4a17-90b4-47758d449306', b'Timer')
         self._program_status_characteristic = ProgramStatusCharacteristic('7b988246-56c3-4a90-a6e8-e823ea287730', b'ProgramStatus')
-        self._state_control_characteristic = RelativeFunctionCharacteristic(
+        self._background_program_control_characteristic = BackgroundProgramControlCharacteristic(
             '53881a54-d519-40f7-8cbf-d43ced67f315', b'State Control', self.state_control_callback
         )
+        self._error_reporting_characteristic = QueueCharacteristic('0a0a8fa3-4c8f-44eb-892f-2bb8a6e163ca', b'Error Reporting')
 
         self._sensor_characteristics = [
             SensorCharacteristic('135032e6-3e86-404f-b0a9-953fd46dcb17', b'Sensor 1'),
@@ -76,9 +78,10 @@ class LiveMessageService(BlenoPrimaryService):
                 self._gyro_characteristic,
                 self._orientation_characteristic,
                 self._read_variable_characteristic,
-                self._state_control_characteristic,
+                self._background_program_control_characteristic,
                 self._timer_characteristic,
-                self._program_status_characteristic
+                self._program_status_characteristic,
+                self._error_reporting_characteristic
             ]
         })
 
@@ -252,6 +255,11 @@ class LiveMessageService(BlenoPrimaryService):
         buf = list(struct.pack(">bf", 4, round(data, 0)))
         self._timer_characteristic.update(buf)
 
+
+    def report_error(self, data):
+        log(f'Sending Error: {data}')
+        self._error_reporting_characteristic.update(data)
+
     def update_script_variables(self, script_variables):
         """
             In the mobile app, this data shows up when we track variables.
@@ -298,6 +306,6 @@ class LiveMessageService(BlenoPrimaryService):
         """ Send back the background programs' state. """
         log(f"state control update, {state}")
         data = list(struct.pack(">bl", 4, state))
-        self._state_control_characteristic.update(data)
+        self._background_program_control_characteristic.update(data)
 
 

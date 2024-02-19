@@ -87,7 +87,7 @@ class RobotWebSocketApi:
         self._event_loop.run_forever()
 
     def thread(self):
-        websocket_thread = threading.Thread(target=self.start)
+        websocket_thread = threading.Thread(target=self.start, name="WebSocket")
         websocket_thread.start()
 
     async def incoming_connection(self, websocket, path):
