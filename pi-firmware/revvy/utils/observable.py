@@ -48,7 +48,9 @@ class Observable(Generic[VariableType]):
                 # set up a recall for the next period, counted from the last event
                 if not self._update_pending:
                     self._update_pending = True
-                    threading.Timer(self._throttle_interval - since_last_emit, self._check_pending_update).start()
+                    timer_thread = threading.Timer(self._throttle_interval - since_last_emit, self._check_pending_update)
+                    timer_thread.name = "ObservableThrottleTimer"
+                    timer_thread.start()
 
     def _check_pending_update(self):
         if self._update_pending:
@@ -87,8 +89,8 @@ class SmoothingObservable(Observable):
         self._data_history = [] if not value else [value]
         self._window_size = window_size
         self._precision = precision
-        self._data = None
-        self._last_data = None
+        self._data = value
+        self._last_data = value
         self._smoothening_function = smoothening_function
 
     def set(self, new_data: VariableType):

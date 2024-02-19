@@ -26,6 +26,7 @@ from revvy.scripting.runtime import ScriptEvent, ScriptHandle, ScriptManager
 from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.subscription import DisposableArray
+from revvy.utils.error_reporter import RobotErrorType, revvy_error_handler
 
 class RevvyStatusCode(enum.IntEnum):
     """ Exit codes we used to tell the loader what happened """
@@ -236,6 +237,7 @@ class RobotManager:
             scr.assign('RingLed', RingLed)
 
         self._remote_controller_thread.stop()
+        self._remote_controller.reset()
 
         for res in self._robot._resources.values():
             res.reset()
@@ -244,6 +246,8 @@ class RobotManager:
         self._ping_robot()
 
         self._robot.reset()
+
+        revvy_error_handler.read_mcu_errors(self._robot.robot_control)
 
 
     def robot_configure(self, config):
@@ -362,7 +366,7 @@ class RobotManager:
             # IF I dug it out right, currently we actually have ONE state for
             # ALL the background processes communicated in another BLE characteristic.
             # I did not touch that for now, but this yells for some legwork in design.
-            bg_script_handle.on(ScriptEvent.ERROR, self._show_script_error)
+            bg_script_handle.on(ScriptEvent.ERROR, self._on_bg_script_error)
 
         self.remote_controller.reset_background_control_state()
         if config.background_initial_state == 'running':
@@ -397,12 +401,26 @@ class RobotManager:
                   LogLevel.ERROR)
         self._log(f'{traceback.format_exc()}', LogLevel.ERROR)
 
+        # Brain bug LED effect with "uh oh" sound.
         self._robot.led.start_animation(RingLed.Bug)
         self._robot.sound.play_tune('uh_oh')
         time.sleep(2)
         self._robot.led.start_animation(RingLed.Off)
 
-    def _on_script_error(self, script_handle: ScriptHandle, exception):
+    def _on_bg_script_error(self, script_handle: ScriptHandle, exception: Exception):
+        self._show_script_error(script_handle, exception)
+
+        bg_blockly_error = revvy_error_handler.report_error(
+            RobotErrorType.BLOCKLY_BACKGROUND,
+            traceback.format_exc(),
+            script_handle.descriptor.ref_id)
+
+        # We need to notify the connected devices about the error too.
+        # The above command adds the error to the queue, but as we are
+        # event driven now, we need the notification to be sent out.
+        self.trigger(RobotEvent.ERROR, bg_blockly_error)
+
+    def _on_script_error(self, script_handle: ScriptHandle, exception: Exception):
         """
             Handle runner script errors gracefully, and type out what caused it to bail!
             These are user scripts, so we should consider sending them back via Bluetooth
@@ -410,6 +428,14 @@ class RobotManager:
         self.trigger(RobotEvent.PROGRAM_STATUS_CHANGE,
                      ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.ERROR))
         self._show_script_error(script_handle, exception)
+
+        btn_blockly_error = revvy_error_handler.report_error(
+            RobotErrorType.BLOCKLY_BUTTON,
+            traceback.format_exc(),
+            script_handle.descriptor.ref_id)
+
+        # Same as the above.
+        self.trigger(RobotEvent.ERROR, btn_blockly_error)
 
     def _on_script_stopped(self, script_handle: ScriptHandle, data=None):
         """ If we want to send back script status stopped change, this is the place. """

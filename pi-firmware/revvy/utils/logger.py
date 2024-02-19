@@ -1,11 +1,7 @@
-from collections import deque
 import hashlib
-import os
-from threading import Lock
-from revvy.utils.directories import WRITEABLE_DATA_DIR
+from threading import current_thread
 
 from revvy.utils.stopwatch import Stopwatch
-from revvy.utils.write_unique_file import create_unique_file
 
 class LogLevel:
     DEBUG = 0
@@ -72,7 +68,7 @@ class Logger:
             level = self._default_log_level
 
         if level >= self._min_log_level:
-            message = f'[{START_TIME.elapsed:.2f}][{LEVELS[level]}]{self._tag} {message}'
+            message = f'[{START_TIME.elapsed:.2f}][{LEVELS[level]}][{hash_to_color(current_thread().name)}]{self._tag} {message}'
             print(message)
 
     def __call__(self, message, level=None):

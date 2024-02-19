@@ -18,7 +18,13 @@ class RobotEvent:
     BACKGROUND_CONTROL_STATE_CHANGE="background_control_state_change"
     SENSOR_VALUE_CHANGE="sensor_value_change"
     TIMER_TICK="timer_tick"
+
+    # e.g. MCU connection lost for good.
     FATAL_ERROR="fatal_error"
+
+    # MCU, system, blockly errors.
+    ERROR="error"
+
     # Temporarily, for background processes to be triggered.
     MCU_TICK="mcu_tick"
     DISCONNECT="disconnect"

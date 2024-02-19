@@ -1,7 +1,10 @@
 """ Battery status debouncer. """
 
+from revvy.utils.logger import get_logger
 from revvy.utils.observable import Observable, SmoothingObservable
 from revvy.robot.robot import BatteryStatus
+
+log = get_logger('BatteryState')
 
 class BatteryState(Observable):
     """ Manage and smoothen battery state level values """
@@ -21,6 +24,13 @@ class BatteryState(Observable):
         # the batteries are just reeeeally flat.
         self._motor_battery_present = Observable(0, throttle_interval=2)
 
+        # Initial state
+        self._data = BatteryStatus(self._charger_status.get(),
+                        self._motor_battery_present.get(),
+                        self._main.get(),
+                        self._motor.get()
+        )
+
     def set(self, new_data: BatteryStatus):
         self._main.set(new_data.main)
         self._charger_status.set(new_data.chargerStatus)
@@ -31,4 +41,3 @@ class BatteryState(Observable):
                         self._main.get(),
                         self._motor.get(),
         ))
-
