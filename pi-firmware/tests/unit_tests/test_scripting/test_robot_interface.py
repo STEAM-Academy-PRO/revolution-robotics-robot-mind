@@ -1,10 +1,12 @@
 
 import unittest
 from mock import Mock
+from revvy.robot.ports.common import DriverConfig, PortInstance
+from revvy.robot.ports.motors.base import MotorConstants, NullMotor
 
 from revvy.utils.functions import hex2rgb
 from revvy.scripting.resource import Resource
-from revvy.scripting.robot_interface import RingLedWrapper, PortCollection, ResourceWrapper
+from revvy.scripting.robot_interface import MotorPortWrapper, RingLedWrapper, PortCollection, ResourceWrapper
 
 
 class TestRingLed(unittest.TestCase):
@@ -70,3 +72,14 @@ class TestPortCollection(unittest.TestCase):
         self.assertEqual(3, pc['bar'])
         self.assertEqual(5, pc['baz'])
         self.assertRaises(KeyError, lambda: pc['foobar'])
+
+class TestMotorPortWrapper(unittest.TestCase):
+    def test_stop_does_not_throw_exception(self):
+        mock_script = Mock()
+        mock_script.is_stop_requested = False
+
+        mock_port = PortInstance(0, "MockPort", Mock(), DriverConfig(driver = NullMotor, config = {}), {"NotConfigured": 0}, Mock())
+
+        wrapper = MotorPortWrapper(mock_script, mock_port, ResourceWrapper(Resource()))
+
+        wrapper.stop(action=MotorConstants.ACTION_RELEASE)
