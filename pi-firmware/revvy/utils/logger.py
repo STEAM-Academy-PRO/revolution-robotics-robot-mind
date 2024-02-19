@@ -68,8 +68,11 @@ class Logger:
             level = self._default_log_level
 
         if level >= self._min_log_level:
-            message = f'[{START_TIME.elapsed:.2f}][{LEVELS[level]}][{hash_to_color(current_thread().name)}]{self._tag} {message}'
-            print(message)
+            thread_name = hash_to_color(current_thread().name)
+
+            # Print the newline ourselves. This removes the possibility of racy threads to mess up the output.
+            message = f'[{START_TIME.elapsed:.2f}][{LEVELS[level]}][{thread_name}]{self._tag} {message}\n'
+            print(message, end='')
 
     def __call__(self, message, level=None):
         self.log(message, level)
