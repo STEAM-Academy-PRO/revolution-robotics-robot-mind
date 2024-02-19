@@ -62,8 +62,7 @@ class ThreadWrapper:
                     # If there are error handlers registered, do not log the error,
                     # as it's caught and handled already.
                     if not self._error_callbacks.is_empty():
-                        for error_callback in self._error_callbacks:
-                            error_callback(e)
+                        self._error_callbacks.trigger(e)
                     else:
                         # If we are not handling it, do report.
                         self._log('Unhandled: ' + traceback.format_exc(), LogLevel.ERROR)
