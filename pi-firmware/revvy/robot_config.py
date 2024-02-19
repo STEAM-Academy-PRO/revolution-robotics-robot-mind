@@ -32,6 +32,7 @@ SENSOR_TYPES = [
     None,
     Sensors.Ultrasonic,
     Sensors.BumperSwitch,
+    None,
     Sensors.SofteqCS,
 ]
 
