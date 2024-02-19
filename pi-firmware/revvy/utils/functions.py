@@ -7,6 +7,8 @@ import math
 from contextlib import suppress
 from typing import List
 
+from revvy.scripting.variables import Variable
+
 
 def clip(x, min_x, max_x):
     """Constrain a number between two limits

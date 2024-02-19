@@ -1,3 +1,6 @@
+from revvy.bluetooth.data_types import ScriptVariables
+
+
 class Variable(object):
     def __init__(self):
         self.__script = None
@@ -64,8 +67,8 @@ class VariableSlot(object):
     def get_variables(self):
         return self.__v
 
-    def get_variable_values(self):
-        return [var.get_value() for var in self.__v]
+    def get_variable_values(self) -> ScriptVariables:
+        return ScriptVariables([var.get_value() for var in self.__v])
 
     def get_variable(self, slot_idx):
         return self.__v[slot_idx]

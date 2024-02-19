@@ -11,10 +11,12 @@ from revvy.bluetooth.ble_characteristics import (
     ReadVariableCharacteristic,
     BackgroundProgramControlCharacteristic,
     SensorCharacteristic,
+    MotorData,
     TimerCharacteristic,
     ValidateConfigCharacteristic,
 )
 from revvy.bluetooth.queue_characteristic import QueueCharacteristic
+from revvy.bluetooth.data_types import BackgroundControlState, GyroData, ScriptVariables, TimerData
 from revvy.bluetooth.validate_config_statuses import (
     VALIDATE_CONFIG_STATE_DONE,
     VALIDATE_CONFIG_STATE_IN_PROGRESS,
@@ -98,10 +100,6 @@ class LiveMessageService(BlenoPrimaryService):
             b"Validate configuration",
             self.validate_config_callback,
         )
-
-        self._buf_gyro = b"\xff"
-        self._buf_orientation = b"\xff"
-        self._buf_script_variables = b"\xff"
 
         super().__init__(
             {
@@ -244,11 +242,10 @@ class LiveMessageService(BlenoPrimaryService):
 
         self._program_status_characteristic.update_button_value(button_id, status.value)
 
-    def update_motor(self, motor, power, speed, position):
+    def update_motor(self, motor, data: MotorData):
         """Send back motor angle value to mobile."""
         # TODO: unused?
         if 0 <= motor < len(self._motor_characteristics):
-            data = list(struct.pack(">flb", speed, position, power))
             self._motor_characteristics[motor].update(data)
 
     def update_session_id(self, value):
@@ -258,76 +255,31 @@ class LiveMessageService(BlenoPrimaryService):
         # currently it's not used.
         self._mobile_to_brain.update(data)
 
-    def update_gyro(self, vector_list):
+    def update_gyro(self, data: GyroData):
         """Send back gyro sensor value to mobile."""
         # TODO: unused?
-        if type(vector_list) is list:
-            buf = struct.pack("%sf" % len(vector_list), *vector_list)
-            if self._buf_gyro is not buf:
-                self._buf_gyro = buf
-                self._gyro_characteristic.update(self._buf_gyro)
+        self._gyro_characteristic.update(data)
 
-    def update_orientation(self, vector_list):
+    def update_orientation(self, data: GyroData):
         """Send back orientation to mobile. Used to display the yaw of the robot"""
-        if type(vector_list) is list:
-            buf = struct.pack("%sf" % len(vector_list), *vector_list)
-            if self._buf_orientation is not buf:
-                self._buf_orientation = buf
-                self._orientation_characteristic.update(self._buf_orientation)
+        self._orientation_characteristic.update(data)
 
-    def update_timer(self, data):
-        """Send back timer tick every second to mobile."""
-        buf = list(struct.pack(">bf", 4, round(data, 0)))
-        self._timer_characteristic.update(buf)
+    def update_timer(self, data: TimerData):
+        """Send back timer tick to mobile."""
+        self._timer_characteristic.update(data)
 
     def report_error(self, data):
         log(f"Sending Error: {data}")
         self._error_reporting_characteristic.update(data)
 
-    def update_script_variables(self, script_variables):
+    def update_script_variables(self, script_variables: ScriptVariables):
         """
         In the mobile app, this data shows up when we track variables.
         By characteristic protocol - maximum slots in BLE message is 4.
         """
+        self._read_variable_characteristic.update(script_variables)
 
-        # I believe this should be a constant that's coming from one centralized place, rather
-        # be wired in here. If this script sends more variables, we'll never know.
-        MAX_VARIABLE_SLOTS = 4
-
-        # Message format:
-        # offset:  0    1  2  3  4    5  6  7  8    9  10 11 12   13 14 15 16
-        # values:  0A | BB BB BB BB | CC CC CC CC | DD DD DD DD | EE EE EE EE
-        # A - bitmask consists of 4 bits. if bit is set - value has been set
-        #     by scripts. If bit is not set - value has never been changed yet,
-        #     due to script not run at all, or script has not yet set the value
-        #     and ReportVariableChanged has not been called for this slot
-
-        # BB - float value for Slot 1
-        # CC - float value for Slot 2
-        # DD - float value for Slot 3
-        # EE - float value for Slot 4
-
-        # In the end the user of this packet receives info about 4 slots, current
-        # value of each slot, has the value in this slot been set at least once
-
-        mask = 0
-        valuebuf = b""
-
-        for slot_idx in range(MAX_VARIABLE_SLOTS):
-            value = script_variables[slot_idx]
-            if value:
-                mask = mask | (1 << slot_idx)
-            else:
-                value = 0.0
-            valuebuf += struct.pack("f", value)
-
-        maskbuf = struct.pack("B", mask)
-        msg = maskbuf + valuebuf
-
-        self._read_variable_characteristic.update(msg)
-
-    def update_state_control(self, state):
+    def update_state_control(self, state: BackgroundControlState):
         """Send back the background programs' state."""
         log(f"state control update, {state}")
-        data = list(struct.pack(">bl", 4, state))
-        self._background_program_control_characteristic.update(data)
+        self._background_program_control_characteristic.update(state)

@@ -6,9 +6,12 @@ from typing import List
 
 def pack_2_bit_number_array_32(numbers: List[int]) -> bytearray:
     """
-    returns 8 bytes, reversed bit order!
-    converts:  1 2 0 1 => REVERSE: 01 10 00 01 => x81
-    pads the last bytes with zeroes.
+    Returns 8 bytes, filled from the highest index with the 2-bit numbers from the input list.
+    converts:  1 2 0 1 => REVERSE: 01 10 00 01 => \x49
+    pads the first bytes with zeroes.
+
+    >>> list(pack_2_bit_number_array_32([1, 2, 0, 1]))
+    [0, 0, 0, 0, 0, 0, 0, 73]
     """
 
     packed_value = 0
@@ -22,17 +25,3 @@ def pack_2_bit_number_array_32(numbers: List[int]) -> bytearray:
         packed_value |= num << (2 * i)
 
     return bytearray(struct.pack(">Q", packed_value))
-
-
-def unpack_2_bit_number_array_32(byte_array: bytearray) -> List[int]:
-    """Unpacks 32 element int [0-3] array from a 8 sized bytearray"""
-
-    result = []
-    # Reverse byte order.
-    for byte in byte_array[::-1]:
-        # Extract each 2-bit number from the byte
-        for i in range(4):
-            two_bit_number = (byte >> (2 * i)) & 0b11
-            result.append(two_bit_number)
-
-    return result
