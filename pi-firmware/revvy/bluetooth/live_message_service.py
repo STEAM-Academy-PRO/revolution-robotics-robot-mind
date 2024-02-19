@@ -200,11 +200,10 @@ class LiveMessageService(BlenoPrimaryService):
         background_control_command = int.from_bytes(data[2:], byteorder='big')
         message_handler = self._robot_manager.handle_periodic_control_message
         if message_handler:
-            message_handler(RemoteControllerCommand(analog=b'\x7f\x7f\x00\x00\x00\x00\x00\x00\x00\x00',
+            message_handler(RemoteControllerCommand(analog=bytearray(b'\x7f\x7f\x00\x00\x00\x00\x00\x00\x00\x00'),
                                                     buttons=[False]*32,
                                                     background_command=background_control_command,
                                                     next_deadline=None))
-        return True
 
     def update_sensor(self, sensor, value):
         """ Send back sensor value to mobile. """

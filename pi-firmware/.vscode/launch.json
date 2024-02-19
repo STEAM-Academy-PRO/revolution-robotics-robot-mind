@@ -19,6 +19,21 @@
                     "remoteRoot": "."
                 }
             ]
+        },
+        {
+            "name": "Attach Debug on PI",
+            "type": "python",
+            "request": "attach",
+            "connect": {
+              "host": "${config:target}",
+              "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "."
+                }
+            ]
         }
     ]
 }

@@ -9,6 +9,7 @@ from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motors.base import MotorConstants, MotorPortDriver, MotorPortHandler, MotorStatus
 from revvy.robot.ports.motors.dc_motor import DcMotorController
 from revvy.utils.awaiter import Awaiter, AwaiterState
+from revvy.utils.logger import get_logger
 
 
 class TestDriver(MotorPortDriver):
@@ -112,6 +113,7 @@ class TestDcMotorDriver(unittest.TestCase):
         port.interface.set_motor_port_config = Mock()
         port.interface.set_motor_port_control_value = Mock()
         port.interface.get_motor_position = Mock()
+        port.log = get_logger("MockPort")
 
         return port
 

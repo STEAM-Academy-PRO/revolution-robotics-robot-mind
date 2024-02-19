@@ -117,7 +117,7 @@ class RemoteController:
         self._control_button_pressed = AutonomousModeRequest()
 
         self._analogActions = []  # ([channel], callback) pairs
-        self._analogStates = []  # the last analog values, used to compare if a callback needs to be fired
+        self._analogStates = bytearray()  # the last analog values, used to compare if a callback needs to be fired
 
         self._button_handlers = []
 
@@ -173,7 +173,7 @@ class RemoteController:
         elif cmd == BleAutonomousCmd.RESET:
             self.reset_background_functions()
 
-    def process_analog_command(self, analog_cmd):
+    def process_analog_command(self, analog_cmd: bytearray):
         """
             Handles joystick movement and triggers change (action)
             if any of the values changed
@@ -236,7 +236,7 @@ class RemoteController:
                         button.script.start()
 
 
-    def process_control_message(self, msg):
+    def process_control_message(self, msg: RemoteControllerCommand):
         """
             The app sends regular (<100ms) control messages.
             This function handles: analog inputs, button bound script running and background programs

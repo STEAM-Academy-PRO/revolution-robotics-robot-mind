@@ -52,12 +52,12 @@ class ResourceHandle:
         return self._on_released
 
     def release(self):
-        self.on_released()
+        self.on_released.trigger()
         self._resource.release(self)
 
     def interrupt(self):
         self._is_interrupted = True
-        self.on_interrupted()
+        self.on_interrupted.trigger()
 
     def run_uninterruptable(self, callback):
         with self._resource:
