@@ -237,6 +237,7 @@ class RobotManager:
             scr.assign('RingLed', RingLed)
 
         self._remote_controller_thread.stop()
+        self._remote_controller.reset()
 
         for res in self._robot._resources.values():
             res.reset()
