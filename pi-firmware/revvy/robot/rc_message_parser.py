@@ -8,7 +8,7 @@ import struct
 from revvy.robot.remote_controller import RemoteControllerCommand
 from revvy.utils.functions import bits_to_bool_list
 
-def parse_control_message(data) -> RemoteControllerCommand:
+def parse_control_message(data: bytearray) -> RemoteControllerCommand:
     """ From a control message, parse out analog values, deadlines, and button values """
     analog_values = data[1:7]
     deadline_packed = data[7:11]

@@ -142,7 +142,7 @@ class LiveMessageService(BlenoPrimaryService):
           [s0, s1, s2, s3])
 
 
-    def control_message_handler(self, data):
+    def control_message_handler(self, data: bytearray):
         """
             Simple control callback is run each time new controller data
             representing full state of joystick is sent over a BLE characteristic
