@@ -178,7 +178,7 @@ class DcMotorController(MotorPortDriver):
             status, self._power, self._pos, self._speed = struct.unpack('<bblf', data)
 
             self._update_motor_status(MotorStatus(status))
-            self.on_status_changed(self._port)
+            self.on_status_changed.trigger(self._port)
         else:
             self.log(f'Received {len(data)} bytes of data instead of 10')
 
