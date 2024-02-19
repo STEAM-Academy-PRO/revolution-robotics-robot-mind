@@ -5,7 +5,13 @@ import traceback
 from typing import Generic, TypeVar
 
 from pybleno import Characteristic, Descriptor
-from revvy.bluetooth.data_types import GyroData, MotorData, ProgramStatusCollection
+from revvy.bluetooth.data_types import (
+    GyroData,
+    MotorData,
+    ProgramStatusCollection,
+    ScriptVariables,
+    TimerData,
+)
 from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_UNKNOWN
 from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
 from revvy.robot.robot import BatteryStatus
@@ -149,7 +155,7 @@ class BackgroundProgramControlCharacteristic(Characteristic):
 
 
 # DataType = TypeVar('DataType', bound=Serialize)
-DataType = TypeVar("DataType")
+DataType = TypeVar("DataType", bound=Serialize)
 
 
 class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
@@ -180,9 +186,7 @@ class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
         self._updateValueCallback = None
 
     def update(self, value: DataType):
-        if isinstance(value, Serialize):
-            value = value.serialize()
-
+        value = value.serialize()
         self._value = value
 
         callback = self._updateValueCallback
@@ -208,11 +212,11 @@ class GyroCharacteristic(BrainToMobileCharacteristic[GyroData]):
     pass
 
 
-class TimerCharacteristic(BrainToMobileCharacteristic):
+class TimerCharacteristic(BrainToMobileCharacteristic[TimerData]):
     pass
 
 
-class ReadVariableCharacteristic(BrainToMobileCharacteristic):
+class ReadVariableCharacteristic(BrainToMobileCharacteristic[ScriptVariables]):
     pass
 
 
