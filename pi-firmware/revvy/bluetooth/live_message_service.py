@@ -184,9 +184,7 @@ class LiveMessageService(BlenoPrimaryService):
             # log(f'joystick_xy_action: {str(joystick_xy_action)}')
             self._robot_manager.on_joystick_action()
 
-        message_handler = self._robot_manager.handle_periodic_control_message
-        if message_handler:
-            message_handler(command)
+        self._robot_manager.handle_periodic_control_message(command)
         return True
 
 
@@ -194,12 +192,12 @@ class LiveMessageService(BlenoPrimaryService):
         """ Autonomous mode play/pause/stop/reset button from mobile to brain """
 
         log(f"state_control_callback, coming from the mobile. {data}")
-        message_handler = self._robot_manager.handle_periodic_control_message
-        if message_handler:
-            message_handler(RemoteControllerCommand(analog=bytearray(b'\x7f\x7f\x00\x00\x00\x00\x00\x00\x00\x00'),
-                                                    buttons=[False]*32,
-                                                    background_command=int.from_bytes(data[2:], byteorder='big'),
-                                                    next_deadline=None))
+        self._robot_manager.handle_periodic_control_message(
+            RemoteControllerCommand(
+                analog=bytearray(b'\x7f\x7f\x00\x00\x00\x00\x00\x00\x00\x00'),
+                buttons=[False]*32,
+                background_command=int.from_bytes(data[2:], byteorder='big'),
+                next_deadline=None))
 
     def update_sensor(self, sensor, value):
         """ Send back sensor value to mobile. """
