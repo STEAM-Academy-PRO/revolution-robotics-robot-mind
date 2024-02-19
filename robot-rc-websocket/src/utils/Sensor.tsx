@@ -1,5 +1,5 @@
 import { createEffect, createSignal } from "solid-js";
-import { SensorConfig, SensorType } from "./Config";
+import { SensorConfig, SensorType, SensorTypeResolve } from "./Config";
 
 import styles from '../views/Config.module.css'
 
@@ -10,6 +10,7 @@ export function SensorView({sensor, update}: {sensor: SensorConfig, update: (sen
     let inited = false
     createEffect(()=>{
         sensor.type = type()
+        sensor.name = SensorTypeResolve[type()]
         if (inited){
             update(sensor)
         } else {

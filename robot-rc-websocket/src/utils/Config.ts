@@ -36,9 +36,9 @@ export enum SensorType {
 }
 
 export const SensorTypeResolve = {
-    4: 'COLOR',
-    1: 'DIST',
-    2: 'BUTTON'
+    4: 'color_sensor',
+    1: 'distance_sensor',
+    2: 'button'
 }
 
 export interface MotorConfig {
