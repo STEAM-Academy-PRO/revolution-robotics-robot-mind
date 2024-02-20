@@ -16,7 +16,7 @@ from revvy.robot.remote_controller import RemoteControllerCommand
 NUM_MOTOR_PORTS = 6
 NUM_SENSOR_PORTS = 4
 
-log = get_logger("Live Message Service", off=False)
+log = get_logger("Live Message Service")
 
 class LiveMessageService(BlenoPrimaryService):
     """ Handles short messages on the Bluetooth interface"""

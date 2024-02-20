@@ -32,7 +32,6 @@ class RobotEvent:
     STOPPED="stopped"
 
 
-
 class ProgramStatusChange(NamedTuple):
     """ Which program ID, what's the status of the program? """
     id: int
