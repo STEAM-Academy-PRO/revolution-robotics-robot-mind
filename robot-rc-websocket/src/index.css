@@ -1,3 +1,17 @@
+:root{
+  --bg-color: #222;
+  --font-color: #bbb;
+  --header-text: white;
+  --header-text-selected: yellow;
+  --header-text-hover: rgb(230, 233, 151);
+  --editor-background: #282c34;
+  --log-bg: rgba(203, 223, 203, 0.3);
+  --button-bg: #7777;
+  --button-color: white;
+}
+
+.cm-editor{height: 100%;}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -5,9 +19,17 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: var(--bg-color);
+  color: var(--font-color)
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+
+button{
+  background-color: var(--button-bg);
+  color: var(--button-color);
 }

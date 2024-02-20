@@ -10,6 +10,7 @@ import { SocketWrapper, connectToRobot, disconnect } from './utils/Communicator'
 import DEFAULT_JSON from "./assets/robot-config.json"
 import { uploadConfig } from './utils/commands';
 import { RobotConfig } from './utils/Config';
+import CodeView from './views/CodeView';
 
 // Load default config as fallback.
 let defaultConfig: RobotConfig = DEFAULT_JSON as RobotConfig
@@ -21,28 +22,24 @@ function App() {
   const [config, setConfig] = createSignal<RobotConfig>(defaultConfig);
   const [tab, setTab] = createSignal('configure')
   const [endpoint, setEndpoint] = createSignal(localStorage.getItem('endpoint') || '');
-  const [_log, setLog] = createSignal<string>('')
 
   const isActive = createMemo(()=>tab() === 'play')
 
   // When switching to play mode, automatically upload the config!
   createEffect(()=>{if (tab() === 'play') {uploadConfig(conn(), config())};})
 
-  const log = (msg: any) => {
-    if (!msg) return
-    setLog(_log() + `\n[${new Date().toLocaleTimeString('en-US', { hour12: false })}] ${msg}`)
-  }
 
   const connectOrDisconnect = ()=>{
     if (conn()){
       disconnect(conn, setConn)
     } else {
-      connectToRobot(setConn, setConnLoading, endpoint, config, log)
+      connectToRobot(setConn, setConnLoading, endpoint, config)
     }
   }
 
   createEffect(() => {
     config()
+    console.warn('saving config', config())
     localStorage.setItem('config', JSON.stringify(config()));
   });
 
@@ -52,19 +49,23 @@ function App() {
       children: <ConfigurationView config={config} setConfig={setConfig} conn={conn} />
     },
     {
+      id: 'code',
+      label: 'Code',
+      children: <CodeView config={config} setConfig={setConfig} conn={conn} />
+    },
+    {
       id: 'play',
       label: 'Play',
-      children: <ControllerView conn={conn} isActive={isActive} log={_log} setLog={setLog}/>
+      children: <ControllerView conn={conn} isActive={isActive} endpoint={endpoint} config={config}/>
     },
     {
       id: 'connect',
       label: 'Connection',
       children: <ConnectionView
         endpoint={endpoint} setEndpoint={setEndpoint}
-        connect={()=>connectToRobot(setConn, setConnLoading, endpoint, config, log)}
+        connect={()=>connectToRobot(setConn, setConnLoading, endpoint, config)}
         disconnect={()=>disconnect(conn, setConn)}
         connection={conn}
-        log={_log} setLog={setLog}
       />
     }
   ]

@@ -1,34 +1,41 @@
-import { createSignal, createEffect, Accessor, Setter, For, Show, createMemo } from 'solid-js'
+import { createSignal, createEffect, Accessor, Setter, For, Show } from 'solid-js'
 
 import styles from './Config.module.css'
 
 import { RobotMessage, SocketWrapper } from '../utils/Communicator';
 import { uploadConfig } from '../utils/commands';
-import { BlocklyItem, DriveMode, RobotConfig } from '../utils/Config';
+import { BlocklyItem, DriveMode, MotorConfig, MotorType, RobotConfig, Sensor, SensorConfig, SensorType } from '../utils/Config';
+import { MotorView } from '../utils/Motor';
+import { SensorView } from '../utils/Sensor';
 
 function ConfigurationView({
   config, setConfig,
   conn
 }: { config: Accessor<RobotConfig>, setConfig: Setter<RobotConfig>, conn: Accessor<SocketWrapper | null> }) {
 
-  const [isSendEnabled, setIsSendEnabled] = createSignal(false);
-  const [edited, setEdited] = createSignal<BlocklyItem | null>(null)
-  const [editedCode, setEditedCode] = createSignal<string>('')
-  const [configString, setConfigString] = createSignal<string>('');
-  const [editedIndex, setEditedIndex] = createSignal<number | null>(null);
   const [driveMode, setDriveMode] = createSignal<DriveMode>(DriveMode.drive_joystick)
+  const [sensors, setSensors] = createSignal<Array<SensorConfig | null>>(config().robotConfig.sensors)
+  const [motors, setMotors] = createSignal<Array<MotorConfig | null>>(config().robotConfig.motors)
 
-  createEffect(() => {
-    try {
-      setIsSendEnabled(Boolean(conn()))
-    } catch (e) {
-      setIsSendEnabled(false)
-    }
-  });
+  const formerConfig = config()
+
+  createEffect(()=>{
+    driveMode()
+    motors()
+    sensors()
+    const conf = Object.assign({}, formerConfig)
+    conf.robotConfig.motors = motors()
+    conf.robotConfig.sensors = sensors()
+    setConfig(conf)
+    // console.warn(conf.robotConfig.motors)
+    // console.log(conf.robotConfig.sensors)
+    return conf
+  })
 
   const handleSend = () => {
+    
     uploadConfig(conn(), config())
-    conn()?.send(RobotMessage.configure, JSON.stringify(config()))
+    conn()?.send(RobotMessage.configure, JSON.stringify(config(), null, 2))
   }
 
   const handleDriveChange = (event: Event) => {
@@ -41,55 +48,54 @@ function ConfigurationView({
     setConfig(newConfig)
   }
 
-  const saveCode = () => {
-    const newConfig = Object.assign({}, config()) as RobotConfig
-    const editedCodeBlock = edited()
-    if (editedCodeBlock) {
-      editedCodeBlock.pythoncode = btoa(editedCode())
+  const addMotor = (index: number) => {
+    const newMotor: MotorConfig = {
+      reversed: 0,
+      name: `motor${index + 1}`,
+      type: MotorType.DRIVE,
+      side: 0
     }
-    setConfig(newConfig)
+    const newMotorArray = motors().slice()
+    newMotorArray.splice(index, 1, newMotor)
+    setMotors(newMotorArray)
+  }
+  const updateMotor = (index: number, motor: MotorConfig) => {
+    const newMotorArray = motors().slice()
+    newMotorArray.splice(index, 1, Object.assign({}, motor))
+    setMotors(newMotorArray)
+  }
+  const removeMotor = (index: number) => {
+    const newMotorArray = motors().slice()
+    newMotorArray.splice(index, 1, null)
+    setMotors(newMotorArray)
   }
 
-  const saveRawEnabled = createMemo(()=>{try{JSON.parse(configString()); return true} catch (e){}})
+  const addSensor = (index: number) => {
+    const newSensor: SensorConfig = {
+      name: `sensor${index + 1}`,
+      type: SensorType.BUTTON
+    }
+    const newSensorArray = sensors().slice()
+    newSensorArray.splice(index, 1, newSensor)
+    setSensors(newSensorArray)
+  }
+  const updateSensor = (index: number, sensor: SensorConfig)=>{
+    const newSensorArray = sensors().slice()
+    newSensorArray.splice(index, 1, Object.assign({}, sensor))
+    setSensors(newSensorArray)
+  }
 
-  const saveRawConfig = () =>{
+  const removeSensor = (index: number) => {
+    const newSensorArray = sensors().slice()
+    newSensorArray.splice(index, 1, null)
+    setSensors(newSensorArray)
     
   }
-
-  const updateConfigString = (e: Event) => setConfigString((e.target as HTMLTextAreaElement).value || '')
-
-  createEffect(() => setEditedCode(atob(edited()?.pythoncode || '')))
-
-  // const handleSendHTTP = async () => {
-
-  //   const parsedConfig = JSON.parse(config())
-  //   try {
-
-  //   // apparently, with no-cors you can not simply post a JSON...
-  //   // @see https://stackoverflow.com/questions/39689386/fetch-post-json-data-application-json-change-to-text-plain
-
-  //     const requestOptions = {
-  //       method: 'POST',
-  //       headers: {
-  //           'Accept': 'application/json',
-  //           'Content-Type': 'application/json'
-  //         },
-  //       body: JSON.stringify(parsedConfig)
-  //     };
-
-  //     const result = await fetch('http://' + endpoint() + ':8080/configure', requestOptions);
-  //     const data = await result.json();
-
-  //     setResponse(data);
-  //   } catch (error) {
-  //     console.error('Error sending request:', error);
-  //   }
-  // };
 
   return (
     <div >
       <div class={styles.controller}>
-        <div class={styles.column}>
+        <div class={styles.config}>
           <div>
             <h4>Joystick mode</h4>
             <select value={driveMode()} onChange={handleDriveChange}>
@@ -98,49 +104,61 @@ function ConfigurationView({
               }</For>
             </select>
 
-            <h4>Button Bindings</h4>
-            <For each={config().blocklyList.filter((c) => !c.builtinScriptName)}>{(script, i) =>
-              <div class={styles.clickable} classList={{ [styles.active]: editedIndex() === i() }} onClick={() => {
-                setEdited(script)
-                setEditedIndex(i)
-                setConfigString('')
-              }}>{String(i())}</div>
-            }</For>
-
-            <p>
-              <Show when={edited() !== null}>
-                <button onClick={() => saveCode()}>SAVE CODE</button>
-              </Show>
-            </p>
-
-            <p>
-              <Show when={!configString()}>
-                <button onClick={() => {setConfigString(JSON.stringify(config(), null, 2)); setEdited(null)}}>RAW config</button>
-              </Show>
-              <Show when={configString()}>
-                <button disabled={!saveRawEnabled()} onClick={() => saveRawConfig()}>SAVE RAW</button>
-              </Show>
-            </p>
-
-            <p>
-              <button onClick={handleSend} disabled={!isSendEnabled()}>Send</button>
-            </p>
-
           </div>
 
         </div>
-        <div class={styles.editor}></div>
-        <Show when={edited() !== null}>
-          {/* <h3>Edit Python Code for button {editedIndex()}</h3> */}
-          <textarea value={editedCode()} onchange={(e) => setEditedCode(e.target.value)}></textarea>
-        </Show>
-
-        <Show when={configString()}>
-          <textarea value={configString()}
-            onChange={updateConfigString}
-            onKeyUp={updateConfigString}
-            ></textarea>
-        </Show>
+        <div class={styles.config}>
+          <h3>Sensors</h3>
+          <table class={styles.configurationTable}>
+            <thead>
+              <tr>
+                <td>Index</td>
+                <td>Type</td>
+                {/* <td>Config</td> */}
+              </tr>
+            </thead>
+            <tbody>
+              {sensors().map((s, i) => (<tr>
+                <td>{i + 1}</td>
+                <td>{!s ? (
+                  <><button onClick={()=>addSensor(i)}>➕</button></>) : 
+                  <button onClick={()=>removeSensor(i)}>🗑</button>
+                  }</td>
+                <td><Show when={s}>
+                    <SensorView sensor={s} update={(sensor)=>updateSensor(i, sensor)}/>
+                  </Show>
+                </td>
+              </tr>))}
+            </tbody>
+          </table>
+        </div>
+        <div class={styles.config}>
+        <h3>Motors</h3>
+          <table class={styles.configurationTable}>
+            <thead>
+              <tr>
+                <td>Index</td>
+                <td>Type</td>
+                <td>Config</td>
+              </tr>
+            </thead>
+            <tbody>
+              {motors().map((s, i) => (
+              <tr>
+                <td>{i + 1}</td>
+                <td>{!s ? (
+                  <><button onClick={()=>addMotor(i)}>➕</button></>) : 
+                  <button onClick={()=>removeMotor(i)}>🗑</button>
+                  }</td>
+                <td><Show when={s}>
+                    <MotorView motor={s} update={(motor)=>updateMotor(i, motor)}></MotorView>  
+                  </Show>
+                </td>
+              </tr>)
+              )}
+            </tbody>
+          </table>
+        </div>
 
       </div>
 

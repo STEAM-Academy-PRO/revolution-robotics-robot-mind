@@ -2,15 +2,14 @@ import { createSignal, Accessor, Setter, createEffect, onCleanup } from 'solid-j
 import { SocketWrapper, WSEventType, connectToRobot } from '../utils/Communicator';
 
 import styles from './Connection.module.css'
+import { clearLog, getLog } from '../utils/log';
 
 export default function ConnectionView({
   endpoint,
   setEndpoint,
   connect,
   connection,
-  disconnect,
-  log,
-  setLog
+  disconnect
 }
   : {
     connect: () => void
@@ -18,8 +17,6 @@ export default function ConnectionView({
     setEndpoint: Setter<string>,
     endpoint: Accessor<string>,
     connection: Accessor<SocketWrapper | null>
-    log: Accessor<string>
-    setLog: Setter<string>
   }) {
 
   createEffect(() => {
@@ -37,9 +34,9 @@ export default function ConnectionView({
         <button onClick={disconnect}>Disconnect</button>
       }
       <div>
-        <button onClick={() => setLog('')}>clear</button> :
+        <button onClick={() => clearLog()}>clear</button> :
         <pre class={styles.log}>
-          {log()}
+          {getLog()}
         </pre>
       </div>
     </div>

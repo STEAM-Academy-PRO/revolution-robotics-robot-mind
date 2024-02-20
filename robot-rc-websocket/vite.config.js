@@ -12,6 +12,8 @@ export default defineConfig({
     solidPlugin(),
   ],
   server: {
+    // Show to everyone on the network
+    host: '0.0.0.0',
     port: 3000,
     cors: {
       origin: "*",

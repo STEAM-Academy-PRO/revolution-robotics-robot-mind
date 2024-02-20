@@ -1,5 +1,7 @@
 .App {
   text-align: center;
+  background: var(--bg-color);
+  color: var(--font-color);
 }
 
 .logo {
@@ -10,14 +12,15 @@
 
 .header {
   background-color: #000;
-  height: 40px;
+  height: 50px;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
-  color: white;
+  color: var(--header-text);
 }
+
 
 .headerUl{
   display: flex;
@@ -29,14 +32,11 @@
   padding: 0px 20px;
   cursor: pointer
 }
+.headerItem:hover { color: var(--header-text-hover) }
 
-.selected {
-  color: yellow
-}
+.selected { color: var(--header-text-selected) }
 
-.link {
-  color: #b318f0;
-}
+.link { color: #b318f0; }
 
 .tabContent{
   padding: 20px;

@@ -48,6 +48,13 @@ class SystemVersions:
         log = get_logger('Version info')
         log(f'hw: {hw} sw: {sw} fw: {fw}')
 
+    def get(self):
+        return {
+            "hw": str(self.hw),
+            "sw": str(self.sw),
+            "fw": str(self.fw)
+        }
+
 VERSION = SystemVersions()
 
 class Version:

@@ -65,10 +65,10 @@
     ],
     "robotConfig": {
       "sensors": [
-        {},
-        {},
-        {},
-        {}
+        null,
+        null,
+        null,
+        null
       ],
       "motors": [
         {
@@ -83,9 +83,9 @@
           "type": 2,
           "side": 1
         },
-        {},
-        {},
-        {},
+        null,
+        null,
+        null,
         {
           "reversed": 1,
           "name": "motor6",

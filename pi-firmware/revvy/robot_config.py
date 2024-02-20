@@ -1,4 +1,5 @@
 
+from enum import Enum
 import json
 from json import JSONDecodeError
 
