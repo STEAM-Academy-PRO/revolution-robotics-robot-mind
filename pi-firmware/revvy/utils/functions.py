@@ -45,7 +45,6 @@ def get_serial():
     """Extract serial from cpuinfo file"""
 
     cpu_serial = "0000000000000000"
-    # noinspection PyBroadException
     try:
         with open('/proc/cpuinfo', 'r') as f:
             for line in f:
@@ -64,7 +63,6 @@ def retry(fn, retries=5, error_handler=None):
     """Retry the given function a number of times, or until it returns True or None"""
     retry_num = 0
     while retry_num < retries:
-        # noinspection PyBroadException
         try:
             status = fn()
             if status is None:
@@ -155,7 +153,6 @@ def bits_to_bool_list(byte_list):
     return [is_bit_set(b, bit) for b in byte_list for bit in range(8)]
 
 
-# noinspection SpellCheckingInspection
 def bytestr_hash(byte_str) -> str:
     hash_fn = hashlib.md5()
     hash_fn.update(byte_str)

@@ -32,7 +32,6 @@ class MockCommand(Command):
         return 2
 
 
-# noinspection PyTypeChecker
 class TestCommand(unittest.TestCase):
     def test_not_overwritten_command_id_raises_error(self):
         self.assertRaises(NotImplementedError, lambda: Command(None))
@@ -80,7 +79,6 @@ class TestCommand(unittest.TestCase):
         self.assertRaises(ValueError, c)
 
 
-# noinspection PyTypeChecker
 class TestCommandTypes(unittest.TestCase):
     def test_ping_has_no_payload_and_return_value(self):
         mock_transport = MockTransport([Response(ResponseStatus.Ok, [])])

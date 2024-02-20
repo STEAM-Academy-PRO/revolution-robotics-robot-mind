@@ -48,7 +48,6 @@ class ThreadWrapper:
 
         return self._state == ThreadWrapper.STARTING
 
-    # noinspection PyBroadException
     def _thread_func(self):
         try:
             ctx = ThreadContext(self, self._stop_event, self._pause_flag)

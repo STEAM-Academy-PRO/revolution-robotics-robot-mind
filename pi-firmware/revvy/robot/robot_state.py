@@ -85,7 +85,6 @@ class RobotState(Emitter[RobotEvent]):
         """
             This runs every 5ms and reads out the robot's statuses.
         """
-        # noinspection PyBroadException
         try:
             self._robot.update_status()
 

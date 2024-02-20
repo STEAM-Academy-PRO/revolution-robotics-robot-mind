@@ -1,4 +1,7 @@
 import time
+
+# pyright: reportMissingImports=false
+# reason: raspberry-specific import
 from smbus2 import i2c_msg, SMBus
 
 from revvy.mcu.rrrc_control import RevvyTransportBase, RevvyControl, BootloaderControl

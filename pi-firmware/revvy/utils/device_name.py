@@ -8,7 +8,6 @@ from revvy.utils.functions import get_serial
 serial = get_serial()
 device_storage = FileStorage(WRITEABLE_DATA_DIR)
 
-# noinspection PyBroadException
 try:
     # Overwrite it, if we have something set in the device-name file.
     device_name = device_storage.read('device-name').decode("ascii")

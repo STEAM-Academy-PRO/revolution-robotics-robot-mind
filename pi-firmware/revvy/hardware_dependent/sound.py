@@ -1,10 +1,9 @@
-
 import subprocess
 import threading
 from typing import Callable
 
-from revvy.utils.functions import map_values, clip
-from revvy.utils.logger import LogLevel, get_logger
+from revvy.utils.functions import clip
+from revvy.utils.logger import get_logger
 
 class SoundControlBase:
     def __init__(self, commands, default_volume):

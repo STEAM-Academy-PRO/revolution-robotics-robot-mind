@@ -18,7 +18,6 @@ class Assets:
         @param path: the asset folder with an assets.json file inside
         """
         assets_json = os.path.join(path, 'assets.json')
-        # noinspection PyBroadException
         try:
             manifest = read_json(assets_json)
             self._log(f'Loading assets from {path}')

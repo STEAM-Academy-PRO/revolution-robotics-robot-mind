@@ -12,7 +12,6 @@ from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
 
 
-# noinspection PyProtectedMember
 class DrivetrainController:
     def __init__(self, drivetrain: 'DifferentialDrivetrain'):
         self._drivetrain = drivetrain
@@ -28,7 +27,6 @@ class DrivetrainController:
         raise NotImplementedError
 
 
-# noinspection PyProtectedMember
 class TimeController(DrivetrainController):
 
     def __init__(self, drivetrain: 'DifferentialDrivetrain', timeout):
@@ -42,7 +40,6 @@ class TimeController(DrivetrainController):
         pass
 
 
-# noinspection PyProtectedMember
 class TurnController(DrivetrainController):
     Kp = 0.75
 
@@ -79,7 +76,6 @@ class TurnController(DrivetrainController):
             self._awaiter.cancel()
 
 
-# noinspection PyProtectedMember
 class MoveController(DrivetrainController):
     def __init__(self, drivetrain: 'DifferentialDrivetrain', left, right,
                  left_speed=None, right_speed=None, power_limit=None):

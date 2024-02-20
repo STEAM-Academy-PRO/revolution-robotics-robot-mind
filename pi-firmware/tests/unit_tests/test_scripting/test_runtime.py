@@ -16,7 +16,6 @@ class mockobj:
     pass
 
 
-# noinspection PyMissingConstructor
 class MockSound(SoundControlBase):
     def __init__(self):
         pass

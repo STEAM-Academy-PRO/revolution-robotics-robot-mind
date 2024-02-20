@@ -1,6 +1,7 @@
 """ Bluetooth Low Energy interface for Revvy """
 
 import os
+from typing import List
 from pybleno import Bleno
 
 from revvy.bluetooth.services.battery import CustomBatteryService
@@ -142,7 +143,7 @@ class RevvyBLE:
 
         self._robot_manager.on(RobotEvent.ERROR, self.report_errors_in_queue)
 
-    def update_motor(self, ref, motor_angles: [int]):
+    def update_motor(self, ref, motor_angles: List[int]):
         """ Currently unused, as we are not doing anything with it in the app. """
         for angle, index in enumerate(motor_angles):
             self._live.update_motor(index, 0, 0, angle)
@@ -192,7 +193,6 @@ class RevvyBLE:
         self._log(f'on -> advertisingStart: {_result(error)}')
 
         if not error:
-            # noinspection PyShadowingNames
             def on_set_service_error(error):
                 self._log(f'setServices: {_result(error)}')
 

@@ -184,7 +184,6 @@ class Version:
         """
         return self.compare(other) != -1
 
-    # noinspection PyProtectedMember
     def compare(self, other: 'Version'):
         """
         >>> Version('1.0.0').compare(Version('1.0.0'))

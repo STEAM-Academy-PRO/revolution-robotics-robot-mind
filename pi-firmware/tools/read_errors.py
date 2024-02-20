@@ -65,7 +65,6 @@ def parse_cfsr(cfsr):
 
 
 def format_error(error, installed_fw: Version, only_current=False):
-    # noinspection PyBroadException
     try:
         error_type = ErrorType(error[0])
         hw_version = error[1:5]

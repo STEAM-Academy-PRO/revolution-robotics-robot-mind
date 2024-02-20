@@ -2,7 +2,6 @@
 
 """ Main entry point for the revvy service. """
 
-
 import argparse
 import sys
 import traceback
@@ -17,7 +16,6 @@ from revvy.utils.directories import CURRENT_INSTALLATION_PATH
 from tools.check_manifest import check_manifest
 
 # Load the error reporter and init the singleton that'll catch system errors.
-# noinspection unused-import
 from revvy.utils.error_reporter import revvy_error_handler
 
 log = get_logger('revvy.py')
@@ -54,7 +52,6 @@ if __name__ == "__main__":
         from revvy.api.websocket import RobotWebSocketApi
         RobotWebSocketApi(robot_manager)
 
-    # noinspection PyBroadException
     try:
         bluetooth_controller.start()
 

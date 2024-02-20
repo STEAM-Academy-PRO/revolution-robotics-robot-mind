@@ -1,8 +1,9 @@
 """ Takes an array of N integers 0..3 and packs them into a struct. """
 
 import struct
+from typing import List
 
-def pack_2_bit_number_array_32(numbers: [int]) -> bytearray:
+def pack_2_bit_number_array_32(numbers: List[int]) -> bytearray:
     """
         returns 8 bytes, reversed bit order!
         converts:  1 2 0 1 => REVERSE: 01 10 00 01 => x81
@@ -23,7 +24,7 @@ def pack_2_bit_number_array_32(numbers: [int]) -> bytearray:
 
 
 
-def unpack_2_bit_number_array_32(byte_array: bytearray) -> [int]:
+def unpack_2_bit_number_array_32(byte_array: bytearray) -> List[int]:
     """ Unpacks 32 element int [0-3] array from a 8 sized bytearray """
 
     result = []

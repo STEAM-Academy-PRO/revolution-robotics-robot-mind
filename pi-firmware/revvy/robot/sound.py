@@ -34,7 +34,6 @@ class Sound:
             "default_volume": 90
         }
 
-        # noinspection PyBroadException
         try:
             sound_config = read_json(os.path.join(WRITEABLE_DATA_DIR, 'config', 'sound.json'))
         except Exception as e:
