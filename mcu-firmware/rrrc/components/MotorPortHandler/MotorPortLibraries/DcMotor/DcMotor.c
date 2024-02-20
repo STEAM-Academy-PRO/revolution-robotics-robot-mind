@@ -32,13 +32,18 @@ const float pulses_per_encoder_slit = 4.0f;
 const float pulses_per_encoder_slit = 2.0f;
 #endif
 
-#define confP (0.4f)
-#define confI (0.5f)
-#define confD (0.8f)
+#define CONFP_SPD (0.4f)
+#define CONFI_SPD (0.5f)
+#define CONFD_SPD (0.8f)
 
-#define confP_pos (0.8f)
-#define confI_pos (0.0f)
-#define confD_pos (1.5f)
+#define CONFP_POS (0.8f)
+#define CONFI_POS (0.0f)
+#define CONFD_POS (1.5f)
+
+#define CONFP_POS_SLOW (0.1f)
+#define CONFD_POS_SLOW (0.0f)
+
+#define ANGLE_THR (0.8f)
 
 typedef struct
 {
@@ -282,13 +287,13 @@ static bool _is_motor_blocked(MotorLibrary_Dc_Data_t* libdata, float u)
 
 static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t* libdata)
 {
-    libdata->speedController.config.P = confP;
-    libdata->speedController.config.I = confI;
-    libdata->speedController.config.D = confD;
+    libdata->speedController.config.P = CONFP_SPD;
+    libdata->speedController.config.I = CONFI_SPD;
+    libdata->speedController.config.D = CONFD_SPD;
 
-    libdata->positionController.config.P = confP_pos;
-    libdata->positionController.config.I = confI_pos;
-    libdata->positionController.config.D = confD_pos;
+    libdata->positionController.config.P = CONFP_POS;
+    libdata->positionController.config.I = CONFI_POS;
+    libdata->positionController.config.D = CONFD_POS;
     
     if (libdata->lastRequest.request_type == DriveRequest_RequestType_Power)
     {
@@ -313,10 +318,10 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
     }
     else
     {
-        if (abs_int32(libdata->lastPosition) > abs_int32(libdata->lastRequest.request.position * 0.8f))
+        if (abs_int32(libdata->lastPosition) > abs_int32(libdata->lastRequest.request.position * ANGLE_THR))
         {
-            libdata->positionController.config.P = 0.1;
-            libdata->positionController.config.D = 0;
+            libdata->positionController.config.P = CONFP_POS_SLOW;
+            libdata->positionController.config.D = CONFD_POS_SLOW;
         }
         /* update status if goal is reached */
         if (abs_int32(libdata->lastPosition - libdata->lastRequest.request.position) < libdata->atLeastOneDegree)
