@@ -36,7 +36,6 @@ class RobotEvent:
     CAMERA_STOPPED="camera_stopped"
     CAMERA_ERROR="camera_error"
 
-
 class ProgramStatusChange(NamedTuple):
     """ Which program ID, what's the status of the program? """
     id: int

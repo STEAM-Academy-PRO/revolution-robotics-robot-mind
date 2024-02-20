@@ -19,7 +19,7 @@ END_TOKEN = b'_X_'
 # When mobile got a packet, it responds with the b'OK' token.
 CONFIRM_TOKEN = b'OK'
 
-log = get_logger('BLE Queue', off=True)
+log = get_logger('BLE Queue')
 
 class QueueCharacteristic(Characteristic):
     """ Makes sure the proper sending speed is ok by managing a queue of messages. """

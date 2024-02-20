@@ -13,7 +13,7 @@ from functools import partial
 from threading import Event
 
 from revvy.robot.robot import Robot
-from revvy.robot.remote_controller import RemoteController, RemoteControllerScheduler
+from revvy.robot.remote_controller import RemoteController, RemoteControllerCommand, RemoteControllerScheduler
 from revvy.robot.remote_controller import create_remote_controller_thread
 from revvy.robot.led_ring import RingLed
 from revvy.robot.robot_events import ProgramStatusChange, RobotEvent
@@ -79,8 +79,6 @@ class RobotManager:
 
         self.on_joystick_action = self._remote_controller.on_joystick_action
 
-        self.handle_periodic_control_message = self._remote_controller_scheduler.periodic_control_message_handler
-
         self._robot_state.on(RobotEvent.FATAL_ERROR, lambda *args: self.exit(RevvyStatusCode.ERROR))
 
         # Start reading status from the robot.
@@ -91,6 +89,8 @@ class RobotManager:
 
         self.on(RobotEvent.MCU_TICK, lambda *args: self.process_autonomous_requests())
 
+    def handle_periodic_control_message(self, message: RemoteControllerCommand):
+        self._remote_controller_scheduler.periodic_control_message_handler(message)
 
     # TODO: not used.
     def validate_config_async(self, motors, sensors, motor_load_power,

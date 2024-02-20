@@ -101,7 +101,7 @@ class DifferentialDrivetrain:
         self._left_motors: list[PortInstance[MotorPortDriver]] = []
         self._right_motors: list[PortInstance[MotorPortDriver]] = []
 
-        self._log = get_logger('Drivetrain', off=True)
+        self._log = get_logger('Drivetrain')
         self._imu = imu
         self._controller = None
 

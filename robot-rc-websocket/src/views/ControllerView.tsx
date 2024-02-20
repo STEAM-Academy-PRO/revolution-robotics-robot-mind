@@ -1,4 +1,4 @@
-import { createSignal, createEffect, createMemo, onCleanup, Accessor, Setter, Show } from 'solid-js'
+import { createSignal, createEffect, onCleanup, Accessor, Setter, Show } from 'solid-js'
 import { RobotMessage, SocketWrapper, WSEventType } from '../utils/Communicator';
 import { Position } from '../utils/Position';
 import { mapAnalogNormal, toByte } from '../utils/mapping';
@@ -6,7 +6,7 @@ import { Joystick } from '../components/Joystick';
 import styles from './Controller.module.css'
 import { CameraView } from './CameraView';
 import { clearLog, getLog, log } from '../utils/log';
-import { RobotConfig, SensorConfig, SensorType, SensorTypeResolve } from '../utils/Config';
+import { RobotConfig, SensorType, SensorTypeResolve } from '../utils/Config';
 import { uploadConfig } from '../utils/commands';
 
 const BUTTON_MAP_XBOX: {[id:number]: number} = {
