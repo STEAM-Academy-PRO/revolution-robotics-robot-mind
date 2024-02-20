@@ -144,7 +144,7 @@ jobs:
               - pi-firmware/**
               - .github/workflows/pr.yml
 
-      - name: Running checks
+      - name: Running tests
         if: steps.filter.outputs.pi-firmware == 'true'
         run: |
           cd pi-firmware
@@ -152,9 +152,6 @@ jobs:
           # install dependencies
           pip install -r install/requirements.txt
           pip install -r install/requirements_test.txt
-
-          # run checks
-          # python -m dev_tools.precommit_pep8 --check-all
 
           timeout 5m nose2 -B
 
@@ -187,6 +184,7 @@ jobs:
           pip install -r install/requirements_test.txt
 
           # run checks
+          black --check
           pyright --project pyrightconfig.json
 
   archive-pi-firmware:
