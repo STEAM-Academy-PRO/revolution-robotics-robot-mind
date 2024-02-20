@@ -18,8 +18,6 @@ function CodeView({
   const [editedCode, setEditedCode] = createSignal<string>('')
   const [configString, setConfigString] = createSignal<string>('');
   const [editedIndex, setEditedIndex] = createSignal<number | null>(null);
-  const [driveMode, setDriveMode] = createSignal<DriveMode>(DriveMode.drive_joystick)
-
 
   createEffect(() => {
     try {
@@ -44,21 +42,6 @@ function CodeView({
   }
 
   const updateConfigString = (e: Event) => setConfigString((e.target as HTMLTextAreaElement).value || '')
-
-  // function tabHandler (e: KeyboardEvent) {
-  //   const textarea = this
-  //   if (e.key === 'Tab') {
-  //     e.preventDefault(); // Prevent the default tab behavior (focus change)
-  //     const start = textarea.selectionStart;
-  //     const end = textarea.selectionEnd;
-
-  //     // Set the value of the textarea to: text before caret + tab + text after caret
-  //     textarea.value = textarea.value.substring(0, start) + '\t' + textarea.value.substring(end);
-
-  //     // Move the caret to the right of the inserted tab
-  //     textarea.selectionStart = textarea.selectionEnd = start + 1;
-  //   }
-  // }
 
   createEffect(() => setEditedCode(atob(edited()?.pythoncode || '')))
 
@@ -101,8 +84,6 @@ function CodeView({
         </div>
         <div class={styles.editor}></div>
         <Show when={edited() !== null}>
-          {/* <h3>Edit Python Code for button {editedIndex()}</h3> */}
-          {/* <textarea value={editedCode()} onchange={(e) => setEditedCode(e.target.value)} onKeyDown={tabHandler}></textarea> */}
           <CodeEditor value={editedCode} setValue={setEditedCode}></CodeEditor>
         </Show>
 
@@ -116,16 +97,6 @@ function CodeView({
 
 
       </div>
-
-      {/* <pre class={styles.pre} onClick={() => setConfigString(JSON.stringify(config() || ''))}>
-        {JSON.stringify(config(), null, 2)}
-      </pre> */}
-      {/* {response() && (
-        <div>
-          <h2>Response</h2>
-          <pre>{JSON.stringify(response(), null, 2)}</pre>
-        </div>
-      )} */}
     </div>
   );
 }

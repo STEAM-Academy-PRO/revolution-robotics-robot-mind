@@ -4,13 +4,6 @@ export enum DriveMode {
     drive_2sticks = 'drive_2sticks'
 }
 
-
-// export class MotorConfigModel{
-//     [reversed, setReversed] = createSignal<number>(motor.reversed)
-//     const [type, setType] = createSignal<number>(motor.type)
-//     const [side, setSide] = createSignal<number>(motor.side)
-// }
-
 export interface BlocklyItem {
     assignments: {
         analog?: {
