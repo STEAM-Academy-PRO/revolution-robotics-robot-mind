@@ -32,6 +32,14 @@ const float pulses_per_encoder_slit = 4.0f;
 const float pulses_per_encoder_slit = 2.0f;
 #endif
 
+#define confP (0.4f)
+#define confI (0.5f)
+#define confD (0.8f)
+
+#define confP_pos (0.8f)
+#define confI_pos (0.0f)
+#define confD_pos (1.5f)
+
 typedef struct
 {
     /* configuration */
@@ -274,6 +282,14 @@ static bool _is_motor_blocked(MotorLibrary_Dc_Data_t* libdata, float u)
 
 static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t* libdata)
 {
+    libdata->speedController.config.P = confP;
+    libdata->speedController.config.I = confI;
+    libdata->speedController.config.D = confD;
+
+    libdata->positionController.config.P = confP_pos;
+    libdata->positionController.config.I = confI_pos;
+    libdata->positionController.config.D = confD_pos;
+    
     if (libdata->lastRequest.request_type == DriveRequest_RequestType_Power)
     {
         return libdata->lastRequest.request.power;
@@ -297,6 +313,11 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
     }
     else
     {
+        if (abs_int32(libdata->lastPosition) > abs_int32(libdata->lastRequest.request.position * 0.8f))
+        {
+            libdata->positionController.config.P = 0.1;
+            libdata->positionController.config.D = 0;
+        }
         /* update status if goal is reached */
         if (abs_int32(libdata->lastPosition - libdata->lastRequest.request.position) < libdata->atLeastOneDegree)
         {
