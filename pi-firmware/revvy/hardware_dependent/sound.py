@@ -37,7 +37,7 @@ class SoundControlBase:
 
             callback()
 
-        thread = threading.Thread(target=run_in_thread, args=(commands,), daemon=True)
+        thread = threading.Thread(target=run_in_thread, args=(commands,))
         thread.start()
 
         return thread

@@ -20,14 +20,14 @@ from revvy.utils.error_reporter import revvy_error_handler
 
 log = get_logger("revvy.py")
 
-parser = argparse.ArgumentParser(description="Revvy PI firmware")
-parser.add_argument("--debug", action="store_true", help="Enable debug mode")
-args = parser.parse_args()
-
-if not args.debug:
-    revvy_error_handler.register_uncaught_exception_handler()
-
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Revvy PI firmware")
+    parser.add_argument("--debug", action="store_true", help="Enable debug mode")
+    args = parser.parse_args()
+
+    if not args.debug:
+        revvy_error_handler.register_uncaught_exception_handler()
+
     log(f"pack: {CURRENT_INSTALLATION_PATH}")
     log(f"file: {__file__}")
 

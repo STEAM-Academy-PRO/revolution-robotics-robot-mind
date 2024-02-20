@@ -131,8 +131,7 @@ class RobotConfig:
 
         return str_to_func(script_source_code, script_num), script_source_code
 
-    @staticmethod
-    def process_script(config, script, script_idx):
+    def process_script(self, script, script_idx):
         log(f"Processing script #{script_idx}")
         runnable, source = RobotConfig.create_runnable(script, script_idx)
 
@@ -142,12 +141,12 @@ class RobotConfig:
             script_name = make_analog_script_name(analog_assignment, script_idx)
             priority = analog_assignment["priority"]
             script_desc = ScriptDescriptor(script_name, runnable, priority, source=source)
-            config.controller.analog.append(
+            self.controller.analog.append(
                 {"channels": analog_assignment["channels"], "script": script_desc}
             )
 
         for variable_assignments in assignments.setdefault("variableSlots", []):
-            config.controller.variable_slots.append(
+            self.controller.variable_slots.append(
                 {
                     "slot": variable_assignments["slot"],
                     "variable": variable_assignments["variable"],
@@ -162,7 +161,7 @@ class RobotConfig:
             script_desc = ScriptDescriptor(
                 script_name, runnable, priority, source=source, ref_id=button_idx
             )
-            config.controller.buttons[button_idx] = script_desc
+            self.controller.buttons[button_idx] = script_desc
 
         if "background" in assignments:
             script_name = make_script_name_common(script_idx, "background", "0")
@@ -170,7 +169,7 @@ class RobotConfig:
             script_desc = ScriptDescriptor(
                 script_name, runnable, priority, source=source, ref_id=script_idx
             )
-            config.background_scripts.append(script_desc)
+            self.background_scripts.append(script_desc)
 
     @staticmethod
     def from_string(config_string):
@@ -203,7 +202,7 @@ class RobotConfig:
 
         try:
             for script_idx, script in enumerate(blockly_list):
-                RobotConfig.process_script(config, script, script_idx)
+                config.process_script(script, script_idx)
         except (TypeError, IndexError, KeyError, ValueError) as e:
             raise ConfigError("Failed to decode received controller configuration") from e
 

@@ -188,13 +188,16 @@ class RobotManager:
 
     def exit(self, status_code):
         self._log(f"exit requested with code {status_code}")
-        self._status_code = status_code
+        if self._status_code == RevvyStatusCode.OK:
+            self._status_code = status_code
         if self.needs_interrupting:
             os.kill(os.getpid(), signal.SIGINT)
         self.exited.set()
 
     def wait_for_exit(self):
         self.exited.wait()
+        # make sure we don't get stuck with the speakers on
+        self.robot.sound.wait()
         return self._status_code
 
     def robot_start(self):
@@ -424,15 +427,15 @@ class RobotManager:
         self._log(f"ERROR in userscript: {script_handle.descriptor.name}", LogLevel.ERROR)
         self._log(f"ERROR:  {str(exception)}", LogLevel.ERROR)
         self._log(
-            f"Source that caused the error: \n\n{script_handle.descriptor.source}\n\n",
-            LogLevel.ERROR,
+            f"Source that caused the error: \n\n{script_handle.descriptor.source}\n", LogLevel.ERROR
         )
         self._log(f"{traceback.format_exc()}", LogLevel.ERROR)
 
         # Brain bug LED effect with "uh oh" sound.
         self._robot.led.start_animation(RingLed.Bug)
-        self._robot.sound.play_tune("s_bug")
-        time.sleep(2)
+        finished = Event()
+        self._robot.sound.play_tune("s_bug", lambda: finished.set())
+        finished.wait()
         self._robot.led.start_animation(RingLed.Off)
 
     def _on_analog_script_error(self, *args):
