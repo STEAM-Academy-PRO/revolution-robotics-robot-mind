@@ -5,6 +5,7 @@ import os
 from revvy.hardware_dependent.sound import SoundControlBase
 from revvy.utils.assets import Assets
 from revvy.utils.directories import WRITEABLE_DATA_DIR, WRITEABLE_ASSETS_DIR
+from revvy.utils.functions import read_json
 from revvy.utils.logger import LogLevel, get_logger
 
 
@@ -35,8 +36,7 @@ class Sound:
 
         # noinspection PyBroadException
         try:
-            with open(os.path.join(WRITEABLE_DATA_DIR, 'config', 'sound.json'), "r") as sound_config_file:
-                sound_config = json.load(sound_config_file)
+            sound_config = read_json(os.path.join(WRITEABLE_DATA_DIR, 'config', 'sound.json'))
         except Exception as e:
             self._log(f"Failed to load sound config: {e}. Using default.", LogLevel.WARNING)
             sound_config = {}
