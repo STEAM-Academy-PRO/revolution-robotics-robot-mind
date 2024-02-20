@@ -6,3 +6,4 @@ pycodestyle==2.8.0
 #flask-cors=4.0.0
 websockets==12.0
 debugpy>=1.8.0
+pyright>=1.1

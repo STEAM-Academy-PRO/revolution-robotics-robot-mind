@@ -1,4 +1,10 @@
 {
+    "ignore": [
+        "dev_tools/",
+        "tests/",
+        "tools/"
+    ],
+    "analyzeUnannotatedFunctions": false,
     "reportUnknownParameterType": false,
     "reportOptionalOperand": false,
     "reportOperatorIssue": false
