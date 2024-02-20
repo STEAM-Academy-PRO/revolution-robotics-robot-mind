@@ -185,7 +185,7 @@ jobs:
 
           # run checks
           black --check .
-          pyright --project pyrightconfig.json
+          pyright
 
   archive-pi-firmware:
     permissions:
