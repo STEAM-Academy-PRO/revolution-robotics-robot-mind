@@ -43,7 +43,12 @@ const float pulses_per_encoder_slit = 2.0f;
 #define CONFP_POS_SLOW (0.1f)
 #define CONFD_POS_SLOW (0.0f)
 
-#define ANGLE_THR (0.8f)
+#define ANGLE_THR (0.2f)
+#define ANGLE_THR_DEG ((uint8_t) 5u)
+
+//#define ABSOLUTE_THRESHOLD
+
+static volatile int32_t posDelta = 0u;
 
 typedef struct
 {
@@ -291,10 +296,6 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
     libdata->speedController.config.I = CONFI_SPD;
     libdata->speedController.config.D = CONFD_SPD;
 
-    libdata->positionController.config.P = CONFP_POS;
-    libdata->positionController.config.I = CONFI_POS;
-    libdata->positionController.config.D = CONFD_POS;
-    
     if (libdata->lastRequest.request_type == DriveRequest_RequestType_Power)
     {
         return libdata->lastRequest.request.power;
@@ -318,10 +319,20 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
     }
     else
     {
-        if (abs_int32(libdata->lastPosition) > abs_int32(libdata->lastRequest.request.position * ANGLE_THR))
+#ifdef ABSOLUTE_THRESHOLD
+        if ((abs_int32(libdata->lastRequest.request.position - libdata->lastPosition) < ANGLE_THR_DEG))
+#else
+        if (abs_int32(libdata->lastRequest.request.position - libdata->lastPosition) < (ANGLE_THR * posDelta))
+#endif
         {
             libdata->positionController.config.P = CONFP_POS_SLOW;
             libdata->positionController.config.D = CONFD_POS_SLOW;
+        }
+        else
+        {
+            libdata->positionController.config.P = CONFP_POS;
+            libdata->positionController.config.I = CONFI_POS;
+            libdata->positionController.config.D = CONFD_POS;
         }
         /* update status if goal is reached */
         if (abs_int32(libdata->lastPosition - libdata->lastRequest.request.position) < libdata->atLeastOneDegree)
@@ -624,6 +635,7 @@ static MotorLibraryStatus_t _create_position_request(const MotorLibrary_Dc_Data_
 
     driveRequest->request_type = DriveRequest_RequestType_Position;
     driveRequest->request.position = requested_position;
+    posDelta = abs_int32(requested_position - libdata->lastPosition);
 
     return MotorLibraryStatus_Ok;
 }
