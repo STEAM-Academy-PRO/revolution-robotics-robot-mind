@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# pylint: disable=missing-module-docstring
 
 """ Main entry point for the revvy service. """
 

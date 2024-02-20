@@ -1,0 +1,5 @@
+{
+    "reportUnknownParameterType": false,
+    "reportOptionalOperand": false,
+    "reportOperatorIssue": false
+}

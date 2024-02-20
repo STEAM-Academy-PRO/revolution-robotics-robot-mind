@@ -1,4 +1,3 @@
-
 import time
 from smbus2 import i2c_msg, SMBus
 
@@ -22,7 +21,7 @@ class RevvyTransportI2CDevice(RevvyTransportInterface):
             raise TransportException(f"Error during reading I2C address 0x{self._address:X}") from e
         except OSError as ex:
             # log(f"Connection to board failed. {ex.strerror}", LogLevel.WARNING)
-            # Handlin errors are tedious in this code right now. Multiple layers, never clear 
+            # Handlin errors are tedious in this code right now. Multiple layers, never clear
             # where it exacly fails...
             pass
 

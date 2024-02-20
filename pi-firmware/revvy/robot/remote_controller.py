@@ -4,7 +4,7 @@ import copy
 
 from threading import Event
 import traceback
-from typing import NamedTuple
+from typing import Callable, NamedTuple
 from revvy.scripting.runtime import ScriptHandle
 
 from revvy.utils.stopwatch import Stopwatch
@@ -363,11 +363,11 @@ class RemoteControllerScheduler:
             log(str(e), LogLevel.ERROR)
             log(traceback.format_exc(), LogLevel.ERROR)
 
-    def on_controller_detected(self, callback: callable):
+    def on_controller_detected(self, callback: Callable):
         # log('Register controller found handler')
         self._controller_detected_callback = callback
 
-    def on_controller_lost(self, callback: callable):
+    def on_controller_lost(self, callback: Callable):
         # log('Register controller lost handler')
         self._controller_lost_callback = callback
 
