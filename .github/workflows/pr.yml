@@ -184,7 +184,7 @@ jobs:
           pip install -r install/requirements_test.txt
 
           # run checks
-          black --check
+          black --check .
           pyright --project pyrightconfig.json
 
   archive-pi-firmware:
