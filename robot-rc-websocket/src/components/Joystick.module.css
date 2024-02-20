@@ -4,4 +4,10 @@
     cursor: grabbing;
     width: 200px;
     height: 200px;
+    background-color: #f3606047;
+    border-radius: 100px;
+}
+
+.joystickCanvasEnabled{
+    background-color: #76f36047;
 }

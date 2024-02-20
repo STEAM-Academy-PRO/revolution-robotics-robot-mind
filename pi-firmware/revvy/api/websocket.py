@@ -36,7 +36,8 @@ send_control_events = [
                   RobotEvent.SENSOR_VALUE_CHANGE,
                   RobotEvent.CAMERA_STARTED,
                   RobotEvent.CAMERA_STOPPED,
-                  RobotEvent.CAMERA_ERROR
+                  RobotEvent.CAMERA_ERROR,
+                  RobotEvent.CONTROLLER_LOST
                   ]
 
 ignore_log_events = [

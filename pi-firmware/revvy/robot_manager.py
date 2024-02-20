@@ -220,6 +220,7 @@ class RobotManager:
 
     def _on_controller_lost(self):
         self._log('Remote controller lost')
+        self.trigger(RobotEvent.CONTROLLER_LOST)
         if self._robot.status.controller_status != RemoteControllerStatus.NotConnected:
             self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
             self.reset_configuration()

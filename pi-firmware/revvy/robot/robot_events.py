@@ -17,6 +17,7 @@ class RobotEvent:
     PROGRAM_STATUS_CHANGE="program_status_change"
     BACKGROUND_CONTROL_STATE_CHANGE="background_control_state_change"
     SENSOR_VALUE_CHANGE="sensor_value_change"
+    CONTROLLER_LOST="controller_lost"
     TIMER_TICK="timer_tick"
 
     # e.g. MCU connection lost for good.
