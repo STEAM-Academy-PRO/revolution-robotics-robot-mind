@@ -46,12 +46,6 @@ function CodeEditor({ value, setValue }: { value: Accessor<string>, setValue: Se
 
   });
 
-  // createEffect(() => {
-  //   editor.dispatch({
-  //     changes: { from: 0, to: editor.state.doc.length, insert: value() }
-  //   });
-  // })
-
   onCleanup(() => {
     editor.destroy()
   })

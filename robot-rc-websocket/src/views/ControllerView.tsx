@@ -1,4 +1,4 @@
-import { createSignal, createEffect, createMemo, onCleanup, Accessor, Setter, Show } from 'solid-js'
+import { createSignal, createEffect, onCleanup, Accessor, Setter, Show } from 'solid-js'
 import { RobotMessage, SocketWrapper, WSEventType } from '../utils/Communicator';
 import { Position } from '../utils/Position';
 import { mapAnalogNormal, toByte } from '../utils/mapping';
@@ -6,7 +6,8 @@ import { Joystick } from '../components/Joystick';
 import styles from './Controller.module.css'
 import { CameraView } from './CameraView';
 import { clearLog, getLog, log } from '../utils/log';
-import { RobotConfig, SensorConfig, SensorType, SensorTypeResolve } from '../utils/Config';
+import { RobotConfig, SensorType, SensorTypeResolve } from '../utils/Config';
+import { uploadConfig } from '../utils/commands';
 
 const BUTTON_MAP_XBOX: {[id:number]: number} = {
   2: 0,
@@ -29,6 +30,8 @@ export default function ControllerView({
   const [battery, setBattery] = createSignal<Array<number>>()
   const [version, setVersion] = createSignal<string>()
   const [hasGamepad, setHasGamepad] = createSignal<boolean>(false)
+  const [isConnected, setIsConnected] = createSignal<boolean>(true)
+  
   // Extend the values!
   const sensors : {[id: number]: {value: Accessor<any>, setValue: Accessor<any>, type: SensorType}} = {}
   config().robotConfig.sensors.map(
@@ -39,6 +42,10 @@ export default function ControllerView({
       }
     })
 
+  const reUploadConfig = ()=>{
+    uploadConfig(conn(), config())
+    setIsConnected(true)
+  }
 
   let logElement: HTMLPreElement;
 
@@ -85,8 +92,8 @@ export default function ControllerView({
         case 'program_status_change':
           buttons[data.data[0]].setStatus(data.data[1])
           break
-        case 'program_status_change':
-          buttons[data.data[0]].setStatus(data.data[1])
+        case 'controller_lost':
+          setIsConnected(false)
           break
         case 'sensor_value_change': 
           const sensorId = data.data[0]
@@ -98,6 +105,7 @@ export default function ControllerView({
           console.log(`[message] Data received from server: ${data.event}`);
       }
     })
+    setIsConnected(Boolean(conn()))
   })
 
   const position = new Position()
@@ -111,7 +119,7 @@ export default function ControllerView({
   // on the robot the state resets to not configured.
 
   const interval = setInterval(() => {
-    if (!isActive()) { return }
+    if (!isActive() || !isConnected()) { return }
 
     last.x = position.x()
     last.y = position.y()
@@ -178,8 +186,18 @@ export default function ControllerView({
 
   return (
     <div>
-
-      <h1>Controller</h1>
+      <h1>
+        Controller
+        </h1>
+        <span class={styles.controllerConnection}>
+          <Show when={isConnected()}>Connected 🔌</Show>
+          <Show when={!isConnected()}>
+              Disconnected 🚫
+              <Show when={conn()}>
+                <button onClick={reUploadConfig}>RESTART</button>
+              </Show>
+          </Show>
+        </span>
       <div class={styles.statuses}>
         <span class={styles.status}>version: {version()}</span>
         <span class={styles.status}>orientation: {orientation()?.join(' ')}</span>
@@ -194,7 +212,7 @@ export default function ControllerView({
       </div>
       <div class={styles.controller}>
         <div class={styles.joystick}>
-          <Joystick position={position}></Joystick>
+          <Joystick enabled={isConnected} position={position}></Joystick>
         </div>
         <div class={styles.placeholder}>
           <CameraView conn={conn} endpoint={endpoint} />

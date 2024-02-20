@@ -1,9 +1,10 @@
 import { Position } from "../utils/Position";
-import { createEffect, onCleanup, onMount } from "solid-js"
+import { Accessor, createEffect, onCleanup, onMount } from "solid-js"
 import { clamp } from "../utils/mapping";
 import styles from "./Joystick.module.css"
 
-export function Joystick({ position }: { position: Position }) {
+export function Joystick({ position, enabled }: 
+    { position: Position, enabled: Accessor<boolean> }) {
 
     let canvasCtx: CanvasRenderingContext2D | null
     let canvas: HTMLCanvasElement;
@@ -16,6 +17,7 @@ export function Joystick({ position }: { position: Position }) {
 
     // Function to update joystick position based on mouse event
     const updatePosition = (event: Event) => {
+        if (!enabled()){ return }
         let clientX: number = 0;
         let clientY: number = 0;
 
@@ -59,6 +61,7 @@ export function Joystick({ position }: { position: Position }) {
     })
 
     const reset = () => { position.setX(0); position.setY(0) }
+
     onCleanup(() => {
         document.removeEventListener('mousemove', handleMove);
         document.removeEventListener('touchmove', handleMove);
@@ -93,6 +96,7 @@ export function Joystick({ position }: { position: Position }) {
         width="200"
         height="200"
         class={styles.joystickCanvas}
+        classList={{[styles.joystickCanvasEnabled]: enabled()}}
         ref={canvas!}
     ></canvas>
 

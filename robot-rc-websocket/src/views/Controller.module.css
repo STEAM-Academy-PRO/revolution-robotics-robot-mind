@@ -36,6 +36,10 @@
     display: flex
 }
 
+.controllerConnection{
+    float: right; font-size: small; font-weight: normal; padding: 10px 50px 10px 50px
+}
+
 .log {
     background: var(--log-bg);
     padding: 10px;
