@@ -105,7 +105,7 @@ class RobotWebSocketApi:
         self._event_loop.run_forever()
 
     def thread(self):
-        websocket_thread = threading.Thread(target=self.start)
+        websocket_thread = threading.Thread(target=self.start, name="WebSocket")
         websocket_thread.start()
 
     async def incoming_connection(self, websocket, path):
@@ -152,17 +152,10 @@ class RobotWebSocketApi:
 
                     if message_type == 'control':
                         json_data = message["body"]
-                        data = struct.pack('B' * len(json_data), *[json_data[str(i)] for i in range(len(json_data))])
+                        data = bytearray(struct.pack('B' * len(json_data), *[json_data[str(i)] for i in range(len(json_data))]))
 
-                        [analog_values, next_deadline, button_values] = parse_control_message(data)
-
-                        message_handler = self._robot_manager.handle_periodic_control_message
-
-                        if message_handler:
-                            message_handler(RemoteControllerCommand(analog=analog_values,
-                                                        buttons=button_values,
-                                                        background_command=None,
-                                                        next_deadline=next_deadline))
+                        command = parse_control_message(data)
+                        self._robot_manager.handle_periodic_control_message(command)
                 except Exception as e:
                     log(f'Control message failed: {message_type}: {e}')
                     log(traceback.format_exc())

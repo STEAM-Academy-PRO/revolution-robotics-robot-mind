@@ -78,7 +78,7 @@ jobs:
               - mcu-firmware/**
               - pi-firmware/** # FIXME temporary until we devise a strategy to store the mcu-firmware artifacts
               - .github/workflows/pr.yml
-      
+
       - name: Install dependencies
         if: steps.filter.outputs.mcu-firmware == 'true'
         run: |

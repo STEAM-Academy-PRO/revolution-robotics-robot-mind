@@ -2,6 +2,7 @@
 import time
 from threading import Event, Thread, Lock, RLock
 import traceback
+from revvy.utils.error_reporter import RobotErrorType, revvy_error_handler
 from revvy.utils.emitter import SimpleEventEmitter
 
 from revvy.utils.logger import LogLevel, get_logger
@@ -21,7 +22,7 @@ class ThreadWrapper:
     PAUSED = 5
 
     def __init__(self, func, name="WorkerThread"):
-        self._log = get_logger(['ThreadWrapper', name], off=True)
+        self._log = get_logger(['ThreadWrapper', name])
         self._log('created')
         self._lock = Lock()  # lock used to ensure internal consistency
         self._interface_lock = RLock()  # prevent concurrent access. RLock so that callbacks may restart the thread
@@ -38,7 +39,7 @@ class ThreadWrapper:
         self._thread_running_event = Event()  # caller can wait for the thread function to start running
         self._state = ThreadWrapper.STOPPED
         self._is_exiting = False
-        self._thread = Thread(target=self._thread_func, args=(), daemon=True)
+        self._thread = Thread(target=self._thread_func, args=(), daemon=True, name=name)
         self._thread.start()
 
     def _wait_for_start(self):
@@ -58,8 +59,16 @@ class ThreadWrapper:
                 except InterruptedError:
                     self._log('interrupted')
                 except Exception as e:
-                    self._log('' + traceback.format_exc(), LogLevel.ERROR)
-                    self._error_callbacks.trigger(e)
+                    # If there are error handlers registered, do not log the error,
+                    # as it's caught and handled already.
+                    if not self._error_callbacks.is_empty():
+                        self._error_callbacks.trigger(e)
+                    else:
+                        # If we are not handling it, do report.
+                        self._log('Unhandled: ' + traceback.format_exc(), LogLevel.ERROR)
+                        revvy_error_handler.report_error(
+                            RobotErrorType.SYSTEM, traceback.format_exc())
+
                 finally:
                     self._enter_stopped()
         finally:

@@ -1,7 +1,6 @@
 """ Bluetooth Low Energy interface for Revvy """
 
 import os
-from typing import List
 from pybleno import Bleno
 
 from revvy.bluetooth.services.battery import CustomBatteryService
@@ -21,6 +20,8 @@ from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage
 from revvy.bluetooth.longmessage import extract_asset_longmessage, LongMessageImplementation
 
 from revvy.bluetooth.live_message_service import LiveMessageService
+
+from revvy.utils.error_reporter import compress_error, revvy_error_handler
 
 log = get_logger("BLE")
 
@@ -107,8 +108,9 @@ class RevvyBLE:
                         .update_value(val))
 
         # Initialize value - this could be prettier, not sure how yet.
-        self._bas.characteristic('unified_battery_status').update_value(
-            self._robot_manager._robot_state._battery.get())
+        initial_battery_state = self._robot_manager._robot_state._battery.get()
+        log(f'initial battery state {initial_battery_state}')
+        self._bas.characteristic('unified_battery_status').update_value(initial_battery_state)
 
 
         self._robot_manager.on(RobotEvent.SENSOR_VALUE_CHANGE,
@@ -140,7 +142,9 @@ class RevvyBLE:
 
         self._robot_manager.on(RobotEvent.MOTOR_CHANGE, self.update_motor)
 
-    def update_motor(self, ref, motor_angles: List[int]):
+        self._robot_manager.on(RobotEvent.ERROR, self.report_errors_in_queue)
+
+    def update_motor(self, ref, motor_angles: [int]):
         """ Currently unused, as we are not doing anything with it in the app. """
         for angle, index in enumerate(motor_angles):
             self._live.update_motor(index, 0, 0, angle)
@@ -149,6 +153,7 @@ class RevvyBLE:
         """ On new INCOMING connection, update the callback interfaces. """
         log(f'BLE interface connected! {c}')
         self._robot_manager.on_connected(c)
+        self.report_errors_in_queue()
 
     def _on_disconnect(self, *args):
         """ When ble drops connection, call the robot manager's disconnect handler """
@@ -204,3 +209,10 @@ class RevvyBLE:
         """ Quit the program """
         self._bleno.stopAdvertising()
         self._bleno.disconnect()
+
+    def report_errors_in_queue(self, *args):
+        """ In case of an error, send it slow! """
+        while revvy_error_handler.has_error():
+            self._live._error_reporting_characteristic.send_queued(
+                compress_error(revvy_error_handler.pop_error()))
+

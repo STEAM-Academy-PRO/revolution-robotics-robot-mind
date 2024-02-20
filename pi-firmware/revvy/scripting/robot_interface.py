@@ -449,7 +449,7 @@ class LineDriver:
         self.__do_debug_stops = False
         self.__base_speed = 20
         self.__straight_speed_mult = 1.5
-        self.__log = get_logger('LineDriver', off=True)
+        self.__log = get_logger('LineDriver')
 
     @property
     def read_rgb(self, channel: RGBChannelSensor):

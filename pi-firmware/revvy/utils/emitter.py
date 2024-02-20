@@ -16,6 +16,9 @@ class SimpleEventEmitter:
     def __init__(self):
         self._callbacks: List[Callable] = []
 
+    def is_empty(self):
+        return len(self._callbacks) == 0
+
     def add(self, callback):
         self._callbacks.append(callback)
 

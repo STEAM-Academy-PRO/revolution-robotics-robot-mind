@@ -57,7 +57,7 @@ class ScriptHandle(Emitter[ScriptEvent]):
         self.descriptor = descriptor
         self.sleep = self._default_sleep
         self._thread = ThreadWrapper(self._run, name)
-        self.log = get_logger(['Script', name], off=True)
+        self.log = get_logger(['Script', name])
         self.stop = self._thread.stop
         self.cleanup = self._thread.exit
         self.on_stopped = self._thread.on_stopped

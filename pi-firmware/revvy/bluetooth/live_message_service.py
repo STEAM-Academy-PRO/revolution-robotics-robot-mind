@@ -3,7 +3,8 @@
 import struct
 
 from pybleno import BlenoPrimaryService
-from revvy.bluetooth.ble_characteristics import GyroCharacteristic, MobileToBrainFunctionCharacteristic, MotorCharacteristic, ProgramStatusCharacteristic, ReadVariableCharacteristic, RelativeFunctionCharacteristic, SensorCharacteristic, TimerCharacteristic, ValidateConfigCharacteristic
+from revvy.bluetooth.ble_characteristics import GyroCharacteristic, MobileToBrainFunctionCharacteristic, MotorCharacteristic, ProgramStatusCharacteristic, ReadVariableCharacteristic, BackgroundProgramControlCharacteristic, SensorCharacteristic, TimerCharacteristic, ValidateConfigCharacteristic
+from revvy.bluetooth.queue_characteristic import QueueCharacteristic
 from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_DONE, VALIDATE_CONFIG_STATE_IN_PROGRESS, VALIDATE_CONFIG_STATE_UNKNOWN
 from revvy.robot.rc_message_parser import parse_control_message
 from revvy.robot_manager import RobotManager
@@ -15,7 +16,7 @@ from revvy.robot.remote_controller import RemoteControllerCommand
 NUM_MOTOR_PORTS = 6
 NUM_SENSOR_PORTS = 4
 
-log = get_logger("Live Message Service", off=False)
+log = get_logger("Live Message Service")
 
 class LiveMessageService(BlenoPrimaryService):
     """ Handles short messages on the Bluetooth interface"""
@@ -34,9 +35,10 @@ class LiveMessageService(BlenoPrimaryService):
         self._orientation_characteristic = GyroCharacteristic('4337a7c2-cae9-4c88-8908-8810ee013fcb', b'Orientation')
         self._timer_characteristic = TimerCharacteristic('c0e913da-5fdd-4a17-90b4-47758d449306', b'Timer')
         self._program_status_characteristic = ProgramStatusCharacteristic('7b988246-56c3-4a90-a6e8-e823ea287730', b'ProgramStatus')
-        self._state_control_characteristic = RelativeFunctionCharacteristic(
+        self._background_program_control_characteristic = BackgroundProgramControlCharacteristic(
             '53881a54-d519-40f7-8cbf-d43ced67f315', b'State Control', self.state_control_callback
         )
+        self._error_reporting_characteristic = QueueCharacteristic('0a0a8fa3-4c8f-44eb-892f-2bb8a6e163ca', b'Error Reporting')
 
         self._sensor_characteristics = [
             SensorCharacteristic('135032e6-3e86-404f-b0a9-953fd46dcb17', b'Sensor 1'),
@@ -76,9 +78,10 @@ class LiveMessageService(BlenoPrimaryService):
                 self._gyro_characteristic,
                 self._orientation_characteristic,
                 self._read_variable_characteristic,
-                self._state_control_characteristic,
+                self._background_program_control_characteristic,
                 self._timer_characteristic,
-                self._program_status_characteristic
+                self._program_status_characteristic,
+                self._error_reporting_characteristic
             ]
         })
 
@@ -139,7 +142,7 @@ class LiveMessageService(BlenoPrimaryService):
           [s0, s1, s2, s3])
 
 
-    def control_message_handler(self, data):
+    def control_message_handler(self, data: bytearray):
         """
             Simple control callback is run each time new controller data
             representing full state of joystick is sent over a BLE characteristic
@@ -165,11 +168,11 @@ class LiveMessageService(BlenoPrimaryService):
                     return True
             return False
 
-        [analog_values, next_deadline, button_values] = parse_control_message(data)
+        command = parse_control_message(data)
 
         # This seems like it's doing nothing...
-        joystick_xy_action = joystick_xy_is_moved(analog_values)
-        joystick_button_action = any(button_values)
+        joystick_xy_action = joystick_xy_is_moved(command.analog)
+        joystick_button_action = any(command.buttons)
 
         # log(f'data: {str(data)}')
         # log(f'analog_values: {str(analog_values)}')
@@ -181,12 +184,7 @@ class LiveMessageService(BlenoPrimaryService):
             # log(f'joystick_xy_action: {str(joystick_xy_action)}')
             self._robot_manager.on_joystick_action()
 
-        message_handler = self._robot_manager.handle_periodic_control_message
-        if message_handler:
-            message_handler(RemoteControllerCommand(analog=analog_values,
-                                                    buttons=button_values,
-                                                    background_command=None,
-                                                    next_deadline=next_deadline))
+        self._robot_manager.handle_periodic_control_message(command)
         return True
 
 
@@ -194,13 +192,12 @@ class LiveMessageService(BlenoPrimaryService):
         """ Autonomous mode play/pause/stop/reset button from mobile to brain """
 
         log(f"state_control_callback, coming from the mobile. {data}")
-        background_control_command = int.from_bytes(data[2:], byteorder='big')
-        message_handler = self._robot_manager.handle_periodic_control_message
-        if message_handler:
-            message_handler(RemoteControllerCommand(analog=bytearray(b'\x7f\x7f\x00\x00\x00\x00\x00\x00\x00\x00'),
-                                                    buttons=[False]*32,
-                                                    background_command=background_control_command,
-                                                    next_deadline=None))
+        self._robot_manager.handle_periodic_control_message(
+            RemoteControllerCommand(
+                analog=bytearray(b'\x7f\x7f\x00\x00\x00\x00\x00\x00\x00\x00'),
+                buttons=[False]*32,
+                background_command=int.from_bytes(data[2:], byteorder='big'),
+                next_deadline=None))
 
     def update_sensor(self, sensor, value):
         """ Send back sensor value to mobile. """
@@ -252,6 +249,11 @@ class LiveMessageService(BlenoPrimaryService):
         buf = list(struct.pack(">bf", 4, round(data, 0)))
         self._timer_characteristic.update(buf)
 
+
+    def report_error(self, data):
+        log(f'Sending Error: {data}')
+        self._error_reporting_characteristic.update(data)
+
     def update_script_variables(self, script_variables):
         """
             In the mobile app, this data shows up when we track variables.
@@ -298,6 +300,6 @@ class LiveMessageService(BlenoPrimaryService):
         """ Send back the background programs' state. """
         log(f"state control update, {state}")
         data = list(struct.pack(">bl", 4, state))
-        self._state_control_characteristic.update(data)
+        self._background_program_control_characteristic.update(data)
 
 

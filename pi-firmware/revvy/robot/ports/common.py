@@ -122,13 +122,12 @@ class PortHandler(Generic[DriverType]):
 class PortInstance(Generic[DriverType]):
     """
     A single motor or sensor port.
-    
+
     This class is responsible for handling port configuration and driver initialization.
     """
 
     def __init__(self, port_idx, name, interface: RevvyControl, default_driver: DriverConfig, supported, set_port_type):
         """
-        
         :param port_idx: The index of the port (1-based)
         :param name: The name of the port type (e.g. "Motor" or "Sensor")
         :param interface: The RevvyControl instance to use for communication
@@ -136,7 +135,7 @@ class PortInstance(Generic[DriverType]):
         :param supported: A dictionary of supported drivers
         :param set_port_type: A function that sets the port type on the MCU
         """
-        self.log = get_logger(f'{name} {port_idx}', off=True)
+        self.log = get_logger(f'{name} {port_idx}')
         self._port_idx = port_idx
         self._interface = interface
         self._config_changed_callbacks = SimpleEventEmitter()
