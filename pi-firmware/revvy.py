@@ -18,27 +18,27 @@ from tools.check_manifest import check_manifest
 # Load the error reporter and init the singleton that'll catch system errors.
 from revvy.utils.error_reporter import revvy_error_handler
 
-log = get_logger('revvy.py')
+log = get_logger("revvy.py")
 
-parser = argparse.ArgumentParser(description='Revvy PI firmware')
-parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+parser = argparse.ArgumentParser(description="Revvy PI firmware")
+parser.add_argument("--debug", action="store_true", help="Enable debug mode")
 args = parser.parse_args()
 
 if not args.debug:
     revvy_error_handler.register_uncaught_exception_handler()
 
 if __name__ == "__main__":
-    log(f'pack: {CURRENT_INSTALLATION_PATH}')
-    log(f'file: {__file__}')
+    log(f"pack: {CURRENT_INSTALLATION_PATH}")
+    log(f"file: {__file__}")
 
     # Check SW version package. If the manifest file is broken, do not launch!
-    if not check_manifest('manifest.json'):
-        log('Revvy not started because manifest is invalid')
+    if not check_manifest("manifest.json"):
+        log("Revvy not started because manifest is invalid")
         sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
 
     ### Before we enter the main loop, let's load up
     if not update_firmware_if_needed():
-        log('Revvy not started because the robot has no functional firmware')
+        log("Revvy not started because the robot has no functional firmware")
         # exiting with integrity error forces the loader to try a previous package
         sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
 
@@ -50,6 +50,7 @@ if __name__ == "__main__":
 
     if args.debug:
         from revvy.api.websocket import RobotWebSocketApi
+
         RobotWebSocketApi(robot_manager)
 
     try:
@@ -69,8 +70,8 @@ if __name__ == "__main__":
         log(traceback.format_exc())
         ret_val = RevvyStatusCode.ERROR
     finally:
-        log('stopping')
+        log("stopping")
         robot_manager.robot_stop()
 
-    log('terminated')
+    log("terminated")
     sys.exit(ret_val)

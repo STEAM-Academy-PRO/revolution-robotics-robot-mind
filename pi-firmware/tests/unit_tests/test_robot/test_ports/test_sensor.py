@@ -1,4 +1,3 @@
-
 import unittest
 
 from mock import Mock
@@ -10,16 +9,19 @@ from revvy.robot.ports.sensors.base import SensorPortDriver, SensorPortHandler
 
 class NonExistentDriver(SensorPortDriver):
     def __init__(self, port, config):
-        super().__init__(port, 'NonExistentDriver')
+        super().__init__(port, "NonExistentDriver")
 
-    def convert_sensor_value(self, raw): return raw
+    def convert_sensor_value(self, raw):
+        return raw
 
 
 class TestSensorPortHandler(unittest.TestCase):
     def test_constructor_reads_port_amount_and_types(self):
         mock_control = Mock()
         mock_control.get_sensor_port_amount = Mock(return_value=4)
-        mock_control.get_sensor_port_types = Mock(return_value={"NotConfigured": 0, "BumperSwitch": 1, "HC_SR04": 2})
+        mock_control.get_sensor_port_types = Mock(
+            return_value={"NotConfigured": 0, "BumperSwitch": 1, "HC_SR04": 2}
+        )
 
         ports = SensorPortHandler(mock_control)
 
@@ -53,7 +55,9 @@ class TestSensorPortHandler(unittest.TestCase):
         self.assertIs(PortInstance, type(ports[1]))
         self.assertEqual(4, mock_control.set_sensor_port_type.call_count)
 
-        self.assertRaises(KeyError, lambda: ports[1].configure(DriverConfig(driver = NonExistentDriver, config = {})))
+        self.assertRaises(
+            KeyError, lambda: ports[1].configure(DriverConfig(driver=NonExistentDriver, config={}))
+        )
         self.assertEqual(4, mock_control.set_sensor_port_type.call_count)
 
     def test_unconfiguring_not_configured_port_does_nothing(self):

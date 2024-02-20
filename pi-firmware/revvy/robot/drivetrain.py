@@ -13,7 +13,7 @@ from revvy.utils.stopwatch import Stopwatch
 
 
 class DrivetrainController:
-    def __init__(self, drivetrain: 'DifferentialDrivetrain'):
+    def __init__(self, drivetrain: "DifferentialDrivetrain"):
         self._drivetrain = drivetrain
         self._awaiter = Awaiter()
         self._awaiter.on_cancelled(self._drivetrain._apply_release)
@@ -29,7 +29,7 @@ class DrivetrainController:
 
 class TimeController(DrivetrainController):
 
-    def __init__(self, drivetrain: 'DifferentialDrivetrain', timeout):
+    def __init__(self, drivetrain: "DifferentialDrivetrain", timeout):
         super().__init__(drivetrain)
 
         t = Timer(timeout, self._awaiter.finish)
@@ -43,7 +43,9 @@ class TimeController(DrivetrainController):
 class TurnController(DrivetrainController):
     Kp = 0.75
 
-    def __init__(self, drivetrain: 'DifferentialDrivetrain', turn_angle, wheel_speed=None, power_limit=None):
+    def __init__(
+        self, drivetrain: "DifferentialDrivetrain", turn_angle, wheel_speed=None, power_limit=None
+    ):
         super().__init__(drivetrain)
 
         self._max_turn_wheel_speed = wheel_speed
@@ -77,8 +79,15 @@ class TurnController(DrivetrainController):
 
 
 class MoveController(DrivetrainController):
-    def __init__(self, drivetrain: 'DifferentialDrivetrain', left, right,
-                 left_speed=None, right_speed=None, power_limit=None):
+    def __init__(
+        self,
+        drivetrain: "DifferentialDrivetrain",
+        left,
+        right,
+        left_speed=None,
+        right_speed=None,
+        power_limit=None,
+    ):
         super().__init__(drivetrain)
 
         drivetrain._apply_positions(left, right, left_speed, right_speed, power_limit)
@@ -97,7 +106,7 @@ class DifferentialDrivetrain:
         self._left_motors: list[PortInstance[MotorPortDriver]] = []
         self._right_motors: list[PortInstance[MotorPortDriver]] = []
 
-        self._log = get_logger('Drivetrain')
+        self._log = get_logger("Drivetrain")
         self._imu = imu
         self._controller = None
 
@@ -123,7 +132,7 @@ class DifferentialDrivetrain:
             controller.awaiter.cancel()
 
     def reset(self):
-        self._log('reset')
+        self._log("reset")
         self._abort_controller()
 
         for motor in self._motors:
@@ -141,12 +150,12 @@ class DifferentialDrivetrain:
         motor.on_config_changed.add(self._on_motor_config_changed)
 
     def add_left_motor(self, motor: PortInstance[MotorPortDriver]):
-        self._log(f'Add motor {motor.id} to left side')
+        self._log(f"Add motor {motor.id} to left side")
         self._left_motors.append(motor)
         self._add_motor(motor)
 
     def add_right_motor(self, motor: PortInstance[MotorPortDriver]):
-        self._log(f'Add motor {motor.id} to right side')
+        self._log(f"Add motor {motor.id} to right side")
         self._right_motors.append(motor)
         self._add_motor(motor)
 
@@ -162,7 +171,7 @@ class DifferentialDrivetrain:
 
     def _on_motor_status_changed(self, _):
         if all(m.driver.status == MotorStatus.BLOCKED for m in self._motors):
-            self._log('All motors blocked, releasing')
+            self._log("All motors blocked, releasing")
             self._abort_controller()
         else:
             controller = self._controller
@@ -177,21 +186,33 @@ class DifferentialDrivetrain:
         self._controller = None
         commands = itertools.chain(
             *(motor.driver.create_set_power_command(0) for motor in self._left_motors),
-            *(motor.driver.create_set_power_command(0) for motor in self._right_motors)
+            *(motor.driver.create_set_power_command(0) for motor in self._right_motors),
         )
         self._interface.set_motor_port_control_value(bytes(commands))
 
     def _apply_speeds(self, left, right, power_limit):
         commands = itertools.chain(
-            *(motor.driver.create_set_speed_command(left, power_limit) for motor in self._left_motors),
-            *(motor.driver.create_set_speed_command(right, power_limit) for motor in self._right_motors)
+            *(
+                motor.driver.create_set_speed_command(left, power_limit)
+                for motor in self._left_motors
+            ),
+            *(
+                motor.driver.create_set_speed_command(right, power_limit)
+                for motor in self._right_motors
+            ),
         )
         self._interface.set_motor_port_control_value(bytes(commands))
 
     def _apply_positions(self, left, right, left_speed, right_speed, power_limit):
         commands = itertools.chain(
-            *(motor.driver.create_relative_position_command(left, left_speed, power_limit) for motor in self._left_motors),
-            *(motor.driver.create_relative_position_command(right, right_speed, power_limit) for motor in self._right_motors)
+            *(
+                motor.driver.create_relative_position_command(left, left_speed, power_limit)
+                for motor in self._left_motors
+            ),
+            *(
+                motor.driver.create_relative_position_command(right, right_speed, power_limit)
+                for motor in self._right_motors
+            ),
         )
         self._interface.set_motor_port_control_value(bytes(commands))
 
@@ -201,18 +222,18 @@ class DifferentialDrivetrain:
         elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
             power, speed = speed, self.max_rpm
         else:
-            raise ValueError(f'Invalid unit_speed: {unit_speed}')
+            raise ValueError(f"Invalid unit_speed: {unit_speed}")
 
         return power, speed
 
     def stop_release(self):
-        self._log('stop and release')
+        self._log("stop and release")
         self._abort_controller()
 
         self._apply_release()
 
     def set_speeds(self, left, right, power_limit=None):
-        self._log(f'set speeds: {left}  {right}  {power_limit}')
+        self._log(f"set speeds: {left}  {right}  {power_limit}")
         self._abort_controller()
 
         self._apply_speeds(left, right, power_limit)
@@ -235,7 +256,7 @@ class DifferentialDrivetrain:
         self._abort_controller()
 
         multipliers = {
-            MotorConstants.DIRECTION_FWD:   1,
+            MotorConstants.DIRECTION_FWD: 1,
             MotorConstants.DIRECTION_BACK: -1,
         }
 
@@ -253,7 +274,7 @@ class DifferentialDrivetrain:
 
             self._controller = MoveController(self, left, right, left_speed, right_speed, power)
         else:
-            raise ValueError(f'Invalid unit_rotation: {unit_rotation}')
+            raise ValueError(f"Invalid unit_rotation: {unit_rotation}")
 
         return self._controller.awaiter
 
@@ -262,7 +283,7 @@ class DifferentialDrivetrain:
         self._abort_controller()
 
         multipliers = {
-            MotorConstants.DIRECTION_LEFT:  1,  # +ve number -> CCW turn
+            MotorConstants.DIRECTION_LEFT: 1,  # +ve number -> CCW turn
             MotorConstants.DIRECTION_RIGHT: -1,  # -ve number -> CW turn
         }
 
@@ -277,10 +298,12 @@ class DifferentialDrivetrain:
 
         elif unit_rotation == MotorConstants.UNIT_TURN_ANGLE:
 
-            self._controller = TurnController(self,
-                                              turn_angle=rotation * multipliers[direction],
-                                              wheel_speed=speed,
-                                              power_limit=power)
+            self._controller = TurnController(
+                self,
+                turn_angle=rotation * multipliers[direction],
+                wheel_speed=speed,
+                power_limit=power,
+            )
 
             # We need to call update() because we only get notified about changes.
             self._controller.update()
@@ -288,7 +311,7 @@ class DifferentialDrivetrain:
             # NOTE: update() may immediately complete the turn. This can call _apply_release()
             # which immediately sets _controller to None.
         else:
-            raise ValueError(f'Invalid unit_rotation: {unit_rotation}')
+            raise ValueError(f"Invalid unit_rotation: {unit_rotation}")
 
         if self._controller is not None:
             awaiter = self._controller.awaiter

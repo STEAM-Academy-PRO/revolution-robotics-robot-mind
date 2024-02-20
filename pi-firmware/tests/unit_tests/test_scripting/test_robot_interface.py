@@ -1,4 +1,3 @@
-
 import unittest
 from mock import Mock
 from revvy.robot.ports.common import DriverConfig, PortInstance
@@ -6,7 +5,12 @@ from revvy.robot.ports.motors.base import MotorConstants, NullMotor
 
 from revvy.utils.functions import hex2rgb
 from revvy.scripting.resource import Resource
-from revvy.scripting.robot_interface import MotorPortWrapper, RingLedWrapper, PortCollection, ResourceWrapper
+from revvy.scripting.robot_interface import (
+    MotorPortWrapper,
+    RingLedWrapper,
+    PortCollection,
+    ResourceWrapper,
+)
 
 
 class TestRingLed(unittest.TestCase):
@@ -22,14 +26,14 @@ class TestRingLed(unittest.TestCase):
         script.is_stop_requested = False
 
         rw = RingLedWrapper(script, led_mock, led_resource)
-        rw.set(leds=[-50], color='#112233')
-        rw.set(leds=[1], color='#112233')
-        rw.set(leds=[2], color='#112233')
-        rw.set(leds=[3], color='#112233')
-        rw.set(leds=[4], color='#112233')
-        rw.set(leds=[5], color='#112233')
-        rw.set(leds=[6], color='#112233')
-        rw.set(leds=[3333], color='#112233')
+        rw.set(leds=[-50], color="#112233")
+        rw.set(leds=[1], color="#112233")
+        rw.set(leds=[2], color="#112233")
+        rw.set(leds=[3], color="#112233")
+        rw.set(leds=[4], color="#112233")
+        rw.set(leds=[5], color="#112233")
+        rw.set(leds=[6], color="#112233")
+        rw.set(leds=[3333], color="#112233")
 
     def test_ring_led_set_remembers_previous_state(self):
         led_mock = Mock()
@@ -42,14 +46,16 @@ class TestRingLed(unittest.TestCase):
         script.is_stop_requested = False
 
         rw = RingLedWrapper(script, led_mock, led_resource)
-        rw.set(leds=[1], color='#112233')
-        self.assertEqual([hex2rgb("#112233"), 0, 0, 0, 0, 0], led_mock.display_user_frame.call_args[0][0])
+        rw.set(leds=[1], color="#112233")
+        self.assertEqual(
+            [hex2rgb("#112233"), 0, 0, 0, 0, 0], led_mock.display_user_frame.call_args[0][0]
+        )
         self.assertEqual(1, led_mock.display_user_frame.call_count)
 
-        rw.set(leds=[3, 4], color='#223344')
+        rw.set(leds=[3, 4], color="#223344")
         self.assertEqual(
             [hex2rgb("#112233"), 0, hex2rgb("#223344"), hex2rgb("#223344"), 0, 0],
-            led_mock.display_user_frame.call_args[0][0]
+            led_mock.display_user_frame.call_args[0][0],
         )
         self.assertEqual(2, led_mock.display_user_frame.call_count)
 
@@ -66,19 +72,27 @@ class TestPortCollection(unittest.TestCase):
     def test_ports_can_be_accessed_by_name(self):
         # named ports are indexed from 1
         pc = PortCollection([2, 3, 5])
-        pc.aliases.update({'foo': 1, 'bar': 2, 'baz': 3})
+        pc.aliases.update({"foo": 1, "bar": 2, "baz": 3})
 
-        self.assertEqual(2, pc['foo'])
-        self.assertEqual(3, pc['bar'])
-        self.assertEqual(5, pc['baz'])
-        self.assertRaises(KeyError, lambda: pc['foobar'])
+        self.assertEqual(2, pc["foo"])
+        self.assertEqual(3, pc["bar"])
+        self.assertEqual(5, pc["baz"])
+        self.assertRaises(KeyError, lambda: pc["foobar"])
+
 
 class TestMotorPortWrapper(unittest.TestCase):
     def test_stop_does_not_throw_exception(self):
         mock_script = Mock()
         mock_script.is_stop_requested = False
 
-        mock_port = PortInstance(0, "MockPort", Mock(), DriverConfig(driver = NullMotor, config = {}), {"NotConfigured": 0}, Mock())
+        mock_port = PortInstance(
+            0,
+            "MockPort",
+            Mock(),
+            DriverConfig(driver=NullMotor, config={}),
+            {"NotConfigured": 0},
+            Mock(),
+        )
 
         wrapper = MotorPortWrapper(mock_script, mock_port, ResourceWrapper(Resource()))
 

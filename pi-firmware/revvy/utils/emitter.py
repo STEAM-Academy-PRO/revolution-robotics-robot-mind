@@ -5,13 +5,13 @@ from typing import Callable, Dict, Generic, List, TypeVar
 
 from revvy.utils.logger import LogLevel, get_logger
 
-CustomEventType = TypeVar('CustomEventType')
+CustomEventType = TypeVar("CustomEventType")
 
-log = get_logger('emitter', LogLevel.ERROR)
+log = get_logger("emitter", LogLevel.ERROR)
 
 
 class SimpleEventEmitter:
-    """ A simple event emitter that can be used to subscribe to an event source. """
+    """A simple event emitter that can be used to subscribe to an event source."""
 
     def __init__(self):
         self._callbacks: List[Callable] = []
@@ -39,15 +39,15 @@ class SimpleEventEmitter:
 
 
 class Emitter(Generic[CustomEventType]):
-    """ Event emitter base class to inherit from. """
+    """Event emitter base class to inherit from."""
 
     def __init__(self):
         self._events_handlers: Dict[CustomEventType, SimpleEventEmitter] = {}
         self._all_handlers = SimpleEventEmitter()
 
     def on(self, event: CustomEventType, callback: Callable):
-        """ Subscribe to script runner events """
-        if event == 'all':
+        """Subscribe to script runner events"""
+        if event == "all":
             self._all_handlers.add(callback)
 
         if event not in self._events_handlers:
@@ -56,17 +56,19 @@ class Emitter(Generic[CustomEventType]):
         if callback not in self._events_handlers[event]:
             self._events_handlers[event].add(callback)
         else:
-            log("Dev error: Emitter wants to add the same function reference to the same event twice.")
+            log(
+                "Dev error: Emitter wants to add the same function reference to the same event twice."
+            )
 
     def off(self, event, callback: Callable):
-        """ unsubscribe from event """
+        """unsubscribe from event"""
         self._events_handlers[event].remove(callback)
 
     def clear(self):
         self._events_handlers.clear()
 
     def trigger(self, event_type: CustomEventType, data=None):
-        """ Triggers all the event handlers subscribed with on(event, callback) """
+        """Triggers all the event handlers subscribed with on(event, callback)"""
 
         self._all_handlers.trigger(self, event_type, data)
 

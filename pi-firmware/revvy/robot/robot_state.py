@@ -27,39 +27,42 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from revvy.robot.robot import Robot
 
-log = get_logger('RobotStatePoller')
+log = get_logger("RobotStatePoller")
+
 
 class RobotState(Emitter[RobotEvent]):
-    """ Sustain a consistent event driven state of the robot """
+    """Sustain a consistent event driven state of the robot"""
 
-    def __init__(self, robot: 'Robot', remote_controller: RemoteController):
+    def __init__(self, robot: "Robot", remote_controller: RemoteController):
         super().__init__()
         self._robot = robot
         self._remote_controller = remote_controller
-        self._status_update_thread:ThreadWrapper = None
+        self._status_update_thread: ThreadWrapper = None
 
         # Battery updates: every 2 seconds is enough, if it's unplugged, it's
         # soon enough to notify.
         self._battery = BatteryState(throttle_interval=2)
 
-        self._orientation = Observable([0]*3, throttle_interval=0.2)
+        self._orientation = Observable([0] * 3, throttle_interval=0.2)
 
-        self._script_variables = Observable ([None]*4, throttle_interval=0.1)
+        self._script_variables = Observable([None] * 4, throttle_interval=0.1)
 
         self._background_control_state = Observable(0, throttle_interval=0.1)
         self._timer = Observable(0, throttle_interval=1)
 
-        self._motor_angles = Observable([0]*6, throttle_interval=0.1)
+        self._motor_angles = Observable([0] * 6, throttle_interval=0.1)
 
     def start_polling_mcu(self):
-        """ Starts a new thread that runs every 5ms to check on MCU status. """
+        """Starts a new thread that runs every 5ms to check on MCU status."""
         self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
 
         self._battery.subscribe(partial(self.trigger, RobotEvent.BATTERY_CHANGE))
         self._orientation.subscribe(partial(self.trigger, RobotEvent.ORIENTATION_CHANGE))
         self._script_variables.subscribe(partial(self.trigger, RobotEvent.SCRIPT_VARIABLE_CHANGE))
 
-        self._background_control_state.subscribe(partial(self.trigger, RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE))
+        self._background_control_state.subscribe(
+            partial(self.trigger, RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE)
+        )
         self._timer.subscribe(partial(self.trigger, RobotEvent.TIMER_TICK))
 
         self._motor_angles.subscribe(partial(self.trigger, RobotEvent.MOTOR_CHANGE))
@@ -68,22 +71,19 @@ class RobotState(Emitter[RobotEvent]):
 
         self._status_update_thread.start()
 
-
     def set_motor_angle(self, idx, angle):
-        """ We update this from robot manager. """
+        """We update this from robot manager."""
         angles = copy.deepcopy(self._motor_angles.get())
         angles[idx] = angle
         self._motor_angles.set(angles)
 
-
     def stop_polling_mcu(self):
-        """ Exits the thread. """
+        """Exits the thread."""
         self._status_update_thread.exit()
-
 
     def _update(self):
         """
-            This runs every 5ms and reads out the robot's statuses.
+        This runs every 5ms and reads out the robot's statuses.
         """
         try:
             self._robot.update_status()
@@ -95,11 +95,13 @@ class RobotState(Emitter[RobotEvent]):
             self._timer.set(self._remote_controller.processing_time)
 
             # TODO: Debounce this a bit better: this is used for the angle.
-            self._orientation.set([
-                floor0(getattr(self._robot.imu.orientation, 'pitch'), 1),
-                floor0(getattr(self._robot.imu.orientation, 'roll'), 1),
-                floor0(getattr(self._robot.imu.orientation, 'yaw'), 1),
-            ])
+            self._orientation.set(
+                [
+                    floor0(getattr(self._robot.imu.orientation, "pitch"), 1),
+                    floor0(getattr(self._robot.imu.orientation, "roll"), 1),
+                    floor0(getattr(self._robot.imu.orientation, "yaw"), 1),
+                ]
+            )
 
             self._script_variables.set(self._robot.script_variables.get_variable_values())
             self._background_control_state.set(self._remote_controller.background_control_state)
@@ -122,10 +124,8 @@ class RobotState(Emitter[RobotEvent]):
 
 
 def floor0(number, round_to=1):
-    """ Simple floor function that works reversed for minus values, having 0 between -1 and 1 """
+    """Simple floor function that works reversed for minus values, having 0 between -1 and 1"""
     if number < 0:
         return math.ceil(number * round_to) / round_to
     else:
         return math.floor(number * round_to) / round_to
-
-

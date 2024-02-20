@@ -6,6 +6,7 @@ from revvy.robot.robot import Robot
 
 if __name__ == "__main__":
     with Robot() as robot:
+
         def update():
             robot.update_status()
 
@@ -17,6 +18,6 @@ if __name__ == "__main__":
             robot.motors[idx].configure(Motors.RevvyMotor)
             robot.motors[idx].on_status_changed.add(lambda p, i=idx: print(i, p.speed, p.pos))
 
-        print('Press Enter to stop')
+        print("Press Enter to stop")
         input()
         status_update_thread.exit()

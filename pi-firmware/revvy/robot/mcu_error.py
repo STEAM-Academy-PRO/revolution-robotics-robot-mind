@@ -15,10 +15,10 @@ class ErrorType(Enum):
 
 class McuErrorReader:
     def __init__(self, interface: RevvyControl):
-        self._log = get_logger('McuErrorReader')
+        self._log = get_logger("McuErrorReader")
         self._interface = interface
         self._count = interface.error_memory_read_count()
-        self._log(f'Stored errors: {self._count}')
+        self._log(f"Stored errors: {self._count}")
 
     def update(self):
         self._count = self._interface.error_memory_read_count()
@@ -33,11 +33,11 @@ class McuErrorReader:
         while remaining > 0:
             errors = self._interface.error_memory_read_errors(last_error_idx)
             if not errors:
-                self._log('No errors returned, exiting')
+                self._log("No errors returned, exiting")
                 return
 
             remaining -= len(errors)
-            self._log(f'{len(errors)} errors returned, {remaining} to read')
+            self._log(f"{len(errors)} errors returned, {remaining} to read")
 
             for error_entry in errors:
                 last_error_idx += 1

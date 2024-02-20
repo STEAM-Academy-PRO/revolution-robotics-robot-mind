@@ -7,6 +7,7 @@ from revvy.robot.robot import Robot
 
 if __name__ == "__main__":
     with Robot() as robot:
+
         def update():
             robot.update_status()
 

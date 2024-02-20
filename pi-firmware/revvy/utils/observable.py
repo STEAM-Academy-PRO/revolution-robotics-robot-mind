@@ -14,10 +14,12 @@ from typing import Generic, TypeVar, Callable, List
 from revvy.utils.emitter import SimpleEventEmitter
 
 
-VariableType = TypeVar('VariableType')
+VariableType = TypeVar("VariableType")
+
 
 class Observable(Generic[VariableType]):
-    """ Simple Observable Implementation """
+    """Simple Observable Implementation"""
+
     def __init__(self, value=None, throttle_interval=0):
         self._on_value_changed = SimpleEventEmitter()
         self._data: VariableType = value
@@ -34,7 +36,7 @@ class Observable(Generic[VariableType]):
         self._on_value_changed.remove(observer)
 
     def notify(self):
-        """ If not throttling, observers are notified instantly. If throttling is enabled, events are emitted at most once per period. """
+        """If not throttling, observers are notified instantly. If throttling is enabled, events are emitted at most once per period."""
         if self._throttle_interval == 0:
             self._on_value_changed.trigger(self._data)
         else:
@@ -48,7 +50,9 @@ class Observable(Generic[VariableType]):
                 # set up a recall for the next period, counted from the last event
                 if not self._update_pending:
                     self._update_pending = True
-                    timer_thread = threading.Timer(self._throttle_interval - since_last_emit, self._check_pending_update)
+                    timer_thread = threading.Timer(
+                        self._throttle_interval - since_last_emit, self._check_pending_update
+                    )
                     timer_thread.name = "ObservableThrottleTimer"
                     timer_thread.start()
 
@@ -71,20 +75,23 @@ class Observable(Generic[VariableType]):
 
 class SmoothingObservable(Observable):
     """
-        When dealing with noisy data, we want to smooth it out.
-        e.g. when measuring something like a battery voltage, we want to
-        have stable readings, that are not toggling between two values, rather
-        going just down.
+    When dealing with noisy data, we want to smooth it out.
+    e.g. when measuring something like a battery voltage, we want to
+    have stable readings, that are not toggling between two values, rather
+    going just down.
 
-        This only sends notifications, if the average of the last `smoothing_window`
-        elements change.
+    This only sends notifications, if the average of the last `smoothing_window`
+    elements change.
     """
-    def __init__(self,
-                 value,
-                 throttle_interval=0,
-                 window_size=10,
-                 precision=1,
-                 smoothening_function: Callable = None):
+
+    def __init__(
+        self,
+        value,
+        throttle_interval=0,
+        window_size=10,
+        precision=1,
+        smoothening_function: Callable = None,
+    ):
         super().__init__(value, throttle_interval)
         self._data_history = [] if not value else [value]
         self._window_size = window_size
@@ -101,7 +108,7 @@ class SmoothingObservable(Observable):
             self._data_history.pop(0)
 
         if self._smoothening_function:
-            new_value =  self._smoothening_function(self._data_history)
+            new_value = self._smoothening_function(self._data_history)
         else:
             # simple average func
             new_value = sum(self._data_history) / len(self._data_history)

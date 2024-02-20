@@ -20,10 +20,11 @@ from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.emitter import SimpleEventEmitter
 from revvy.utils.logger import get_logger
 
-class PortDriver(ABC):
-    """ A base class for motor and sensor drivers. """
 
-    def __init__(self, port: 'PortInstance', driver_name: str):
+class PortDriver(ABC):
+    """A base class for motor and sensor drivers."""
+
+    def __init__(self, port: "PortInstance", driver_name: str):
         self._driver_name = driver_name
         self._port = port
         self._on_status_changed = SimpleEventEmitter()
@@ -42,7 +43,7 @@ class PortDriver(ABC):
 
     @abstractmethod
     def update_status(self, data):
-        """ Processes port-specific data coming from the MCU. """
+        """Processes port-specific data coming from the MCU."""
         pass
 
 
@@ -50,12 +51,12 @@ class DriverConfig(NamedTuple):
     driver: type
     config: dict
 
-    def create(self, port: 'PortInstance'):
-        """ Creates a new driver instance for the given port. """
+    def create(self, port: "PortInstance"):
+        """Creates a new driver instance for the given port."""
         return self.driver(port, self.config)
 
 
-DriverType = TypeVar('DriverType', bound=PortDriver)
+DriverType = TypeVar("DriverType", bound=PortDriver)
 
 
 class PortHandler(Generic[DriverType]):
@@ -65,7 +66,16 @@ class PortHandler(Generic[DriverType]):
     The class acts as a 1-based array so that users can index into it to get a specific port, or
     iterate over all ports.
     """
-    def __init__(self, name, interface: RevvyControl, default_driver: DriverConfig, amount: int, supported: dict, set_port_type):
+
+    def __init__(
+        self,
+        name,
+        interface: RevvyControl,
+        default_driver: DriverConfig,
+        amount: int,
+        supported: dict,
+        set_port_type,
+    ):
         """
         Creates a new port handler for the given amount of ports.
 
@@ -80,25 +90,18 @@ class PortHandler(Generic[DriverType]):
         self._types = supported
         self._port_count = amount
         self._ports = [
-            PortInstance(
-                i,
-                f'{name}Port',
-                interface,
-                default_driver,
-                supported,
-                set_port_type
-            )
+            PortInstance(i, f"{name}Port", interface, default_driver, supported, set_port_type)
             for i in range(1, amount + 1)
         ]
 
-    def __getitem__(self, port_idx: int) -> 'PortInstance':
+    def __getitem__(self, port_idx: int) -> "PortInstance":
         """
         Returns the port with the given index. We index ports from 1 so they correspond
         to port numbers on the Robot's enclosure.
         """
 
         if port_idx < 1 or port_idx > self._port_count:
-            raise IndexError(f'Port index out of range: {port_idx}')
+            raise IndexError(f"Port index out of range: {port_idx}")
 
         return self._ports[port_idx - 1]
 
@@ -107,7 +110,7 @@ class PortHandler(Generic[DriverType]):
 
     @property
     def available_types(self):
-        """ Lists the names of the supported drivers """
+        """Lists the names of the supported drivers"""
         return self._types.keys()
 
     @property
@@ -126,7 +129,15 @@ class PortInstance(Generic[DriverType]):
     This class is responsible for handling port configuration and driver initialization.
     """
 
-    def __init__(self, port_idx, name, interface: RevvyControl, default_driver: DriverConfig, supported, set_port_type):
+    def __init__(
+        self,
+        port_idx,
+        name,
+        interface: RevvyControl,
+        default_driver: DriverConfig,
+        supported,
+        set_port_type,
+    ):
         """
         :param port_idx: The index of the port (1-based)
         :param name: The name of the port type (e.g. "Motor" or "Sensor")
@@ -135,7 +146,7 @@ class PortInstance(Generic[DriverType]):
         :param supported: A dictionary of supported drivers
         :param set_port_type: A function that sets the port type on the MCU
         """
-        self.log = get_logger(f'{name} {port_idx}')
+        self.log = get_logger(f"{name} {port_idx}")
         self._port_idx = port_idx
         self._interface = interface
         self._config_changed_callbacks = SimpleEventEmitter()
@@ -154,14 +165,14 @@ class PortInstance(Generic[DriverType]):
 
     @property
     def on_config_changed(self):
-        """ Port configuration change event emitter """
+        """Port configuration change event emitter"""
         return self._config_changed_callbacks
 
     @property
     def driver(self) -> DriverType:
         return self._driver
 
-    def configure(self, config: 'DriverConfig') -> DriverType:
+    def configure(self, config: "DriverConfig") -> DriverType:
         """
         Configures the port with the given driver and configuration.
         If config is None, the port is set to not configured.
@@ -175,7 +186,7 @@ class PortInstance(Generic[DriverType]):
         driver_config = config or self._default_driver
         self._driver = driver_config.create(self)
 
-        self.log(f'set to {self.driver.driver_name}')
+        self.log(f"set to {self.driver.driver_name}")
 
         self._config_changed_callbacks.trigger(self, config)
 

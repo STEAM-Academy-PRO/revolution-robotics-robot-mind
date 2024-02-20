@@ -10,23 +10,28 @@ from revvy.utils.device_name import get_device_name
 from revvy.utils.functions import get_serial
 from revvy.utils.version import VERSION
 
+
 class DeviceInformationService(BleService):
-    """ Channel to send system info via Bluetooth """
+    """Channel to send system info via Bluetooth"""
+
     def __init__(self):
-        hw = VersionCharacteristic(uuid='2A27', version_info=str(VERSION.hw))
-        fw = VersionCharacteristic(uuid='2A26', version_info=str(VERSION.fw))
-        sw = VersionCharacteristic(uuid='2A28', version_info=str(VERSION.sw))
+        hw = VersionCharacteristic(uuid="2A27", version_info=str(VERSION.hw))
+        fw = VersionCharacteristic(uuid="2A26", version_info=str(VERSION.fw))
+        sw = VersionCharacteristic(uuid="2A28", version_info=str(VERSION.sw))
         serial = SerialNumberCharacteristic(get_serial())
-        manufacturer_name = ManufacturerNameCharacteristic(b'RevolutionRobotics')
-        model_number = ModelNumberCharacteristic(b'RevvyAlpha')
+        manufacturer_name = ManufacturerNameCharacteristic(b"RevolutionRobotics")
+        model_number = ModelNumberCharacteristic(b"RevvyAlpha")
         system_id = SystemIdCharacteristic(get_device_name())
 
-        super().__init__('180A', {
-            'hw_version': hw,
-            'fw_version': fw,
-            'sw_version': sw,
-            'serial_number': serial,
-            'manufacturer_name': manufacturer_name,
-            'model_number': model_number,
-            'system_id': system_id
-        })
+        super().__init__(
+            "180A",
+            {
+                "hw_version": hw,
+                "fw_version": fw,
+                "sw_version": sw,
+                "serial_number": serial,
+                "manufacturer_name": manufacturer_name,
+                "model_number": model_number,
+                "system_id": system_id,
+            },
+        )

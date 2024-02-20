@@ -7,10 +7,8 @@ class Variable(object):
 
     def __get_string_description(self):
         return 'Variable(script={},name="{}",value={},is_set={})'.format(
-            self.__script,
-            self.__name,
-            self.__value,
-            self.__is_set)
+            self.__script, self.__name, self.__value, self.__is_set
+        )
 
     def __repr__(self):
         return self.__get_string_description()
@@ -46,8 +44,8 @@ class Variable(object):
         return self.__name is not None
 
     def reset_value(self):
-      self.__value = None
-      self.__is_set = None
+        self.__value = None
+        self.__is_set = None
 
 
 class VariableSlot(object):
@@ -55,7 +53,7 @@ class VariableSlot(object):
         self.__v = [Variable()] * max_num
 
     def __get_string_description(self):
-        return 'VariableSlot(' + str(self.__v) + ')'
+        return "VariableSlot(" + str(self.__v) + ")"
 
     def __repr__(self):
         return self.__get_string_description()

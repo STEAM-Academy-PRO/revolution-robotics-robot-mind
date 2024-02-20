@@ -43,7 +43,8 @@ class SensorPortDriver(PortDriver):
         return self._raw_value
 
     @abstractmethod
-    def convert_sensor_value(self, raw): raise NotImplementedError
+    def convert_sensor_value(self, raw):
+        raise NotImplementedError
 
 
 class SensorPortHandler(PortHandler[SensorPortDriver]):
@@ -51,12 +52,19 @@ class SensorPortHandler(PortHandler[SensorPortDriver]):
         port_amount = interface.get_sensor_port_amount()
         port_types = interface.get_sensor_port_types()
 
-        super().__init__("Sensor", interface, DriverConfig(driver = NullSensor, config = {}), port_amount, port_types, interface.set_sensor_port_type)
+        super().__init__(
+            "Sensor",
+            interface,
+            DriverConfig(driver=NullSensor, config={}),
+            port_amount,
+            port_types,
+            interface.set_sensor_port_type,
+        )
 
 
 class NullSensor(SensorPortDriver):
     def __init__(self, port: PortInstance, config):
-        super().__init__(port, 'NotConfigured')
+        super().__init__(port, "NotConfigured")
 
     def update_status(self, data):
         pass

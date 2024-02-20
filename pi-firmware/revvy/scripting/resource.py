@@ -28,7 +28,7 @@ null_handle = NullHandle()
 
 
 class ResourceHandle:
-    def __init__(self, resource: 'Resource'):
+    def __init__(self, resource: "Resource"):
         self._resource = resource
         self._on_interrupted = SimpleEventEmitter()
         self._on_released = SimpleEventEmitter()
@@ -70,9 +70,9 @@ class ResourceHandle:
 
 
 class Resource:
-    def __init__(self, name='Resource'):
+    def __init__(self, name="Resource"):
         self._lock = Lock()
-        self._log = get_logger(['Resource', name], LogLevel.DEBUG)
+        self._log = get_logger(["Resource", name], LogLevel.DEBUG)
         self._current_priority = -1
         self._active_handle = null_handle
 
@@ -88,7 +88,7 @@ class Resource:
             handle, self._active_handle = self._active_handle, null_handle
 
             if handle:
-                self._log('Interrupting active resource handle')
+                self._log("Interrupting active resource handle")
                 handle.interrupt()
 
             self._current_priority = -1
@@ -96,18 +96,22 @@ class Resource:
     def request(self, with_priority=0, on_taken_away=None):
         with self._lock:
             if not self._active_handle:
-                self._log(f'create handle for priority {with_priority}')
+                self._log(f"create handle for priority {with_priority}")
                 self._create_new_handle(with_priority, on_taken_away)
                 return self._active_handle
 
             elif self._current_priority >= with_priority:
-                self._log(f'taking from lower prio owner (request: {with_priority}, holder: {self._current_priority})')
+                self._log(
+                    f"taking from lower prio owner (request: {with_priority}, holder: {self._current_priority})"
+                )
                 self._active_handle.interrupt()
                 self._create_new_handle(with_priority, on_taken_away)
                 return self._active_handle
 
             else:
-                self._log(f'failed to take resource (request: {with_priority}, holder: {self._current_priority})')
+                self._log(
+                    f"failed to take resource (request: {with_priority}, holder: {self._current_priority})"
+                )
                 return null_handle
 
     def _create_new_handle(self, with_priority, on_taken_away):
@@ -121,6 +125,6 @@ class Resource:
             if self._active_handle == resource_handle:
                 self._active_handle = null_handle
                 self._current_priority = -1
-                self._log('released')
+                self._log("released")
             else:
-                self._log('failed to release, not owned')
+                self._log("failed to release, not owned")

@@ -13,7 +13,14 @@ class Something:
 
 """
 
+
 def get_constant_name(num, parent_class):
-    """ returns the resolved constant variable name """
-    return next((name for name, value in vars(parent_class).items()
-                if not name.startswith('_') and value == num), None)
+    """returns the resolved constant variable name"""
+    return next(
+        (
+            name
+            for name, value in vars(parent_class).items()
+            if not name.startswith("_") and value == num
+        ),
+        None,
+    )

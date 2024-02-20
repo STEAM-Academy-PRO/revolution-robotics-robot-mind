@@ -9,24 +9,26 @@ from revvy.robot.robot import Robot
 if __name__ == "__main__":
 
     port_config_map = {
-        'Ultrasonic': Sensors.Ultrasonic,
-        'Button':     Sensors.BumperSwitch,
-        'Softeq_CS':  Sensors.SofteqCS,
+        "Ultrasonic": Sensors.Ultrasonic,
+        "Button": Sensors.BumperSwitch,
+        "Softeq_CS": Sensors.SofteqCS,
     }
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--s1', help='Configure S1', default=None, choices=port_config_map.keys())
-    parser.add_argument('--s2', help='Configure S2', default=None, choices=port_config_map.keys())
-    parser.add_argument('--s3', help='Configure S3', default=None, choices=port_config_map.keys())
-    parser.add_argument('--s4', help='Configure S4', default=None, choices=port_config_map.keys())
-    parser.add_argument('--imu-yaw', help='Read IMU yaw angle', action='store_true')
-    parser.add_argument('--raw-imu', help='Read raw IMU acceleration', action='store_true')
-    parser.add_argument('--raw-gyro', help='Read raw IMU rotation', action='store_true')
+    parser.add_argument("--s1", help="Configure S1", default=None, choices=port_config_map.keys())
+    parser.add_argument("--s2", help="Configure S2", default=None, choices=port_config_map.keys())
+    parser.add_argument("--s3", help="Configure S3", default=None, choices=port_config_map.keys())
+    parser.add_argument("--s4", help="Configure S4", default=None, choices=port_config_map.keys())
+    parser.add_argument("--imu-yaw", help="Read IMU yaw angle", action="store_true")
+    parser.add_argument("--raw-imu", help="Read raw IMU acceleration", action="store_true")
+    parser.add_argument("--raw-gyro", help="Read raw IMU rotation", action="store_true")
 
     args = parser.parse_args()
 
-    if not (args.s1 or args.s2 or args.s3 or args.s4 or args.imu_yaw or args.raw_imu or args.raw_gyro):
-        print('No ports configured')
+    if not (
+        args.s1 or args.s2 or args.s3 or args.s4 or args.imu_yaw or args.raw_imu or args.raw_gyro
+    ):
+        print("No ports configured")
         sys.exit(0)
 
     pattern = "{0:0.2f}"
@@ -49,6 +51,7 @@ if __name__ == "__main__":
     sensor_data = [0, None, None, None, None, None, None, None]
 
     with Robot() as robot:
+
         def update():
             global sensor_data_changed
             sensor_data_changed = False
@@ -100,6 +103,6 @@ if __name__ == "__main__":
         if args.s4:
             configure_sensor(4, args.s4)
 
-        print('Press Enter to stop')
+        print("Press Enter to stop")
         input()
         status_update_thread.exit()

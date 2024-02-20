@@ -1,4 +1,3 @@
-
 import time
 import unittest
 from threading import Event
@@ -54,12 +53,12 @@ class TestThreadWrapper(unittest.TestCase):
 
         try:
             for i in range(1, 3):
-                with self.subTest(f'Run #{i}'):
+                with self.subTest(f"Run #{i}"):
                     tw.on_stopped(evt.set)
                     evt.clear()
                     tw.start()
                     if not evt.wait(2):
-                        self.fail('Thread function has not exited properly')
+                        self.fail("Thread function has not exited properly")
 
         finally:
             tw.exit()
@@ -105,7 +104,7 @@ class TestThreadWrapper(unittest.TestCase):
         try:
             tw.start()
             if not thread_started_evt.wait(2):
-                self.fail('Thread function was not executed')
+                self.fail("Thread function was not executed")
             tw.stop().wait()
             self.assertEqual(1, mock.call_count)
         finally:
@@ -143,14 +142,16 @@ class TestThreadWrapper(unittest.TestCase):
 
         try:
             for i in range(1, 3):
-                with self.subTest(f'Run #{i}'):
-                    tw.on_stopped(evt.set)  # set callback first to verify it will be called after clear
+                with self.subTest(f"Run #{i}"):
+                    tw.on_stopped(
+                        evt.set
+                    )  # set callback first to verify it will be called after clear
                     evt.clear()
                     if not tw.start().wait(2):
-                        self.fail('Thread was not started properly')
+                        self.fail("Thread was not started properly")
 
                     if not evt.wait(2):
-                        self.fail('Thread was not stopped properly')
+                        self.fail("Thread was not stopped properly")
         finally:
             tw.exit()
 
@@ -189,10 +190,10 @@ class TestThreadWrapper(unittest.TestCase):
             except InterruptedError:
                 pass
             finally:
-                print('Waiting for allow_stop event')
+                print("Waiting for allow_stop event")
                 allow_stop.wait(2)
                 allow_stop.clear()
-                print('allow_stop event set')
+                print("allow_stop event set")
 
         tw = ThreadWrapper(thread_func)
         tw.start().wait()
@@ -214,7 +215,7 @@ class TestThreadWrapper(unittest.TestCase):
             evt = Event()
             ctx.on_stopped(evt.set)
             if not evt.wait(2):
-                self.fail('Thread stop was not called')
+                self.fail("Thread stop was not called")
             mock()
 
         tw = ThreadWrapper(test_fn)
@@ -225,7 +226,7 @@ class TestThreadWrapper(unittest.TestCase):
                 mock.reset_mock()
                 tw.start()
                 if not tw.stop().wait(2):
-                    self.fail('Failed to stop thread')
+                    self.fail("Failed to stop thread")
 
                 self.assertEqual(ThreadWrapper.STOPPED, tw.state)
                 self.assertEqual(1, mock.call_count)
@@ -234,7 +235,7 @@ class TestThreadWrapper(unittest.TestCase):
 
     def test_start_does_not_raise_if_not_exited(self):
         def test_fn(_):
-            print('running')
+            print("running")
 
         tw = ThreadWrapper(test_fn)
         try:
@@ -244,6 +245,6 @@ class TestThreadWrapper(unittest.TestCase):
                 for _ in range(10000):
                     tw.start()
         except AssertionError:
-            self.fail('start() raised event')
+            self.fail("start() raised event")
         finally:
             tw.exit()

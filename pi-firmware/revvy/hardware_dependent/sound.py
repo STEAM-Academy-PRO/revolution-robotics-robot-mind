@@ -5,6 +5,7 @@ from typing import Callable
 from revvy.utils.functions import clip
 from revvy.utils.logger import get_logger
 
+
 class SoundControlBase:
     def __init__(self, commands, default_volume):
         self._default_volume = default_volume
@@ -12,15 +13,15 @@ class SoundControlBase:
         self._lock = threading.Lock()
         self._processes = []
         self._max_parallel_sounds = 4
-        self._log = get_logger('SoundControl')
+        self._log = get_logger("SoundControl")
 
-        self._run_command(self._commands['init_amp']).wait()
+        self._run_command(self._commands["init_amp"]).wait()
 
     def _run_command(self, commands):
         if type(commands) is str:
             commands = [commands]
 
-        command = '; '.join(commands)
+        command = "; ".join(commands)
         return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
 
     def _run_command_with_callback(self, commands, callback):
@@ -42,11 +43,9 @@ class SoundControlBase:
         return thread
 
     def _play(self, sound, cb: Callable):
-        return self._run_command_with_callback([
-                self._commands['enable_amp'],
-                "mpg123 " + sound
-            ], cb)
-
+        return self._run_command_with_callback(
+            [self._commands["enable_amp"], "mpg123 " + sound], cb
+        )
 
     def _disable_amp_callback(self):
         # self._log('Disable amp callback')
@@ -54,22 +53,22 @@ class SoundControlBase:
             # self._log(f"Sounds playing: {len(self._processes)}")
             if not self._processes:
                 # self._log('Turning amp off')
-                self._run_command(self._commands['disable_amp'])
+                self._run_command(self._commands["disable_amp"])
 
     def set_default_volume(self, volume):
         self._default_volume = volume
 
     def set_volume(self, volume):
-        self._log(f'Setting volume to {volume}')
+        self._log(f"Setting volume to {volume}")
         volume = clip(volume, 0, 100)
-        self._run_command(f'amixer sset Master {volume}%')
+        self._run_command(f"amixer sset Master {volume}%")
 
     def reset_volume(self):
         self.set_volume(self._default_volume)
 
     def play_sound(self, sound, callback=None):
         if len(self._processes) <= self._max_parallel_sounds:
-            self._log(f'Playing sound: {sound}')
+            self._log(f"Playing sound: {sound}")
 
             def cb():
                 if callable(callback):
@@ -79,29 +78,28 @@ class SoundControlBase:
 
             return self._play(sound, cb)
         else:
-            self._log('Too many sounds are playing, skip')
+            self._log("Too many sounds are playing, skip")
 
 
 class SoundControlV1(SoundControlBase):
     def __init__(self):
-        super().__init__(commands={
-            'init_amp': [
-                'gpio -g mode 13 alt0',
-                'gpio -g mode 22 out'
-            ],
-            'enable_amp': 'gpio write 3 1',
-            'disable_amp': 'gpio write 3 0'
-        }, default_volume=90)
+        super().__init__(
+            commands={
+                "init_amp": ["gpio -g mode 13 alt0", "gpio -g mode 22 out"],
+                "enable_amp": "gpio write 3 1",
+                "disable_amp": "gpio write 3 0",
+            },
+            default_volume=90,
+        )
 
 
 class SoundControlV2(SoundControlBase):
     def __init__(self):
-        super().__init__(commands={
-            'init_amp': [
-                'gpio -g mode 13 alt0',
-                'gpio -g mode 22 out',
-                'gpio write 3 1'
-            ],
-            'enable_amp': 'gpio write 3 0',
-            'disable_amp': 'gpio write 3 1'
-        }, default_volume=90)
+        super().__init__(
+            commands={
+                "init_amp": ["gpio -g mode 13 alt0", "gpio -g mode 22 out", "gpio write 3 1"],
+                "enable_amp": "gpio write 3 0",
+                "disable_amp": "gpio write 3 1",
+            },
+            default_volume=90,
+        )

@@ -1,9 +1,15 @@
-
 import hashlib
 import unittest
 
-from revvy.bluetooth.longmessage import LongMessageStorage, LongMessageHandler, LongMessageProtocol, bytes2hexdigest, \
-    MessageType, LongMessageType, LongMessageStatus
+from revvy.bluetooth.longmessage import (
+    LongMessageStorage,
+    LongMessageHandler,
+    LongMessageProtocol,
+    bytes2hexdigest,
+    MessageType,
+    LongMessageType,
+    LongMessageStatus,
+)
 from revvy.utils.file_storage import MemoryStorage
 
 
@@ -20,13 +26,13 @@ class TestLongMessageRead(unittest.TestCase):
         result = ble.handle_read()
 
         # unused long message response is a 0 byte
-        self.assertEqual(b'\x00', result)
+        self.assertEqual(b"\x00", result)
 
     def test_read_returns_hash(self):
         persistent = MemoryStorage()
-        persistent.write(2, b'abcd')
+        persistent.write(2, b"abcd")
 
-        md5_hash = hashlib.md5(b'abcd').hexdigest()
+        md5_hash = hashlib.md5(b"abcd").hexdigest()
 
         temp = MemoryStorage()
 
@@ -49,12 +55,15 @@ class TestLongMessageRead(unittest.TestCase):
         ble = LongMessageProtocol(handler)
 
         ble.handle_write(0, [2])  # select long message 2
-        ble.handle_write(1, bytes([0]*16))  # init
-        self.assertEqual(LongMessageProtocol.RESULT_SUCCESS, ble.handle_write(MessageType.UPLOAD_MESSAGE, bytes([2])))
+        ble.handle_write(1, bytes([0] * 16))  # init
+        self.assertEqual(
+            LongMessageProtocol.RESULT_SUCCESS,
+            ble.handle_write(MessageType.UPLOAD_MESSAGE, bytes([2])),
+        )
 
     def test_upload_is_only_valid_if_chunk_count_matches_expected(self):
         storage = LongMessageStorage(MemoryStorage(), MemoryStorage())
-        chunks = [b'12345', b'1234568', b'98765432']
+        chunks = [b"12345", b"1234568", b"98765432"]
 
         checksum = hashlib.md5()
         for chunk in chunks:
@@ -68,8 +77,8 @@ class TestLongMessageRead(unittest.TestCase):
         expectations = (
             (len(chunks), LongMessageStatus.READY),
             (0, LongMessageStatus.READY),
-            (len(chunks)-1, LongMessageStatus.VALIDATION_ERROR),
-            (len(chunks)+1, LongMessageStatus.VALIDATION_ERROR)
+            (len(chunks) - 1, LongMessageStatus.VALIDATION_ERROR),
+            (len(chunks) + 1, LongMessageStatus.VALIDATION_ERROR),
         )
 
         for length, expected_status in expectations:

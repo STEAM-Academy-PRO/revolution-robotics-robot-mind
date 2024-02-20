@@ -6,32 +6,42 @@ from revvy.utils.functions import read_json
 from revvy.utils import logger
 from revvy.utils.logger import get_logger
 
-version_re = re.compile('(?P<major>\\d+?)\\.(?P<minor>\\d+?)(\\.(?P<rev>\\d+))?(-(?P<branch>.*?))?$')
+version_re = re.compile(
+    "(?P<major>\\d+?)\\.(?P<minor>\\d+?)(\\.(?P<rev>\\d+))?(-(?P<branch>.*?))?$"
+)
+
 
 class FormatError(Exception):
     pass
 
+
 manifest = None
+
 
 def read_manifest():
     global manifest
-    manifest = read_json(os.path.join(CURRENT_INSTALLATION_PATH,'manifest.json'))
+    manifest = read_json(os.path.join(CURRENT_INSTALLATION_PATH, "manifest.json"))
+
 
 def get_branch():
-    """ Current manifest's branch """
+    """Current manifest's branch"""
     global manifest
-    if not manifest: read_manifest()
-    return manifest['branch']
+    if not manifest:
+        read_manifest()
+    return manifest["branch"]
+
 
 def get_sw_version():
-    """ Returns Current Software version, uses manifest file to determine that. """
+    """Returns Current Software version, uses manifest file to determine that."""
     global manifest
-    if not manifest: read_manifest()
-    return Version(manifest['version'])
+    if not manifest:
+        read_manifest()
+    return Version(manifest["version"])
 
 
 class SystemVersions:
-    """ HW, SW, FW version store populated by the init updater. """
+    """HW, SW, FW version store populated by the init updater."""
+
     def __init__(self):
         self.sw = None
         self.hw = None
@@ -45,20 +55,19 @@ class SystemVersions:
         logger.branch = get_branch()
         logger.sw_version = sw
 
-        log = get_logger('Version info')
-        log(f'hw: {hw} sw: {sw} fw: {fw}')
+        log = get_logger("Version info")
+        log(f"hw: {hw} sw: {sw} fw: {fw}")
 
     def get(self):
-        return {
-            "hw": str(self.hw),
-            "sw": str(self.sw),
-            "fw": str(self.fw)
-        }
+        return {"hw": str(self.hw), "sw": str(self.sw), "fw": str(self.fw)}
+
 
 VERSION = SystemVersions()
 
+
 class Version:
-    """ Deals with version numbers """
+    """Deals with version numbers"""
+
     def __init__(self, ver_str):
         """
         >>> Version('1.0.123')
@@ -69,14 +78,14 @@ class Version:
         match = version_re.match(ver_str)
         if not match:
             raise FormatError
-        self.major = int(match.group('major'))
-        self.minor = int(match.group('minor'))
-        self.rev = int(match.group('rev')) if match.group('rev') else 0
-        self.branch = match.group('branch') or 'stable'
-        if self.branch == 'stable':
-            self._normalized = f'{self.major}.{self.minor}.{self.rev}'
+        self.major = int(match.group("major"))
+        self.minor = int(match.group("minor"))
+        self.rev = int(match.group("rev")) if match.group("rev") else 0
+        self.branch = match.group("branch") or "stable"
+        if self.branch == "stable":
+            self._normalized = f"{self.major}.{self.minor}.{self.rev}"
         else:
-            self._normalized = f'{self.major}.{self.minor}.{self.rev}-{self.branch}'
+            self._normalized = f"{self.major}.{self.minor}.{self.rev}-{self.branch}"
 
     def __le__(self, other):
         """
@@ -184,7 +193,7 @@ class Version:
         """
         return self.compare(other) != -1
 
-    def compare(self, other: 'Version'):
+    def compare(self, other: "Version"):
         """
         >>> Version('1.0.0').compare(Version('1.0.0'))
         0
@@ -218,7 +227,7 @@ class Version:
         return self._normalized
 
     def __repr__(self):
-        return 'Version({})'.format(self._normalized)
+        return "Version({})".format(self._normalized)
 
     def __hash__(self) -> int:
         return self._normalized.__hash__()

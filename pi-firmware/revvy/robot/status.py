@@ -1,4 +1,3 @@
-
 from enum import Enum
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.logger import get_logger
@@ -24,22 +23,24 @@ class RobotStatusIndicator:
     MasterLeds = {
         RobotStatus.StartingUp: 0,
         RobotStatus.NotConfigured: 1,
-        RobotStatus.Configured: lambda controller: 3 if controller == RemoteControllerStatus.Controlled else 2,
+        RobotStatus.Configured: lambda controller: (
+            3 if controller == RemoteControllerStatus.Controlled else 2
+        ),
         RobotStatus.Configuring: 4,
         RobotStatus.Updating: 5,
-        RobotStatus.Stopped: None
+        RobotStatus.Stopped: None,
     }
 
     BluetoothLeds = {
         RemoteControllerStatus.NotConnected: 0,
         RemoteControllerStatus.ConnectedNoControl: 1,
-        RemoteControllerStatus.Controlled: 1
+        RemoteControllerStatus.Controlled: 1,
     }
 
     def __init__(self, interface: RevvyControl):
         self._interface = interface
 
-        self._log = get_logger('RobotStatusIndicator')
+        self._log = get_logger("RobotStatusIndicator")
 
         self._robot_status = RobotStatus.StartingUp
         self._controller_status = RemoteControllerStatus.NotConnected
@@ -74,7 +75,7 @@ class RobotStatusIndicator:
 
     @robot_status.setter
     def robot_status(self, value):
-        self._log(f'Robot: {self._robot_status} -> {value}')
+        self._log(f"Robot: {self._robot_status} -> {value}")
         if self._robot_status != RobotStatus.Stopped:
             self._robot_status = value
             self._update_master_led()
@@ -86,7 +87,7 @@ class RobotStatusIndicator:
     @controller_status.setter
     def controller_status(self, value):
         if value != self._controller_status:
-            self._log(f'Controller: {self._controller_status} -> {value}')
+            self._log(f"Controller: {self._controller_status} -> {value}")
             self._controller_status = value
 
             self._update_master_led()

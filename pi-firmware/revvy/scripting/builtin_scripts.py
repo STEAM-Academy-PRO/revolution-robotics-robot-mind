@@ -27,9 +27,7 @@ def drive(drivetrain_control: DriveTrainWrapper, channels, controller):
 
     sl, sr = controller(x, y)
 
-    drivetrain_control.set_speeds(
-        map_values(sl, 0, 1, 0, 120),
-        map_values(sr, 0, 1, 0, 120))
+    drivetrain_control.set_speeds(map_values(sl, 0, 1, 0, 120), map_values(sr, 0, 1, 0, 120))
 
 
 def drive_joystick(robot, channels, **_):
@@ -60,6 +58,6 @@ class ColorHSV:
 
 
 builtin_scripts = {
-    'drive_2sticks': drive_2sticks,
-    'drive_joystick': drive_joystick,
+    "drive_2sticks": drive_2sticks,
+    "drive_joystick": drive_joystick,
 }

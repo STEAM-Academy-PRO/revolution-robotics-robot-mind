@@ -33,10 +33,12 @@ from revvy.utils.version import VERSION, Version, get_sw_version
 from revvy.utils.functions import split, bytestr_hash, read_json
 from revvy.mcu.rrrc_control import RevvyTransportBase
 
-log = get_logger('McuUpdater')
+log = get_logger("McuUpdater")
+
 
 class McuUpdater:
-    """ Manages version updates """
+    """Manages version updates"""
+
     def __init__(self, revvy_transport_base: RevvyTransportBase):
         self._application_controller = revvy_transport_base.create_application_control()
         self._bootloader_controller = revvy_transport_base.create_bootloader_control()
@@ -53,8 +55,8 @@ class McuUpdater:
 
     def _is_in_bootloader_mode(self) -> bool:
         """
-            Tries to connect to the board and determine,
-            if it's in bootloader mode or application mode
+        Tries to connect to the board and determine,
+        if it's in bootloader mode or application mode
         """
         self._stopwatch.reset()
         while self._stopwatch.elapsed < 10:
@@ -69,16 +71,14 @@ class McuUpdater:
             # log("Failed to read operation mode. Retrying")
             time.sleep(0.5)
 
-        raise TimeoutError('Could not connect to Board! Bailing.')
-
+        raise TimeoutError("Could not connect to Board! Bailing.")
 
     def read_hw_version(self):
-        """ Reads the board's version through the i2c interface """
+        """Reads the board's version through the i2c interface"""
         if self.is_bootloader_mode:
             return self._bootloader_controller.get_hardware_version()
         else:
             return self._application_controller.get_hardware_version()
-
 
     def is_update_needed(self, bin_file_fw_version: Version, fw_crc):
         """
@@ -88,25 +88,24 @@ class McuUpdater:
         if not self.is_bootloader_mode:
             fw = self._application_controller.get_firmware_version()
             if fw != bin_file_fw_version:  # allow downgrade as well
-                log(f'Firmware version is not latest, updating. {fw}')
+                log(f"Firmware version is not latest, updating. {fw}")
                 return True
 
             self.reboot_to_bootloader()
 
-            log('Checking CRC...')
+            log("Checking CRC...")
 
             crc = self._bootloader_controller.read_firmware_crc()
 
             is_crc_different = crc != fw_crc
             if is_crc_different:
-                log(f'Firmware CRC check failed! {crc} != {fw_crc}')
+                log(f"Firmware CRC check failed! {crc} != {fw_crc}")
             else:
-                log('Firmware CRC matches, skipping update.')
+                log("Firmware CRC matches, skipping update.")
             return is_crc_different
         else:
             # in bootloader mode, probably no firmware, request update
             return True
-
 
     def reboot_to_bootloader(self):
         """
@@ -129,9 +128,8 @@ class McuUpdater:
 
         assert self.is_bootloader_mode
 
-
     def upload_binary(self, checksum, data):
-        """ Send the firmware to the MCU through the transport layer. """
+        """Send the firmware to the MCU through the transport layer."""
         self.reboot_to_bootloader()
 
         log(f"Image info: size: {len(data)} checksum: {checksum}")
@@ -144,16 +142,15 @@ class McuUpdater:
         chunks = split(data, chunk_size=255)
 
         # send data
-        log('Sending data')
+        log("Sending data")
         self._stopwatch.reset()
         for chunk in chunks:
             self._bootloader_controller.send_firmware(chunk)
-        log(f'Data transfer took {round(self._stopwatch.elapsed, 1)} seconds')
-
+        log(f"Data transfer took {round(self._stopwatch.elapsed, 1)} seconds")
 
     def finalize_and_start_application(self, was_update_needed):
         """
-            Call finalize firmware on the board then reboot to application
+        Call finalize firmware on the board then reboot to application
         """
         try:
             self._bootloader_controller.finalize_update()
@@ -168,45 +165,45 @@ class McuUpdater:
 
         self.fw_version = self._application_controller.get_firmware_version()
         self.update_global_version_info()
-        
+
         if was_update_needed:
-            log(f'Update successful, running FW version {self.fw_version}')
+            log(f"Update successful, running FW version {self.fw_version}")
         else:
-            log(f'No update was needed, running FW version {self.fw_version}')
+            log(f"No update was needed, running FW version {self.fw_version}")
 
     def update_global_version_info(self):
         VERSION.set(self.sw_version, self.hw_version, self.fw_version)
 
 
 def read_firmware_bin_from_fs(fw_data):
-    """ Finds the bin file from the package and reads them out, and checks MD5 """
-    with open(fw_data['file'], "rb") as f:
+    """Finds the bin file from the package and reads them out, and checks MD5"""
+    with open(fw_data["file"], "rb") as f:
         firmware_binary = f.read()
 
-    if len(firmware_binary) != fw_data['length']:
-        log('Firmware file length check failed, aborting')
+    if len(firmware_binary) != fw_data["length"]:
+        log("Firmware file length check failed, aborting")
         raise IntegrityError("Firmware file length does not match")
 
     checksum = bytestr_hash(firmware_binary)
-    if checksum != fw_data['md5']:
-        log('Firmware file integrity check failed, aborting')
+    if checksum != fw_data["md5"]:
+        log("Firmware file integrity check failed, aborting")
         raise IntegrityError("Firmware file checksum does not match")
 
     return firmware_binary
 
 
 def get_firmware_for_hw_version(fw_dir, hw_version):
-    """ MCU firmware version existing in the current package """
+    """MCU firmware version existing in the current package"""
     try:
-        fw_metadata = read_json(os.path.join(fw_dir, 'catalog.json'))
+        fw_metadata = read_json(os.path.join(fw_dir, "catalog.json"))
         version = str(hw_version)
 
         data = {
-            'file': os.path.join(fw_dir, fw_metadata[version]['filename']),
-            'md5': fw_metadata[version]['md5'],
-            'length': fw_metadata[version]['length'],
+            "file": os.path.join(fw_dir, fw_metadata[version]["filename"]),
+            "md5": fw_metadata[version]["md5"],
+            "length": fw_metadata[version]["length"],
         }
-        return Version(fw_metadata[version]['version']), read_firmware_bin_from_fs(data)
+        return Version(fw_metadata[version]["version"]), read_firmware_bin_from_fs(data)
 
     except (IOError, JSONDecodeError, KeyError) as e:
         log(traceback.format_exc())
@@ -215,12 +212,12 @@ def get_firmware_for_hw_version(fw_dir, hw_version):
 
 def update_firmware_if_needed() -> bool:
     """
-        Checks HW version, determines if we can/need to do a firmware update
+    Checks HW version, determines if we can/need to do a firmware update
 
-        Returns True if the update was skipped or successful, False if the robot is in a
-        state where it cannot continue.
+    Returns True if the update was skipped or successful, False if the robot is in a
+    state where it cannot continue.
     """
-    firmware_path = os.path.join('data', 'firmware')
+    firmware_path = os.path.join("data", "firmware")
 
     ### If we are in bootloader mode, we DO have to update.
     ### If we are in application mode, we have to update only if the version is not the same.
@@ -236,25 +233,25 @@ def update_firmware_if_needed() -> bool:
         fw_bin_version, fw_binary = get_firmware_for_hw_version(firmware_path, updater.hw_version)
     except KeyError as e:
         exception = e
-        log(f'No firmware for the hardware ({updater.hw_version})')
+        log(f"No firmware for the hardware ({updater.hw_version})")
     except IOError as e:
         exception = e
-        log('Firmware file does not exist or is not readable')
+        log("Firmware file does not exist or is not readable")
     except IntegrityError as e:
         exception = e
-        log('Firmware file corrupted')
+        log("Firmware file corrupted")
 
     if exception:
         if updater.is_bootloader_mode:
             # We have no valid firmware in the package, and no firmware on the brain. Let's throw an
             # exception, and let the loader try again. Maybe an earier installation will restore
             # the MCU.
-            log('No firmware in the package, and no firmware on the brain. Aborting.')
+            log("No firmware in the package, and no firmware on the brain. Aborting.")
             return False
         else:
             # We have no firmware in the package, but we have one on the brain. Let's continue
             # and hope that the package is compatible.
-            log('No firmware in the package. The brain will use the last installation.')
+            log("No firmware in the package. The brain will use the last installation.")
             return True
 
     checksum = binascii.crc32(fw_binary)
