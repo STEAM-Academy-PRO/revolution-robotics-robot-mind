@@ -16,5 +16,5 @@ jobs:
         fetch-depth: 0
     - name: Merge
       run: |
-        git merge release
+        git merge origin/release
         git push
