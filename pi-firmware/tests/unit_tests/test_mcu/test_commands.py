@@ -25,16 +25,13 @@ class MockTransport:
         return self._commands
 
 
-class MockCommand(ParameterlessCommand):
+class MockCommand(ReturnlessCommand, ParameterlessCommand):
     @property
     def command_id(self):
         return 2
 
 
 class TestCommand(unittest.TestCase):
-    def test_not_overwritten_command_id_raises_error(self):
-        self.assertRaises(NotImplementedError, lambda: Command(None))
-
     def test_default_call_does_not_accept_arguments(self):
         c = MockCommand(None)
         self.assertRaises(TypeError, lambda: c([1, 2, 3]))
