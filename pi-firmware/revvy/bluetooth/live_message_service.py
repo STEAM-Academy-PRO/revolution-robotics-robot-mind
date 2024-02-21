@@ -22,6 +22,7 @@ from revvy.bluetooth.validate_config_statuses import (
 )
 from revvy.robot.rc_message_parser import parse_control_message
 from revvy.robot_manager import RobotManager
+from revvy.scripting.runtime import ScriptEvent
 
 from revvy.utils.logger import get_logger
 
@@ -238,14 +239,10 @@ class LiveMessageService(BlenoPrimaryService):
         if 0 < sensor <= len(self._sensor_characteristics):
             self._sensor_characteristics[sensor - 1].update(value)
 
-    def update_program_status(self, button_id: int, status: int):
-        """
-        It might be possible that BLE misses a packet. If that's the case,
-        we still want to encode all the program statuses in the message,
-        so we keep the struct up-to-date.
-        """
+    def update_program_status(self, button_id: int, status: ScriptEvent):
+        """Update the status of a button-triggered script"""
 
-        self._program_status_characteristic.update_button_value(button_id, status)
+        self._program_status_characteristic.update_button_value(button_id, status.value)
 
     def update_motor(self, motor, power, speed, position):
         """Send back motor angle value to mobile."""

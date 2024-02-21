@@ -5,6 +5,7 @@ from binascii import b2a_base64, a2b_base64
 
 import math
 from contextlib import suppress
+from typing import List
 
 
 def clip(x, min_x, max_x):
@@ -127,7 +128,7 @@ def b64_decode_str(to_decode):
     return a2b_base64(to_decode.encode("utf-8")).decode("utf-8")
 
 
-def is_bit_set(reg, bit):
+def is_bit_set(reg, bit) -> bool:
     """
     >>> is_bit_set(1, 0)
     True
@@ -139,7 +140,7 @@ def is_bit_set(reg, bit):
     return reg & (1 << bit) != 0
 
 
-def bits_to_bool_list(byte_list):
+def bits_to_bool_list(byte_list) -> List[bool]:
     """
     >>> bits_to_bool_list([0xFF])
     [True, True, True, True, True, True, True, True]

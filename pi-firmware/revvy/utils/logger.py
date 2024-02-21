@@ -2,6 +2,7 @@ import hashlib
 import os
 import re
 from threading import current_thread
+from typing import Optional
 from revvy.utils.directories import WRITEABLE_DATA_DIR
 from revvy.utils.functions import read_json
 
@@ -119,7 +120,7 @@ def get_log_config():
     return log_config
 
 
-def get_logger(tag, default_log_level=None, base: Logger = None):
+def get_logger(tag, default_log_level=None, base: Optional[Logger] = None):
     log_config = get_log_config()
 
     if not isinstance(tag, list):

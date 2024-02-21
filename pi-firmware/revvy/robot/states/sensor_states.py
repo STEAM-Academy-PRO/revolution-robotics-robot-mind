@@ -1,10 +1,11 @@
 """ Sensor value wrapper: manages throttling of sensor readings for the mobile app """
 
+from typing import Optional
 from revvy.robot.configurations import Sensors
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.robot_events import SensorEventData
 from revvy.utils.logger import get_logger
-from revvy.utils.observable import SmoothingObservable
+from revvy.utils.observable import SmoothingObservable, simple_average
 from revvy.utils.subscription import Disposable
 
 # Sensor does send some noise up, seems to be not working above
@@ -14,7 +15,9 @@ MAX_ULTRASONIC_SENSOR_DISTANCE = 700  # cm
 log = get_logger("sensor states")
 
 
-def create_sensor_data_wrapper(sensor_port: PortInstance, sensor, on_data_update) -> Disposable:
+def create_sensor_data_wrapper(
+    sensor_port: PortInstance, sensor, on_data_update
+) -> Optional[Disposable]:
     """
     Create wrappers that convert raw sensor value into a more
     directly usable one. This is a temporary solution to the problem.
@@ -55,7 +58,7 @@ class UltrasonicSensorDataHandler(Disposable):
             window_size=3,
             # Do not update more frequent than 200ms
             throttle_interval=0.2,
-            smoothening_function=lambda last_values: sum(last_values) / len(last_values),
+            smoothening_function=simple_average,
         )
         # self._value.subscribe(lambda v: log(f'ultrasonic {v}'))
 
@@ -93,13 +96,12 @@ class ButtonSensorDataHandler(Disposable):
         self._sensor_port_id = sensor_port.id
         sensor_port.driver.on_status_changed.add(self.update)
         self._value = SmoothingObservable(
-            value=0,
+            value=False,
             window_size=3,
             # Do not update more frequent than 200ms
             throttle_interval=0.2,
-            smoothening_function=lambda last_values:
-            # Simple last 3 window debounce.
-            sum(last_values) / 2 > 0.5,
+            # Simple majority vote of the last 3 values
+            smoothening_function=lambda last_values: sum(last_values) >= 2,
         )
 
         self._value.subscribe(self.on_data_update)

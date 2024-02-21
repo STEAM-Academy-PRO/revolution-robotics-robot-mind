@@ -25,7 +25,7 @@ class MockTransport:
         return self._commands
 
 
-class MockCommand(Command):
+class MockCommand(ParameterlessCommand):
     @property
     def command_id(self):
         return 2
@@ -37,7 +37,7 @@ class TestCommand(unittest.TestCase):
 
     def test_default_call_does_not_accept_arguments(self):
         c = MockCommand(None)
-        self.assertRaises(NotImplementedError, lambda: c([1, 2, 3]))
+        self.assertRaises(TypeError, lambda: c([1, 2, 3]))
 
     def test_call_sends_command(self):
         mock_transport = MockTransport([Response(ResponseStatus.Ok, [])])

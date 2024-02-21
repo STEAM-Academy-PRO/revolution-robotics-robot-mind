@@ -1,5 +1,6 @@
+from abc import abstractmethod
 from functools import partial
-from typing import NamedTuple
+from typing import Callable, NamedTuple
 
 from revvy.hardware_dependent.sound import SoundControlV1, SoundControlV2
 from revvy.mcu.rrrc_control import RevvyTransportBase
@@ -44,17 +45,15 @@ class BatteryStatus(NamedTuple):
     motor: int
 
 
+def _default_bus_factory() -> RevvyTransportBase:
+    from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
+
+    return RevvyTransportI2C(1)
+
+
+# FIXME: why is this RobotInterface? The base class causes problems for the linter, and also doesn't seem to be necessary anywhere.
 class Robot(RobotInterface):
-    @staticmethod
-    def _default_bus_factory() -> RevvyTransportBase:
-        from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-
-        return RevvyTransportI2C(1)
-
-    def __init__(self, bus_factory=None):
-        if bus_factory is None:
-            bus_factory = self._default_bus_factory
-
+    def __init__(self, bus_factory: Callable[[], RevvyTransportBase] = _default_bus_factory):
         self._bus_factory = bus_factory
 
         self._comm_interface = self._bus_factory()
@@ -106,8 +105,8 @@ class Robot(RobotInterface):
             "led_ring": Resource("RingLed"),
             "drivetrain": Resource("DriveTrain"),
             "sound": Resource("Sound"),
-            **{f"motor_{port.id}": Resource(f"Motor {port.id}") for port in self.motors},
-            **{f"sensor_{port.id}": Resource(f"Sensor {port.id}") for port in self.sensors},
+            **{f"motor_{port.id}": Resource(f"Motor {port.id}") for port in self._motor_ports},
+            **{f"sensor_{port.id}": Resource(f"Sensor {port.id}") for port in self._sensor_ports},
         }
 
     @property
@@ -137,6 +136,7 @@ class Robot(RobotInterface):
     def status(self):
         return self._status
 
+    # TODO: these 2 return the wrong type? What was the intent?
     @property
     def motors(self) -> MotorPortHandler:
         return self._motor_ports

@@ -77,7 +77,7 @@ class MotorPortDriver(PortDriver):
         pass
 
     @abstractmethod
-    def stop(self, _=MotorConstants.ACTION_RELEASE):
+    def stop(self, action: int = MotorConstants.ACTION_RELEASE):
         pass
 
 
@@ -130,5 +130,5 @@ class NullMotor(MotorPortDriver):
     def update_status(self, data):
         pass
 
-    def stop(self, _=MotorConstants.ACTION_RELEASE):
+    def stop(self, action: int = MotorConstants.ACTION_RELEASE):
         pass

@@ -6,7 +6,7 @@ import mock
 
 from revvy.hardware_dependent.sound import SoundControlBase
 from revvy.scripting.resource import Resource
-from revvy.scripting.robot_interface import RobotInterface
+from revvy.scripting.robot_interface import PortCollection, RobotInterface
 from revvy.scripting.runtime import ScriptManager, ScriptDescriptor
 from revvy.utils.functions import str_to_func
 
@@ -96,6 +96,35 @@ class RobotInterfaceMock(RobotInterface):
 
     def release_resources(self, *args):
         pass
+
+    def time(self):
+        return Mock()
+
+    @property
+    def motors(self) -> PortCollection:
+        return Mock()
+
+    def sensors(self) -> PortCollection:
+        return Mock()
+
+    @property
+    def led(self):
+        return Mock()
+
+    @property
+    def sound(self):
+        return Mock()
+
+    @property
+    def drivetrain(self):
+        return Mock()
+
+    @property
+    def imu(self):
+        return Mock()
+
+    def play_tune(self, name):
+        return Mock()
 
 
 class TestRuntime(unittest.TestCase):
