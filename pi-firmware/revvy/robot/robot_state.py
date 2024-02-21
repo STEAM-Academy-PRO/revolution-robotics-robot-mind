@@ -8,8 +8,10 @@ It polls the MCU for updates in any states.
 
 """
 
+from typing import TYPE_CHECKING, Optional
+import math
+import copy
 from functools import partial
-import math, copy
 import traceback
 from revvy.mcu.rrrc_transport import TransportException
 from revvy.robot.remote_controller import RemoteController
@@ -21,7 +23,6 @@ from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.observable import Observable
 from revvy.utils.thread_wrapper import ThreadWrapper, periodic
 
-from typing import TYPE_CHECKING
 
 # To have types, use this to avoid circular dependencies.
 if TYPE_CHECKING:
@@ -37,7 +38,7 @@ class RobotState(Emitter[RobotEvent]):
         super().__init__()
         self._robot = robot
         self._remote_controller = remote_controller
-        self._status_update_thread: ThreadWrapper = None
+        self._status_update_thread: Optional[ThreadWrapper] = None
 
         # Battery updates: every 2 seconds is enough, if it's unplugged, it's
         # soon enough to notify.

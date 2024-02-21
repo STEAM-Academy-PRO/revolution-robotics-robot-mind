@@ -1,6 +1,6 @@
 """ Standardized Robot Events to all """
 
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 from revvy.scripting.runtime import ScriptEvent
 
@@ -54,8 +54,17 @@ class MotorChangeData(NamedTuple):
     pos: int
 
 
-class SensorEventData(NamedTuple):
-    """Ultrasonic sensor and button data. Not pretty, would be better with ints."""
+class SensorEvent(NamedTuple):
+    """Generic sensor event to be the parent of them all."""
+    port_id: int
+    value: Any
 
-    id: int
-    raw_value: any
+class ButtonSensorEvent(SensorEvent):
+    value: bool
+
+class DistanceSensorEvent(SensorEvent):
+    value: float
+
+class ColorSensorEvent(SensorEvent):
+    value: int
+

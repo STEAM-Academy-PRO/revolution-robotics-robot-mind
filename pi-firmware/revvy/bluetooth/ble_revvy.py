@@ -7,7 +7,7 @@ from pybleno import Bleno
 from revvy.bluetooth.services.battery import CustomBatteryService
 from revvy.bluetooth.services.device_information import DeviceInformationService
 from revvy.bluetooth.services.long_message import LongMessageService
-from revvy.robot.robot_events import RobotEvent
+from revvy.robot.robot_events import ButtonSensorEvent, DistanceSensorEvent, RobotEvent, SensorEvent
 from revvy.scripting.runtime import ScriptEvent
 
 from revvy.utils.device_name import get_device_name
@@ -106,12 +106,7 @@ class RevvyBLE:
         log(f"initial battery state {initial_battery_state}")
         self._bas.characteristic("unified_battery_status").update_value(initial_battery_state)
 
-        self._robot_manager.on(
-            RobotEvent.SENSOR_VALUE_CHANGE,
-            lambda ref, sensor_reading: self._live.update_sensor(
-                sensor_reading.id, sensor_reading.raw_value
-            ),
-        )
+        self._robot_manager.on(RobotEvent.SENSOR_VALUE_CHANGE, self.sensor_value_change)
 
         # Only send up ORIENTATION changes, NO GYRO as we are not using that anywhere.
         self._robot_manager.on(
@@ -151,6 +146,23 @@ class RevvyBLE:
         self._robot_manager.on(RobotEvent.MOTOR_CHANGE, self.update_motor)
 
         self._robot_manager.on(RobotEvent.ERROR, self.report_errors_in_queue)
+
+    def sensor_value_change(self, ref, sensor_reading: SensorEvent):
+        """Convert the sensor reading to bytes and send it to the app."""
+
+        value_to_send = None
+        if isinstance(sensor_reading, DistanceSensorEvent):
+            value_to_send = (
+                round(sensor_reading.value).to_bytes(2, "little") + b"\x00\x00"
+            )
+
+        # NOTE: The app currently does not expose this value on the interface!
+        if isinstance(sensor_reading, ButtonSensorEvent):
+            value_to_send = b"\x01" if sensor_reading.value else b"\x00"
+
+        # Only send valid data.
+        if value_to_send is not None:
+            self._live.update_sensor(sensor_reading.port_id, value_to_send)
 
     def update_motor(self, ref, motor_angles: List[int]):
         """Currently unused, as we are not doing anything with it in the app."""

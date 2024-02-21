@@ -1,8 +1,10 @@
 """ Sensor value wrapper: manages throttling of sensor readings for the mobile app """
 
+from typing import Callable, Optional
 from revvy.robot.configurations import Sensors
 from revvy.robot.ports.common import PortInstance
-from revvy.robot.robot_events import SensorEventData
+from revvy.robot.ports.sensors.base import SensorPortHandler
+from revvy.robot.robot_events import ButtonSensorEvent, DistanceSensorEvent
 from revvy.utils.logger import get_logger
 from revvy.utils.observable import SmoothingObservable
 from revvy.utils.subscription import Disposable
@@ -14,7 +16,9 @@ MAX_ULTRASONIC_SENSOR_DISTANCE = 700  # cm
 log = get_logger("sensor states")
 
 
-def create_sensor_data_wrapper(sensor_port: PortInstance, sensor, on_data_update) -> Disposable:
+def create_sensor_data_wrapper(
+    sensor_port: PortInstance, sensor: SensorPortHandler, on_data_update: Callable
+) -> Optional[Disposable]:
     """
     Create wrappers that convert raw sensor value into a more
     directly usable one. This is a temporary solution to the problem.
@@ -44,7 +48,7 @@ def create_sensor_data_wrapper(sensor_port: PortInstance, sensor, on_data_update
 class UltrasonicSensorDataHandler(Disposable):
     """Ultrasonic value handler"""
 
-    def __init__(self, sensor_port: PortInstance, on_data_update):
+    def __init__(self, sensor_port: PortInstance, on_data_update: Callable):
         self._on_data_update = on_data_update
         self._sensor_port = sensor_port
 
@@ -62,24 +66,15 @@ class UltrasonicSensorDataHandler(Disposable):
         self._value.subscribe(self.notify)
 
     def notify(self, value):
-        """Need to convert the value back"""
-
-        # This should go down as an int, and the bluetooth should convert
-        # it into the byte format data structure.
-        byte_array_value = round(value).to_bytes(2, "little") + b"\x00\x00"
-        self._on_data_update(SensorEventData(self._sensor_port.id, byte_array_value))
+        """Sends DistanceSensorEvent"""
+        self._on_data_update(DistanceSensorEvent(self._sensor_port.id, value))
 
     def update(self, port: PortInstance):
-        """
-        Dig out the first two bites.
-        """
-
-        # This layer should NOT contain bit hacking.
-        value = int.from_bytes(port.driver.raw_value[0:2], "little")
+        value = port.driver.value
         # log(f'ultrasonic sensor value {value}')
-        if 0 < value < MAX_ULTRASONIC_SENSOR_DISTANCE:
-            self._value.set(value)
-        # self._value.set(int(port.raw_value))
+        if value is not None:
+            if 0 < value < MAX_ULTRASONIC_SENSOR_DISTANCE:
+                self._value.set(value)
 
     def dispose(self):
         self._value.unsubscribe(self.notify)
@@ -101,19 +96,15 @@ class ButtonSensorDataHandler(Disposable):
             # Simple last 3 window debounce.
             sum(last_values) / 2 > 0.5,
         )
+        self._value.subscribe(self.notify)
 
-        self._value.subscribe(self.on_data_update)
-
-    def on_data_update(self, value):
-        """
-        We need to convert it back to bits
-        to send it back to the bluetooth interface.
-        """
-        self._on_data_update(SensorEventData(self._sensor_port_id, b"\x01" if value else b"\x00"))
+    def notify(self, value: bool):
+        """Sends ButtonSensorEvent"""
+        self._on_data_update(ButtonSensorEvent(port_id=self._sensor_port_id, value=value))
 
     def update(self, port: PortInstance):
         """dig out the first bit"""
         self._value.set(port.driver.raw_value[0])
 
     def dispose(self):
-        self._value.unsubscribe(self.on_data_update)
+        self._value.unsubscribe(self.notify)
