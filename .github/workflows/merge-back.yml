@@ -5,6 +5,9 @@ on:
     branches:
       - release
 
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   merge:
     runs-on: ubuntu-latest
