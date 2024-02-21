@@ -8,7 +8,7 @@
 """
 
 from functools import partial
-from typing import Callable
+from typing import Callable, Optional
 from pybleno import Characteristic, Descriptor
 
 from revvy.utils.logger import get_logger
@@ -26,7 +26,7 @@ log = get_logger("BLE Queue")
 class QueueCharacteristic(Characteristic):
     """Makes sure the proper sending speed is ok by managing a queue of messages."""
 
-    def __init__(self, uuid: str, description: str):
+    def __init__(self, uuid: str, description: bytes):
         super().__init__(
             {
                 "uuid": uuid,
@@ -38,7 +38,7 @@ class QueueCharacteristic(Characteristic):
             }
         )
 
-        self._on_ready_callback: Callable = None
+        self._on_ready_callback: Optional[Callable] = None
         self._value = END_TOKEN
         self._queue = []
 

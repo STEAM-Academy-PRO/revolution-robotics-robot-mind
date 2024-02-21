@@ -219,6 +219,8 @@ class LongMessageHandler:
             return ValidationErrorLongMessageStatusInfo
 
         assert self._status == LongMessageHandler.STATUS_WRITE
+        assert self._current_message is not None
+
         return LongMessageStatusInfo(
             LongMessageStatus.UPLOAD,
             hexdigest2bytes(self._current_message.md5),
@@ -266,6 +268,9 @@ class LongMessageHandler:
         if self._status != LongMessageHandler.STATUS_WRITE:
             raise LongMessageError("init-transfer needs to be called before upload_message")
 
+        if self._current_message is None:
+            raise LongMessageError("No current message is in progress!")
+
         self._current_message.append_data(data)
         upload_progress_callback = self._upload_progress_callback
         if upload_progress_callback:
@@ -300,7 +305,7 @@ class LongMessageHandler:
             if upload_finished_callback:
                 upload_finished_callback(self._current_message)
 
-            if self._current_message.is_valid:
+            if self._current_message and self._current_message.is_valid:
                 self._long_message_storage.set_long_message(self._current_message)
                 if updated_callback:
                     updated_callback(self._current_message)
@@ -441,7 +446,7 @@ class LongMessageImplementation:
                 # calculate approximate chunk count
                 expected_size = 250000
                 chunk_size = len(message.data) / message.received_chunks
-                message.total_chunks = expected_size / chunk_size
+                message.total_chunks = int(expected_size / chunk_size)
                 self._progress.end = message.total_chunks
 
             if message.total_chunks != 0:
@@ -524,7 +529,8 @@ class LongMessageImplementation:
         elif message_type == LongMessageType.FRAMEWORK_DATA:
             # TODO: Eliminate calling robot status updates from the outside like this!
             self._robot_manager.robot.status.robot_status = RobotStatus.Updating
-            self._progress.show_indeterminate_loading_on_led_ring()
+            if self._progress:
+                self._progress.show_indeterminate_loading_on_led_ring()
 
             # We wait for the bluetooth to respond with the final message.
             # We need to open a new thread for that so it lets this thread finish.

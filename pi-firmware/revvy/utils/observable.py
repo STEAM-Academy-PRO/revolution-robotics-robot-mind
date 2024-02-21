@@ -9,7 +9,7 @@ import copy
 import threading
 from time import time
 
-from typing import Generic, TypeVar, Callable, List
+from typing import Generic, List, Optional, TypeVar, Callable, Union
 
 from revvy.utils.emitter import SimpleEventEmitter
 
@@ -20,9 +20,9 @@ VariableType = TypeVar("VariableType")
 class Observable(Generic[VariableType]):
     """Simple Observable Implementation"""
 
-    def __init__(self, value=None, throttle_interval=0):
+    def __init__(self, value: Optional[VariableType] = None, throttle_interval: float = 0):
         self._on_value_changed = SimpleEventEmitter()
-        self._data: VariableType = value
+        self._data: Optional[VariableType] = value
 
         # Throttling
         self._throttle_interval = throttle_interval
@@ -30,13 +30,18 @@ class Observable(Generic[VariableType]):
         self._update_pending = False
 
     def subscribe(self, observer: Callable):
+        """Handles multiple observers. No dupe check!"""
         self._on_value_changed.add(observer)
 
     def unsubscribe(self, observer: Callable):
+        """Removes an observer."""
         self._on_value_changed.remove(observer)
 
     def notify(self):
-        """If not throttling, observers are notified instantly. If throttling is enabled, events are emitted at most once per period."""
+        """
+        If not throttling, observers are notified instantly.
+        If throttling is enabled, events are emitted at most once per period.
+        """
         if self._throttle_interval == 0:
             self._on_value_changed.trigger(self._data)
         else:
@@ -57,10 +62,14 @@ class Observable(Generic[VariableType]):
                     timer_thread.start()
 
     def _check_pending_update(self):
+        """
+        If the observable is throttled, this function is timed to run when the throttle period is over.
+        """
         if self._update_pending:
             self.notify()
 
     def set(self, new_data: VariableType):
+        """Works for strings, ints, floats, lists."""
         if new_data != self._data:
             # For lists or complex objects, make a deep copy
             if isinstance(new_data, list):
@@ -73,7 +82,7 @@ class Observable(Generic[VariableType]):
         return self._data
 
 
-class SmoothingObservable(Observable):
+class SmoothingObservable(Observable[Union[int, float]]):
     """
     When dealing with noisy data, we want to smooth it out.
     e.g. when measuring something like a battery voltage, we want to
@@ -86,21 +95,21 @@ class SmoothingObservable(Observable):
 
     def __init__(
         self,
-        value,
-        throttle_interval=0,
-        window_size=10,
-        precision=1,
-        smoothening_function: Callable = None,
+        value: Union[int, float],
+        throttle_interval: float = 0,
+        window_size: int = 10,
+        precision: float = 1,
+        smoothening_function: Optional[Callable] = None,
     ):
         super().__init__(value, throttle_interval)
-        self._data_history = [] if not value else [value]
+        self._data_history: List[Union[int, float]] = [] if not value else [value]
         self._window_size = window_size
         self._precision = precision
         self._data = value
         self._last_data = value
         self._smoothening_function = smoothening_function
 
-    def set(self, new_data: VariableType):
+    def set(self, new_data: Union[int, float]):
         self._data_history.append(new_data)
 
         # If the length is larger than the window, ditch first element.
