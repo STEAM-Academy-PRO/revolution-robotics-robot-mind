@@ -5,11 +5,10 @@ on:
     branches:
       - release
 
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 jobs:
   merge:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
