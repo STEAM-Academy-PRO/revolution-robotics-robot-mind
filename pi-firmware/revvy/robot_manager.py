@@ -261,13 +261,15 @@ class RobotManager:
         Does the bindings of ports, variables, sensors and motors
         background scripts and button scripts, starts the Remote.
         """
+
+        log = get_logger("ApplyNewConfiguration")
         self._config = config
 
         self.reset_configuration()
 
         self._session_id += 1
         self.trigger(RobotEvent.SESSION_ID_CHANGE, self._session_id)
-        self._log(f"New Configuration with session ID: {self._session_id}")
+        log(f"New Configuration with session ID: {self._session_id}")
 
         self._robot.script_variables.reset()
 
@@ -304,7 +306,7 @@ class RobotManager:
 
         # Re-configure sensors, subscribe to their data's changes.
         for sensor_port in self._robot.sensors:
-            self._log(f"Configuring sensor {sensor_port.id} {config.sensors[sensor_port.id]}")
+            log(f"Configuring sensor {sensor_port.id} {config.sensors[sensor_port.id]}")
             # Code smell: Instead of creating a new sensor object, we just
             # configure one. I'd prefer re-initializing the Sensor object.
             # not sure if it ditches the references.
@@ -353,6 +355,7 @@ class RobotManager:
         # Set up all the bound buttons to run the stored scripts.
         for button, script in enumerate(config.controller.buttons):
             if script:
+                log(f"Binding button {button} to script {script.name} with source: \n\n{script.source}\n\n", LogLevel.DEBUG)
                 script_handle = self._scripts.add_script(script, config)
                 script_handle.assign("list_slots", scriptvars)
                 self._remote_controller.link_button_to_runner(button, script_handle)

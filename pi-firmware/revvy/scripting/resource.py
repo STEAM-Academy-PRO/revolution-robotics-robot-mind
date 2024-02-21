@@ -72,7 +72,7 @@ class ResourceHandle:
 class Resource:
     def __init__(self, name="Resource"):
         self._lock = Lock()
-        self._log = get_logger(["Resource", name], LogLevel.DEBUG)
+        self._log = get_logger(name, LogLevel.DEBUG)
         self._current_priority = -1
         self._active_handle = null_handle
 

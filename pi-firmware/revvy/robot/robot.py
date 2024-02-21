@@ -106,8 +106,8 @@ class Robot(RobotInterface):
             "led_ring": Resource("RingLed"),
             "drivetrain": Resource("DriveTrain"),
             "sound": Resource("Sound"),
-            **{f"motor_{port.id}": Resource(f"Motor {port.id}") for port in self.motors},
-            **{f"sensor_{port.id}": Resource(f"Sensor {port.id}") for port in self.sensors},
+            **{f"motor_{port.id}": Resource(["Motor",str(port.id)]) for port in self.motors},
+            **{f"sensor_{port.id}": Resource(["Sensor",str(port.id)]) for port in self.sensors},
         }
 
     @property

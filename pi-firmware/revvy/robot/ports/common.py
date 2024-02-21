@@ -90,7 +90,7 @@ class PortHandler(Generic[DriverType]):
         self._types = supported
         self._port_count = amount
         self._ports = [
-            PortInstance(i, f"{name}Port", interface, default_driver, supported, set_port_type)
+            PortInstance(i, name, interface, default_driver, supported, set_port_type)
             for i in range(1, amount + 1)
         ]
 
@@ -146,7 +146,7 @@ class PortInstance(Generic[DriverType]):
         :param supported: A dictionary of supported drivers
         :param set_port_type: A function that sets the port type on the MCU
         """
-        self.log = get_logger(f"{name} {port_idx}")
+        self.log = get_logger(['Port', name, str(port_idx)])
         self._port_idx = port_idx
         self._interface = interface
         self._config_changed_callbacks = SimpleEventEmitter()
