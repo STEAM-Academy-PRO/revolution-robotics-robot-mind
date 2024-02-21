@@ -4,8 +4,16 @@ How to release a new package
 Release a Pi firmware update
 ----------------------------
 
+![Screenshot of the GitHub GUI](assets/release.png)
+
 - Be absolutely sure everything works
 - Create a new [**pre-release**](https://github.com/STEAM-Academy-PRO/revolution-robotics-robot-mind/releases/new)
+  - Make sure the target branch is `release`!
+  - Click `Choose a tag`, give a name to the tag (usually `v<Version>` where `<Version>` is the number of commits), then click `Create new tag`.
+  - Click `Generate release notes`
+  - Fill in the title, add additional information to the release description.
+  - Check the `Set as a pre-release` box
+  - Press `Publish release`
 - The CI's [release workflow](ci.md#release) will build artifacts, add them to the release and publish the release
 - Wait for the build to succeed and for the artifacts to appear in the [releases](https://github.com/STEAM-Academy-PRO/revolution-robotics-robot-mind/releases)
 
