@@ -1,0 +1,15 @@
+[tool.pyright]
+exclude = [
+    "dev_tools/",
+    "tests/",
+    "tools/",
+    "venv/"
+]
+
+analyzeUnannotatedFunctions = false
+reportUnknownParameterType = false
+reportOptionalOperand = false
+reportOperatorIssue = false
+
+[tool.black]
+line-length = 100

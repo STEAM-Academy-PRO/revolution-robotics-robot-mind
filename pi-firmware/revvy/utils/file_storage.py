@@ -1,4 +1,3 @@
-
 import os
 import json
 from json import JSONDecodeError
@@ -20,9 +19,14 @@ class IntegrityError(StorageError):
 
 
 class StorageInterface:
-    def read_metadata(self, filename): raise NotImplementedError
-    def write(self, filename, data, metadata=None, md5=None): raise NotImplementedError
-    def read(self, filename): raise NotImplementedError
+    def read_metadata(self, filename):
+        raise NotImplementedError
+
+    def write(self, filename, data, metadata=None, md5=None):
+        raise NotImplementedError
+
+    def read(self, filename):
+        raise NotImplementedError
 
 
 class MemoryStorageItem(NamedTuple):
@@ -40,11 +44,7 @@ class MemoryStorage(StorageInterface):
             raise StorageElementNotFoundError
 
         file_entry = self._entries[name]
-        return {
-            **file_entry.meta,
-            'md5':    file_entry.md5,
-            'length': len(file_entry.data)
-        }
+        return {**file_entry.meta, "md5": file_entry.md5, "length": len(file_entry.data)}
 
     def write(self, name, data, metadata=None, md5=None):
         if md5 is None:
@@ -59,8 +59,8 @@ class MemoryStorage(StorageInterface):
         metadata = self.read_metadata(name)
         data = self._entries[name].data
 
-        if bytestr_hash(data) != metadata['md5']:
-            raise IntegrityError('Checksum')
+        if bytestr_hash(data) != metadata["md5"]:
+            raise IntegrityError("Checksum")
         return data
 
 
@@ -110,7 +110,9 @@ class FileStorage(StorageInterface):
         metadata["md5"] = md5
         metadata["length"] = len(data)
 
-        with open(self._storage_file(filename), "wb") as data_file, open(self._meta_file(filename), "w") as meta_file:
+        with open(self._storage_file(filename), "wb") as data_file, open(
+            self._meta_file(filename), "w"
+        ) as meta_file:
             data_file.write(data)
             json.dump(metadata, meta_file)
 
@@ -121,15 +123,14 @@ class FileStorage(StorageInterface):
             with open(data_file_path, "rb") as data_file, open(meta_file_path, "r") as meta_file:
                 metadata = json.load(meta_file)
                 data = data_file.read()
-                if len(data) != metadata['length']:
-                    raise IntegrityError('Length')
-                if bytestr_hash(data) != metadata['md5']:
-                    raise IntegrityError('Checksum')
+                if len(data) != metadata["length"]:
+                    raise IntegrityError("Length")
+                if bytestr_hash(data) != metadata["md5"]:
+                    raise IntegrityError("Checksum")
                 return data
 
         except IOError as e:
             raise StorageElementNotFoundError from e
 
         except JSONDecodeError as e:
-            raise IntegrityError('Metadata') from e
-
+            raise IntegrityError("Metadata") from e

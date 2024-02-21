@@ -1,4 +1,3 @@
-
 import unittest
 from mock.mock import Mock, patch, mock_open
 
@@ -28,15 +27,17 @@ class TestRetry(unittest.TestCase):
 
 
 class TestGetSerial(unittest.TestCase):
-    @patch('revvy.utils.functions.open', new_callable=mock_open, read_data='Serial 1233456789012345')
+    @patch(
+        "revvy.utils.functions.open", new_callable=mock_open, read_data="Serial 1233456789012345"
+    )
     def test_valid_cpuid_is_returned(self, mock_file):
         serial = get_serial()
         self.assertEqual(mock_file.call_count, 1)
-        self.assertEqual('/proc/cpuinfo', mock_file.call_args[0][0])
-        self.assertEqual(serial, '1233456789012345')
+        self.assertEqual("/proc/cpuinfo", mock_file.call_args[0][0])
+        self.assertEqual(serial, "1233456789012345")
 
-    @patch('revvy.utils.functions.open', new_callable=mock_open)
+    @patch("revvy.utils.functions.open", new_callable=mock_open)
     def test_error_is_returned_if_open_raises(self, mock_file):
         mock_file.side_effect = IOError
         serial = get_serial()
-        self.assertEqual(serial, 'ERROR000000000')
+        self.assertEqual(serial, "ERROR000000000")

@@ -7,7 +7,8 @@ from revvy.utils.awaiter import Awaiter, AwaiterState, Awaiter
 
 
 class MotorConstants:
-    """ A bunch of constants that blockly can pass to motor APIs """
+    """A bunch of constants that blockly can pass to motor APIs"""
+
     DIRECTION_FWD = 0
     DIRECTION_BACK = 1
     DIRECTION_LEFT = 2
@@ -62,7 +63,9 @@ class MotorPortDriver(PortDriver):
         pass
 
     @abstractmethod
-    def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute') -> Awaiter:
+    def set_position(
+        self, position: int, speed_limit=None, power_limit=None, pos_type="absolute"
+    ) -> Awaiter:
         pass
 
     @abstractmethod
@@ -83,12 +86,19 @@ class MotorPortHandler(PortHandler[MotorPortDriver]):
         port_amount = interface.get_motor_port_amount()
         port_types = interface.get_motor_port_types()
 
-        super().__init__("Motor", interface, DriverConfig(driver = NullMotor, config = {}), port_amount, port_types, interface.set_motor_port_type)
+        super().__init__(
+            "Motor",
+            interface,
+            DriverConfig(driver=NullMotor, config={}),
+            port_amount,
+            port_types,
+            interface.set_motor_port_type,
+        )
 
 
 class NullMotor(MotorPortDriver):
     def __init__(self, port: PortInstance, config):
-        super().__init__(port, 'NotConfigured')
+        super().__init__(port, "NotConfigured")
 
     @property
     def status(self) -> MotorStatus:
@@ -109,7 +119,9 @@ class NullMotor(MotorPortDriver):
     def set_speed(self, speed, power_limit=None):
         pass
 
-    def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute') -> Awaiter:
+    def set_position(
+        self, position: int, speed_limit=None, power_limit=None, pos_type="absolute"
+    ) -> Awaiter:
         return Awaiter.from_state(AwaiterState.FINISHED)
 
     def set_power(self, power):

@@ -1,35 +1,34 @@
-
 from revvy.utils.logger import get_logger
 
 
-log=get_logger('ColorSensorFunctions')
+log = get_logger("ColorSensorFunctions")
+
 
 class ColorData:
     def __init__(self, r, g, b, h, s, v, gray, name):
-      self.red = r
-      self.green = g
-      self.blue = b
-      self.hue = h
-      self.saturation = s
-      self.value = v
-      self.gray = gray
-      self.name = name
+        self.red = r
+        self.green = g
+        self.blue = b
+        self.hue = h
+        self.saturation = s
+        self.value = v
+        self.gray = gray
+        self.name = name
 
 
-ColorDataUndefined = ColorData(r=0, g=0, b=0,
-    h=0, s=0, v=0, gray=0, name='undefined')
+ColorDataUndefined = ColorData(r=0, g=0, b=0, h=0, s=0, v=0, gray=0, name="undefined")
 
 
 color_name_map = {
-    'red'     : 0xff0000,
-    'yellow'  : 0xffff00,
-    'green'   : 0x00ff00,
-    'cyan'    : 0x00ffff,
-    'blue'    : 0x0000ff,
-    'magenta' : 0xff00ff,
-    'black'   : 0x000000,
-    'gray'    : 0x7f7f7f,
-    'white'   : 0xffffff
+    "red": 0xFF0000,
+    "yellow": 0xFFFF00,
+    "green": 0x00FF00,
+    "cyan": 0x00FFFF,
+    "blue": 0x0000FF,
+    "magenta": 0xFF00FF,
+    "black": 0x000000,
+    "gray": 0x7F7F7F,
+    "white": 0xFFFFFF,
 }
 
 
@@ -48,20 +47,20 @@ def hsv_to_color_name(hue, saturation, value):
     # If not saturated we go for one of the gray colors
     if saturation < 14:
         if value <= 50:
-            return 'black'
+            return "black"
         if value <= 75:
-            return 'gray'
-        return 'white'
+            return "gray"
+        return "white"
 
     # If color is saturated, but value is close to black, select black,
     # without selecting from one of gray colors
     if value < 30:
-        return 'black'
+        return "black"
 
     # These 6 color names are evenly distrubuted across a color circle
     # 360 / 6 - gives 60 degrees range for each of the color
     # 100% red is 0 as well as 360, 100% yellow is 60, green is 120, etc
-    names = ['red', 'yellow', 'green', 'cyan', 'blue', 'magenta']
+    names = ["red", "yellow", "green", "cyan", "blue", "magenta"]
     num_steps = len(names)
     step = int(360 / num_steps)
 
@@ -149,19 +148,19 @@ def detect_line_background_colors(sensors_data):
     return line, background, line_name, background_name, i, tuple(gray), tuple(name)
 
 
-def search_lr(colors: tuple, color='', side=''):
+def search_lr(colors: tuple, color="", side=""):
     """this function should search color where we change direction
     when founded we stop current line follower and go to the next step"""
-    if color == '' or side == '':
+    if color == "" or side == "":
         log("color or side aren't sat")
 
         return False
     forward, left, right, center = colors
-    if side == 'left':
+    if side == "left":
         if left == color:
             log(f"\n\nchannel 2 is {color} at {side}\n\n")
             return True
-    elif side == 'right':
+    elif side == "right":
         if right == color:
             log(f"\n\nchannel 3 is {color} at {side}\n\n")
             return True

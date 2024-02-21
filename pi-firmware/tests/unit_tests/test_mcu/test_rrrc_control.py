@@ -1,4 +1,3 @@
-
 import unittest
 
 from revvy.mcu.commands import *
@@ -9,21 +8,20 @@ class TestParseStringList(unittest.TestCase):
     # TODO: test and handle cases where length byte and string length don't match up
 
     def test_empty_string_gives_empty_dict(self):
-        data = parse_string_list(b'')
+        data = parse_string_list(b"")
         self.assertEqual(data, {})
 
     def test_string_is_returned_as_dict_key(self):
-        data = parse_string_list(b'\x00\x03foo')
-        self.assertEqual(data, {'foo': 0})
+        data = parse_string_list(b"\x00\x03foo")
+        self.assertEqual(data, {"foo": 0})
 
     def test_multiple_strings_result_in_multiple_pairs_of_data(self):
-        data = parse_string_list(b'\x00\x03foo\x01\x03bar')
-        self.assertEqual(data, {'foo': 0, 'bar': 1})
+        data = parse_string_list(b"\x00\x03foo\x01\x03bar")
+        self.assertEqual(data, {"foo": 0, "bar": 1})
 
 
 class TestControlCommands(unittest.TestCase):
     def test_revvy_command_instances(self):
-        # noinspection PyTypeChecker
         control = RevvyControl(None)
 
         self.assertIs(PingCommand, type(control.ping))
@@ -57,7 +55,6 @@ class TestControlCommands(unittest.TestCase):
         self.assertIs(McuStatusUpdater_ReadCommand, type(control.status_updater_read))
 
     def test_revvy_command_ids(self):
-        # noinspection PyTypeChecker
         control = RevvyControl(None)
 
         self.assertEqual(0, control.ping.command_id)
@@ -91,7 +88,6 @@ class TestControlCommands(unittest.TestCase):
         self.assertEqual(0x3C, control.status_updater_read.command_id)
 
     def test_bootloader_command_instances(self):
-        # noinspection PyTypeChecker
         control = BootloaderControl(None)
 
         self.assertIs(ReadOperationModeCommand, type(control.read_operation_mode))
@@ -101,7 +97,6 @@ class TestControlCommands(unittest.TestCase):
         self.assertIs(FinalizeUpdateCommand, type(control.finalize_update))
 
     def test_bootloader_command_ids(self):
-        # noinspection PyTypeChecker
         control = BootloaderControl(None)
 
         self.assertEqual(0x06, control.read_operation_mode.command_id)

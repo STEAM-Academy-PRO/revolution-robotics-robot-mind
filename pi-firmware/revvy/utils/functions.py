@@ -1,4 +1,3 @@
-
 import hashlib
 import json
 import traceback
@@ -45,15 +44,14 @@ def get_serial():
     """Extract serial from cpuinfo file"""
 
     cpu_serial = "0000000000000000"
-    # noinspection PyBroadException
     try:
-        with open('/proc/cpuinfo', 'r') as f:
+        with open("/proc/cpuinfo", "r") as f:
             for line in f:
-                if line.startswith('Serial'):
-                    cpu_serial = line.rstrip()[-16:].lstrip('0')
+                if line.startswith("Serial"):
+                    cpu_serial = line.rstrip()[-16:].lstrip("0")
                     break
     except Exception:
-        print('Failed to read cpuid')
+        print("Failed to read cpuid")
         print(traceback.format_exc())
         cpu_serial = "ERROR000000000"
 
@@ -64,7 +62,6 @@ def retry(fn, retries=5, error_handler=None):
     """Retry the given function a number of times, or until it returns True or None"""
     retry_num = 0
     while retry_num < retries:
-        # noinspection PyBroadException
         try:
             status = fn()
             if status is None:
@@ -97,7 +94,7 @@ def split(data, chunk_size):
     >>> list(split(b'apple', 3))
     [b'app', b'le']
     """
-    return (data[i:i + chunk_size] for i in range(0, len(data), chunk_size))
+    return (data[i : i + chunk_size] for i in range(0, len(data), chunk_size))
 
 
 def hex2rgb(hex_str):
@@ -109,7 +106,7 @@ def hex2rgb(hex_str):
     >>> hex2rgb("#0000FF")
     255
     """
-    rgb = hex_str.lstrip('#')
+    rgb = hex_str.lstrip("#")
     assert len(rgb) == 6, "RGB color must be 6 characters long"
     return int(rgb, 16)
 
@@ -155,7 +152,6 @@ def bits_to_bool_list(byte_list):
     return [is_bit_set(b, bit) for b in byte_list for bit in range(8)]
 
 
-# noinspection SpellCheckingInspection
 def bytestr_hash(byte_str) -> str:
     hash_fn = hashlib.md5()
     hash_fn.update(byte_str)
@@ -181,10 +177,11 @@ def str_to_func(code, script_id=None):
     >>> func(input='something')
     Called with something
     """
-    def wrapper(**kwargs):
-        kwargs['script_id'] = script_id
 
-        list_slots = kwargs.get('list_slots', [])
+    def wrapper(**kwargs):
+        kwargs["script_id"] = script_id
+
+        list_slots = kwargs.get("list_slots", [])
 
         def ReportVariableChanged(name, value, scr_id=script_id, ls=list_slots):
             for variable_slot in ls:
@@ -199,7 +196,7 @@ def str_to_func(code, script_id=None):
             # track them on the phone's UI.
             # print(f'ReportVariableChanged: variable "{name}" not found')
 
-        kwargs['ReportVariableChanged'] = ReportVariableChanged
+        kwargs["ReportVariableChanged"] = ReportVariableChanged
 
         exec(code, kwargs)
 

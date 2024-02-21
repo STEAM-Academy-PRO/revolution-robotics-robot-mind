@@ -1,4 +1,3 @@
-
 import unittest
 from unittest.mock import call
 
@@ -6,14 +5,19 @@ from mock import Mock
 from revvy.robot.configurations import DriverConfig
 
 from revvy.robot.ports.common import PortInstance
-from revvy.robot.ports.motors.base import MotorConstants, MotorPortDriver, MotorPortHandler, MotorStatus
+from revvy.robot.ports.motors.base import (
+    MotorConstants,
+    MotorPortDriver,
+    MotorPortHandler,
+    MotorStatus,
+)
 from revvy.robot.ports.motors.dc_motor import DcMotorController
 from revvy.utils.awaiter import Awaiter, AwaiterState
 from revvy.utils.logger import get_logger
 
 
 class TestDriver(MotorPortDriver):
-    def __init__(self, port: 'PortInstance', _):
+    def __init__(self, port: "PortInstance", _):
         super(TestDriver, self).__init__(port, "Test")
 
     @property
@@ -35,7 +39,9 @@ class TestDriver(MotorPortDriver):
     def set_speed(self, speed, power_limit=None):
         pass
 
-    def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute') -> Awaiter:
+    def set_position(
+        self, position: int, speed_limit=None, power_limit=None, pos_type="absolute"
+    ) -> Awaiter:
         return Awaiter.from_state(AwaiterState.FINISHED)
 
     def set_power(self, power):
@@ -88,19 +94,21 @@ class TestMotorPortHandler(unittest.TestCase):
         self.assertIs(PortInstance, type(ports[1]))
         self.assertEqual(6, mock_control.set_motor_port_type.call_count)
 
-        self.assertRaises(KeyError, lambda: ports[1].configure(DriverConfig(driver = TestDriver, config = {})))
+        self.assertRaises(
+            KeyError, lambda: ports[1].configure(DriverConfig(driver=TestDriver, config={}))
+        )
         self.assertEqual(6, mock_control.set_motor_port_type.call_count)
 
 
 class TestDcMotorDriver(unittest.TestCase):
     config = {
-        'speed_controller':    [1 / 25, 0.3, 0, -100, 100],
-        'position_controller': [10, 0, 0, -900, 900],
-        'acceleration_limits': [10, 10],
-        'encoder_resolution':  12,
-        'gear_ratio': 64.8,
-        'max_current': 1.0,
-        'linearity': {0: 0, 1: 1}
+        "speed_controller": [1 / 25, 0.3, 0, -100, 100],
+        "position_controller": [10, 0, 0, -900, 900],
+        "acceleration_limits": [10, 10],
+        "encoder_resolution": 12,
+        "gear_ratio": 64.8,
+        "max_current": 1.0,
+        "linearity": {0: 0, 1: 1},
     }
 
     @staticmethod
@@ -148,15 +156,24 @@ class TestDcMotorDriver(unittest.TestCase):
         driver.pos = 15
         driver.set_position(10)
 
-        self.assertEqual(call((42, 2, 10, 0, 0, 0)),  # move to 10
-                         port.interface.set_motor_port_control_value.call_args_list[0])
+        self.assertEqual(
+            call((42, 2, 10, 0, 0, 0)),  # move to 10
+            port.interface.set_motor_port_control_value.call_args_list[0],
+        )
         # cancellation of movement
-        self.assertEqual(call((18, 0, 0)),
-                         port.interface.set_motor_port_control_value.call_args_list[1])
-        self.assertEqual(call((42, 2, 5, 0, 0, 0)),  # move to 5
-                         port.interface.set_motor_port_control_value.call_args_list[2])
+        self.assertEqual(
+            call((18, 0, 0)), port.interface.set_motor_port_control_value.call_args_list[1]
+        )
+        self.assertEqual(
+            call((42, 2, 5, 0, 0, 0)),  # move to 5
+            port.interface.set_motor_port_control_value.call_args_list[2],
+        )
         # cancellation of movement
-        self.assertEqual(call((18, 0, 0)),  # cancel
-                         port.interface.set_motor_port_control_value.call_args_list[3])
-        self.assertEqual(call((42, 2, 251, 255, 255, 255)),  # move to -5
-                         port.interface.set_motor_port_control_value.call_args_list[4])
+        self.assertEqual(
+            call((18, 0, 0)),  # cancel
+            port.interface.set_motor_port_control_value.call_args_list[3],
+        )
+        self.assertEqual(
+            call((42, 2, 251, 255, 255, 255)),  # move to -5
+            port.interface.set_motor_port_control_value.call_args_list[4],
+        )

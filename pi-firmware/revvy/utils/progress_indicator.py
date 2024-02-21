@@ -13,7 +13,9 @@ def _progress(current, total, n_leds):
 
     total_progress = map_values(current, 0, total, 0, n_leds)
     full_leds = math.floor(total_progress)
-    minor_progress = (math.floor(map_values(total_progress - full_leds, 0, 1, 0, n_leds + 1)) + full_leds) % n_leds
+    minor_progress = (
+        math.floor(map_values(total_progress - full_leds, 0, 1, 0, n_leds + 1)) + full_leds
+    ) % n_leds
 
     return full_leds, minor_progress
 

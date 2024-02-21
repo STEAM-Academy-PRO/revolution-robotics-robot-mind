@@ -1,4 +1,3 @@
-
 import unittest
 from threading import Event
 
@@ -16,7 +15,6 @@ class mockobj:
     pass
 
 
-# noinspection PyMissingConstructor
 class MockSound(SoundControlBase):
     def __init__(self):
         pass
@@ -27,12 +25,11 @@ def create_robot_mock():
     robot_mock = mockobj()
 
     robot_mock.resources = {
-        'led_ring':   Resource('RingLed'),
-        'drivetrain': Resource('DriveTrain'),
-        'sound':      Resource('Sound'),
-
-        **{f'motor_{port}': Resource(f'Motor {port}') for port in range(1, 7)},
-        **{f'sensor_{port}': Resource(f'Sensor {port}') for port in range(1, 5)}
+        "led_ring": Resource("RingLed"),
+        "drivetrain": Resource("DriveTrain"),
+        "sound": Resource("Sound"),
+        **{f"motor_{port}": Resource(f"Motor {port}") for port in range(1, 7)},
+        **{f"sensor_{port}": Resource(f"Sensor {port}") for port in range(1, 5)},
     }
 
     robot_mock.time = lambda: 0
@@ -50,7 +47,6 @@ def create_robot_mock():
     robot_mock.config.sensors.__iter__ = lambda: []
     robot_mock.config.sensors.names = mockobj()
     robot_mock.config.sensors.names.__iter__ = lambda: []
-
 
     robot_mock.drivetrain = mockobj()
     robot_mock.drivetrain.turn = lambda *args, **kwargs: None
@@ -92,10 +88,12 @@ def create_robot_mock():
 
 #     return robot_mock
 
+
 class RobotInterfaceMock(RobotInterface):
     def __init__(self, *args) -> None:
-        print('HOW did I not get here?? -------------------------------------')
+        print("HOW did I not get here?? -------------------------------------")
         pass
+
     def release_resources(self, *args):
         pass
 
@@ -107,15 +105,24 @@ class TestRuntime(unittest.TestCase):
         mock = Mock()
 
         sm = ScriptManager(robot_mock)
-        sm.assign('mock', mock)
-        sm.assign('test', self)
-        sm.assign('RobotInterface', RobotInterfaceMock)
-        sm.add_script(ScriptDescriptor('test', str_to_func('''
+        sm.assign("mock", mock)
+        sm.assign("test", self)
+        sm.assign("RobotInterface", RobotInterfaceMock)
+        sm.add_script(
+            ScriptDescriptor(
+                "test",
+                str_to_func(
+                    """
 test.assertIsInstance(robot, RobotInterface)
-mock()'''), 0), robot_wrapper_class=RobotInterfaceMock)
+mock()"""
+                ),
+                0,
+            ),
+            robot_wrapper_class=RobotInterfaceMock,
+        )
 
-        sm['test'].start()
-        sm['test'].cleanup()
+        sm["test"].start()
+        sm["test"].cleanup()
 
         self.assertEqual(1, mock.call_count)
 
@@ -125,18 +132,18 @@ mock()'''), 0), robot_wrapper_class=RobotInterfaceMock)
         mock = Mock()
 
         sm = ScriptManager(robot_mock)
-        sm.assign('mock', mock)
-        sm.assign('test', self)
-        sm.assign('RobotInterface', RobotInterfaceMock)
+        sm.assign("mock", mock)
+        sm.assign("test", self)
+        sm.assign("RobotInterface", RobotInterfaceMock)
 
         def _script(test, robot, mock, **kwargs):
             test.assertIsInstance(robot, RobotInterfaceMock)
             mock()
 
-        sm.add_script(ScriptDescriptor('test', _script, 0), robot_wrapper_class=RobotInterfaceMock)
+        sm.add_script(ScriptDescriptor("test", _script, 0), robot_wrapper_class=RobotInterfaceMock)
 
-        sm['test'].start()
-        sm['test'].cleanup()
+        sm["test"].start()
+        sm["test"].cleanup()
 
         self.assertEqual(1, mock.call_count)
 
@@ -146,15 +153,24 @@ mock()'''), 0), robot_wrapper_class=RobotInterfaceMock)
         mock = Mock()
 
         sm = ScriptManager(robot_mock)
-        sm.add_script(ScriptDescriptor('test', str_to_func('''
+        sm.add_script(
+            ScriptDescriptor(
+                "test",
+                str_to_func(
+                    """
 test.assertIsInstance(robot, RobotInterface)
-mock()'''), 0), robot_wrapper_class=RobotInterfaceMock)
-        sm.assign('mock', mock)
-        sm.assign('test', self)
-        sm.assign('RobotInterface', RobotInterfaceMock)
+mock()"""
+                ),
+                0,
+            ),
+            robot_wrapper_class=RobotInterfaceMock,
+        )
+        sm.assign("mock", mock)
+        sm.assign("test", self)
+        sm.assign("RobotInterface", RobotInterfaceMock)
 
-        sm['test'].start()
-        sm['test'].cleanup()
+        sm["test"].start()
+        sm["test"].cleanup()
 
         self.assertEqual(1, mock.call_count)
 
@@ -165,15 +181,18 @@ mock()'''), 0), robot_wrapper_class=RobotInterfaceMock)
         config = Mock()
 
         sm = ScriptManager(robot_mock)
-        sm.add_script(ScriptDescriptor('test', str_to_func('mock()'), 0), robot_wrapper_class=RobotInterfaceMock)
+        sm.add_script(
+            ScriptDescriptor("test", str_to_func("mock()"), 0),
+            robot_wrapper_class=RobotInterfaceMock,
+        )
 
-        script = sm['test']
+        script = sm["test"]
 
         script.start(mock=mock)
         script.stop().wait(2)
         self.assertEqual(1, mock.call_count)
 
-        with self.subTest('Input is not remmebered'):
+        with self.subTest("Input is not remmebered"):
             script.start()  # mock shall not be called again
             script.stop().wait(2)
             self.assertEqual(1, mock.call_count)
@@ -187,29 +206,41 @@ mock()'''), 0), robot_wrapper_class=RobotInterfaceMock)
         stopped_mock = Mock()
 
         sm = ScriptManager(robot_mock)
-        sm.add_script(ScriptDescriptor('test', str_to_func('''
+        sm.add_script(
+            ScriptDescriptor(
+                "test",
+                str_to_func(
+                    """
 while not ctx.stop_requested:
     pass
-mock()'''), 0), robot_wrapper_class=RobotInterfaceMock)
-        sm.assign('mock', mock)
+mock()"""
+                ),
+                0,
+            ),
+            robot_wrapper_class=RobotInterfaceMock,
+        )
+        sm.assign("mock", mock)
 
         # first call, make sure the script runs
-        sm['test'].on_stopped(stopped_mock)
-        sm['test'].start()
+        sm["test"].on_stopped(stopped_mock)
+        sm["test"].start()
 
         # add second script
-        sm.add_script(ScriptDescriptor('test', str_to_func('mock()'), 0), robot_wrapper_class=RobotInterfaceMock)  # stops the first script
+        sm.add_script(
+            ScriptDescriptor("test", str_to_func("mock()"), 0),
+            robot_wrapper_class=RobotInterfaceMock,
+        )  # stops the first script
 
         # check that the first script ran and was stopped
         self.assertEqual(1, mock.call_count)
         self.assertEqual(1, stopped_mock.call_count)
 
         # run and check second script
-        sm['test'].on_stopped(stopped_mock)
-        sm['test'].start()
+        sm["test"].on_stopped(stopped_mock)
+        sm["test"].start()
         # test that stop also stops a script
-        sm['test'].stop()
-        sm['test'].cleanup()
+        sm["test"].stop()
+        sm["test"].cleanup()
 
         self.assertEqual(2, mock.call_count)
         self.assertEqual(2, stopped_mock.call_count)
@@ -220,20 +251,38 @@ mock()'''), 0), robot_wrapper_class=RobotInterfaceMock)
         stopped_mock = Mock()
 
         sm = ScriptManager(robot_mock)
-        sm.add_script(ScriptDescriptor('test', str_to_func('''
+        sm.add_script(
+            ScriptDescriptor(
+                "test",
+                str_to_func(
+                    """
 while not ctx.stop_requested:
     pass
-'''), 0), robot_wrapper_class=RobotInterfaceMock)
-        sm.add_script(ScriptDescriptor('test2', str_to_func('''
+"""
+                ),
+                0,
+            ),
+            robot_wrapper_class=RobotInterfaceMock,
+        )
+        sm.add_script(
+            ScriptDescriptor(
+                "test2",
+                str_to_func(
+                    """
 while not ctx.stop_requested:
     pass
-'''), 0), robot_wrapper_class=RobotInterfaceMock)
+"""
+                ),
+                0,
+            ),
+            robot_wrapper_class=RobotInterfaceMock,
+        )
 
         # first call, make sure the script runs
-        sm['test'].on_stopped(stopped_mock)
-        sm['test2'].on_stopped(stopped_mock)
-        sm['test'].start()
-        sm['test2'].start()
+        sm["test"].on_stopped(stopped_mock)
+        sm["test2"].on_stopped(stopped_mock)
+        sm["test"].start()
+        sm["test2"].start()
 
         sm.reset()
 
@@ -246,17 +295,26 @@ while not ctx.stop_requested:
         mock = Mock()
 
         sm = ScriptManager(robot_mock)
-        sm.add_script(ScriptDescriptor('test', str_to_func('''
+        sm.add_script(
+            ScriptDescriptor(
+                "test",
+                str_to_func(
+                    """
 while not ctx.stop_requested:
     mock()
     Control.terminate()
     mock()
-'''), 0), robot_wrapper_class=RobotInterfaceMock)
-        sm.assign('mock', mock)
-        sm['test'].on_stopped(lambda *args: cont.set())
+"""
+                ),
+                0,
+            ),
+            robot_wrapper_class=RobotInterfaceMock,
+        )
+        sm.assign("mock", mock)
+        sm["test"].on_stopped(lambda *args: cont.set())
 
         # first call, make sure the script runs
-        sm['test'].start().wait()
+        sm["test"].start().wait()
         if not cont.wait(2):
             self.fail()
 
@@ -272,31 +330,49 @@ while not ctx.stop_requested:
         second_running_evt = Event()
 
         sm = ScriptManager(robot_mock)
-        sm.add_script(ScriptDescriptor('test1', str_to_func('''
+        sm.add_script(
+            ScriptDescriptor(
+                "test1",
+                str_to_func(
+                    """
 mock()
 second_running.wait()
 while not ctx.stop_requested:
     Control.terminate_all()
-'''), 0), robot_wrapper_class=RobotInterfaceMock)
-        sm.add_script(ScriptDescriptor('test2', str_to_func('''
+"""
+                ),
+                0,
+            ),
+            robot_wrapper_class=RobotInterfaceMock,
+        )
+        sm.add_script(
+            ScriptDescriptor(
+                "test2",
+                str_to_func(
+                    """
 second_running.set()
 mock()
 while not ctx.stop_requested:
     time.sleep(0.01)
-'''), 0), robot_wrapper_class=RobotInterfaceMock)
-        sm['test1'].assign('mock', mock1)
-        sm['test1'].assign('second_running', second_running_evt)
-        sm['test2'].assign('second_running', second_running_evt)
-        sm['test2'].assign('mock', mock2)
+"""
+                ),
+                0,
+            ),
+            robot_wrapper_class=RobotInterfaceMock,
+        )
+        sm["test1"].assign("mock", mock1)
+        sm["test1"].assign("second_running", second_running_evt)
+        sm["test2"].assign("second_running", second_running_evt)
+        sm["test2"].assign("mock", mock2)
 
         try:
             # first call, make sure the script runs
             script1_stopped = Event()
             script2_stopped = Event()
-            sm['test1'].on_stopped(lambda *args: script1_stopped.set())
-            sm['test2'].on_stopped(lambda *args: script2_stopped.set())
-            sm['test1'].start()
-            sm['test2'].start()
+            sm["test1"].on_stopped(lambda *args: script1_stopped.set())
+            sm["test2"].on_stopped(lambda *args: script2_stopped.set())
+            sm["test1"].start()
+            sm["test2"].start()
 
             self.assertTrue(script1_stopped.wait(1), "Script halting")
             self.assertTrue(script2_stopped.wait(1), "Script halting")
@@ -306,8 +382,8 @@ while not ctx.stop_requested:
             self.assertEqual(1, mock2.call_count, "Script2 started")
 
             # scripts stopped?
-            self.assertFalse(sm['test1'].is_running, "Script1 stopped")
-            self.assertFalse(sm['test2'].is_running, "Script2 stopped")
+            self.assertFalse(sm["test1"].is_running, "Script1 stopped")
+            self.assertFalse(sm["test2"].is_running, "Script2 stopped")
         finally:
             sm.reset()
 
@@ -317,11 +393,14 @@ while not ctx.stop_requested:
         cont = Event()
 
         sm = ScriptManager(robot_mock)
-        sm.add_script(ScriptDescriptor('test', str_to_func('''raise Excepti'''), 0), robot_wrapper_class=RobotInterfaceMock)
-        sm['test'].on_stopped(lambda *args: cont.set())
+        sm.add_script(
+            ScriptDescriptor("test", str_to_func("""raise Excepti"""), 0),
+            robot_wrapper_class=RobotInterfaceMock,
+        )
+        sm["test"].on_stopped(lambda *args: cont.set())
 
         # first call, make sure the script runs
-        sm['test'].start().wait()
+        sm["test"].start().wait()
         if not cont.wait(2):
             self.fail("Script.on_stopped handler was not called")
 

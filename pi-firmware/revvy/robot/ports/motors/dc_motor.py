@@ -48,8 +48,9 @@ def dc_motor_position_request(port_idx, request_type, position, speed_limit=None
 
 class DcMotorController(MotorPortDriver):
     """Generic driver for dc motors"""
+
     def __init__(self, port: PortInstance[MotorPortDriver], port_config):
-        super().__init__(port, 'DcMotor')
+        super().__init__(port, "DcMotor")
         self._port = port
         self._port_config = port_config
 
@@ -65,25 +66,33 @@ class DcMotorController(MotorPortDriver):
 
         self.create_set_power_command = partial(dc_motor_power_request, self._port.id - 1)
         self.create_set_speed_command = partial(dc_motor_speed_request, self._port.id - 1)
-        self.create_absolute_position_command = partial(dc_motor_position_request, self._port.id - 1, 2)
-        self.create_relative_position_command = partial(dc_motor_position_request, self._port.id - 1, 3)
+        self.create_absolute_position_command = partial(
+            dc_motor_position_request, self._port.id - 1, 2
+        )
+        self.create_relative_position_command = partial(
+            dc_motor_position_request, self._port.id - 1, 3
+        )
 
-        (posP, posI, posD, speedLowerLimit, speedUpperLimit) = self._port_config['position_controller']
-        (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = self._port_config['speed_controller']
-        (decMax, accMax) = self._port_config['acceleration_limits']
-        max_current = self._port_config['max_current']
+        (posP, posI, posD, speedLowerLimit, speedUpperLimit) = self._port_config[
+            "position_controller"
+        ]
+        (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = self._port_config[
+            "speed_controller"
+        ]
+        (decMax, accMax) = self._port_config["acceleration_limits"]
+        max_current = self._port_config["max_current"]
 
-        resolution = self._port_config['encoder_resolution'] * self._port_config['gear_ratio']
+        resolution = self._port_config["encoder_resolution"] * self._port_config["gear_ratio"]
 
         config = [
             *struct.pack("<f", resolution),
             *struct.pack("<5f", posP, posI, posD, speedLowerLimit, speedUpperLimit),
             *struct.pack("<5f", speedP, speedI, speedD, powerLowerLimit, powerUpperLimit),
             *struct.pack("<ff", decMax, accMax),
-            *struct.pack("<f", max_current)
+            *struct.pack("<f", max_current),
         ]
-        for x, y in self._port_config.get('linearity', {}).items():
-            config += struct.pack('<ff', x, y)
+        for x, y in self._port_config.get("linearity", {}).items():
+            config += struct.pack("<ff", x, y)
 
         # self.log(f'Sending configuration: {config}')
 
@@ -92,7 +101,7 @@ class DcMotorController(MotorPortDriver):
     def _cancel_awaiter(self):
         awaiter, self._awaiter = self._awaiter, None
         if awaiter:
-            self.log('Cancelling previous request')
+            self.log("Cancelling previous request")
             awaiter.cancel()
 
     @property
@@ -106,7 +115,7 @@ class DcMotorController(MotorPortDriver):
     @pos.setter
     def pos(self, val):
         self._pos_offset = val - self._pos
-        self.log(f'setting position offset to {self._pos_offset}')
+        self.log(f"setting position offset to {self._pos_offset}")
 
     @property
     def power(self):
@@ -114,17 +123,21 @@ class DcMotorController(MotorPortDriver):
 
     def set_power(self, power):
         self._cancel_awaiter()
-        self.log('set_power')
+        self.log("set_power")
 
         self._port.interface.set_motor_port_control_value(self.create_set_power_command(power))
 
     def set_speed(self, speed, power_limit=None):
         self._cancel_awaiter()
-        self.log('set_speed')
+        self.log("set_speed")
 
-        self._port.interface.set_motor_port_control_value(self.create_set_speed_command(speed, power_limit))
+        self._port.interface.set_motor_port_control_value(
+            self.create_set_speed_command(speed, power_limit)
+        )
 
-    def set_position(self, position: int, speed_limit=None, power_limit=None, pos_type='absolute') -> Awaiter:
+    def set_position(
+        self, position: int, speed_limit=None, power_limit=None, pos_type="absolute"
+    ) -> Awaiter:
         """
         @param position: measured in degrees, depending on pos_type
         @param speed_limit: maximum speed in degrees per seconds
@@ -132,7 +145,7 @@ class DcMotorController(MotorPortDriver):
         @param pos_type: 'absolute': turn to this angle, counted from startup; 'relative': turn this many degrees
         """
         self._cancel_awaiter()
-        self.log('set_position')
+        self.log("set_position")
 
         def _finished():
             self._awaiter = None
@@ -146,13 +159,13 @@ class DcMotorController(MotorPortDriver):
 
         self._awaiter = awaiter
 
-        if pos_type == 'absolute':
+        if pos_type == "absolute":
             position -= self._pos_offset
             command = self.create_absolute_position_command(position, speed_limit, power_limit)
-        elif pos_type == 'relative':
+        elif pos_type == "relative":
             command = self.create_relative_position_command(position, speed_limit, power_limit)
         else:
-            raise ValueError(f'Invalid pos_type {pos_type}')
+            raise ValueError(f"Invalid pos_type {pos_type}")
 
         self._port.interface.set_motor_port_control_value(command)
 
@@ -175,12 +188,12 @@ class DcMotorController(MotorPortDriver):
 
     def update_status(self, data):
         if len(data) == 10:
-            status, self._power, self._pos, self._speed = struct.unpack('<bblf', data)
+            status, self._power, self._pos, self._speed = struct.unpack("<bblf", data)
 
             self._update_motor_status(MotorStatus(status))
             self.on_status_changed.trigger(self._port)
         else:
-            self.log(f'Received {len(data)} bytes of data instead of 10')
+            self.log(f"Received {len(data)} bytes of data instead of 10")
 
     def stop(self, action=MotorConstants.ACTION_RELEASE):
         self.log("stop")

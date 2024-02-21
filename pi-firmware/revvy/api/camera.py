@@ -8,10 +8,11 @@ from revvy.robot.robot_events import RobotEvent
 
 from revvy.utils.logger import LogLevel, get_logger
 
-log = get_logger('Camera')
+log = get_logger("Camera")
 
 STREAMER_FOLDER = "/home/pi/mjpg-streamer/mjpg-streamer-experimental/"
 STREAMER_COMMAND = 'mjpg_streamer -o "output_http.so -w ./www" -i "input_uvc.so -r 1280x960 -f 30"'
+
 
 class Camera:
     def __init__(self, trigger: Callable) -> None:
@@ -23,10 +24,12 @@ class Camera:
         # Create a new thread that runs the function defined above
         self._thread = threading.Thread(target=self._run_bash_camera_script)
 
-        self._thread.daemon = True  # Allows the thread to be automatically killed when the main program exits
+        self._thread.daemon = (
+            True  # Allows the thread to be automatically killed when the main program exits
+        )
         self._thread.start()
 
-        log('Camera stream starting')
+        log("Camera stream starting")
 
     def stop(self):
         self._stop()
@@ -34,7 +37,7 @@ class Camera:
 
     def _stop(self):
         try:
-            kill_process = subprocess.Popen(['killall', 'mjpg_streamer'])
+            kill_process = subprocess.Popen(["killall", "mjpg_streamer"])
             kill_process.wait()
         except Exception:
             pass
@@ -46,15 +49,17 @@ class Camera:
         self._stop()
 
         # Seems to reset the interface and fix "not found" errors
-        modprobe = subprocess.Popen(['/usr/sbin/modprobe', 'bcm2835-v4l2'])
+        modprobe = subprocess.Popen(["/usr/sbin/modprobe", "bcm2835-v4l2"])
         modprobe.wait()
 
-        self._process = subprocess.Popen(STREAMER_COMMAND,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True, shell=True,
-                    cwd=STREAMER_FOLDER
-                    )
+        self._process = subprocess.Popen(
+            STREAMER_COMMAND,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            shell=True,
+            cwd=STREAMER_FOLDER,
+        )
 
         # Continuously read and print the output
         while True:
@@ -71,18 +76,19 @@ class Camera:
 
                     log(self._process.stdout.read(), LogLevel.ERROR)
 
-                    if ('No such file or directory' in output_line):
+                    if "No such file or directory" in output_line:
                         self._trigger(RobotEvent.CAMERA_ERROR, "Camera not found")
                     else:
                         self._trigger(RobotEvent.CAMERA_ERROR, output_line)
 
-                    log(f"Camera process terminated with error. Return code: {self._process.returncode}")
+                    log(
+                        f"Camera process terminated with error. Return code: {self._process.returncode}"
+                    )
                     return
                 break  # Exit the loop and don't attempt to restart the process.
 
             if output_line:
-                if ('enabled' in output_line):  # Camera stream started
+                if "enabled" in output_line:  # Camera stream started
                     time.sleep(2)
                     self._trigger(RobotEvent.CAMERA_STARTED)
-                    log('Camera stream started')
-
+                    log("Camera stream started")

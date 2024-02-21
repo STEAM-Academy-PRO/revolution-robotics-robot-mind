@@ -46,13 +46,15 @@ class WaitableValue:
 
 class AwaiterState(Enum):
     """The states an awaiter can be in."""
-    NONE = 0,
-    CANCEL = 1,
+
+    NONE = (0,)
+    CANCEL = (1,)
     FINISHED = 2
 
 
 class Awaiter:
     """A flag that one piece of code can set/cancel and another can wait for it to be set."""
+
     @classmethod
     def from_state(cls, state):
         return cls(state)

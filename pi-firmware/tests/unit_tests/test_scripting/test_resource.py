@@ -1,4 +1,3 @@
-
 import unittest
 
 from mock import Mock
@@ -68,7 +67,7 @@ class TestResource(unittest.TestCase):
         handle2 = r.request(priority_high)
 
         handle2.run_uninterruptable(mock)
-        handle.run_uninterruptable(lambda: self.fail('This should not run'))
+        handle.run_uninterruptable(lambda: self.fail("This should not run"))
         self.assertEqual(1, mock.call_count)
 
     def test_resource_can_be_retaken_by_same_priority(self):

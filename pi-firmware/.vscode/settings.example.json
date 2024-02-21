@@ -12,6 +12,8 @@
   ],
   "python.testing.pytestEnabled": false,
   "python.testing.unittestEnabled": true,
-
+  "python.analysis.diagnosticMode": "workspace",
+  "python.analysis.typeCheckingMode": "standard",
+  "python.languageServer": "Pylance",
   "target": "raspberrypi.local"
 }

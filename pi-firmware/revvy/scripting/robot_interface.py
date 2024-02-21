@@ -8,6 +8,7 @@ Do not delete any imports, even if they are not used,
 as the generated code MAY use it!
 
 """
+
 import struct
 import time
 import random
@@ -31,8 +32,12 @@ from revvy.robot.ports.motors.base import MotorConstants, MotorPortDriver
 from revvy.robot.ports.sensors.base import SensorPortDriver
 from revvy.robot.sound import Sound
 from revvy.scripting.resource import Resource
-from revvy.scripting.color_functions import rgb_to_hsv_gray,\
-    detect_line_background_colors, ColorDataUndefined, color_name_to_rgb
+from revvy.scripting.color_functions import (
+    rgb_to_hsv_gray,
+    detect_line_background_colors,
+    ColorDataUndefined,
+    color_name_to_rgb,
+)
 
 from revvy.utils.functions import hex2rgb
 from revvy.robot.ports.common import PortInstance
@@ -41,35 +46,37 @@ from revvy.utils.functions import map_values
 from revvy.utils.logger import get_logger
 
 
-log = get_logger('RobotInterface')
+log = get_logger("RobotInterface")
+
 
 class RGBChannelSensor(Enum):
-  FRONT     = 0
-  LEFT      = 1
-  RIGHT     = 2
-  REAR      = 3
-  UNDEFINED = 4
+    FRONT = 0
+    LEFT = 1
+    RIGHT = 2
+    REAR = 3
+    UNDEFINED = 4
+
 
 class UserScriptRGBChannel(Enum):
-  FRONT = 1
-  RIGHT = 2
-  LEFT  = 3
-  REAR  = 4
+    FRONT = 1
+    RIGHT = 2
+    LEFT = 3
+    REAR = 4
 
 
 def user_to_sensor_channel(user_channel):
-  mapping = [
-    (UserScriptRGBChannel.FRONT, RGBChannelSensor.FRONT),
-    (UserScriptRGBChannel.LEFT , RGBChannelSensor.LEFT),
-    (UserScriptRGBChannel.RIGHT, RGBChannelSensor.RIGHT),
-    (UserScriptRGBChannel.REAR , RGBChannelSensor.REAR),
-  ]
-  for user, sensor in mapping:
-    if user_channel == user.value:
-      return sensor
+    mapping = [
+        (UserScriptRGBChannel.FRONT, RGBChannelSensor.FRONT),
+        (UserScriptRGBChannel.LEFT, RGBChannelSensor.LEFT),
+        (UserScriptRGBChannel.RIGHT, RGBChannelSensor.RIGHT),
+        (UserScriptRGBChannel.REAR, RGBChannelSensor.REAR),
+    ]
+    for user, sensor in mapping:
+        if user_channel == user.value:
+            return sensor
 
-  log(f'user_to_sensor_channel: {user_channel}')
-  return RGBChannelSensor.UNDEFINED
+    log(f"user_to_sensor_channel: {user_channel}")
+    return RGBChannelSensor.UNDEFINED
 
 
 class ResourceWrapper:
@@ -101,7 +108,7 @@ class ResourceWrapper:
 
 
 class Wrapper:
-    def __init__(self, script: 'ScriptHandle', resource: ResourceWrapper):
+    def __init__(self, script: "ScriptHandle", resource: ResourceWrapper):
         self._resource = resource
         self._script = script
 
@@ -124,15 +131,16 @@ class Wrapper:
             with resource_ctx as resource:
                 callback(resource)
 
+
 class SensorPortWrapper(Wrapper):
     """Wrapper class to expose sensor ports to user scripts"""
 
     # TODO: move these to configurations.py
     _named_configurations = {
-        'NotConfigured': None,
-        'BumperSwitch': Sensors.BumperSwitch,
-        'HC_SR04': Sensors.Ultrasonic,
-        'RGB': Sensors.SofteqCS,
+        "NotConfigured": None,
+        "BumperSwitch": Sensors.BumperSwitch,
+        "HC_SR04": Sensors.Ultrasonic,
+        "RGB": Sensors.SofteqCS,
     }
 
     def __init__(self, script, sensor: PortInstance[SensorPortDriver], resource: ResourceWrapper):
@@ -157,17 +165,17 @@ class SensorPortWrapper(Wrapper):
 
 
 def color_string_to_rgb(color_string):
-    """ Interface can accept colot_string in several formats
+    """Interface can accept colot_string in several formats
     this can be a hex value like #or actual color name like 'red' or 'black'"""
 
     result = color_name_to_rgb(color_string)
     if result is not None:
         return result
 
-    if color_string.startswith('#'):
+    if color_string.startswith("#"):
         return hex2rgb(color_string)
 
-    print(f'Color string format not recognised: {color_string}')
+    print(f"Color string format not recognised: {color_string}")
     return None
 
 
@@ -187,7 +195,7 @@ class RingLedWrapper(Wrapper):
         self.using_resource(partial(self._ring_led.start_animation, scenario))
 
     def set(self, leds: list, color):
-        """ Instead of just failing, use the MOD if an LED index is out of range """
+        """Instead of just failing, use the MOD if an LED index is out of range"""
 
         # print(f'RingLedWrapper: set leds:{leds}, color:{color}')
         # def out_of_range(led_idx):
@@ -208,17 +216,23 @@ class RingLedWrapper(Wrapper):
 
 class MotorPortWrapper(Wrapper):
     """Wrapper class to expose motor ports to user scripts"""
+
     max_rpm = 150
     timeout = 5
 
     # TODO: move these to configurations.py
     _named_configurations = {
-        'NotConfigured': None,
-        'RevvyMotor': Motors.RevvyMotor,
-        'RevvyMotor_CCW': Motors.RevvyMotor_CCW
+        "NotConfigured": None,
+        "RevvyMotor": Motors.RevvyMotor,
+        "RevvyMotor_CCW": Motors.RevvyMotor_CCW,
     }
 
-    def __init__(self, script: 'ScriptHandle', motor: PortInstance[MotorPortDriver], resource: ResourceWrapper):
+    def __init__(
+        self,
+        script: "ScriptHandle",
+        motor: PortInstance[MotorPortDriver],
+        resource: ResourceWrapper,
+    ):
         super().__init__(script, resource)
         self._log_prefix = f"MotorPortWrapper[motor {motor.id}]: "
         self._motor = motor
@@ -253,21 +267,22 @@ class MotorPortWrapper(Wrapper):
         set_fns = {
             MotorConstants.UNIT_DEG: {
                 MotorConstants.UNIT_SPEED_RPM: {
-                    MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_position(amount,
-                                                                                   speed_limit=limit,
-                                                                                   pos_type='relative'),
-                    MotorConstants.DIRECTION_BACK: lambda: self._motor.driver.set_position(-amount,
-                                                                                    speed_limit=limit,
-                                                                                    pos_type='relative'),
+                    MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_position(
+                        amount, speed_limit=limit, pos_type="relative"
+                    ),
+                    MotorConstants.DIRECTION_BACK: lambda: self._motor.driver.set_position(
+                        -amount, speed_limit=limit, pos_type="relative"
+                    ),
                 },
                 MotorConstants.UNIT_SPEED_PWR: {
-                    MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_position(amount, power_limit=limit,
-                                                                                   pos_type='relative'),
-                    MotorConstants.DIRECTION_BACK: lambda: self._motor.driver.set_position(-amount, power_limit=limit,
-                                                                                    pos_type='relative')
-                }
+                    MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_position(
+                        amount, power_limit=limit, pos_type="relative"
+                    ),
+                    MotorConstants.DIRECTION_BACK: lambda: self._motor.driver.set_position(
+                        -amount, power_limit=limit, pos_type="relative"
+                    ),
+                },
             },
-
             MotorConstants.UNIT_SEC: {
                 MotorConstants.UNIT_SPEED_RPM: {
                     MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_speed(limit),
@@ -276,14 +291,14 @@ class MotorPortWrapper(Wrapper):
                 MotorConstants.UNIT_SPEED_PWR: {
                     MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_power(limit),
                     MotorConstants.DIRECTION_BACK: lambda: self._motor.driver.set_power(-limit),
-                }
-            }
+                },
+            },
         }
 
         awaiter = None
 
         def _interrupted():
-            self.log('interrupted')
+            self.log("interrupted")
             if awaiter:
                 awaiter.cancel()
 
@@ -307,12 +322,12 @@ class MotorPortWrapper(Wrapper):
         set_speed_fns = {
             MotorConstants.UNIT_SPEED_RPM: {
                 MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_speed(rotation),
-                MotorConstants.DIRECTION_BACK: lambda: self._motor.driver.set_speed(-rotation)
+                MotorConstants.DIRECTION_BACK: lambda: self._motor.driver.set_speed(-rotation),
             },
             MotorConstants.UNIT_SPEED_PWR: {
                 MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_power(rotation),
-                MotorConstants.DIRECTION_BACK: lambda: self._motor.driver.set_power(-rotation)
-            }
+                MotorConstants.DIRECTION_BACK: lambda: self._motor.driver.set_power(-rotation),
+            },
         }
 
         self.using_resource(set_speed_fns[unit_rotation][direction])
@@ -400,8 +415,9 @@ class SoundWrapper(Wrapper):
         # immediately releases resource after starting the playback
         self.if_resource_available(lambda _: self._play(name))
 
+
 class RelativeToLineState:
-    def __init__(self, front, rear, left ,right):
+    def __init__(self, front, rear, left, right):
         self.front = front
         self.rear = rear
         self.left = left
@@ -411,33 +427,39 @@ class RelativeToLineState:
         if not isinstance(obj, RelativeToLineState):
             return False
 
-        return self.front == obj.front and self.rear == obj.rear and self.left == obj.left and self.right == obj.right
+        return (
+            self.front == obj.front
+            and self.rear == obj.rear
+            and self.left == obj.left
+            and self.right == obj.right
+        )
 
 
-on_line                   = RelativeToLineState(1, 1, 0, 0)
-on_line_end_soon          = RelativeToLineState(0, 1, 0, 0)
-on_line_near_left         = RelativeToLineState(1, 1, 0, 1)
-on_line_near_right        = RelativeToLineState(1, 1, 1, 0)
-on_line_too_wide          = RelativeToLineState(1, 1, 1, 1)
-on_line_hole              = RelativeToLineState(1, 0, 1, 1)
-on_line_perpendicular     = RelativeToLineState(0, 1, 1, 1)
-on_line_rear_left         = RelativeToLineState(0, 1, 1, 0)
-on_line_rear_right        = RelativeToLineState(0, 1, 0, 1)
-off_line                  = RelativeToLineState(0, 0, 0, 0)
-off_line_near_front       = RelativeToLineState(1, 0, 0, 0)
-off_line_near_front_left  = RelativeToLineState(1, 0, 1, 0)
+on_line = RelativeToLineState(1, 1, 0, 0)
+on_line_end_soon = RelativeToLineState(0, 1, 0, 0)
+on_line_near_left = RelativeToLineState(1, 1, 0, 1)
+on_line_near_right = RelativeToLineState(1, 1, 1, 0)
+on_line_too_wide = RelativeToLineState(1, 1, 1, 1)
+on_line_hole = RelativeToLineState(1, 0, 1, 1)
+on_line_perpendicular = RelativeToLineState(0, 1, 1, 1)
+on_line_rear_left = RelativeToLineState(0, 1, 1, 0)
+on_line_rear_right = RelativeToLineState(0, 1, 0, 1)
+off_line = RelativeToLineState(0, 0, 0, 0)
+off_line_near_front = RelativeToLineState(1, 0, 0, 0)
+off_line_near_front_left = RelativeToLineState(1, 0, 1, 0)
 off_line_near_front_right = RelativeToLineState(1, 0, 0, 1)
-off_line_near_left        = RelativeToLineState(0, 0, 1, 0)
-off_line_near_right       = RelativeToLineState(0, 0, 0, 1)
-off_line_left_right       = RelativeToLineState(0, 0, 1, 1)
+off_line_near_left = RelativeToLineState(0, 0, 1, 0)
+off_line_near_right = RelativeToLineState(0, 0, 0, 1)
+off_line_left_right = RelativeToLineState(0, 0, 1, 1)
 
 
 class LineDriver:
     FOLLOW_LINE_RESULT_CONTINUE = 0
-    FOLLOW_LINE_RESULT_LOST     = 1
-    FOLLOW_LINE_RESULT_FINISH   = 2
+    FOLLOW_LINE_RESULT_LOST = 1
+    FOLLOW_LINE_RESULT_FINISH = 2
     SEARCH_LINE_FORWARD_MOTION = 0
     SEARCH_LINE_ROTATE_90 = 1
+
     def __init__(self, drivetrain, color_reader, line_color):
         self.__drivetrain = drivetrain
         self.__color_reader = color_reader
@@ -449,7 +471,7 @@ class LineDriver:
         self.__do_debug_stops = False
         self.__base_speed = 20
         self.__straight_speed_mult = 1.5
-        self.__log = get_logger('LineDriver')
+        self.__log = get_logger("LineDriver")
 
     @property
     def read_rgb(self, channel: RGBChannelSensor):
@@ -474,7 +496,7 @@ class LineDriver:
         return self.read_rgb(RGBChannelSensor.REAR)
 
     def __go_inclined_forward(self, inclination):
-        self.__log('INCLINED_FORWARD')
+        self.__log("INCLINED_FORWARD")
         speed_left = speed_right = self.__base_speed * self.__straight_speed_mult
         if inclination < 0:
             speed_left -= self.__base_speed * (-inclination)
@@ -483,31 +505,27 @@ class LineDriver:
         self.__drivetrain.set_speeds(speed_left, speed_right)
 
     def __turn_left(self):
-        self.__log('TURN_LEFT')
-        self.__drivetrain.set_speeds(
-          self.__base_speed * -0.25,
-          self.__base_speed)
+        self.__log("TURN_LEFT")
+        self.__drivetrain.set_speeds(self.__base_speed * -0.25, self.__base_speed)
 
     def __turn_right(self):
-        self.__log('TURN_RIGHT')
-        self.__drivetrain.set_speeds(
-          self.__base_speed,
-          self.__base_speed * -0.25)
+        self.__log("TURN_RIGHT")
+        self.__drivetrain.set_speeds(self.__base_speed, self.__base_speed * -0.25)
 
     def __go_straight(self):
-        self.__log('GO_STRAIGHT')
+        self.__log("GO_STRAIGHT")
         speed = self.__base_speed * self.__straight_speed_mult
         self.__drivetrain.set_speeds(speed, speed)
 
     def __stop(self):
-        self.__log('STOP')
+        self.__log("STOP")
         self.__drivetrain.set_speeds(0, 0)
 
     def stop(self):
         self.__stop()
 
     def search_line_start(self):
-        self.__log('search_line_start')
+        self.__log("search_line_start")
         self.__state = LineDriver.SEARCH_LINE_ROTATE_90
         self.__search_line_motion_time = 0
         self.__search_line_state_duration = 1
@@ -516,42 +534,42 @@ class LineDriver:
     # False is line is not found
     def search_line_update(self):
         front_match = self.__rgb_front == self.__line_color
-        rear_match  = self.__rgb_rear  == self.__line_color
-        left_match  = self.__rgb_left  == self.__line_color
+        rear_match = self.__rgb_rear == self.__line_color
+        left_match = self.__rgb_left == self.__line_color
         right_match = self.__rgb_right == self.__line_color
         if front_match or rear_match or left_match or right_match:
-            self.__log('search:line_reached')
+            self.__log("search:line_reached")
             self.__stop()
             return True
 
         self.__search_line_motion_time += 1
         if self.__search_line_motion_time < self.__search_line_state_duration:
             to_go = self.__search_line_state_duration - self.__search_line_motion_time
-            self.__log(f'search:state_timeout:{to_go}')
+            self.__log(f"search:state_timeout:{to_go}")
             return False
 
         self.__search_line_motion_time = 0
         self.__next_motion_duration += 10
         if self.__state == LineDriver.SEARCH_LINE_FORWARD_MOTION:
-            self.__log('search::rotate 90')
+            self.__log("search::rotate 90")
             self.__search_line_state_duration = 15
             self.__state = LineDriver.SEARCH_LINE_ROTATE_90
             self.__turn_left()
         elif self.__state == LineDriver.SEARCH_LINE_ROTATE_90:
-            self.__log('search:inclined forward')
+            self.__log("search:inclined forward")
             self.__search_line_state_duration = 40 + self.__next_motion_duration
             self.__state = LineDriver.SEARCH_LINE_FORWARD_MOTION
             self.__go_inclined_forward(-0.2)
         return False
 
     def follow_line_start(self):
-        self.__log('follow_line_start:START')
+        self.__log("follow_line_start:START")
         self.__turn_right()
 
     def follow_line_update(self):
         front_match = self.__rgb_front == self.__line_color
-        rear_match  = self.__rgb_rear  == self.__line_color
-        left_match  = self.__rgb_left  == self.__line_color
+        rear_match = self.__rgb_rear == self.__line_color
+        left_match = self.__rgb_left == self.__line_color
         right_match = self.__rgb_right == self.__line_color
 
         current = RelativeToLineState(front_match, rear_match, left_match, right_match)
@@ -567,7 +585,7 @@ class LineDriver:
                 time.sleep(sleep_sec)
 
         if current == on_line_end_soon:
-            self.__log('LINE END DETECTED')
+            self.__log("LINE END DETECTED")
             self.__go_straight()
             # self.__stop()
             # Should stop now
@@ -575,27 +593,27 @@ class LineDriver:
         elif current == on_line:
             self.__go_straight()
         elif current == on_line_hole:
-            self.__log('LINE_HOLE')
+            self.__log("LINE_HOLE")
             self.__go_straight()
         elif current == on_line_near_left:
-            self.__log('NEAR_LEFT')
+            self.__log("NEAR_LEFT")
             # No need to make full rotation, smooth center out
             self.__go_inclined_forward(0.2)
         elif current == on_line_near_right:
-            self.__log('NEAR_RIGHT')
+            self.__log("NEAR_RIGHT")
             # No need to make full rotation, smooth center out
             self.__go_inclined_forward(-0.2)
         elif current == on_line_too_wide:
-            self.__log('TOO_WIDE')
+            self.__log("TOO_WIDE")
             self.__go_straight()
         elif current == on_line_rear_left:
-            self.__log('REAR-LEFT')
+            self.__log("REAR-LEFT")
             self.__turn_left()
         elif current == on_line_rear_right:
-            self.__log('REAR-RIGHT')
+            self.__log("REAR-RIGHT")
             self.__turn_right()
         elif current == off_line:
-            self.__log('OFF')
+            self.__log("OFF")
             if self.__prev_current != off_line:
                 if random.random() > 0.5:
                     self.__turn_left()
@@ -605,35 +623,35 @@ class LineDriver:
                 self.__stop()
                 return LineDriver.FOLLOW_LINE_RESULT_LOST
         elif current == off_line_left_right:
-            self.__log('OFF-LEFT-RIGHT')
+            self.__log("OFF-LEFT-RIGHT")
             debug_stop(current, 1)
             self.__turn_left()
         elif current == on_line_perpendicular:
-            self.__log('OFF-LEFT-RIGHT')
+            self.__log("OFF-LEFT-RIGHT")
             debug_stop(current, 1)
             self.__turn_left()
         elif current == off_line_near_front:
-            self.__log('OFF-FRONT')
+            self.__log("OFF-FRONT")
             debug_stop(current, 1)
             self.__go_straight()
         elif current == off_line_near_front_left:
-            self.__log('OFF-FRONT-LEFT')
+            self.__log("OFF-FRONT-LEFT")
             debug_stop(current, 1)
             self.__go_inclined_forward(0.2)
         elif current == off_line_near_front_right:
-            self.__log('OFF-FRONT-RIGHT')
+            self.__log("OFF-FRONT-RIGHT")
             debug_stop(current, 1)
             self.__go_inclined_forward(-0.2)
         elif current == off_line_near_left:
-            self.__log('OFF-LEFT')
+            self.__log("OFF-LEFT")
             debug_stop(current, 1)
             self.__turn_left()
         elif current == off_line_near_right:
-            self.__log('OFF-RIGHT')
+            self.__log("OFF-RIGHT")
             debug_stop(current, 1)
             self.__turn_right()
         elif current == on_line_perpendicular:
-            self.__log('PERPENDICULAR')
+            self.__log("PERPENDICULAR")
             debug_stop(current, 4)
             self.__turn_left()
         self.__prev_current = current
@@ -646,6 +664,7 @@ class PortCollection:
 
     Used by blockly to access ports by mobile-configured names.
     """
+
     def __init__(self, ports):
         self._ports = list(ports)
         self._alias_map = {}
@@ -705,23 +724,36 @@ class RobotInterface:
 class RobotWrapper(RobotInterface):
     """Wrapper class that exposes API to user-written scripts"""
 
-    def __init__(self, script: 'ScriptHandle', robot: RobotInterface, config: 'RobotConfig', resources: dict, priority=0):
+    def __init__(
+        self,
+        script: "ScriptHandle",
+        robot: RobotInterface,
+        config: "RobotConfig",
+        resources: dict,
+        priority=0,
+    ):
         self._resources = {name: ResourceWrapper(resources[name], priority) for name in resources}
         self._robot = robot
 
-        motor_wrappers = [MotorPortWrapper(script, port, self._resources[f'motor_{port.id}'])
-                          for port in robot.motors]
+        motor_wrappers = [
+            MotorPortWrapper(script, port, self._resources[f"motor_{port.id}"])
+            for port in robot.motors
+        ]
         self._motors = PortCollection(motor_wrappers)
         self._motors.aliases.update(config.motors.names)
 
-        sensor_wrappers = [SensorPortWrapper(script, port, self._resources[f'sensor_{port.id}'])
-                           for port in robot.sensors]
+        sensor_wrappers = [
+            SensorPortWrapper(script, port, self._resources[f"sensor_{port.id}"])
+            for port in robot.sensors
+        ]
         self._sensors = PortCollection(sensor_wrappers)
         self._sensors.aliases.update(config.sensors.names)
 
-        self._sound = SoundWrapper(script, robot.sound, self._resources['sound'])
-        self._ring_led = RingLedWrapper(script, robot.led, self._resources['led_ring'])
-        self._drivetrain = DriveTrainWrapper(script, robot.drivetrain, self._resources['drivetrain'])
+        self._sound = SoundWrapper(script, robot.sound, self._resources["sound"])
+        self._ring_led = RingLedWrapper(script, robot.led, self._resources["led_ring"])
+        self._drivetrain = DriveTrainWrapper(
+            script, robot.drivetrain, self._resources["drivetrain"]
+        )
 
         self._script = script
 
@@ -769,28 +801,30 @@ class RobotWrapper(RobotInterface):
     def play_tune(self, name):
         self._sound.play_tune(name)
 
-    def play_note(self): pass  # TODO
+    def play_note(self):
+        pass  # TODO
 
     def rotate_for_search(
-            self,
-            base_color,
-            background_color,
-            direction: int,
-            count_time: int,
-            base_speed=0.03,
-            stop_line=0,
+        self,
+        base_color,
+        background_color,
+        direction: int,
+        count_time: int,
+        base_speed=0.03,
+        stop_line=0,
     ):
         if direction:
             base_speed = -base_speed
         self._drivetrain.set_speeds(
-            map_values(base_speed, 0, 1, 0, 120),
-            map_values(-base_speed, 0, 1, 0, 120))
+            map_values(base_speed, 0, 1, 0, 120), map_values(-base_speed, 0, 1, 0, 120)
+        )
         count = 0
         while count < count_time:
             count += 1
             sensors = self.read_rgb_sensor_data()
-            base_color_, background_color_, line_name_, background_name_, i, colors_gray, colors = \
+            base_color_, background_color_, line_name_, background_name_, i, colors_gray, colors = (
                 detect_line_background_colors(sensors)
+            )
             if base_color < background_color:
                 base_color = min(base_color_, base_color)
                 background_color = max(background_color_, background_color)
@@ -802,24 +836,21 @@ class RobotWrapper(RobotInterface):
             # print("   ", base_color, background_color, "___", forward, left, right, center, "i:", i, colors)
             delta_base_background = abs(background_color - base_color)
             if stop_line:
-                if abs(left - right) < 0.12 * (left + right) \
-                        and (
-                        abs(center - base_color) < 0.4 * delta_base_background
-                        or abs(forward - base_color) < 0.4 * delta_base_background
+                if abs(left - right) < 0.12 * (left + right) and (
+                    abs(center - base_color) < 0.4 * delta_base_background
+                    or abs(forward - base_color) < 0.4 * delta_base_background
                 ):
                     self._drivetrain.set_speeds(
-                        map_values(0, 0, 1, 0, 120),
-                        map_values(0, 0, 1, 0, 120))
+                        map_values(0, 0, 1, 0, 120), map_values(0, 0, 1, 0, 120)
+                    )
                     return 1, base_color, background_color, line_name_, background_name_
             time.sleep(0.02)
-        self._drivetrain.set_speeds(
-            map_values(0, 0, 1, 0, 120),
-            map_values(0, 0, 1, 0, 120))
+        self._drivetrain.set_speeds(map_values(0, 0, 1, 0, 120), map_values(0, 0, 1, 0, 120))
         time.sleep(0.2)
         return 0, base_color, background_color, None, None
 
     def search_line(self, line_color):
-        log(f'search_line:line_color={line_color}')
+        log(f"search_line:line_color={line_color}")
         line_driver = LineDriver(self._drivetrain, self, line_color)
         delta_seconds = 0.1
         should_stop = False
@@ -827,7 +858,7 @@ class RobotWrapper(RobotInterface):
         while not should_stop:
             should_stop = line_driver.search_line_update()
             time.sleep(delta_seconds)
-        log('search_line end')
+        log("search_line end")
         time.sleep(2)
 
     def follow_line(self, line_color, count_time=10000):
@@ -858,31 +889,30 @@ class RobotWrapper(RobotInterface):
 
                 line_found = line_driver.search_line_update()
                 if line_found:
-                  off_line_count = 0
-                  state = STATE_ON_LINE
-                  line_driver.follow_line_start()
+                    off_line_count = 0
+                    state = STATE_ON_LINE
+                    line_driver.follow_line_start()
 
             time.sleep(delta_seconds)
         line_driver.stop()
 
-
     def debug_print_colors(self, colors):
         for i, color in enumerate(colors):
-          name = 'noname'
-          for channel in RGBChannelSensor:
-            if i == channel.value:
-              name = color.name
-          h = int(color.hue)
-          s = int(color.saturation)
-          v = int(color.value)
-          log(f'{color.red},{color.green},{color.blue}->{h},{s},{v}:{name}')
+            name = "noname"
+            for channel in RGBChannelSensor:
+                if i == channel.value:
+                    name = color.name
+            h = int(color.hue)
+            s = int(color.saturation)
+            v = int(color.value)
+            log(f"{color.red},{color.green},{color.blue}->{h},{s},{v}:{name}")
 
     def read_rgb_sensor_data(self):
         res = self._sensors["color_sensor"].read()
         n = len(res)
         if n % 3:
             padding = 3 - n % 3
-            res += b'\0' * padding
+            res += b"\0" * padding
         result = [rgb_to_hsv_gray(*_) for _ in struct.iter_unpack("<BBB", res)]
         # self.debug_print_colors(result)
         return result
@@ -890,7 +920,7 @@ class RobotWrapper(RobotInterface):
     def get_color_by_user_channel(self, user_channel):
         sensor_channel = user_to_sensor_channel(user_channel)
         if sensor_channel == RGBChannelSensor.UNDEFINED:
-          return ColorDataUndefined
+            return ColorDataUndefined
 
         sensors_data_processed = self.read_rgb_sensor_data()
         return sensors_data_processed[sensor_channel.value]
@@ -917,7 +947,7 @@ class RobotWrapper(RobotInterface):
 
     def hue_convert(self, val):
         color = self.get_color_by_user_channel(val)
-        return 'not ready'
+        return "not ready"
 
     def stop(self):
         pass

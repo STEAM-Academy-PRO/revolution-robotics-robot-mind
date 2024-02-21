@@ -19,24 +19,21 @@ class Sound:
         self._assets = Assets()
 
         # Package sounds
-        self._assets.add_source(os.path.join('data', 'assets'))
+        self._assets.add_source(os.path.join("data", "assets"))
 
         # Users can upload their own sounds in the writeable assets folder.
         self._assets.add_source(WRITEABLE_ASSETS_DIR)
 
-        self._get_sound_path = self._assets.category_loader('sounds')
+        self._get_sound_path = self._assets.category_loader("sounds")
         self.set_volume = sound_interface.set_volume
         self.reset_volume = sound_interface.reset_volume
 
-        self._log = get_logger('Sound')
+        self._log = get_logger("Sound")
 
-        default_sound_config = {
-            "default_volume": 90
-        }
+        default_sound_config = {"default_volume": 90}
 
-        # noinspection PyBroadException
         try:
-            sound_config = read_json(os.path.join(WRITEABLE_DATA_DIR, 'config', 'sound.json'))
+            sound_config = read_json(os.path.join(WRITEABLE_DATA_DIR, "config", "sound.json"))
         except Exception as e:
             self._log(f"Failed to load sound config: {e}. Using default.", LogLevel.WARNING)
             sound_config = {}
@@ -47,15 +44,16 @@ class Sound:
         sound_interface.set_default_volume(sound_config["default_volume"])
         sound_interface.set_volume(sound_config["default_volume"])
 
-
     def play_tune(self, name, callback=None):
         try:
             key, self._key = self._key, self._key + 1
-            player_thread = self._sound.play_sound(self._get_sound_path(name), partial(self._finished, key))
+            player_thread = self._sound.play_sound(
+                self._get_sound_path(name), partial(self._finished, key)
+            )
             if player_thread:
                 self._playing[key] = (player_thread, callback)
         except KeyError:
-            self._log(f'Sound not found: {name}')
+            self._log(f"Sound not found: {name}")
 
     def _finished(self, key):
         callback = self._playing[key][1]

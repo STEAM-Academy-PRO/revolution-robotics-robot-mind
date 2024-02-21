@@ -1,4 +1,3 @@
-
 from revvy.mcu.rrrc_control import RevvyControl
 
 

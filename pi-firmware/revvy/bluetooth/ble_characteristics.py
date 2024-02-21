@@ -1,4 +1,5 @@
 """ Define Bluetooth communication protocols """
+
 import struct
 import traceback
 
@@ -12,28 +13,28 @@ from revvy.utils.logger import get_logger
 
 log = get_logger("BLE Characteristics")
 
+
 class ValidateConfigCharacteristic(Characteristic):
     def __init__(self, uuid, description, callback):
         self._on_write_callback = callback
-        self._value = struct.pack('<I', 0)
+        self._value = struct.pack("<I", 0)
         self._state = VALIDATE_CONFIG_STATE_UNKNOWN
-        super().__init__({
-            'uuid':        uuid,
-            'properties':  ['write', 'read'],
-            'value':       None,
-            'descriptors': [
-                Descriptor({
-                    'uuid':  '2901',
-                    'value': description
-                }),
-            ]
-        })
+        super().__init__(
+            {
+                "uuid": uuid,
+                "properties": ["write", "read"],
+                "value": None,
+                "descriptors": [
+                    Descriptor({"uuid": "2901", "value": description}),
+                ],
+            }
+        )
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
         elif len(data) != 7:
-            log('validate_config::onWriteRequest::wrong length')
+            log("validate_config::onWriteRequest::wrong length")
             callback(Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH)
         elif self._on_write_callback(data):
             callback(Characteristic.RESULT_SUCCESS)
@@ -41,7 +42,7 @@ class ValidateConfigCharacteristic(Characteristic):
             callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
     def onReadRequest(self, offset, callback):
-        log('validate_config::onReadRequest')
+        log("validate_config::onReadRequest")
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
@@ -53,28 +54,25 @@ class ValidateConfigCharacteristic(Characteristic):
     def update_validate_config_result(self, state, motors_bitmask, sensors):
 
         self._state = state
-        self._value = struct.pack('BBBBBB', state, motors_bitmask, sensors[0],
-            sensors[1], sensors[2], sensors[3])
+        self._value = struct.pack(
+            "BBBBBB", state, motors_bitmask, sensors[0], sensors[1], sensors[2], sensors[3]
+        )
 
-        log('validate_config::update:', self._value)
-
-
+        log("validate_config::update:", self._value)
 
 
 class CustomBatteryLevelCharacteristic(Characteristic):
     """Custom battery service that contains 2 characteristics"""
+
     def __init__(self, uuid, description):
-        super().__init__({
-            'uuid':        uuid,
-            'properties':  ['read', 'notify'],
-            'value':       None,  # needs to be None because characteristic is not constant value
-            'descriptors': [
-                Descriptor({
-                    'uuid':  '2901',
-                    'value': description
-                })
-            ]
-        })
+        super().__init__(
+            {
+                "uuid": uuid,
+                "properties": ["read", "notify"],
+                "value": None,  # needs to be None because characteristic is not constant value
+                "descriptors": [Descriptor({"uuid": "2901", "value": description})],
+            }
+        )
 
         self._updateValueCallback = None
         self._value = 99  # initial value only
@@ -92,7 +90,7 @@ class CustomBatteryLevelCharacteristic(Characteristic):
         self._updateValueCallback = None
 
     def update_value(self, value):
-        if self._value == value:   # don't update if there is no change
+        if self._value == value:  # don't update if there is no change
             return
         self._value = value
 
@@ -100,22 +98,22 @@ class CustomBatteryLevelCharacteristic(Characteristic):
         if update_value_callback:
             update_value_callback([value])
 
+
 class BackgroundProgramControlCharacteristic(Characteristic):
     def __init__(self, uuid, description, callback):
         self._value = []
         self._updateValueCallback = None
         self._callbackFn = callback
-        super().__init__({
-            'uuid': uuid,
-            'properties': ['read', 'notify', 'write'],
-            'value': None,
-            'descriptors': [
-                Descriptor({
-                    'uuid': '2901',
-                    'value': description
-                }),
-            ]
-        })
+        super().__init__(
+            {
+                "uuid": uuid,
+                "properties": ["read", "notify", "write"],
+                "value": None,
+                "descriptors": [
+                    Descriptor({"uuid": "2901", "value": description}),
+                ],
+            }
+        )
 
     def onReadRequest(self, offset, callback):
         if offset:
@@ -151,17 +149,16 @@ class BrainToMobileCharacteristic(Characteristic):
     def __init__(self, uuid, description):
         self._value = []
         self._updateValueCallback = None
-        super().__init__({
-            'uuid':        uuid,
-            'properties':  ['read', 'notify'],
-            'value':       None,
-            'descriptors': [
-                Descriptor({
-                    'uuid':  '2901',
-                    'value': description
-                }),
-            ]
-        })
+        super().__init__(
+            {
+                "uuid": uuid,
+                "properties": ["read", "notify"],
+                "value": None,
+                "descriptors": [
+                    Descriptor({"uuid": "2901", "value": description}),
+                ],
+            }
+        )
 
     def onReadRequest(self, offset, callback):
         if offset:
@@ -208,18 +205,20 @@ class TimerCharacteristic(BrainToMobileCharacteristic):
 class ReadVariableCharacteristic(BrainToMobileCharacteristic):
     pass
 
+
 class ProgramStatusCharacteristic(BrainToMobileCharacteristic):
-    """ Store/send button script states to mobile. """
+    """Store/send button script states to mobile."""
+
     def update_button_value(self, button_id: int, status: int):
-        """ Handles low level packing. """
+        """Handles low level packing."""
         if not self._value:
-            state_array = [0]*32
+            state_array = [0] * 32
         else:
             state_array = unpack_2_bit_number_array_32(self._value)
 
         state_array[button_id] = status
 
-        log(f'button state array id:{button_id} => stat: {status}')
+        log(f"button state array id:{button_id} => stat: {status}")
 
         packed_byte_array = pack_2_bit_number_array_32(state_array)
 
@@ -228,41 +227,32 @@ class ProgramStatusCharacteristic(BrainToMobileCharacteristic):
         self.update(packed_byte_array)
 
 
-
 # Device Information Service
 class ReadOnlyCharacteristic(Characteristic):
     def __init__(self, uuid, value):
-        super().__init__({
-            'uuid':       uuid,
-            'properties': ['read'],
-            'value':      value
-        })
+        super().__init__({"uuid": uuid, "properties": ["read"], "value": value})
 
 
 class SerialNumberCharacteristic(ReadOnlyCharacteristic):
     def __init__(self, serial):
-        super().__init__('2A25', serial.encode())
+        super().__init__("2A25", serial.encode())
 
 
 class ManufacturerNameCharacteristic(ReadOnlyCharacteristic):
     def __init__(self, name):
-        super().__init__('2A29', name)
+        super().__init__("2A29", name)
 
 
 class ModelNumberCharacteristic(ReadOnlyCharacteristic):
     def __init__(self, model_no):
-        super().__init__('2A24', model_no)
+        super().__init__("2A24", model_no)
 
 
 class VersionCharacteristic(Characteristic):
     version_max_length = 20
 
     def __init__(self, uuid, version_info):
-        super().__init__({
-            'uuid':       uuid,
-            'properties': ['read'],
-            'value':      version_info.encode()
-        })
+        super().__init__({"uuid": uuid, "properties": ["read"], "value": version_info.encode()})
         self._version = []
 
     def onReadRequest(self, offset, callback):
@@ -273,31 +263,27 @@ class VersionCharacteristic(Characteristic):
 
     def update(self, version):
         if len(version) > self.version_max_length:
-            version = version[:self.version_max_length]
+            version = version[: self.version_max_length]
         self._version = version.encode("utf-8")
 
 
 class SystemIdCharacteristic(Characteristic):
     def __init__(self, system_id):
-        super().__init__({
-            'uuid':       '2A23',
-            'properties': ['read', 'write'],
-            'value':      None
-        })
+        super().__init__({"uuid": "2A23", "properties": ["read", "write"], "value": None})
         self._system_id = system_id
 
     def onReadRequest(self, offset, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
-            callback(Characteristic.RESULT_SUCCESS, self._system_id.encode('utf-8'))
+            callback(Characteristic.RESULT_SUCCESS, self._system_id.encode("utf-8"))
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
         else:
             try:
-                name = data.decode('ascii')
+                name = data.decode("ascii")
                 if 0 < len(name) <= 15:
                     self._system_id.update(name)
                     callback(Characteristic.RESULT_SUCCESS)
@@ -312,18 +298,17 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
         self._callbackFn = callback
         self._minLength = min_length
         self._maxLength = max_length
-        self._value = struct.pack('<I', 0)
-        super().__init__({
-            'uuid':        uuid,
-            'properties':  ['write', 'read', 'notify'],
-            'value':       None,
-            'descriptors': [
-                Descriptor({
-                    'uuid':  '2901',
-                    'value': description
-                }),
-            ]
-        })
+        self._value = struct.pack("<I", 0)
+        super().__init__(
+            {
+                "uuid": uuid,
+                "properties": ["write", "read", "notify"],
+                "value": None,
+                "descriptors": [
+                    Descriptor({"uuid": "2901", "value": description}),
+                ],
+            }
+        )
         self._update_value_callback = None
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
@@ -357,11 +342,13 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
 
 class LongMessageCharacteristic(Characteristic):
     def __init__(self, handler):
-        super().__init__({
-            'uuid':       'd59bb321-7218-4fb9-abac-2f6814f31a4d',
-            'properties': ['read', 'write'],
-            'value':      None
-        })
+        super().__init__(
+            {
+                "uuid": "d59bb321-7218-4fb9-abac-2f6814f31a4d",
+                "properties": ["read", "write"],
+                "value": None,
+            }
+        )
         self._handler = LongMessageProtocol(handler)
 
     def onReadRequest(self, offset, callback):
@@ -401,6 +388,7 @@ class LongMessageCharacteristic(Characteristic):
         finally:
             callback(result)
 
+
 class UnifiedBatteryInfoCharacteristic(CustomBatteryLevelCharacteristic):
     def onReadRequest(self, offset, callback):
         if offset:
@@ -413,7 +401,7 @@ class UnifiedBatteryInfoCharacteristic(CustomBatteryLevelCharacteristic):
             round(battery_status.main),
             battery_status.chargerStatus,
             round(battery_status.motor),
-            battery_status.motor_battery_present
+            battery_status.motor_battery_present,
         ]
         if new_value == self._value:
             return

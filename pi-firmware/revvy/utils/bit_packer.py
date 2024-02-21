@@ -1,12 +1,14 @@
 """ Takes an array of N integers 0..3 and packs them into a struct. """
 
 import struct
+from typing import List
 
-def pack_2_bit_number_array_32(numbers: [int]) -> bytearray:
+
+def pack_2_bit_number_array_32(numbers: List[int]) -> bytearray:
     """
-        returns 8 bytes, reversed bit order!
-        converts:  1 2 0 1 => REVERSE: 01 10 00 01 => x81
-        pads the last bytes with zeroes.
+    returns 8 bytes, reversed bit order!
+    converts:  1 2 0 1 => REVERSE: 01 10 00 01 => x81
+    pads the last bytes with zeroes.
     """
 
     packed_value = 0
@@ -17,14 +19,13 @@ def pack_2_bit_number_array_32(numbers: [int]) -> bytearray:
     for i, num in enumerate(numbers):
         if not 0 <= num < 4:
             raise ValueError("Each number must be a 2-bit number (0, 1, 2, or 3)")
-        packed_value |= (num << (2 * i))
+        packed_value |= num << (2 * i)
 
     return struct.pack(">Q", packed_value)
 
 
-
-def unpack_2_bit_number_array_32(byte_array: bytearray) -> [int]:
-    """ Unpacks 32 element int [0-3] array from a 8 sized bytearray """
+def unpack_2_bit_number_array_32(byte_array: bytearray) -> List[int]:
+    """Unpacks 32 element int [0-3] array from a 8 sized bytearray"""
 
     result = []
     # Reverse byte order.

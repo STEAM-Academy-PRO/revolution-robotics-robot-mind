@@ -13,7 +13,11 @@ from functools import partial
 from threading import Event
 
 from revvy.robot.robot import Robot
-from revvy.robot.remote_controller import RemoteController, RemoteControllerCommand, RemoteControllerScheduler
+from revvy.robot.remote_controller import (
+    RemoteController,
+    RemoteControllerCommand,
+    RemoteControllerScheduler,
+)
 from revvy.robot.remote_controller import create_remote_controller_thread
 from revvy.robot.led_ring import RingLed
 from revvy.robot.robot_events import ProgramStatusChange, RobotEvent
@@ -28,8 +32,9 @@ from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.subscription import DisposableArray
 from revvy.utils.error_reporter import RobotErrorType, revvy_error_handler
 
+
 class RevvyStatusCode(enum.IntEnum):
-    """ Exit codes we used to tell the loader what happened """
+    """Exit codes we used to tell the loader what happened"""
 
     # Manual exit. The loader will exit, too. Exiting with OK only makes sense if the package is
     # not managed by the revvy.service.
@@ -46,9 +51,10 @@ class RevvyStatusCode(enum.IntEnum):
 
 
 class RobotManager:
-    """ High level class to manage robot state and configuration """
+    """High level class to manage robot state and configuration"""
+
     def __init__(self):
-        self._log = get_logger('RobotManager')
+        self._log = get_logger("RobotManager")
         self.needs_interrupting = True
 
         self._configuring = False
@@ -93,19 +99,24 @@ class RobotManager:
         self._remote_controller_scheduler.periodic_control_message_handler(message)
 
     # TODO: not used.
-    def validate_config_async(self, motors, sensors, motor_load_power,
-        threshold, callback):
+    def validate_config_async(self, motors, sensors, motor_load_power, threshold, callback):
         # TODO: no longer run in background.
-        #self.run_in_background(partial(self.validate_config, motors,
+        # self.run_in_background(partial(self.validate_config, motors,
         #    sensors, motor_load_power, threshold, callback), '__on_validate_config_requested')
 
-        self._log('Validation request: motors={}, sensors={},pwr:{},sen:{}'.format(
-            motors, sensors, motor_load_power, threshold))
+        self._log(
+            "Validation request: motors={}, sensors={},pwr:{},sen:{}".format(
+                motors, sensors, motor_load_power, threshold
+            )
+        )
 
     # TODO: not used.
     def validate_config(self, motors, sensors, motor_load_power, threshold, callback):
-        self._log('validate req: motors={}, sensors={},pwr:{},sen:{}'.format(
-            motors, sensors, motor_load_power, threshold))
+        self._log(
+            "validate req: motors={}, sensors={},pwr:{},sen:{}".format(
+                motors, sensors, motor_load_power, threshold
+            )
+        )
 
         success = True
         motors_result = []
@@ -119,23 +130,22 @@ class RobotManager:
                 threshold = 10
             if should_check_port:
                 motor_is_present = self._robot._robot_control.test_motor_on_port(
-                    motor_port_num, motor_load_power, threshold)
+                    motor_port_num, motor_load_power, threshold
+                )
 
-            status_string = 'unchecked'
+            status_string = "unchecked"
             if motor_is_present:
-                status_string = 'attached'
+                status_string = "attached"
             elif should_check_port:
-                status_string = 'detached'
+                status_string = "detached"
 
-            self._log('Motor port "M{} check result:{}'.format(motor_port_num,
-                status_string))
+            self._log('Motor port "M{} check result:{}'.format(motor_port_num, status_string))
 
             motors_result.append(motor_is_present)
 
         sensors_result = []
         for sensor_idx, sensor_expected_type in enumerate(sensors):
-            tested_type = self._robot.__validate_one_sensor_port(sensor_idx,
-                sensor_expected_type)
+            tested_type = self._robot.__validate_one_sensor_port(sensor_idx, sensor_expected_type)
             sensors_result.append(tested_type)
 
         callback(success, motors_result, sensors_result)
@@ -143,7 +153,7 @@ class RobotManager:
     # Not sure if this is the right place for this. Maybe an autonomous handler should
     # be linked with the robot's state handler.
     def process_autonomous_requests(self):
-        if self._autonomous == 'ready':
+        if self._autonomous == "ready":
             req = self.remote_controller.fetch_autonomous_requests()
             if req.is_start_pending():
                 self._bg_controlled_scripts.start_all_scripts()
@@ -153,8 +163,6 @@ class RobotManager:
                 self._bg_controlled_scripts.stop_all_scripts()
             elif req.is_resume_pending():
                 self._bg_controlled_scripts.resume_all_scripts()
-
-
 
     @property
     def config(self):
@@ -173,7 +181,7 @@ class RobotManager:
         return self._remote_controller
 
     def exit(self, status_code):
-        self._log(f'exit requested with code {status_code}')
+        self._log(f"exit requested with code {status_code}")
         self._status_code = status_code
         if self.needs_interrupting:
             os.kill(os.getpid(), signal.SIGINT)
@@ -185,57 +193,55 @@ class RobotManager:
 
     def robot_start(self):
         if self._robot.status.robot_status == RobotStatus.StartingUp:
-            self._log('Waiting for MCU')
+            self._log("Waiting for MCU")
 
             try:
                 self._ping_robot()
             except TimeoutError:
                 pass  # FIXME somehow handle a dead MCU
-                      # I would add info on the main terminal screen.
+                # I would add info on the main terminal screen.
 
-        self._log('Connection to MCU established')
+        self._log("Connection to MCU established")
         self._robot.status.robot_status = RobotStatus.NotConfigured
-        self._robot.play_tune('robot2')
+        self._robot.play_tune("robot2")
 
     def on_connected(self, device_name):
-        """ When interface connects """
+        """When interface connects"""
         self._log(f"{device_name} device connected!")
         self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
-        self._robot.play_tune('bell')
+        self._robot.play_tune("bell")
 
     def on_disconnected(self):
-        """ Reset, play tune """
+        """Reset, play tune"""
         self._log("Device disconnected!")
         self._robot.status.controller_status = RemoteControllerStatus.NotConnected
-        self._robot.play_tune('disconnect')
+        self._robot.play_tune("disconnect")
         self.reset_configuration()
 
-
     def on_connection_changed(self, is_connected):
-        self._log('Phone connected' if is_connected else 'Phone disconnected')
+        self._log("Phone connected" if is_connected else "Phone disconnected")
 
     def _on_controller_detected(self):
-        self._log('Remote controller detected')
+        self._log("Remote controller detected")
         self._robot.status.controller_status = RemoteControllerStatus.Controlled
 
     def _on_controller_lost(self):
-        self._log('Remote controller lost')
+        self._log("Remote controller lost")
         self.trigger(RobotEvent.CONTROLLER_LOST)
         if self._robot.status.controller_status != RemoteControllerStatus.NotConnected:
             self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
             self.reset_configuration()
 
-
     def reset_configuration(self):
-        """ When RC disconnects """
+        """When RC disconnects"""
         self._log("RESET config")
         self._robot.status.robot_status = RobotStatus.NotConfigured
-        self._log('RC stopped')
+        self._log("RC stopped")
         self._scripts.stop_all_scripts()
         for scr in [self._scripts, self._bg_controlled_scripts]:
             scr.reset()
-            scr.assign('Motor', MotorConstants)
-            scr.assign('RingLed', RingLed)
+            scr.assign("Motor", MotorConstants)
+            scr.assign("RingLed", RingLed)
 
         self._remote_controller_thread.stop()
         self._remote_controller.reset()
@@ -250,11 +256,10 @@ class RobotManager:
 
         revvy_error_handler.read_mcu_errors(self._robot.robot_control)
 
-
     def robot_configure(self, config):
         """
-            Does the bindings of ports, variables, sensors and motors
-            background scripts and button scripts, starts the Remote.
+        Does the bindings of ports, variables, sensors and motors
+        background scripts and button scripts, starts the Remote.
         """
         self._config = config
 
@@ -269,12 +274,12 @@ class RobotManager:
         # Initialize variable slots from config
         scriptvars = []
         for varconf in config.controller.variable_slots:
-            slot_idx =  varconf['slot']
+            slot_idx = varconf["slot"]
             v = self._robot.script_variables.get_variable(slot_idx)
-            v.init(varconf['script'], varconf['variable'], 0.0)
+            v.init(varconf["script"], varconf["variable"], 0.0)
             scriptvars.append(v)
 
-        self._bg_controlled_scripts.assign('list_slots', scriptvars)
+        self._bg_controlled_scripts.assign("list_slots", scriptvars)
 
         # set up motors
         for motor in self._robot.motors:
@@ -284,22 +289,22 @@ class RobotManager:
             # Angle could however be sent back up.
             # Note that we reduce the ID here, so we do not need that anywhere else.
             # This way we have motors 0-5 in RobotState already. Just a simple array.
-            motor.driver.on_status_changed.add(lambda p:
-                                        self._robot_state.set_motor_angle(p.id - 1, p.driver.pos))
+            motor.driver.on_status_changed.add(
+                lambda p: self._robot_state.set_motor_angle(p.id - 1, p.driver.pos)
+            )
 
-        for motor_id in config.drivetrain['left']:
+        for motor_id in config.drivetrain["left"]:
             self._robot.drivetrain.add_left_motor(self._robot.motors[motor_id])
 
-        for motor_id in config.drivetrain['right']:
+        for motor_id in config.drivetrain["right"]:
             self._robot.drivetrain.add_right_motor(self._robot.motors[motor_id])
-
 
         # Dispose sensor reading subscriptions.
         self._sensor_data_subscriptions.dispose()
 
         # Re-configure sensors, subscribe to their data's changes.
         for sensor_port in self._robot.sensors:
-            self._log(f'Configuring sensor {sensor_port.id} {config.sensors[sensor_port.id]}')
+            self._log(f"Configuring sensor {sensor_port.id} {config.sensors[sensor_port.id]}")
             # Code smell: Instead of creating a new sensor object, we just
             # configure one. I'd prefer re-initializing the Sensor object.
             # not sure if it ditches the references.
@@ -323,30 +328,33 @@ class RobotManager:
             if sensor_config:
                 # Create a data wrapper that exposes sensor data to the mobile app.
                 sensor_data_wrapper_subscription = create_sensor_data_wrapper(
-                    sensor_port, sensor_config,
-                    lambda event_data: self.trigger(RobotEvent.SENSOR_VALUE_CHANGE, event_data))
+                    sensor_port,
+                    sensor_config,
+                    lambda event_data: self.trigger(RobotEvent.SENSOR_VALUE_CHANGE, event_data),
+                )
 
                 self._sensor_data_subscriptions.add(sensor_data_wrapper_subscription)
 
             # Also, I'd love to see all the robot status changes WITHIN the robot in one place,
             # most probably in the robot object.
             # sensor_port.on_status_changed.add(lambda p:
-                #  self.trigger(RobotEvent.SENSOR_VALUE_CHANGE, SensorEventData(p.id, p.raw_value)))
+            #  self.trigger(RobotEvent.SENSOR_VALUE_CHANGE, SensorEventData(p.id, p.raw_value)))
 
         def start_analog_script(src, channels):
             src.start(channels=channels)
 
         # set up remote controller
         for analog in config.controller.analog:
-            script_handle = self._scripts.add_script(analog['script'], config)
-            self._remote_controller.on_analog_values(analog['channels'],
-                                        partial(start_analog_script, script_handle))
+            script_handle = self._scripts.add_script(analog["script"], config)
+            self._remote_controller.on_analog_values(
+                analog["channels"], partial(start_analog_script, script_handle)
+            )
 
         # Set up all the bound buttons to run the stored scripts.
         for button, script in enumerate(config.controller.buttons):
             if script:
                 script_handle = self._scripts.add_script(script, config)
-                script_handle.assign('list_slots', scriptvars)
+                script_handle.assign("list_slots", scriptvars)
                 self._remote_controller.link_button_to_runner(button, script_handle)
 
                 script_handle.on(ScriptEvent.START, self._on_script_running)
@@ -370,9 +378,8 @@ class RobotManager:
             bg_script_handle.on(ScriptEvent.ERROR, self._on_bg_script_error)
 
         self.remote_controller.reset_background_control_state()
-        if config.background_initial_state == 'running':
+        if config.background_initial_state == "running":
             self._bg_controlled_scripts.start_all_scripts()
-
 
         self._robot.status.robot_status = RobotStatus.Configured
 
@@ -382,29 +389,34 @@ class RobotManager:
         # When configuration is done, in order to signal the app to enable
         # the play button in autonomous mode, we need to indicate it
         # with sending a status update.
-        self.trigger(RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE,
-                     self._remote_controller.background_control_state)
-
+        self.trigger(
+            RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE,
+            self._remote_controller.background_control_state,
+        )
 
     def _on_script_running(self, script_handle: ScriptHandle, data=None):
-        """ When script started, notify phone app. """
-        self.trigger(RobotEvent.PROGRAM_STATUS_CHANGE,
-                     ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.START))
+        """When script started, notify phone app."""
+        self.trigger(
+            RobotEvent.PROGRAM_STATUS_CHANGE,
+            ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.START),
+        )
 
     def _show_script_error(self, script_handle: ScriptHandle, exception: Exception):
         """
-            On code execution error, do send visible signals
-            to the user about the code being broken.
+        On code execution error, do send visible signals
+        to the user about the code being broken.
         """
-        self._log(f'ERROR in userscript: {script_handle.descriptor.name}', LogLevel.ERROR)
-        self._log(f'ERROR:  {str(exception)}', LogLevel.ERROR)
-        self._log(f'Source that caused the error: \n\n{script_handle.descriptor.source}\n\n',
-                  LogLevel.ERROR)
-        self._log(f'{traceback.format_exc()}', LogLevel.ERROR)
+        self._log(f"ERROR in userscript: {script_handle.descriptor.name}", LogLevel.ERROR)
+        self._log(f"ERROR:  {str(exception)}", LogLevel.ERROR)
+        self._log(
+            f"Source that caused the error: \n\n{script_handle.descriptor.source}\n\n",
+            LogLevel.ERROR,
+        )
+        self._log(f"{traceback.format_exc()}", LogLevel.ERROR)
 
         # Brain bug LED effect with "uh oh" sound.
         self._robot.led.start_animation(RingLed.Bug)
-        self._robot.sound.play_tune('uh_oh')
+        self._robot.sound.play_tune("uh_oh")
         time.sleep(2)
         self._robot.led.start_animation(RingLed.Off)
 
@@ -414,7 +426,8 @@ class RobotManager:
         bg_blockly_error = revvy_error_handler.report_error(
             RobotErrorType.BLOCKLY_BACKGROUND,
             traceback.format_exc(),
-            script_handle.descriptor.ref_id)
+            script_handle.descriptor.ref_id,
+        )
 
         # We need to notify the connected devices about the error too.
         # The above command adds the error to the queue, but as we are
@@ -423,29 +436,32 @@ class RobotManager:
 
     def _on_script_error(self, script_handle: ScriptHandle, exception: Exception):
         """
-            Handle runner script errors gracefully, and type out what caused it to bail!
-            These are user scripts, so we should consider sending them back via Bluetooth
+        Handle runner script errors gracefully, and type out what caused it to bail!
+        These are user scripts, so we should consider sending them back via Bluetooth
         """
-        self.trigger(RobotEvent.PROGRAM_STATUS_CHANGE,
-                     ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.ERROR))
+        self.trigger(
+            RobotEvent.PROGRAM_STATUS_CHANGE,
+            ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.ERROR),
+        )
         self._show_script_error(script_handle, exception)
 
         btn_blockly_error = revvy_error_handler.report_error(
-            RobotErrorType.BLOCKLY_BUTTON,
-            traceback.format_exc(),
-            script_handle.descriptor.ref_id)
+            RobotErrorType.BLOCKLY_BUTTON, traceback.format_exc(), script_handle.descriptor.ref_id
+        )
 
         # Same as the above.
         self.trigger(RobotEvent.ERROR, btn_blockly_error)
 
     def _on_script_stopped(self, script_handle: ScriptHandle, data=None):
-        """ If we want to send back script status stopped change, this is the place. """
+        """If we want to send back script status stopped change, this is the place."""
         # self._log(f'script: {script.name}')
-        self.trigger(RobotEvent.PROGRAM_STATUS_CHANGE,
-                     ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.STOP))
+        self.trigger(
+            RobotEvent.PROGRAM_STATUS_CHANGE,
+            ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.STOP),
+        )
 
     def robot_stop(self):
-        """ On exiting let's reset all states. """
+        """On exiting let's reset all states."""
         self._robot_state.stop_polling_mcu()
         self._robot.status.controller_status = RemoteControllerStatus.NotConnected
         self._robot.status.robot_status = RobotStatus.Stopped
@@ -454,11 +470,10 @@ class RobotManager:
         self._scripts.reset()
         self._robot.stop()
 
-
     def _ping_robot(self, timeout=0):
         stopwatch = Stopwatch()
         retry_ping = True
-        self._log('pinging')
+        self._log("pinging")
         while retry_ping:
             retry_ping = False
             try:

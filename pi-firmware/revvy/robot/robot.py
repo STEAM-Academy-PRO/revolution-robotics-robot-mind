@@ -24,7 +24,8 @@ SENSOR_ON_PORT_DISTANCE = 1
 SENSOR_ON_PORT_BUTTON = 2
 SENSOR_ON_PORT_INVALID = 3
 SENSOR_ON_PORT_RGB = 4
-SENSOR_ON_PORT_UNKNOWN = 0xff
+SENSOR_ON_PORT_UNKNOWN = 0xFF
+
 
 def to_sensor_type_index(expected_sensor):
     if expected_sensor == SENSOR_ON_PORT_BUTTON:
@@ -58,7 +59,7 @@ class Robot(RobotInterface):
 
         self._comm_interface = self._bus_factory()
 
-        self._log = get_logger('Robot')
+        self._log = get_logger("Robot")
 
         self._script_variables = VariableSlot(4)
 
@@ -67,9 +68,9 @@ class Robot(RobotInterface):
         self._stopwatch = Stopwatch()
 
         setup = {
-            Version('1.0'): SoundControlV1,
-            Version('1.1'): SoundControlV1,
-            Version('2.0'): SoundControlV2,
+            Version("1.0"): SoundControlV1,
+            Version("1.1"): SoundControlV1,
+            Version("2.0"): SoundControlV2,
         }
 
         self._ring_led = RingLed(self._robot_control)
@@ -77,17 +78,12 @@ class Robot(RobotInterface):
 
         self._status = RobotStatusIndicator(self._robot_control)
         self._status_updater = McuStatusUpdater(self._robot_control)
-        self._battery = BatteryStatus(
-            chargerStatus=0,
-            motor_battery_present=0,
-            main=0,
-            motor=0
-        )
+        self._battery = BatteryStatus(chargerStatus=0, motor_battery_present=0, main=0, motor=0)
 
         self._imu = IMU()
 
         def _set_updater(slot_name, port: PortInstance[PortDriver], config):
-            """ Controls reading a port's status information from the MCU. """
+            """Controls reading a port's status information from the MCU."""
             if config is None:
                 self._status_updater.disable_slot(slot_name)
             else:
@@ -95,11 +91,11 @@ class Robot(RobotInterface):
 
         self._motor_ports = MotorPortHandler(self._robot_control)
         for port in self._motor_ports:
-            port.on_config_changed.add(partial(_set_updater, f'motor_{port.id}'))
+            port.on_config_changed.add(partial(_set_updater, f"motor_{port.id}"))
 
         self._sensor_ports = SensorPortHandler(self._robot_control)
         for port in self._sensor_ports:
-            port.on_config_changed.add(partial(_set_updater, f'sensor_{port.id}'))
+            port.on_config_changed.add(partial(_set_updater, f"sensor_{port.id}"))
 
         self._drivetrain = DifferentialDrivetrain(self._robot_control, self._imu)
 
@@ -107,12 +103,11 @@ class Robot(RobotInterface):
         self.ping = self._robot_control.ping
 
         self._resources = {
-            'led_ring':   Resource('RingLed'),
-            'drivetrain': Resource('DriveTrain'),
-            'sound':      Resource('Sound'),
-
-            **{f'motor_{port.id}': Resource(f'Motor {port.id}') for port in self.motors},
-            **{f'sensor_{port.id}': Resource(f'Sensor {port.id}') for port in self.sensors}
+            "led_ring": Resource("RingLed"),
+            "drivetrain": Resource("DriveTrain"),
+            "sound": Resource("Sound"),
+            **{f"motor_{port.id}": Resource(f"Motor {port.id}") for port in self.motors},
+            **{f"sensor_{port.id}": Resource(f"Sensor {port.id}") for port in self.sensors},
         }
 
     @property
@@ -168,14 +163,12 @@ class Robot(RobotInterface):
     def time(self):
         return self._stopwatch.elapsed
 
-
     def __validate_one_sensor_port(self, sensor_idx, expected_type):
         port_type = to_sensor_type_index(expected_type)
         if port_type is None:
             return SENSOR_ON_PORT_UNKNOWN
 
-        result = self._robot_control.test_sensor_on_port(sensor_idx + 1,
-            port_type)
+        result = self._robot_control.test_sensor_on_port(sensor_idx + 1, port_type)
 
         if result.is_connected():
             return expected_type
@@ -188,9 +181,8 @@ class Robot(RobotInterface):
 
         return SENSOR_ON_PORT_UNKNOWN
 
-
     def reset(self):
-        self._log('reset()')
+        self._log("reset()")
         self._ring_led.start_animation(RingLed.BreathingGreen)
         self._status_updater.reset()
 
@@ -198,10 +190,12 @@ class Robot(RobotInterface):
             assert len(data) == 4
             main_status, main_percentage, motor_bat_present, motor_percentage = data
 
-            self._battery = BatteryStatus(chargerStatus=main_status,
+            self._battery = BatteryStatus(
+                chargerStatus=main_status,
                 motor_battery_present=motor_bat_present,
                 main=main_percentage,
-                motor=motor_percentage)
+                motor=motor_percentage,
+            )
 
         self._status_updater.enable_slot("battery", _process_battery_slot)
         self._status_updater.enable_slot("axl", self._imu.update_axl_data)
@@ -210,7 +204,7 @@ class Robot(RobotInterface):
         self._status_updater.enable_slot("yaw", self._imu.update_yaw_angles)
 
         # TODO: do something useful with the reset signal
-        self._status_updater.enable_slot("reset", lambda _: self._log('MCU reset detected'))
+        self._status_updater.enable_slot("reset", lambda _: self._log("MCU reset detected"))
 
         self._drivetrain.reset()
         self._motor_ports.reset()

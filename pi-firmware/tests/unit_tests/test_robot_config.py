@@ -1,4 +1,3 @@
-
 import unittest
 
 from revvy.robot.configurations import Sensors, Motors
@@ -9,7 +8,7 @@ from revvy.robot_config import RobotConfig, ConfigError
 
 class TestRobotConfig(unittest.TestCase):
     def test_not_valid_config_is_ignored(self):
-        self.assertRaises(ConfigError, lambda: RobotConfig.from_string('not valid json'))
+        self.assertRaises(ConfigError, lambda: RobotConfig.from_string("not valid json"))
 
     def test_valid_config_needs_robotConfig_and_blocklies_keys(self):
         with self.subTest("Blockly only"):
@@ -26,7 +25,10 @@ class TestRobotConfig(unittest.TestCase):
             RobotConfig.from_string('{"robotconfig": {}, "blocklylist": []}')
 
     def test_scripts_without_code_or_script_name_fail(self):
-        self.assertRaises(ConfigError, lambda: RobotConfig.from_string('''
+        self.assertRaises(
+            ConfigError,
+            lambda: RobotConfig.from_string(
+                """
         {
             "robotConfig": [],
             "blocklyList": [
@@ -39,10 +41,12 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 }
             ]
-        }'''))
+        }"""
+            ),
+        )
 
     def test_scripts_can_be_assigned_to_multiple_buttons(self):
-        json = '''
+        json = """
         {
             "robotConfig": {},
             "blocklyList": [
@@ -56,13 +60,12 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 }
             ]
-        }'''.replace('{SOURCE}', b64_encode_str("some code"))
+        }""".replace(
+            "{SOURCE}", b64_encode_str("some code")
+        )
         config = RobotConfig.from_string(json)
 
-        script_names = [
-            'script_0_button_0',
-            'script_0_button_2'
-        ]
+        script_names = ["script_0_button_0", "script_0_button_2"]
 
         self.assertEqual(script_names[0], config.controller.buttons[0].name)
         self.assertEqual(script_names[1], config.controller.buttons[2].name)
@@ -74,7 +77,10 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual(0, config.controller.buttons[2].priority)
 
     def test_assigning_script_to_wrong_button_fails_parsing(self):
-        self.assertRaises(ConfigError, lambda: RobotConfig.from_string('''
+        self.assertRaises(
+            ConfigError,
+            lambda: RobotConfig.from_string(
+                """
         {
             "robotConfig": [],
             "blocklyList": [
@@ -87,8 +93,13 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 }
             ]
-        }'''))
-        self.assertRaises(ConfigError, lambda: RobotConfig.from_string('''
+        }"""
+            ),
+        )
+        self.assertRaises(
+            ConfigError,
+            lambda: RobotConfig.from_string(
+                """
         {
             "robotConfig": [],
             "blocklyList": [
@@ -101,10 +112,12 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 }
             ]
-        }'''))
+        }"""
+            ),
+        )
 
     def test_scripts_can_be_assigned_to_multiple_analog_channels(self):
-        json = '''
+        json = """
         {
             "robotConfig": {},
             "blocklyList": [
@@ -117,22 +130,24 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 }
             ]
-        }'''.replace('{SOURCE}', b64_encode_str("some code"))
+        }""".replace(
+            "{SOURCE}", b64_encode_str("some code")
+        )
         config = RobotConfig.from_string(json)
 
         self.assertEqual(1, len(config.controller.analog))
 
-        script_name = 'script_0_analog_channels_0_1'
+        script_name = "script_0_analog_channels_0_1"
 
-        script_descriptor = config.controller.analog[0]['script']
+        script_descriptor = config.controller.analog[0]["script"]
 
-        self.assertListEqual([0, 1], config.controller.analog[0]['channels'])
+        self.assertListEqual([0, 1], config.controller.analog[0]["channels"])
         self.assertEqual(script_name, script_descriptor.name)
         self.assertTrue(callable(script_descriptor.runnable))
         self.assertEqual(1, script_descriptor.priority)
 
     def test_scripts_can_be_configured_to_run_in_background(self):
-        json = '''
+        json = """
         {
             "robotConfig": {},
             "blocklyList": [
@@ -143,18 +158,20 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 }
             ]
-        }'''.replace('{SOURCE}', b64_encode_str("some code"))
+        }""".replace(
+            "{SOURCE}", b64_encode_str("some code")
+        )
         config = RobotConfig.from_string(json)
 
         self.assertEqual(1, len(config.background_scripts))
 
-        script_name = 'script_0_background_0'
+        script_name = "script_0_background_0"
 
         self.assertEqual(script_name, config.background_scripts[0].name)
         self.assertEqual(3, config.background_scripts[0].priority)
 
     def test_lower_case_pythoncode_is_accepted(self):
-        json = '''
+        json = """
         {
             "robotConfig": {},
             "blocklyList": [
@@ -165,19 +182,21 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 }
             ]
-        }'''.replace('{SOURCE}', b64_encode_str("some code"))
+        }""".replace(
+            "{SOURCE}", b64_encode_str("some code")
+        )
         config = RobotConfig.from_string(json)
 
         self.assertEqual(1, len(config.background_scripts))
 
-        script_name = 'script_0_background_0'
+        script_name = "script_0_background_0"
 
         self.assertEqual(script_name, config.background_scripts[0].name)
         self.assertTrue(callable(config.background_scripts[0].runnable))
         self.assertEqual(3, config.background_scripts[0].priority)
 
     def test_builtin_scripts_can_be_referenced(self):
-        json = '''
+        json = """
         {
             "robotConfig": {},
             "blocklyList": [
@@ -188,16 +207,16 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 }
             ]
-        }'''
+        }"""
         config = RobotConfig.from_string(json)
 
-        script_name = 'script_0_analog_channels_0_1'
-        self.assertEqual(script_name, config.controller.analog[0]['script'].name)
-        self.assertTrue(callable(config.controller.analog[0]['script'].runnable))
-        self.assertEqual(drive_2sticks, config.controller.analog[0]['script'].runnable)
+        script_name = "script_0_analog_channels_0_1"
+        self.assertEqual(script_name, config.controller.analog[0]["script"].name)
+        self.assertTrue(callable(config.controller.analog[0]["script"].runnable))
+        self.assertEqual(drive_2sticks, config.controller.analog[0]["script"].runnable)
 
     def test_lower_case_script_name_is_accepted(self):
-        json = '''
+        json = """
         {
             "robotConfig": {},
             "blocklyList": [
@@ -208,16 +227,16 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 }
             ]
-        }'''
+        }"""
         config = RobotConfig.from_string(json)
 
-        script_name = 'script_0_analog_channels_0_1'
-        self.assertEqual(script_name, config.controller.analog[0]['script'].name)
-        self.assertTrue(callable(config.controller.analog[0]['script'].runnable))
-        self.assertEqual(drive_2sticks, config.controller.analog[0]['script'].runnable)
+        script_name = "script_0_analog_channels_0_1"
+        self.assertEqual(script_name, config.controller.analog[0]["script"].name)
+        self.assertTrue(callable(config.controller.analog[0]["script"].runnable))
+        self.assertEqual(drive_2sticks, config.controller.analog[0]["script"].runnable)
 
     def test_scripts_can_be_assigned_to_every_type_at_once(self):
-        json = '''
+        json = """
         {
             "robotConfig": {},
             "blocklyList": [
@@ -230,29 +249,31 @@ class TestRobotConfig(unittest.TestCase):
                     }
                 }
             ]
-        }'''.replace('{SOURCE}', b64_encode_str("some code"))
+        }""".replace(
+            "{SOURCE}", b64_encode_str("some code")
+        )
         config = RobotConfig.from_string(json)
 
         self.assertEqual(1, len(config.background_scripts))
 
         script_names = [
-            'script_0_analog_channels_0_1',
-            'script_0_button_1',
-            'script_0_background_0'
+            "script_0_analog_channels_0_1",
+            "script_0_button_1",
+            "script_0_background_0",
         ]
 
-        self.assertEqual(script_names[0], config.controller.analog[0]['script'].name)
+        self.assertEqual(script_names[0], config.controller.analog[0]["script"].name)
         self.assertEqual(script_names[1], config.controller.buttons[1].name)
         self.assertEqual(script_names[2], config.background_scripts[0].name)
-        self.assertTrue(callable(config.controller.analog[0]['script'].runnable))
+        self.assertTrue(callable(config.controller.analog[0]["script"].runnable))
         self.assertTrue(callable(config.controller.buttons[1].runnable))
         self.assertTrue(callable(config.background_scripts[0].runnable))
-        self.assertEqual(1, config.controller.analog[0]['script'].priority)
+        self.assertEqual(1, config.controller.analog[0]["script"].priority)
         self.assertEqual(0, config.controller.buttons[1].priority)
         self.assertEqual(3, config.background_scripts[0].priority)
 
     def test_motors_are_parsed_as_list_of_motors(self):
-        json = '''
+        json = """
         {
             "robotConfig": {
                 "motors": [
@@ -294,7 +315,7 @@ class TestRobotConfig(unittest.TestCase):
                 ]
             },
             "blocklyList": []
-        }'''
+        }"""
 
         config = RobotConfig.from_string(json)
 
@@ -302,16 +323,16 @@ class TestRobotConfig(unittest.TestCase):
 
         # drivetrain left
         self.assertEqual(Motors.RevvyMotor_CCW, config.motors[2])  # normal left
-        self.assertEqual(Motors.RevvyMotor, config.motors[3])      # reversed left
+        self.assertEqual(Motors.RevvyMotor, config.motors[3])  # reversed left
 
         # drivetrain right
-        self.assertEqual(Motors.RevvyMotor, config.motors[5])      # normal right
+        self.assertEqual(Motors.RevvyMotor, config.motors[5])  # normal right
         self.assertEqual(Motors.RevvyMotor_CCW, config.motors[6])  # reversed right
 
         self.assertEqual(Motors.RevvyMotor, config.motors[4])  # motor, no 'side', no 'reversed'
 
-        self.assertListEqual([2, 3], config.drivetrain['left'])
-        self.assertListEqual([5, 6], config.drivetrain['right'])
+        self.assertListEqual([2, 3], config.drivetrain["left"])
+        self.assertListEqual([5, 6], config.drivetrain["right"])
 
         self.assertNotIn("M1", config.motors.names)  # not configured port does not have name
         self.assertEqual(2, config.motors.names["M2"])
@@ -321,7 +342,7 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual(6, config.motors.names["M6"])
 
     def test_motor_side_and_reversed_is_ignored_for_normal_motors(self):
-        json = '''
+        json = """
         {
             "robotConfig": {
                 "motors": [
@@ -352,7 +373,7 @@ class TestRobotConfig(unittest.TestCase):
                 ]
             },
             "blocklyList": []
-        }'''
+        }"""
 
         config = RobotConfig.from_string(json)
 
@@ -362,7 +383,7 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual(Motors.RevvyMotor, config.motors[4])
 
     def test_empty_or_null_motors_are_not_configured(self):
-        json = '''
+        json = """
         {
             "robotConfig": {
                 "motors": [
@@ -381,7 +402,7 @@ class TestRobotConfig(unittest.TestCase):
                 ]
             },
             "blocklyList": []
-        }'''
+        }"""
 
         config = RobotConfig.from_string(json)
 
@@ -391,7 +412,7 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual(Motors.RevvyMotor, config.motors[4])
 
     def test_sensors_are_parsed_as_list_of_sensors(self):
-        json = '''
+        json = """
         {
             "robotConfig": {
                 "sensors": [
@@ -414,7 +435,7 @@ class TestRobotConfig(unittest.TestCase):
                 ]
             },
             "blocklyList": []
-        }'''
+        }"""
 
         config = RobotConfig.from_string(json)
 
@@ -430,7 +451,7 @@ class TestRobotConfig(unittest.TestCase):
         self.assertNotIn("S4", config.sensors.names)
 
     def test_empty_or_null_sensors_are_not_configured(self):
-        json = '''
+        json = """
         {
             "robotConfig": {
                 "sensors": [
@@ -447,7 +468,7 @@ class TestRobotConfig(unittest.TestCase):
                 ]
             },
             "blocklyList": []
-        }'''
+        }"""
 
         config = RobotConfig.from_string(json)
 
@@ -457,7 +478,7 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual(Sensors.BumperSwitch, config.sensors[4])
 
     def test_type0_objects_dont_require_additional_keys(self):
-        json = '''
+        json = """
         {
             "robotConfig": {
                 "motors": [
@@ -472,7 +493,7 @@ class TestRobotConfig(unittest.TestCase):
                 ]
             },
             "blocklyList": []
-        }'''
+        }"""
 
         config = RobotConfig.from_string(json)
         self.assertIsNotNone(config)

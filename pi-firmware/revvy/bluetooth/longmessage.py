@@ -1,4 +1,3 @@
-
 ### Send and receive long messages via bluetooth.
 
 
@@ -56,7 +55,7 @@ def bytes2hexdigest(hash_bytes):
     >>> bytes2hexdigest(b'\\xAB\\xCD\\x0F')
     'abcd0f'
     """
-    return "".join('{0:0>2x}'.format(byte) for byte in hash_bytes)
+    return "".join("{0:0>2x}".format(byte) for byte in hash_bytes)
 
 
 class LongMessageStatus:
@@ -72,8 +71,10 @@ class LongMessageStatusInfo(NamedTuple):
     length: int
 
 
-UnusedLongMessageStatusInfo = LongMessageStatusInfo(LongMessageStatus.UNUSED, b'', 0)
-ValidationErrorLongMessageStatusInfo = LongMessageStatusInfo(LongMessageStatus.VALIDATION_ERROR, b'', 0)
+UnusedLongMessageStatusInfo = LongMessageStatusInfo(LongMessageStatus.UNUSED, b"", 0)
+ValidationErrorLongMessageStatusInfo = LongMessageStatusInfo(
+    LongMessageStatus.VALIDATION_ERROR, b"", 0
+)
 
 
 class LongMessageType:
@@ -138,10 +139,14 @@ class LongMessageStorage:
     def __init__(self, storage: StorageInterface, temp_storage: StorageInterface):
         self._storage = storage
         self._temp_storage = temp_storage
-        self._log = get_logger('LongMessageStorage')
+        self._log = get_logger("LongMessageStorage")
 
     def _get_storage(self, message_type):
-        return self._storage if message_type in LongMessageType.PermanentMessages else self._temp_storage
+        return (
+            self._storage
+            if message_type in LongMessageType.PermanentMessages
+            else self._temp_storage
+        )
 
     def read_status(self, long_message_type) -> LongMessageStatusInfo:
         """Return status with triplet of (LongMessageStatus, md5-hexdigest, length). Last two fields might be None)."""
@@ -150,7 +155,9 @@ class LongMessageStorage:
         try:
             storage = self._get_storage(long_message_type)
             data = storage.read_metadata(long_message_type)
-            return LongMessageStatusInfo(LongMessageStatus.READY, hexdigest2bytes(data['md5']), data['length'])
+            return LongMessageStatusInfo(
+                LongMessageStatus.READY, hexdigest2bytes(data["md5"]), data["length"]
+            )
 
         except (StorageError, JSONDecodeError):
             return UnusedLongMessageStatusInfo
@@ -184,7 +191,7 @@ class LongMessageHandler:
         self._upload_started_callback = None
         self._upload_progress_callback = None
         self._upload_finished_callback = None
-        self._log = get_logger('LongMessageHandler')
+        self._log = get_logger("LongMessageHandler")
 
     def on_message_updated(self, callback):
         self._message_updated_callback = callback
@@ -215,7 +222,8 @@ class LongMessageHandler:
         return LongMessageStatusInfo(
             LongMessageStatus.UPLOAD,
             hexdigest2bytes(self._current_message.md5),
-            len(self._current_message.data))
+            len(self._current_message.data),
+        )
 
     def select_long_message_type(self, long_message_type):
         if self._status == LongMessageHandler.STATUS_WRITE:
@@ -223,7 +231,9 @@ class LongMessageHandler:
             if upload_finished_callback:
                 upload_finished_callback(self._current_message)
 
-        self._log(f"select_long_message_type: {get_constant_name(long_message_type, LongMessageType)}")
+        self._log(
+            f"select_long_message_type: {get_constant_name(long_message_type, LongMessageType)}"
+        )
         LongMessageType.validate(long_message_type)
         self._long_message_type = long_message_type
         self._status = LongMessageHandler.STATUS_READ
@@ -239,7 +249,9 @@ class LongMessageHandler:
                 upload_finished_callback(self._current_message)
 
         if self._status == LongMessageHandler.STATUS_IDLE:
-            raise LongMessageError("init-transfer needs to be called after select_long_message_type")
+            raise LongMessageError(
+                "init-transfer needs to be called after select_long_message_type"
+            )
 
         self._status = LongMessageHandler.STATUS_WRITE
         self._current_message = ReceivedLongMessage(self._long_message_type, md5, size)
@@ -278,9 +290,8 @@ class LongMessageHandler:
                     message = self._long_message_storage.get_long_message(self._long_message_type)
                     info = self._long_message_storage.read_status(self._long_message_type)
                     self._current_message = ReceivedLongMessage(
-                        self._long_message_type,
-                        bytes2hexdigest(info.md5),
-                        info.length)
+                        self._long_message_type, bytes2hexdigest(info.md5), info.length
+                    )
                     self._current_message.append_data(message)
 
                 updated_callback(self._current_message)
@@ -315,13 +326,13 @@ class LongMessageProtocol:
             status = self._handler.read_status()
             if status.status in [LongMessageStatus.READY, LongMessageStatus.UPLOAD]:
                 # a byte, a 16byte string and an unsigned long packed into a big endian array
-                value = struct.pack('>b16sL', status.status, status.md5, status.length)
+                value = struct.pack(">b16sL", status.status, status.md5, status.length)
             else:
-                value = bytes((status.status, ))
+                value = bytes((status.status,))
 
             return value
         except (IOError, TypeError, JSONDecodeError) as e:
-            raise LongMessageError('Could not read long message') from e
+            raise LongMessageError("Could not read long message") from e
 
     def handle_write(self, header, data):
         if header == MessageType.SELECT_LONG_MESSAGE_TYPE:
@@ -336,7 +347,9 @@ class LongMessageProtocol:
                 self._handler.init_transfer(bytes2hexdigest(data), 0)
                 result = LongMessageProtocol.RESULT_SUCCESS
             elif len(data) == 20:
-                self._handler.init_transfer(bytes2hexdigest(data[0:16]), int.from_bytes(data[16:20], byteorder='big'))
+                self._handler.init_transfer(
+                    bytes2hexdigest(data[0:16]), int.from_bytes(data[16:20], byteorder="big")
+                )
                 result = LongMessageProtocol.RESULT_SUCCESS
             else:
                 result = LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH
@@ -361,7 +374,6 @@ class LongMessageProtocol:
         return result
 
 
-
 def extract_asset_longmessage(storage, asset_dir):
     """
     Extract the ASSET_DATA long message into a folder.
@@ -378,7 +390,7 @@ def extract_asset_longmessage(storage, asset_dir):
 
     if asset_status.status == LongMessageStatus.READY:
         with suppress(Exception):
-            with open(os.path.join(asset_dir, '.hash'), 'r') as asset_hash_file:
+            with open(os.path.join(asset_dir, ".hash"), "r") as asset_hash_file:
                 stored_hash = asset_hash_file.read()
 
             if stored_hash == asset_status.md5:
@@ -391,7 +403,7 @@ def extract_asset_longmessage(storage, asset_dir):
         with tarfile.open(fileobj=io.StringIO(message_data), mode="r|gz") as tar:
             tar.extractall(path=asset_dir)
 
-        with open(os.path.join(asset_dir, '.hash'), 'w') as asset_hash_file:
+        with open(os.path.join(asset_dir, ".hash"), "w") as asset_hash_file:
             asset_hash_file.write(asset_status.md5)
 
 
@@ -408,20 +420,22 @@ class LongMessageImplementation:
 
     def on_upload_started(self, message: ReceivedLongMessage):
         """
-            Visual indication that an upload has started.
-            Requests LED ring change in the background.
+        Visual indication that an upload has started.
+        Requests LED ring change in the background.
         """
 
         message_type = message.message_type
         if message_type == LongMessageType.FRAMEWORK_DATA:
-            self._progress = ProgressIndicator(self._robot_manager.robot.led, message.total_chunks, 0x00FF00, 0xFF00FF)
+            self._progress = ProgressIndicator(
+                self._robot_manager.robot.led, message.total_chunks, 0x00FF00, 0xFF00FF
+            )
         else:
             self._progress = None
             # TODO: Is this the right place to change the robot's inner state?
             self._robot_manager.robot.status.robot_status = RobotStatus.Configuring
 
     def on_upload_progress(self, message: ReceivedLongMessage):
-        """ Indicate long message download progress """
+        """Indicate long message download progress"""
         if self._progress:
             if message.total_chunks == 0:
                 # calculate approximate chunk count
@@ -431,19 +445,19 @@ class LongMessageImplementation:
                 self._progress.end = message.total_chunks
 
             if message.total_chunks != 0:
-                self._log(f'Progress: {message.received_chunks}/{message.total_chunks}')
+                self._log(f"Progress: {message.received_chunks}/{message.total_chunks}")
                 self._progress.update(message.received_chunks)
 
     def on_transmission_finished(self, message: ReceivedLongMessage):
         """
-            Visual indication that an upload has finished.
-            Requests LED ring change in the background.
+        Visual indication that an upload has finished.
+        Requests LED ring change in the background.
         """
 
         message_type = message.message_type
         if message_type == LongMessageType.FRAMEWORK_DATA:
             if not message.is_valid:
-                self._log('Firmware update cancelled')
+                self._log("Firmware update cancelled")
                 self._progress = None
                 self._robot_manager.robot.led.start_animation(RingLed.BreathingGreen)
         else:
@@ -453,15 +467,15 @@ class LongMessageImplementation:
 
     def on_message_updated(self, message: ReceivedLongMessage):
         """
-            When we received a long message, it's either a
-            - TEST_KIT: for sensor tests or a
-            - CONFIGURATION request (set up and enter play mode) or a
-            - FRAMEWORK update that we need to install.
-            - ASSET_DATA add new sound to the repertoire
+        When we received a long message, it's either a
+        - TEST_KIT: for sensor tests or a
+        - CONFIGURATION request (set up and enter play mode) or a
+        - FRAMEWORK update that we need to install.
+        - ASSET_DATA add new sound to the repertoire
         """
         message_type = message.message_type
 
-        self._log(f'Received message: {get_constant_name(message_type, LongMessageType)}')
+        self._log(f"Received message: {get_constant_name(message_type, LongMessageType)}")
 
         # On the configuration screen, when selecting a sensor, there is a TEST button
         # on the right panel's bottom left, right next to DONE button. that is very hard to notice.
@@ -470,10 +484,11 @@ class LongMessageImplementation:
         if message_type == LongMessageType.TEST_KIT:
 
             test_script_source = message.data.decode()
-            self._log(f'Running test script: \n{test_script_source}')
+            self._log(f"Running test script: \n{test_script_source}")
 
-            script_descriptor = ScriptDescriptor("test_kit",
-                        str_to_func(test_script_source), 0, source = test_script_source)
+            script_descriptor = ScriptDescriptor(
+                "test_kit", str_to_func(test_script_source), 0, source=test_script_source
+            )
 
             self._robot_manager.robot_configure(empty_robot_config)
 
@@ -482,12 +497,11 @@ class LongMessageImplementation:
             handle = self._robot_manager._scripts.add_script(script_descriptor, empty_robot_config)
 
             def on_stopped(*args):
-                self._log('test script ended')
+                self._log("test script ended")
                 self._robot_manager.reset_configuration()
 
             def on_error(*args):
-                revvy_error_handler.report_error(
-                            RobotErrorType.SYSTEM, traceback.format_exc())
+                revvy_error_handler.report_error(RobotErrorType.SYSTEM, traceback.format_exc())
 
             handle.on(ScriptEvent.STOP, on_stopped)
             handle.on(ScriptEvent.ERROR, on_error)
@@ -514,11 +528,10 @@ class LongMessageImplementation:
 
             # We wait for the bluetooth to respond with the final message.
             # We need to open a new thread for that so it lets this thread finish.
-            timer = threading.Timer(1.0, lambda:
-                    self._robot_manager.exit(RevvyStatusCode.UPDATE_REQUEST))
+            timer = threading.Timer(
+                1.0, lambda: self._robot_manager.exit(RevvyStatusCode.UPDATE_REQUEST)
+            )
             timer.start()
 
         elif message_type == LongMessageType.ASSET_DATA:
             extract_asset_longmessage(self._storage, self._asset_dir)
-
-

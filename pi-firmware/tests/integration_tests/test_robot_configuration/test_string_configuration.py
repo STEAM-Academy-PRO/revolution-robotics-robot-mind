@@ -1,4 +1,3 @@
-
 import unittest
 
 from revvy.robot_config import RobotConfig
@@ -8,7 +7,7 @@ from revvy.scripting.robot_interface import PortCollection
 class TestPortConfiguration(unittest.TestCase):
     def test_named_ports_can_be_accessed_via_robot_interface(self):
         """This test case verifies that PortCollection and RobotConfig use the same port numbering conventions"""
-        config_str = '''{
+        config_str = """{
             "robotConfig": {
                 "motors": [
                     {
@@ -44,7 +43,7 @@ class TestPortConfiguration(unittest.TestCase):
                 ]
             },
             "blocklyList": []
-        }'''
+        }"""
         config = RobotConfig.from_string(config_str)
 
         motors = PortCollection([2, 3, 5, 7])

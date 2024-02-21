@@ -6,6 +6,7 @@
    Requires the mobile side to update the content of the attribute
    to OK when received a new message.
 """
+
 from functools import partial
 from typing import Callable
 from pybleno import Characteristic, Descriptor
@@ -14,36 +15,37 @@ from revvy.utils.logger import get_logger
 
 # When the queue ends but the mobile reads, we send this token to the mobile
 # to indicate that the queue is empty.
-END_TOKEN = b'_X_'
+END_TOKEN = b"_X_"
 
 # When mobile got a packet, it responds with the b'OK' token.
-CONFIRM_TOKEN = b'OK'
+CONFIRM_TOKEN = b"OK"
 
-log = get_logger('BLE Queue')
+log = get_logger("BLE Queue")
+
 
 class QueueCharacteristic(Characteristic):
-    """ Makes sure the proper sending speed is ok by managing a queue of messages. """
-    def __init__(self, uuid: str, description: str):
-        super().__init__({
-            'uuid':        uuid,
-            'properties':  ['read', 'write', 'notify'],
-            'value':       None,
-            'descriptors': [
-                Descriptor({
-                    'uuid':  '2901',
-                    'value': description
-                }),
-            ]
-        })
+    """Makes sure the proper sending speed is ok by managing a queue of messages."""
 
-        self._on_ready_callback : Callable = None
+    def __init__(self, uuid: str, description: str):
+        super().__init__(
+            {
+                "uuid": uuid,
+                "properties": ["read", "write", "notify"],
+                "value": None,
+                "descriptors": [
+                    Descriptor({"uuid": "2901", "value": description}),
+                ],
+            }
+        )
+
+        self._on_ready_callback: Callable = None
         self._value = END_TOKEN
         self._queue = []
 
         self.is_sending = False
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
-        """ Mobile sends a confirmation that it got the latest pocket by overwriting the value to confirm. """
+        """Mobile sends a confirmation that it got the latest pocket by overwriting the value to confirm."""
         if data == CONFIRM_TOKEN:
             self.is_sending = False
             if self._on_ready_callback:
@@ -51,15 +53,15 @@ class QueueCharacteristic(Characteristic):
         callback(Characteristic.RESULT_SUCCESS)
 
     def onReadRequest(self, offset, callback):
-        """ Mobile sends a query about the data to the brain. """
+        """Mobile sends a query about the data to the brain."""
         # BLE sends packets of 20 bytes, so we need to split the error message into chunks.
         callback(Characteristic.RESULT_SUCCESS, self._value[offset:])
 
     def _send(self, value, on_ready_callback=None):
-        """ Send the error message to the mobile. """
+        """Send the error message to the mobile."""
         self._value = value
 
-        log(f'Sending: {value}')
+        log(f"Sending: {value}")
 
         self.is_sending = True
 
@@ -85,6 +87,6 @@ class QueueCharacteristic(Characteristic):
             self._send(END_TOKEN)
 
     def send_queued(self, value, on_ready_callback=None):
-        """ Send packet to the mobile. """
+        """Send packet to the mobile."""
         self._queue.insert(0, (value, on_ready_callback))
         self._process_queue()

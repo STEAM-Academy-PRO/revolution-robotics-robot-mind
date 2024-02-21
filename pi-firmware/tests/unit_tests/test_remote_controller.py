@@ -1,4 +1,3 @@
-
 import unittest
 from unittest.mock import Mock
 
@@ -42,7 +41,14 @@ class TestRemoteController(unittest.TestCase):
         rc.on_analog_values([3], mock3)
         rc.on_analog_values([3, 11], mock_invalid)
 
-        rc.process_control_message(RemoteControllerCommand(buttons=[False] * 32, analog=[255, 254, 253, 123, 43, 65, 45, 42], background_command=None, next_deadline=None))
+        rc.process_control_message(
+            RemoteControllerCommand(
+                buttons=[False] * 32,
+                analog=[255, 254, 253, 123, 43, 65, 45, 42],
+                background_command=None,
+                next_deadline=None,
+            )
+        )
 
         self.assertEqual(mock24.call_count, 1)
         self.assertEqual(mock3.call_count, 1)
