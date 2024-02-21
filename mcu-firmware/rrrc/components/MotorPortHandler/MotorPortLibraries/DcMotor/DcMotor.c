@@ -32,27 +32,18 @@ const float pulses_per_encoder_slit = 4.0f;
 const float pulses_per_encoder_slit = 2.0f;
 #endif
 
-#define CONFP_SPD (0.4f)
-#define CONFI_SPD (0.5f)
-#define CONFD_SPD (0.8f)
-
-#define CONFP_POS (0.8f)
-#define CONFI_POS (0.0f)
-#define CONFD_POS (1.5f)
-
-#define CONFP_POS_SLOW (0.1f)
-#define CONFD_POS_SLOW (0.0f)
-
-#define ANGLE_THR (0.2f)
-#define ANGLE_THR_DEG ((uint8_t) 5u)
-
-//#define ABSOLUTE_THRESHOLD
-
-static volatile int32_t posDelta = 0u;
+typedef enum {
+    PositionBreakpointKind_Degrees,
+    PositionBreakpointKind_Relative
+} PositionBreakpointKind_t;
 
 typedef struct
 {
     /* configuration */
+    PidConfig_t slowPositionConfig;
+    PidConfig_t fastPositionConfig;
+    float positionBreakpoint; /** < in the unit specified by positionBreakpointKind, relative to the distance from the goal */
+    PositionBreakpointKind_t positionBreakpointKind;
     PID_t positionController;
     PID_t speedController;
     float resolution;
@@ -71,6 +62,7 @@ typedef struct
     float maxDeceleration;
 
     DriveRequest_t lastRequest;
+    int32_t positionRequestBreakpoint; /** < in encoder ticks */
 
     /* last status */
     uint8_t motorStatus;
@@ -290,12 +282,16 @@ static bool _is_motor_blocked(MotorLibrary_Dc_Data_t* libdata, float u)
     return true;
 }
 
+static void select_pid(PID_t* controller, const PidConfig_t* coefficients)
+{
+    controller->config.P = coefficients->P;
+    controller->config.I = coefficients->I;
+    controller->config.D = coefficients->D;
+    /* limits are updated when processing the new request */
+}
+
 static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t* libdata)
 {
-    libdata->speedController.config.P = CONFP_SPD;
-    libdata->speedController.config.I = CONFI_SPD;
-    libdata->speedController.config.D = CONFD_SPD;
-
     if (libdata->lastRequest.request_type == DriveRequest_RequestType_Power)
     {
         return libdata->lastRequest.request.power;
@@ -319,23 +315,18 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
     }
     else
     {
-#ifdef ABSOLUTE_THRESHOLD
-        if ((abs_int32(libdata->lastRequest.request.position - libdata->lastPosition) < ANGLE_THR_DEG))
-#else
-        if (abs_int32(libdata->lastRequest.request.position - libdata->lastPosition) < (ANGLE_THR * posDelta))
-#endif
+        int32_t distanceFromGoal = abs_int32(libdata->lastPosition - libdata->lastRequest.request.position);
+        if (distanceFromGoal < libdata->positionRequestBreakpoint)
         {
-            libdata->positionController.config.P = CONFP_POS_SLOW;
-            libdata->positionController.config.D = CONFD_POS_SLOW;
+            select_pid(&libdata->positionController, &libdata->slowPositionConfig);
         }
         else
         {
-            libdata->positionController.config.P = CONFP_POS;
-            libdata->positionController.config.I = CONFI_POS;
-            libdata->positionController.config.D = CONFD_POS;
+            select_pid(&libdata->positionController, &libdata->fastPositionConfig);
         }
+
         /* update status if goal is reached */
-        if (abs_int32(libdata->lastPosition - libdata->lastRequest.request.position) < libdata->atLeastOneDegree)
+        if (distanceFromGoal < libdata->atLeastOneDegree)
         {
             libdata->motorStatus = MOTOR_STATUS_GOAL_REACHED;
         }
@@ -458,26 +449,26 @@ void DcMotor_Gpio1Callback(void* port)
     }
 }
 
-static void dc_motor_init_controller(PID_t* controller, const uint8_t* buffer)
+static void dc_motor_read_pid_config(PidConfig_t* config, const uint8_t* buffer)
 {
-    pid_initialize(controller);
-    controller->config.P = get_float(&buffer[0]);
-    controller->config.I = get_float(&buffer[4]);
-    controller->config.D = get_float(&buffer[8]);
-
-    /* the limits will be copied before the first update if they are relevant, so init them to 0 */
-    controller->config.LowerLimit = 0.0f;
-    controller->config.UpperLimit = 0.0f;
+    config->P = get_float(&buffer[0]);
+    config->I = get_float(&buffer[4]);
+    config->D = get_float(&buffer[8]);
+    /* limits are set when processing the request */
+    config->LowerLimit = 0.0f;
+    config->UpperLimit = 0.0f;
 }
 
 MotorLibraryStatus_t DcMotor_UpdateConfiguration(MotorPort_t* motorPort, const uint8_t* data, uint8_t size)
 {
     MotorLibrary_Dc_Data_t* libdata = (MotorLibrary_Dc_Data_t*) motorPort->libraryData;
-    const size_t header_size = 56u;
+    const size_t header_size = 81u;
+    /* Do we have the required data? */
     if (size < header_size)
     {
         return MotorLibraryStatus_InputError;
     }
+    /* Linearity table is optional but must be 8 bytes per entry */
     if ((size - header_size) % 8 != 0u)
     {
         return MotorLibraryStatus_InputError;
@@ -488,26 +479,42 @@ MotorLibraryStatus_t DcMotor_UpdateConfiguration(MotorPort_t* motorPort, const u
         return MotorLibraryStatus_InputError;
     }
 
-    libdata->resolution = pulses_per_encoder_slit * get_float(&data[0]);
+    /* reset controller states & coefficients */
+    pid_initialize(&libdata->positionController);
+    pid_initialize(&libdata->speedController);
+
+    /* read parameters */
+    float encoder_slits = get_float(&data[0]);
+
+    dc_motor_read_pid_config(&libdata->slowPositionConfig, &data[4]);
+    dc_motor_read_pid_config(&libdata->fastPositionConfig, &data[24]);
+    switch (data[44])
+    {
+        case 0: libdata->positionBreakpointKind = PositionBreakpointKind_Degrees; break;
+        case 1: libdata->positionBreakpointKind = PositionBreakpointKind_Relative; break;
+        default: return MotorLibraryStatus_InputError;
+    }
+    libdata->positionBreakpoint = get_float(&data[45]);
+    dc_motor_read_pid_config(&libdata->speedController.config, &data[49]);
+
+    libdata->maxDeceleration = get_float(&data[69]);
+    libdata->maxAcceleration = get_float(&data[73]);
+
+    Current_t maxCurrent = get_float(&data[77]);
+
+    /* calculate misc values */
+    libdata->resolution = pulses_per_encoder_slit * encoder_slits;
     libdata->atLeastOneDegree = lroundf(fabsf(libdata->resolution) / 360.0f);
     if (libdata->atLeastOneDegree == 0u)
     {
         libdata->atLeastOneDegree = 1u;
     }
 
-    dc_motor_init_controller(&libdata->positionController, &data[4]);
-    dc_motor_init_controller(&libdata->speedController, &data[24]);
+    libdata->positionControllerLowerLimit = libdata->slowPositionConfig.LowerLimit;
+    libdata->positionControllerUpperLimit = libdata->slowPositionConfig.UpperLimit;
 
-    libdata->positionControllerLowerLimit = get_float(&data[16]);
-    libdata->positionControllerUpperLimit = get_float(&data[20]);
-
-    libdata->speedControllerLowerLimit = get_float(&data[36]);
-    libdata->speedControllerUpperLimit = get_float(&data[40]);
-
-    libdata->maxDeceleration = get_float(&data[44]);
-    libdata->maxAcceleration = get_float(&data[48]);
-
-    Current_t maxCurrent = get_float(&data[52]);
+    libdata->speedControllerLowerLimit = libdata->speedController.config.LowerLimit;
+    libdata->speedControllerUpperLimit = libdata->speedController.config.UpperLimit;
 
     MotorPort_WriteMaxCurrent(motorPort, maxCurrent);
 
@@ -635,7 +642,20 @@ static MotorLibraryStatus_t _create_position_request(const MotorLibrary_Dc_Data_
 
     driveRequest->request_type = DriveRequest_RequestType_Position;
     driveRequest->request.position = requested_position;
-    posDelta = abs_int32(requested_position - libdata->lastPosition);
+
+    switch (libdata->positionBreakpointKind) {
+        case PositionBreakpointKind_Degrees:
+            driveRequest->positionBreakpoint = degrees_to_ticks(libdata, libdata->positionBreakpoint);
+            break;
+        case PositionBreakpointKind_Relative: {
+            float distanceTicks = fabsf((float)(libdata->lastPosition - requested_position));
+            driveRequest->positionBreakpoint = libdata->positionBreakpoint * distanceTicks;
+            break;
+        }
+        default:
+            /* should not happen, we check for invalid values when reading the configuration */
+            break;
+    }
 
     return MotorLibraryStatus_Ok;
 }

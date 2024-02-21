@@ -127,7 +127,7 @@ class TestDcMotorDriver(unittest.TestCase):
 
         self.assertEqual(3, passed_port_id)
 
-        configs = 56
+        configs = 4 + (20 + 20 + 5) + 20 + 4 + 4 + 4
         linearity_table = 6 * 8
         expected_bytes = configs + linearity_table
         self.assertEqual(expected_bytes, len(passed_config))

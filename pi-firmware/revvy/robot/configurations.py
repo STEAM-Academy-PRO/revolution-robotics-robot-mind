@@ -1,5 +1,5 @@
 from revvy.robot.ports.common import DriverConfig
-from revvy.robot.ports.motors.dc_motor import DcMotorController
+from revvy.robot.ports.motors.dc_motor import DcMotorController, PositionThreshold
 from revvy.robot.ports.sensors.simple import BumperSwitch, Hcsr04, ColorSensor
 
 
@@ -12,8 +12,13 @@ class Motors:
         config={
             # sped units are ticks / 10ms
             # P, I, D are dimensionless regulator coefficients
-            "speed_controller": [0.6065, 0.3935, 0, -150, 150],  # P, I, D, min speed, max speed
-            "position_controller": [0.1, 0.0000, 0, -150, 150],  # P, I, D, min speed, max speed
+            "speed_controller": [0.4, 0.5, 0.8, -150, 150],  # P, I, D, min speed, max speed
+            "position_controller": {
+                "slow": [0.1, 0.0, 0.0, -150, 150],  # P, I, D, min speed, max speed
+                "fast": [0.8, 0.0, 1.5, -150, 150],  # P, I, D, min speed, max speed
+                # Distance from goal where we switch to the slow controller
+                "fast_threshold": PositionThreshold.degrees(5),
+            },
             # max deceleration, max acceleration, in units of `[speed units] / 10ms`
             "acceleration_limits": [500, 500],
             "max_current": 1.5,  # Amps
@@ -33,8 +38,12 @@ class Motors:
     RevvyMotor_CCW = DriverConfig(
         driver=DcMotorController,
         config={
-            "speed_controller": [0.6065, 0.3935, 0, -150, 150],
-            "position_controller": [0.1, 0.0000, 0, -150, 150],
+            "speed_controller": [0.4, 0.5, 0.8, -150, 150],
+            "position_controller": {
+                "slow": [0.1, 0.0, 0.0, -150, 150],
+                "fast": [0.8, 0.0, 1.5, -150, 150],
+                "fast_threshold": PositionThreshold.degrees(5),
+            },
             "acceleration_limits": [500, 500],
             "max_current": 1.5,
             "linearity": [

@@ -1,15 +1,17 @@
 #ifndef PID_H_
 #define PID_H_
 
+typedef struct {
+    float P;
+    float I;
+    float D;
+    float LowerLimit;
+    float UpperLimit;
+} PidConfig_t;
+
 typedef struct
 {
-    struct {
-        float P;
-        float I;
-        float D;
-        float LowerLimit;
-        float UpperLimit;
-    } config;
+    PidConfig_t config;
 
     struct {
         float previousOutput;

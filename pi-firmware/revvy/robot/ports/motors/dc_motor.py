@@ -1,11 +1,43 @@
 from abc import ABC
+import enum
 import struct
-from functools import partial
+from typing import NamedTuple
 
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motors.base import MotorConstants, MotorStatus, MotorPortDriver
 from revvy.utils.awaiter import Awaiter, Awaiter
 from revvy.utils.functions import clip
+
+
+class ThresholdKind(enum.IntEnum):
+    DEGREES = 0
+    PERCENT = 1
+
+    def serialize(self) -> bytes:
+        return struct.pack("b", self)
+
+
+class PositionThreshold(NamedTuple):
+    kind: ThresholdKind
+    value: float
+
+    @staticmethod
+    def degrees(degrees: float):
+        return PositionThreshold(kind=ThresholdKind.DEGREES, value=degrees)
+
+    @staticmethod
+    def percent(percent: float):
+        return PositionThreshold(kind=ThresholdKind.PERCENT, value=percent / 100.0)
+
+    def serialize(self) -> bytes:
+        """
+        >>> list(PositionThreshold(ThresholdKind.DEGREES, 5).serialize())
+        [0, 0, 0, 160, 64]
+        >>> list(PositionThreshold(ThresholdKind.PERCENT, 0.5).serialize())
+        [1, 0, 0, 0, 63]
+        """
+
+        return bytes([*self.kind.serialize(), *struct.pack("<f", self.value)])
 
 
 class MotorCommand(ABC):
@@ -96,6 +128,18 @@ class PidConfig:
         )
 
 
+class TwoValuePidConfig:
+    def __init__(self, config):
+        self._slow = PidConfig(config["slow"])
+        self._fast = PidConfig(config["fast"])
+        self._fast_threshold: PositionThreshold = config["fast_threshold"]
+
+    def serialize(self) -> bytes:
+        return bytes(
+            [*self._slow.serialize(), *self._fast.serialize(), *self._fast_threshold.serialize()]
+        )
+
+
 class AccelerationLimitConfig:
     def __init__(self, config):
         (decMax, accMax) = config
@@ -121,7 +165,7 @@ class LinearityConfig:
 class DcMotorDriverConfig:
     def __init__(self, port_config):
         self._port_config = port_config
-        self._position_pid = PidConfig(self._port_config["position_controller"])
+        self._position_pid = TwoValuePidConfig(self._port_config["position_controller"])
         self._speed_pid = PidConfig(self._port_config["speed_controller"])
         self._acceleration_limits = AccelerationLimitConfig(port_config["acceleration_limits"])
 
