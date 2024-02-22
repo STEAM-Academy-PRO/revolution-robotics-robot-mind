@@ -5,6 +5,7 @@ import copy
 from threading import Event
 import traceback
 from typing import Callable, NamedTuple, Optional
+from revvy.bluetooth.data_types import BackgroundControlState, TimerData
 from revvy.scripting.runtime import ScriptHandle
 
 from revvy.utils.stopwatch import Stopwatch
@@ -70,42 +71,6 @@ class AutonomousModeRequest:
         self.__state = AutonomousModeRequest.NONE
 
 
-class BackgroundControlState:
-    STOPPED = 1
-    RUNNING = 2
-    PAUSED = 3
-
-    def __init__(self):
-        self.__state = BackgroundControlState.STOPPED
-
-    def __state_to_str(self):
-        if self.__state == BackgroundControlState.STOPPED:
-            return "bg_state:stopped"
-        if self.__state == BackgroundControlState.RUNNING:
-            return "bg_state:running"
-        if self.__state == BackgroundControlState.PAUSED:
-            return "bg_state:paused"
-        return "bg_state:undefined"
-
-    def __str__(self):
-        return self.__state_to_str()
-
-    def __repr__(self):
-        return self.__state_to_str()
-
-    def set_stopped(self):
-        self.__state = BackgroundControlState.STOPPED
-
-    def set_paused(self):
-        self.__state = BackgroundControlState.PAUSED
-
-    def set_running(self):
-        self.__state = BackgroundControlState.RUNNING
-
-    def get_numeric(self):
-        return self.__state
-
-
 class ButtonHandler:
     id: Number
     script: ScriptHandle
@@ -120,7 +85,7 @@ class ButtonHandler:
 class RemoteController:
 
     def __init__(self):
-        self._background_control_state = BackgroundControlState()
+        self._background_control_state = BackgroundControlState.STOPPED
         self._control_button_pressed = AutonomousModeRequest()
 
         self._analogActions = []  # ([channel], callback) pairs
@@ -156,7 +121,7 @@ class RemoteController:
         self._previous_time = time.time()
 
     def reset_background_control_state(self):
-        self._background_control_state.set_stopped()
+        self._background_control_state = BackgroundControlState.STOPPED
 
     def reset(self):
         self._analogActions.clear()
@@ -165,7 +130,7 @@ class RemoteController:
 
         self._processing = False
         self._processing_time = 0.0
-        self._background_control_state.set_stopped()
+        self._background_control_state = BackgroundControlState.STOPPED
         self._previous_time = None
         self._joystick_mode = False
 
@@ -263,7 +228,7 @@ class RemoteController:
         self._analogActions.append((channels, action))
 
     def start_background_functions(self):
-        self._background_control_state.set_running()
+        self._background_control_state = BackgroundControlState.RUNNING
         self._control_button_pressed.set_start_request()
         if not self._joystick_mode:
             self._processing = True
@@ -271,21 +236,21 @@ class RemoteController:
             self._previous_time = time.time()
 
     def reset_background_functions(self):
-        self._background_control_state.set_stopped()
+        self._background_control_state = BackgroundControlState.STOPPED
         self._control_button_pressed.set_stop_request()
         self._processing = False
         self._processing_time = 0.0
         self._previous_time = None
 
     def pause_background_functions(self):
-        self._background_control_state.set_paused()
+        self._background_control_state = BackgroundControlState.PAUSED
         self._control_button_pressed.set_pause_request()
         self.timer_increment()
         self._processing = False
         self._previous_time = None
 
     def resume_background_functions(self):
-        self._background_control_state.set_running()
+        self._background_control_state = BackgroundControlState.RUNNING
         self._control_button_pressed.set_resume_request()
         self._processing = True
         self._previous_time = time.time()
@@ -297,12 +262,12 @@ class RemoteController:
             self._previous_time = current_time
 
     @property
-    def processing_time(self):
-        return self._processing_time
+    def processing_time(self) -> TimerData:
+        return TimerData(self._processing_time)
 
     @property
-    def background_control_state(self):
-        return self._background_control_state.get_numeric()
+    def background_control_state(self) -> BackgroundControlState:
+        return self._background_control_state
 
     def fetch_autonomous_requests(self):
         result = copy.copy(self._control_button_pressed)

@@ -2,14 +2,23 @@
 
 import struct
 import traceback
+from typing import Generic, TypeVar
 
 from pybleno import Characteristic, Descriptor
+from revvy.bluetooth.data_types import (
+    GyroData,
+    MotorData,
+    ProgramStatusCollection,
+    ScriptVariables,
+    TimerData,
+)
 from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_UNKNOWN
 from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
 from revvy.robot.robot import BatteryStatus
-from revvy.utils.bit_packer import pack_2_bit_number_array_32, unpack_2_bit_number_array_32
+from revvy.utils.bit_packer import pack_2_bit_number_array_32
 
 from revvy.utils.logger import get_logger
+from revvy.utils.serialize import Serialize
 
 log = get_logger("BLE Characteristics")
 
@@ -145,7 +154,11 @@ class BackgroundProgramControlCharacteristic(Characteristic):
             callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
 
-class BrainToMobileCharacteristic(Characteristic):
+# DataType = TypeVar('DataType', bound=Serialize)
+DataType = TypeVar("DataType", bound=Serialize)
+
+
+class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
     def __init__(self, uuid, description):
         self._value = []
         self._updateValueCallback = None
@@ -172,7 +185,8 @@ class BrainToMobileCharacteristic(Characteristic):
     def onUnsubscribe(self):
         self._updateValueCallback = None
 
-    def update(self, value):
+    def update(self, value: DataType):
+        value = value.serialize()
         self._value = value
 
         callback = self._updateValueCallback
@@ -190,41 +204,32 @@ class SensorCharacteristic(BrainToMobileCharacteristic):
         super().update([len(value), *value])
 
 
-class MotorCharacteristic(BrainToMobileCharacteristic):
+class MotorCharacteristic(BrainToMobileCharacteristic[MotorData]):
     pass
 
 
-class GyroCharacteristic(BrainToMobileCharacteristic):
+class GyroCharacteristic(BrainToMobileCharacteristic[GyroData]):
     pass
 
 
-class TimerCharacteristic(BrainToMobileCharacteristic):
+class TimerCharacteristic(BrainToMobileCharacteristic[TimerData]):
     pass
 
 
-class ReadVariableCharacteristic(BrainToMobileCharacteristic):
+class ReadVariableCharacteristic(BrainToMobileCharacteristic[ScriptVariables]):
     pass
 
 
-class ProgramStatusCharacteristic(BrainToMobileCharacteristic):
+class ProgramStatusCharacteristic(BrainToMobileCharacteristic[ProgramStatusCollection]):
     """Store/send button script states to mobile."""
 
+    def __init__(self, uuid, description):
+        super().__init__(uuid, description)
+        self._data = ProgramStatusCollection()
+
     def update_button_value(self, button_id: int, status: int):
-        """Handles low level packing."""
-        if not self._value:
-            state_array = [0] * 32
-        else:
-            state_array = unpack_2_bit_number_array_32(self._value)
-
-        state_array[button_id] = status
-
-        log(f"button state array id:{button_id} => stat: {status}")
-
-        packed_byte_array = pack_2_bit_number_array_32(state_array)
-
-        # log(f'Button state change: {packed_byte_array}')
-        # If there are multiple messages, here is where we want to throttle.
-        self.update(packed_byte_array)
+        self._data.update_button_value(button_id, status)
+        self.update(self._data)
 
 
 # Device Information Service
@@ -234,17 +239,17 @@ class ReadOnlyCharacteristic(Characteristic):
 
 
 class SerialNumberCharacteristic(ReadOnlyCharacteristic):
-    def __init__(self, serial):
+    def __init__(self, serial: str):
         super().__init__("2A25", serial.encode())
 
 
 class ManufacturerNameCharacteristic(ReadOnlyCharacteristic):
-    def __init__(self, name):
+    def __init__(self, name: bytes):
         super().__init__("2A29", name)
 
 
 class ModelNumberCharacteristic(ReadOnlyCharacteristic):
-    def __init__(self, model_no):
+    def __init__(self, model_no: bytes):
         super().__init__("2A24", model_no)
 
 

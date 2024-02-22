@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import call
 
 from mock import Mock
-from revvy.robot.configurations import DriverConfig
+from revvy.robot.configurations import DriverConfig, Motors
 
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motors.base import (
@@ -101,15 +101,7 @@ class TestMotorPortHandler(unittest.TestCase):
 
 
 class TestDcMotorDriver(unittest.TestCase):
-    config = {
-        "speed_controller": [1 / 25, 0.3, 0, -100, 100],
-        "position_controller": [10, 0, 0, -900, 900],
-        "acceleration_limits": [10, 10],
-        "encoder_resolution": 12,
-        "gear_ratio": 64.8,
-        "max_current": 1.0,
-        "linearity": {0: 0, 1: 1},
-    }
+    config = Motors.RevvyMotor.config
 
     @staticmethod
     def create_port():
@@ -134,7 +126,11 @@ class TestDcMotorDriver(unittest.TestCase):
         (passed_port_id, passed_config) = port.interface.set_motor_port_config.call_args[0]
 
         self.assertEqual(3, passed_port_id)
-        self.assertEqual(56 + 2 * 8, len(passed_config))
+
+        configs = 56
+        linearity_table = 6 * 8
+        expected_bytes = configs + linearity_table
+        self.assertEqual(expected_bytes, len(passed_config))
 
     def test_set_pos_changes_read_value(self):
         port = self.create_port()

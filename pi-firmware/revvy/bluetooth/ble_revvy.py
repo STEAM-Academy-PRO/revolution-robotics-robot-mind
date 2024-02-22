@@ -20,7 +20,7 @@ from revvy.robot_manager import RobotManager
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage
 from revvy.bluetooth.longmessage import extract_asset_longmessage, LongMessageImplementation
 
-from revvy.bluetooth.live_message_service import LiveMessageService
+from revvy.bluetooth.live_message_service import LiveMessageService, MotorData
 
 from revvy.utils.error_reporter import compress_error, revvy_error_handler
 
@@ -161,7 +161,7 @@ class RevvyBLE:
     def update_motor(self, ref, motor_angles: List[int]):
         """Currently unused, as we are not doing anything with it in the app."""
         for angle, index in enumerate(motor_angles):
-            self._live.update_motor(index, 0, 0, angle)
+            self._live.update_motor(index, MotorData(0, 0, angle))
 
     def _on_connected(self, c):
         """On new INCOMING connection, update the callback interfaces."""
