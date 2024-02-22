@@ -76,6 +76,8 @@ typedef struct
     int32_t position;
 } MotorLibrary_Dc_Data_t;
 
+static uint8_t current_task = 0;
+
 static uint32_t abs_int32(int32_t a)
 {
     if (a < 0)
@@ -197,6 +199,9 @@ static void _update_current_speed(MotorLibrary_Dc_Data_t* libdata)
 static void _process_new_request(MotorLibrary_Dc_Data_t* libdata, const DriveRequest_t* driveRequest)
 {
     DriveRequest_RequestType_t last_request_type = libdata->lastRequest.request_type;
+
+    current_task++;
+
     if (last_request_type != driveRequest->request_type)
     {
         pid_reset(&libdata->speedController);
@@ -373,13 +378,14 @@ static void _update_status_data(uint8_t portIdx, const MotorLibrary_Dc_Data_t* l
 {
     int32_t pos_degrees = ticks_to_degrees(libdata, libdata->lastPosition);
 
-    uint8_t status[10];
+    uint8_t status[11];
     status[0] = libdata->motorStatus;
     status[1] = (uint8_t) (pwm/2);
     memcpy(&status[2], &pos_degrees, sizeof(int32_t));
     memcpy(&status[6], &libdata->currentSpeed, sizeof(float));
+    status[10] = current_task;
 
-    MotorPortHandler_Call_UpdatePortStatus(portIdx, (ByteArray_t){status, 10u});
+    MotorPortHandler_Call_UpdatePortStatus(portIdx, (ByteArray_t){status, 11u});
 }
 
 MotorLibraryStatus_t DcMotor_Update(MotorPort_t* motorPort)
