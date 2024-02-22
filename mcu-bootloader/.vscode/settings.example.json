@@ -1,4 +1,5 @@
 {
     "editor.formatOnSave": false,
-    "cortex-debug.armToolchainPath": "/usr/share/gcc-arm/gcc-arm-none-eabi-10.3-2021.10/bin"
+    "cortex-debug.armToolchainPath": "/usr/share/gcc-arm/gcc-arm-none-eabi-10.3-2021.10/bin",
+    "maxParallelBuilds": 4
 }
