@@ -21,13 +21,12 @@ class ThreadWrapper:
     EXITED = 4
     PAUSED = 5
 
-    def __init__(self, func, name="WorkerThread"):
+    def __init__(self, func, name: str = "WorkerThread"):
         self._log = get_logger(["ThreadWrapper", name])
         self._log("created")
         self._lock = Lock()  # lock used to ensure internal consistency
-        self._interface_lock = (
-            RLock()
-        )  # prevent concurrent access. RLock so that callbacks may restart the thread
+        # prevent concurrent access. RLock so that callbacks may restart the thread
+        self._interface_lock = RLock()
         self._func = func
         self._stopped_callbacks = SimpleEventEmitter()
         self._stop_requested_callbacks = SimpleEventEmitter()
@@ -36,16 +35,14 @@ class ThreadWrapper:
         self._pause_flag.set()  # when set, the code can run
         self._control = Event()  # used to wake up thread function when it is stopped
         self._stop_event = Event()  # used to signal thread function that it should stop
-        self._thread_stopped_event = (
-            Event()
-        )  # caller can wait for thread to stop after calling stop()
+        # caller can wait for thread to stop after calling stop()
+        self._thread_stopped_event = Event()
         self._thread_stopped_event.set()
-        self._thread_running_event = (
-            Event()
-        )  # caller can wait for the thread function to start running
+        # caller can wait for the thread function to start running
+        self._thread_running_event = Event()
         self._state = ThreadWrapper.STOPPED
         self._is_exiting = False
-        self._thread = Thread(target=self._thread_func, args=(), daemon=True, name=name)
+        self._thread = Thread(target=self._thread_func, args=(), name=name)
         self._thread.start()
 
     def _wait_for_start(self):
@@ -133,8 +130,23 @@ class ThreadWrapper:
 
             return self._thread_running_event
 
-    def stop(self):
+    def stop(self) -> Event:
         """If the thread is already stopped or stopping, does nothing."""
+
+        # It is possible that the wrapped thread calls `stop` while an other thread calls `exit`.
+        # To avoid a deadlock, we try to acquire the lock without blocking, and if
+        # we can't, we check if the lock is held by `exit`.
+        acquired = self._interface_lock.acquire(blocking=False)
+        try:
+            if not acquired and self._is_exiting:
+                return self._thread_stopped_event
+
+            return self.do_stop()
+        finally:
+            if acquired:
+                self._interface_lock.release()
+
+    def do_stop(self) -> Event:
         with self._interface_lock:
             if self._state in [ThreadWrapper.STOPPING, ThreadWrapper.STOPPED, ThreadWrapper.EXITED]:
                 self._log("stop already called. Currently in state: %s" % self._state)
@@ -168,7 +180,7 @@ class ThreadWrapper:
             self._log("exiting")
             self._is_exiting = True
 
-            evt = self.stop()
+            evt = self.do_stop()
             self._log("waiting for stop event to be set")
             evt.wait()
 
