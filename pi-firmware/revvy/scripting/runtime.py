@@ -50,7 +50,9 @@ class ScriptHandle(Emitter[ScriptEvent]):
         self.log("Error: default sleep called")
         raise Exception("Script not running")
 
-    def __init__(self, owner: "ScriptManager", descriptor, name, global_variables: dict):
+    def __init__(
+        self, owner: "ScriptManager", descriptor: ScriptDescriptor, name, global_variables: dict
+    ):
         super().__init__()
         self._owner = owner
         self._globals = global_variables.copy()
@@ -73,6 +75,7 @@ class ScriptHandle(Emitter[ScriptEvent]):
 
         self._thread.on_error(self._on_error)
 
+        # TODO: this isn't needed if everything is typed right, we can remove it later
         assert callable(self._runnable)
 
         self.log("Created")

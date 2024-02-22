@@ -37,7 +37,7 @@ class RobotState(Emitter[RobotEvent]):
         super().__init__()
         self._robot = robot
         self._remote_controller = remote_controller
-        self._status_update_thread: ThreadWrapper = None
+        self._status_update_thread: ThreadWrapper | None = None
 
         # Battery updates: every 2 seconds is enough, if it's unplugged, it's
         # soon enough to notify.
@@ -52,10 +52,11 @@ class RobotState(Emitter[RobotEvent]):
 
         self._motor_angles = Observable([0] * 6, throttle_interval=0.1)
 
-    def start_polling_mcu(self):
+    def start_polling_mcu(self) -> None:
         """Starts a new thread that runs every 5ms to check on MCU status."""
         self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
 
+        # FIXME what's up with these types?
         self._battery.subscribe(partial(self.trigger, RobotEvent.BATTERY_CHANGE))
         self._orientation.subscribe(partial(self.trigger, RobotEvent.ORIENTATION_CHANGE))
         self._script_variables.subscribe(partial(self.trigger, RobotEvent.SCRIPT_VARIABLE_CHANGE))
@@ -71,15 +72,16 @@ class RobotState(Emitter[RobotEvent]):
 
         self._status_update_thread.start()
 
-    def set_motor_angle(self, idx, angle):
+    def set_motor_angle(self, idx: int, angle: int):
         """We update this from robot manager."""
         angles = copy.deepcopy(self._motor_angles.get())
         angles[idx] = angle
         self._motor_angles.set(angles)
 
-    def stop_polling_mcu(self):
+    def stop_polling_mcu(self) -> None:
         """Exits the thread."""
-        self._status_update_thread.exit()
+        if self._status_update_thread:
+            self._status_update_thread.exit()
 
     def _update(self):
         """

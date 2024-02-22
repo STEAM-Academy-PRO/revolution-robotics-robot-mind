@@ -34,10 +34,6 @@ class RevvyBLE:
     Listens to connections from the app and controls the robot.
     """
 
-    def update_program_status(self, button_id, status: ScriptEvent):
-        # log(f'program status update: {button_id} {status}')
-        self._live.update_program_status(button_id, status)
-
     def __init__(self, robot_manager: RobotManager):
         self._robot_manager = robot_manager
 
@@ -82,14 +78,20 @@ class RevvyBLE:
         self._bleno = Bleno()
 
         # _bleno exposes it's on function runtime, which makes the linter sad.
-        self._bleno.on("stateChange", self._on_state_change)
-        self._bleno.on("advertisingStart", self._on_advertising_start)
-        self._bleno.on("accept", self._on_connected)
-        self._bleno.on("disconnect", self._on_disconnect)
+        self._bleno.on(
+            "stateChange", self._on_state_change
+        )  # pyright: ignore[reportAttributeAccessIssue]
+        self._bleno.on(
+            "advertisingStart", self._on_advertising_start
+        )  # pyright: ignore[reportAttributeAccessIssue]
+        self._bleno.on("accept", self._on_connected)  # pyright: ignore[reportAttributeAccessIssue]
+        self._bleno.on(
+            "disconnect", self._on_disconnect
+        )  # pyright: ignore[reportAttributeAccessIssue]
 
         self.subscribe_to_state_changes()
 
-    def subscribe_to_state_changes(self):
+    def subscribe_to_state_changes(self) -> None:
         """
         Use the event emitter pattern to subscribe to robot status changes
         The robot manager will emit everything we need to communicate back
@@ -133,7 +135,7 @@ class RevvyBLE:
         self._robot_manager.on(
             RobotEvent.PROGRAM_STATUS_CHANGE,
             lambda ref, script_status_change: self.update_program_status(
-                script_status_change.id, script_status_change.status.value
+                script_status_change.id, script_status_change.status
             ),
         )
 
@@ -151,6 +153,10 @@ class RevvyBLE:
         self._robot_manager.on(RobotEvent.MOTOR_CHANGE, self.update_motor)
 
         self._robot_manager.on(RobotEvent.ERROR, self.report_errors_in_queue)
+
+    def update_program_status(self, button_id, status: ScriptEvent):
+        # log(f'program status update: {button_id} {status}')
+        self._live.update_program_status(button_id, status)
 
     def update_motor(self, ref, motor_angles: List[int]):
         """Currently unused, as we are not doing anything with it in the app."""

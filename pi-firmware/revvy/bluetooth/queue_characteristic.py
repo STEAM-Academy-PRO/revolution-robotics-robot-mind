@@ -8,7 +8,7 @@
 """
 
 from functools import partial
-from typing import Callable
+from typing import Callable, Optional
 from pybleno import Characteristic, Descriptor
 
 from revvy.utils.logger import get_logger
@@ -26,7 +26,7 @@ log = get_logger("BLE Queue")
 class QueueCharacteristic(Characteristic):
     """Makes sure the proper sending speed is ok by managing a queue of messages."""
 
-    def __init__(self, uuid: str, description: str):
+    def __init__(self, uuid: str, description: bytes):
         super().__init__(
             {
                 "uuid": uuid,
@@ -38,7 +38,7 @@ class QueueCharacteristic(Characteristic):
             }
         )
 
-        self._on_ready_callback: Callable = None
+        self._on_ready_callback: Optional[Callable] = None
         self._value = END_TOKEN
         self._queue = []
 
@@ -48,8 +48,9 @@ class QueueCharacteristic(Characteristic):
         """Mobile sends a confirmation that it got the latest pocket by overwriting the value to confirm."""
         if data == CONFIRM_TOKEN:
             self.is_sending = False
-            if self._on_ready_callback:
-                self._on_ready_callback()
+            on_ready_callback = self._on_ready_callback
+            if on_ready_callback:
+                on_ready_callback()
         callback(Characteristic.RESULT_SUCCESS)
 
     def onReadRequest(self, offset, callback):
@@ -57,7 +58,7 @@ class QueueCharacteristic(Characteristic):
         # BLE sends packets of 20 bytes, so we need to split the error message into chunks.
         callback(Characteristic.RESULT_SUCCESS, self._value[offset:])
 
-    def _send(self, value, on_ready_callback=None):
+    def _send(self, value, on_ready_callback: Optional[Callable] = None):
         """Send the error message to the mobile."""
         self._value = value
 

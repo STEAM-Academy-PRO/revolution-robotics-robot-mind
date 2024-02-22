@@ -4,7 +4,7 @@ import copy
 
 from threading import Event
 import traceback
-from typing import Callable, NamedTuple
+from typing import Callable, NamedTuple, Optional
 from revvy.scripting.runtime import ScriptHandle
 
 from revvy.utils.stopwatch import Stopwatch
@@ -17,14 +17,15 @@ class RemoteControllerCommand(NamedTuple):
 
     analog: bytearray
     buttons: bytearray
-    background_command: bytearray
-    next_deadline: bytearray
+    background_command: int
+    next_deadline: Optional[int]
 
 
 log = get_logger("RemoteController")
 
 
 class BleAutonomousCmd:
+    NONE = 0
     START = 10
     PAUSE = 11
     RESUME = 12
@@ -168,7 +169,7 @@ class RemoteController:
         self._previous_time = None
         self._joystick_mode = False
 
-    def process_background_command(self, cmd):
+    def process_background_command(self, cmd: int):
         if cmd == BleAutonomousCmd.START:
             log(f"start background program: {cmd}")
             self.start_background_functions()

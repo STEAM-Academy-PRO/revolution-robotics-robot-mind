@@ -114,6 +114,7 @@ Keys:
 - min_log_level: minimum log level. Logging calls with a level below this will be ignored.
 """
 
+
 def get_log_config() -> dict:
     """
     Load config from data/config/log_config.json or default.
