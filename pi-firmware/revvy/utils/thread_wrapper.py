@@ -42,7 +42,7 @@ class ThreadWrapper:
         self._thread_running_event = Event()
         self._state = ThreadWrapper.STOPPED
         self._is_exiting = False
-        self._thread = Thread(target=self._thread_func, args=(), daemon=True, name=name)
+        self._thread = Thread(target=self._thread_func, args=(), name=name)
         self._thread.start()
 
     def _wait_for_start(self):
