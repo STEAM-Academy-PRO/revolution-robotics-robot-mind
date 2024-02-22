@@ -22,18 +22,14 @@ If you want to specify a tag-specific filter, you need to add an entry with the 
 ```json
 {
     "modules": {
-        "MotorPort": 2,
-        "DcMotor": 2,
-        "McuUpdater": 3,
+        "[Motor][Port]": 2,
+        "[Motor][Port][1]": 5,
+        "[McuUpdater]": 3,
     },
     "min_log_level": 0,
     "default_log_level": 1,
 }
 ```
-
-If a log entry has multiple tags e.g. it was given an array of strings, it will
-take the lowest log level of the tags
-to decide if it should be printed.
 
 Numeric log levels:
 

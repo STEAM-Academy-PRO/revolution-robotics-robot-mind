@@ -77,12 +77,14 @@ class Logger:
     def __init__(
         self,
         tag: str,
+        colored_tag: str,
         default_log_level=LogLevel.INFO,
         min_log_level=LogLevel.DEBUG,
     ):
         self._default_log_level = default_log_level
         self._min_log_level = min_log_level
         self.tag = tag
+        self.colored_tag = colored_tag
 
     def log(self, message: str, level=None):
         """Print to log if level is higher than the minimum log level."""
@@ -95,7 +97,7 @@ class Logger:
             # Print the newline ourselves.
             # This removes the possibility of racy threads to mess up the output.
             message = (
-                f"[{START_TIME.elapsed:.2f}][{LEVELS[level]}][{thread_name}]{self.tag} {message}\n"
+                f"[{START_TIME.elapsed:.2f}][{LEVELS[level]}][{thread_name}]{self.colored_tag} {message}\n"
             )
             print(message, end="")
 
@@ -154,20 +156,26 @@ def get_logger(
     if not isinstance(tag, list):
         tag = [tag]
 
-    colored_tag = base.tag if base else ""
+    base_tag = base.tag if base else ""
+    colored_tag = base.colored_tag if base else ""
 
-    # If we have more tags, get the lowest level actually specified by the tag.
-    lowest_log_level = 5
+    lowest_log_level = LogLevel.OFF
+
     for t in tag:
-        colored_tag += "[" + hash_to_color(t) + "]"
-        if t in scoped_log_config["modules"]:
-            lowest_log_level = min(lowest_log_level, scoped_log_config["modules"][t])
+        base_tag += f"[{t}]"
+        if base_tag in scoped_log_config["modules"]:
+            lowest_log_level = min(lowest_log_level, scoped_log_config["modules"][base_tag])
 
-    # Start from 5 as 4 is the highest, OFF. If it's 5, we know it's not set.
-    if lowest_log_level == 5:
+        colored_tag += "[" + hash_to_color(t) + "]"
+
+    # Module or tag specific log level
+    if lowest_log_level == LogLevel.OFF:
         lowest_log_level = scoped_log_config["min_log_level"]
 
+
+    # Get default log level from config file if not provided
     if default_log_level is None:
         default_log_level = scoped_log_config["default_log_level"] or LogLevel.ERROR
 
-    return Logger(colored_tag, default_log_level, min_log_level=lowest_log_level)
+
+    return Logger(base_tag, colored_tag, default_log_level, min_log_level=lowest_log_level)
