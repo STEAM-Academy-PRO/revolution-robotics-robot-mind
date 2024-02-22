@@ -333,7 +333,8 @@ class RobotManager:
                     lambda event_data: self.trigger(RobotEvent.SENSOR_VALUE_CHANGE, event_data),
                 )
 
-                self._sensor_data_subscriptions.add(sensor_data_wrapper_subscription)
+                if sensor_data_wrapper_subscription is not None:
+                    self._sensor_data_subscriptions.add(sensor_data_wrapper_subscription)
 
             # Also, I'd love to see all the robot status changes WITHIN the robot in one place,
             # most probably in the robot object.
