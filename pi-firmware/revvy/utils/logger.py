@@ -160,7 +160,7 @@ def get_logger(
     lowest_log_level = 5
     for t in tag:
         colored_tag += "[" + hash_to_color(t) + "]"
-        if scoped_log_config["modules"].get(t):
+        if t in scoped_log_config["modules"]:
             lowest_log_level = min(lowest_log_level, scoped_log_config["modules"][t])
 
     # Start from 5 as 4 is the highest, OFF. If it's 5, we know it's not set.
@@ -168,6 +168,6 @@ def get_logger(
         lowest_log_level = scoped_log_config["min_log_level"]
 
     if default_log_level is None:
-        default_log_level = scoped_log_config["default_log_level"] or 3
+        default_log_level = scoped_log_config["default_log_level"] or LogLevel.ERROR
 
     return Logger(colored_tag, default_log_level, min_log_level=lowest_log_level)
