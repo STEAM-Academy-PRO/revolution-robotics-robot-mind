@@ -221,7 +221,7 @@ class RemoteController:
             self.__next_deadline = msg.next_deadline
 
     def link_button_to_runner(self, button_id, script_handle: ScriptHandle):
-        log(f"registering callbacks for {button_id} {script_handle} {self._button_handlers}")
+        log(f"registering callbacks for Button: {button_id} {script_handle} {self._button_handlers}")
         self._button_handlers.append(ButtonHandler(button_id, script_handle, False))
 
     def on_analog_values(self, channels, action):

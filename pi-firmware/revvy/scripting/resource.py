@@ -1,4 +1,5 @@
 from threading import Lock
+from typing import List, Union
 
 from revvy.utils.emitter import SimpleEventEmitter
 from revvy.utils.logger import get_logger, LogLevel
@@ -70,9 +71,9 @@ class ResourceHandle:
 
 
 class Resource:
-    def __init__(self, name="Resource"):
+    def __init__(self, name: Union[str,List[str]] = "Resource"):
         self._lock = Lock()
-        self._log = get_logger(["Resource", name], LogLevel.DEBUG)
+        self._log = get_logger(name, LogLevel.DEBUG)
         self._current_priority = -1
         self._active_handle = null_handle
 
