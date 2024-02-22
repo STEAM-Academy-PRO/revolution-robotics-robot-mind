@@ -164,7 +164,7 @@ def get_logger(
     for t in tag:
         base_tag += f"[{t}]"
         if base_tag in scoped_log_config["modules"]:
-            lowest_log_level = min(lowest_log_level, scoped_log_config["modules"][base_tag])
+            lowest_log_level = scoped_log_config["modules"][base_tag] # though lowest_log_level will be a misnomer
 
         colored_tag += "[" + hash_to_color(t) + "]"
 
