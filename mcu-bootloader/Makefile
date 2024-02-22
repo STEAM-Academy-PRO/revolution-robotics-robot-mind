@@ -158,16 +158,17 @@ OBJS := $(C_SRCS:%.c=$(OUTPUT_DIR)/%.o)
 C_DEPS := $(OBJS:%.o=%.d)
 
 ifneq ($(MAKECMDGOALS),clean)
-ifneq ($(strip $(C_DEPS)),)
 -include $(C_DEPS)
 endif
-endif
 
-# Make sure files from the outer mcu-common directory don't escape Build
+$(OUTPUT_DIR)/%.d: %.c
+	@echo Collecting dependencies: $<
+	@$(MKDIR) "$(@D)" 2>$(NULL) || $(TRUE)
+	@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) $(addprefix -I,$(INCLUDE_PATHS)) $(COMPILE_FLAGS) -MF $@ -MT$@ -M $<
+
 $(OUTPUT_DIR)/%.o: %.c
 	@echo Building file: $<
-	@$(MKDIR) "$(@D)" 2>$(NULL) || $(TRUE)
-	@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) $(addprefix -I,$(INCLUDE_PATHS)) $(COMPILE_FLAGS) -MF $(@:%.o=%.d) -MT$(@:%.o=%.d) -o $@ $<
+	@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) $(addprefix -I,$(INCLUDE_PATHS)) $(COMPILE_FLAGS) -o $@ $<
 	@echo Finished building: $<
 
 $(OUTPUT_FILE).elf: $(OBJS)
