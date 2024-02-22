@@ -6,7 +6,7 @@
 #include <math.h>
 #include <string.h>
 
-#define MAX_MOTOR_STATUS_SIZE   10
+#define MAX_MOTOR_STATUS_SIZE   11
 #define MAX_SENSOR_STATUS_SIZE  32
 
 #define STATUS_SLOT_BATTERY ((uint8_t) 10u)

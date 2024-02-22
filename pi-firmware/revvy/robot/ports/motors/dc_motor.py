@@ -160,6 +160,7 @@ class DcMotorController(MotorPortDriver):
         self._status = MotorStatus.NORMAL
 
         self._timeout = 0
+        self._completed_task = 0
         port.interface.set_motor_port_config(port.id, self._port_config.serialize())
 
     # TODO: explain the arguments' units
@@ -284,22 +285,26 @@ class DcMotorController(MotorPortDriver):
     def status(self) -> MotorStatus:
         return self._status
 
-    def _update_motor_status(self, status: MotorStatus):
+    def _update_motor_status(self, status: MotorStatus, current_task):
         self._status = status
         awaiter = self._awaiter
         if awaiter:
             if status == MotorStatus.NORMAL:
                 pass
-            elif status == MotorStatus.GOAL_REACHED:
+            elif status == MotorStatus.GOAL_REACHED and current_task != self._completed_task:
+                self._completed_task = current_task
                 awaiter.finish()
             elif status == MotorStatus.BLOCKED:
+                self._completed_task = current_task
                 awaiter.cancel()
+        else:
+            self._completed_task = current_task
 
     def update_status(self, data):
-        if len(data) == 10:
-            status, self._power, self._pos, self._speed = struct.unpack("<bblf", data)
+        if len(data) == 11:
+            status, self._power, self._pos, self._speed, current_task = struct.unpack("<bblfb", data)
 
-            self._update_motor_status(MotorStatus(status))
+            self._update_motor_status(MotorStatus(status), current_task)
             self.on_status_changed.trigger(self._port)
         else:
             self.log(f"Received {len(data)} bytes of data instead of 10")
