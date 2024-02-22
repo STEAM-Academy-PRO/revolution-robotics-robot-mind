@@ -1,3 +1,4 @@
+from abc import ABC
 import struct
 from functools import partial
 
@@ -7,43 +8,139 @@ from revvy.utils.awaiter import Awaiter, Awaiter
 from revvy.utils.functions import clip
 
 
-def motor_port_control_command(port_idx, *command_data):
-    header = ((len(command_data) << 3) & 0xF8) | port_idx
+class MotorCommand(ABC):
+    def __init__(self, request_type):
+        self.request_type = request_type
 
-    return (header, *command_data)
+    @staticmethod
+    def serialize(self) -> bytes:
+        pass
 
+    def command_to_port(self, port_idx):
+        command_data = [self.request_type, *self.serialize()]
 
-def dc_motor_power_request(port_idx, power):
-    power = clip(power, -100, 100)
-    if power < 0:
-        power = 256 + power
-    return motor_port_control_command(port_idx, 0, power)
+        header = ((len(command_data) << 3) & 0xF8) | port_idx
 
-
-def dc_motor_speed_request(port_idx, speed, power_limit=None):
-    if power_limit is None:
-        control = struct.pack("<f", speed)
-    else:
-        control = struct.pack("<ff", speed, power_limit)
-
-    return motor_port_control_command(port_idx, 1, *control)
+        return (header, *command_data)
 
 
-def dc_motor_position_request(port_idx, request_type, position, speed_limit=None, power_limit=None):
-    position = int(position)
+class SetPowerCommand(MotorCommand):
+    def __init__(self, power):
+        REQUEST_POWER = 0
+        super().__init__(REQUEST_POWER)
 
-    if speed_limit is None:
-        if power_limit is None:
-            control = struct.pack("<l", position)
+        self.power = clip(power, -100, 100)
+
+    def serialize(self) -> bytes:
+        return struct.pack("<b", self.power)
+
+
+class SetSpeedCommand(MotorCommand):
+    def __init__(self, speed, power_limit=None):
+        REQUEST_SPEED = 1
+        super().__init__(REQUEST_SPEED)
+
+        self.speed = speed
+        self.power_limit = power_limit
+
+    def serialize(self) -> bytes:
+        if self.power_limit is None:
+            control = struct.pack("<f", self.speed)
         else:
-            control = struct.pack("<lbf", position, 0, power_limit)
-    else:
-        if power_limit is None:
-            control = struct.pack("<lbf", position, 1, speed_limit)
-        else:
-            control = struct.pack("<lff", position, speed_limit, power_limit)
+            control = struct.pack("<ff", self.speed, self.power_limit)
 
-    return motor_port_control_command(port_idx, request_type, *control)
+        return control
+
+
+class SetPositionCommand(MotorCommand):
+    REQUEST_ABSOLUTE = 2
+    REQUEST_RELATIVE = 3
+
+    def __init__(self, request_type, position, speed_limit=None, power_limit=None):
+        super().__init__(request_type)
+        self.position = int(position)
+        self.speed_limit = speed_limit
+        self.power_limit = power_limit
+
+    def serialize(self) -> bytes:
+        LIMIT_KIND_POWER = 0
+        LIMIT_KIND_SPEED = 1
+
+        if self.speed_limit is None:
+            if self.power_limit is None:
+                control = struct.pack("<l", self.position)
+            else:
+                control = struct.pack("<lbf", self.position, LIMIT_KIND_POWER, self.power_limit)
+        else:
+            if self.power_limit is None:
+                control = struct.pack("<lbf", self.position, LIMIT_KIND_SPEED, self.speed_limit)
+            else:
+                control = struct.pack("<lff", self.position, self.speed_limit, self.power_limit)
+
+        return control
+
+
+class PidConfig:
+    def __init__(self, config):
+        (p, i, d, lower_limit, upper_limit) = config
+
+        self._p = p
+        self._i = i
+        self._d = d
+        self._lower_output_limit = lower_limit
+        self._upper_output_limit = upper_limit
+
+    def serialize(self) -> bytes:
+        return struct.pack(
+            "<5f", self._p, self._i, self._d, self._lower_output_limit, self._upper_output_limit
+        )
+
+
+class AccelerationLimitConfig:
+    def __init__(self, config):
+        (decMax, accMax) = config
+
+        self._deceleration = decMax
+        self._acceleration = accMax
+
+    def serialize(self) -> bytes:
+        return struct.pack("<ff", self._deceleration, self._acceleration)
+
+
+class LinearityConfig:
+    def __init__(self, config):
+        self._points = config
+
+    def serialize(self) -> bytes:
+        config = []
+        for x, y in self._points:
+            config += struct.pack("<ff", x, y)
+        return config
+
+
+class DcMotorDriverConfig:
+    def __init__(self, port_config):
+        self._port_config = port_config
+        self._position_pid = PidConfig(self._port_config["position_controller"])
+        self._speed_pid = PidConfig(self._port_config["speed_controller"])
+        self._acceleration_limits = AccelerationLimitConfig(port_config["acceleration_limits"])
+
+        self._max_current = port_config["max_current"]
+        self._resolution = port_config["encoder_resolution"] * port_config["gear_ratio"]
+
+        self._linearity = LinearityConfig(port_config.get("linearity", {}))
+
+    def serialize(self) -> bytes:
+        return bytes(
+            [
+                *struct.pack("<f", self._resolution),
+                *self._position_pid.serialize(),
+                *self._speed_pid.serialize(),
+                *self._acceleration_limits.serialize(),
+                *struct.pack("<f", self._max_current),
+                *self._linearity.serialize(),
+            ]
+        )
 
 
 class DcMotorController(MotorPortDriver):
@@ -52,7 +149,7 @@ class DcMotorController(MotorPortDriver):
     def __init__(self, port: PortInstance[MotorPortDriver], port_config):
         super().__init__(port, "DcMotor")
         self._port = port
-        self._port_config = port_config
+        self._port_config = DcMotorDriverConfig(port_config)
 
         self._pos = 0
         self._speed = 0
@@ -63,40 +160,52 @@ class DcMotorController(MotorPortDriver):
         self._status = MotorStatus.NORMAL
 
         self._timeout = 0
+        port.interface.set_motor_port_config(port.id, self._port_config.serialize())
 
-        self.create_set_power_command = partial(dc_motor_power_request, self._port.id - 1)
-        self.create_set_speed_command = partial(dc_motor_speed_request, self._port.id - 1)
-        self.create_absolute_position_command = partial(
-            dc_motor_position_request, self._port.id - 1, 2
-        )
-        self.create_relative_position_command = partial(
-            dc_motor_position_request, self._port.id - 1, 3
-        )
+    # TODO: explain the arguments' units
+    # TODO: remove these in favour of "Command to ports" API? Keep in mind that drivetrain
+    # sends multiple commands in one go.
+    def create_set_power_command(self, power) -> bytes:
+        """Create a command to set the motor power of the current motor.
 
-        (posP, posI, posD, speedLowerLimit, speedUpperLimit) = self._port_config[
-            "position_controller"
-        ]
-        (speedP, speedI, speedD, powerLowerLimit, powerUpperLimit) = self._port_config[
-            "speed_controller"
-        ]
-        (decMax, accMax) = self._port_config["acceleration_limits"]
-        max_current = self._port_config["max_current"]
+        You can send the returned command (or multiple commands)
+        using `interface.set_motor_port_control_value`
+        """
+        return SetPowerCommand(power).command_to_port(self._port.id - 1)
 
-        resolution = self._port_config["encoder_resolution"] * self._port_config["gear_ratio"]
+    def create_set_speed_command(self, speed, power_limit=None) -> bytes:
+        """Create a command to set the regulated speed of the current motor.
 
-        config = [
-            *struct.pack("<f", resolution),
-            *struct.pack("<5f", posP, posI, posD, speedLowerLimit, speedUpperLimit),
-            *struct.pack("<5f", speedP, speedI, speedD, powerLowerLimit, powerUpperLimit),
-            *struct.pack("<ff", decMax, accMax),
-            *struct.pack("<f", max_current),
-        ]
-        for x, y in self._port_config.get("linearity", {}).items():
-            config += struct.pack("<ff", x, y)
+        You can send the returned command (or multiple commands)
+        using `interface.set_motor_port_control_value`
+        """
+        return SetSpeedCommand(speed, power_limit).command_to_port(self._port.id - 1)
 
-        # self.log(f'Sending configuration: {config}')
+    def create_absolute_position_command(
+        self, position, speed_limit=None, power_limit=None
+    ) -> bytes:
+        """Create a command to set the regulated position of the current motor.
 
-        port.interface.set_motor_port_config(port.id, config)
+        The position is measured in degrees, counted from when the port is configured.
+
+        You can send the returned command (or multiple commands)
+        using `interface.set_motor_port_control_value`
+        """
+        return SetPositionCommand(
+            SetPositionCommand.REQUEST_ABSOLUTE, position, speed_limit, power_limit
+        ).command_to_port(self._port.id - 1)
+
+    def create_relative_position_command(
+        self, position, speed_limit=None, power_limit=None
+    ) -> bytes:
+        """Create a command to turn the current motor. The turning angle is relative to the current position.
+
+        You can send the returned command (or multiple commands)
+        using `interface.set_motor_port_control_value`
+        """
+        return SetPositionCommand(
+            SetPositionCommand.REQUEST_RELATIVE, position, speed_limit, power_limit
+        ).command_to_port(self._port.id - 1)
 
     def _cancel_awaiter(self):
         awaiter, self._awaiter = self._awaiter, None

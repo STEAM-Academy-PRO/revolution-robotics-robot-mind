@@ -8,9 +8,9 @@ It polls the MCU for updates in any states.
 
 """
 
-from functools import partial
 import math, copy
 import traceback
+from revvy.bluetooth.data_types import BackgroundControlState, GyroData, ScriptVariables, TimerData
 from revvy.mcu.rrrc_transport import TransportException
 from revvy.robot.remote_controller import RemoteController
 
@@ -43,12 +43,14 @@ class RobotState(Emitter[RobotEvent]):
         # soon enough to notify.
         self._battery = BatteryState(throttle_interval=2)
 
-        self._orientation = Observable([0] * 3, throttle_interval=0.2)
+        self._orientation = Observable(GyroData(0, 0, 0), throttle_interval=0.2)
 
-        self._script_variables = Observable([None] * 4, throttle_interval=0.1)
+        self._script_variables = Observable(ScriptVariables([None] * 4), throttle_interval=0.1)
 
-        self._background_control_state = Observable(0, throttle_interval=0.1)
-        self._timer = Observable(0, throttle_interval=1)
+        self._background_control_state = Observable(
+            BackgroundControlState.STOPPED, throttle_interval=0.1
+        )
+        self._timer = Observable(TimerData(0), throttle_interval=1)
 
         self._motor_angles = Observable([0] * 6, throttle_interval=0.1)
 
@@ -56,17 +58,18 @@ class RobotState(Emitter[RobotEvent]):
         """Starts a new thread that runs every 5ms to check on MCU status."""
         self._status_update_thread = periodic(self._update, 0.005, "RobotStatusUpdaterThread")
 
-        # FIXME what's up with these types?
-        self._battery.subscribe(partial(self.trigger, RobotEvent.BATTERY_CHANGE))
-        self._orientation.subscribe(partial(self.trigger, RobotEvent.ORIENTATION_CHANGE))
-        self._script_variables.subscribe(partial(self.trigger, RobotEvent.SCRIPT_VARIABLE_CHANGE))
+        self._battery.subscribe(lambda data: self.trigger(RobotEvent.BATTERY_CHANGE, data))
+        self._orientation.subscribe(lambda data: self.trigger(RobotEvent.ORIENTATION_CHANGE, data))
+        self._script_variables.subscribe(
+            lambda data: self.trigger(RobotEvent.SCRIPT_VARIABLE_CHANGE, data)
+        )
 
         self._background_control_state.subscribe(
-            partial(self.trigger, RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE)
+            lambda data: self.trigger(RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE, data)
         )
-        self._timer.subscribe(partial(self.trigger, RobotEvent.TIMER_TICK))
+        self._timer.subscribe(lambda data: self.trigger(RobotEvent.TIMER_TICK, data))
 
-        self._motor_angles.subscribe(partial(self.trigger, RobotEvent.MOTOR_CHANGE))
+        self._motor_angles.subscribe(lambda data: self.trigger(RobotEvent.MOTOR_CHANGE, data))
 
         self._robot.reset()
 
@@ -98,11 +101,11 @@ class RobotState(Emitter[RobotEvent]):
 
             # TODO: Debounce this a bit better: this is used for the angle.
             self._orientation.set(
-                [
+                GyroData(
                     floor0(getattr(self._robot.imu.orientation, "pitch"), 1),
                     floor0(getattr(self._robot.imu.orientation, "roll"), 1),
                     floor0(getattr(self._robot.imu.orientation, "yaw"), 1),
-                ]
+                )
             )
 
             self._script_variables.set(self._robot.script_variables.get_variable_values())

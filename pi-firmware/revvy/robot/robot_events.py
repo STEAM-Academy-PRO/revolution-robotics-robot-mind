@@ -1,6 +1,7 @@
 """ Standardized Robot Events to all """
 
 from typing import NamedTuple
+from revvy.bluetooth.data_types import SensorData
 
 from revvy.scripting.runtime import ScriptEvent
 
@@ -58,4 +59,4 @@ class SensorEventData(NamedTuple):
     """Ultrasonic sensor and button data. Not pretty, would be better with ints."""
 
     id: int
-    raw_value: any
+    raw_value: SensorData

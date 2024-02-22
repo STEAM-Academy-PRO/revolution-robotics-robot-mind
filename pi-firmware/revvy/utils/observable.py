@@ -20,9 +20,12 @@ VariableType = TypeVar("VariableType")
 class Observable(Generic[VariableType]):
     """Simple Observable Implementation"""
 
-    def __init__(self, value: VariableType, throttle_interval: Optional[float] = None):
+    def __init__(
+        self, value: VariableType, throttle_interval: Optional[float] = None, needs_deep_copy=False
+    ):
         self._on_value_changed = SimpleEventEmitter()
         self._data: VariableType = value
+        self._needs_deep_copy = needs_deep_copy
 
         # Throttling
         self._throttle_interval = throttle_interval
@@ -62,11 +65,8 @@ class Observable(Generic[VariableType]):
 
     def set(self, new_data: VariableType):
         if new_data != self._data:
-            # For lists or complex objects, make a deep copy
-            if isinstance(new_data, list):
-                self._data = copy.deepcopy(new_data)
-            else:
-                self._data = new_data
+            # For lists or complex objects, we may need to make a deep copy
+            self._data = copy.deepcopy(new_data) if self._needs_deep_copy else new_data
             self.notify()
 
     def get(self) -> VariableType:
