@@ -51,7 +51,7 @@
         {
             "label": "make debug",
             "type": "shell",
-            "command": "make all config=debug",
+            "command": "make all config=debug -j{$config:maxParallelBuilds}",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
@@ -66,7 +66,7 @@
         {
             "label": "make release",
             "type": "shell",
-            "command": "make all config=release",
+            "command": "make all config=release -j{$config:maxParallelBuilds}",
             "problemMatcher": [],
             "dependsOn": [
                 "generate version",
