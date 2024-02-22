@@ -9,6 +9,7 @@ as the generated code MAY use it!
 
 """
 
+from abc import ABC, abstractmethod
 import struct
 import time
 import random
@@ -473,7 +474,6 @@ class LineDriver:
         self.__straight_speed_mult = 1.5
         self.__log = get_logger("LineDriver")
 
-    @property
     def read_rgb(self, channel: RGBChannelSensor):
         sensors = self.__color_reader.read_rgb_sensor_data()
         # returns ColorData.name
@@ -689,38 +689,46 @@ class PortCollection:
         return self._ports.__iter__()
 
 
-class RobotInterface:
+class RobotInterface(ABC):
+    @abstractmethod
     def time(self):
-        raise NotImplementedError
+        pass
 
     @property
+    @abstractmethod
     def motors(self) -> PortCollection:
-        raise NotImplementedError
+        pass
 
-    @property
+    @abstractmethod
     def sensors(self) -> PortCollection:
-        raise NotImplementedError
+        pass
 
     @property
+    @abstractmethod
     def led(self):
-        raise NotImplementedError
+        pass
 
     @property
+    @abstractmethod
     def sound(self):
-        raise NotImplementedError
+        pass
 
     @property
+    @abstractmethod
     def drivetrain(self):
-        raise NotImplementedError
+        pass
 
     @property
+    @abstractmethod
     def imu(self):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def play_tune(self, name):
-        raise NotImplementedError
+        pass
 
 
+# FIXME: do we need the base class?
 class RobotWrapper(RobotInterface):
     """Wrapper class that exposes API to user-written scripts"""
 

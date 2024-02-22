@@ -1,17 +1,16 @@
 """ Battery status debouncer. """
 
 from revvy.utils.logger import get_logger
-from revvy.utils.observable import Observable, SmoothingObservable
+from revvy.utils.observable import Observable, SmoothingObservable, simple_average
 from revvy.robot.robot import BatteryStatus
 
 log = get_logger("BatteryState")
 
 
-class BatteryState(Observable):
+class BatteryState(Observable[BatteryStatus]):
     """Manage and smoothen battery state level values"""
 
-    def __init__(self, throttle_interval):
-        super().__init__(throttle_interval)
+    def __init__(self, throttle_interval: float):
         # Battery gets checked every 5ms and it reads out a DAC value, which has plenty of noise.
         # To smoothen that out, here is a 500 sized min calculator (~2.5sec), meaning: takes every 5ms measurement,
         # puts it in an array, gets the min value, rounds it to disable flickering between values.
@@ -21,8 +20,8 @@ class BatteryState(Observable):
             throttle_interval=5,
             smoothening_function=lambda history: round(min(history)),
         )
-        self._charger_status = Observable(0, throttle_interval=2)
-        self._motor = SmoothingObservable(0, window_size=50, throttle_interval=1)
+        self._charger_status = Observable(0, throttle_interval=2.0)
+        self._motor = SmoothingObservable(0, simple_average, window_size=50, throttle_interval=1.0)
 
         # The MCU is supposed to send indication. It has code that detect batteries under 4V as not plugged in.
         # This is a reasonable assumption, the minimum battery pack voltage (0%) is set to 5.4V.
@@ -31,12 +30,14 @@ class BatteryState(Observable):
         self._motor_battery_present = Observable(0, throttle_interval=2)
 
         # Initial state
-        self._data = BatteryStatus(
+        initial = BatteryStatus(
             self._charger_status.get(),
             self._motor_battery_present.get(),
             self._main.get(),
             self._motor.get(),
         )
+
+        super().__init__(initial, throttle_interval)
 
     def set(self, new_data: BatteryStatus):
         self._main.set(new_data.main)

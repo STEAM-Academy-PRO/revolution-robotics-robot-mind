@@ -195,7 +195,7 @@ class DcMotorController(MotorPortDriver):
         else:
             self.log(f"Received {len(data)} bytes of data instead of 10")
 
-    def stop(self, action=MotorConstants.ACTION_RELEASE):
+    def stop(self, action: int = MotorConstants.ACTION_RELEASE):
         self.log("stop")
         if action == MotorConstants.ACTION_STOP_AND_HOLD:
             self.set_speed(0)

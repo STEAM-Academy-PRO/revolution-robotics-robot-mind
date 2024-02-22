@@ -58,14 +58,14 @@ def is_namedtuple(obj):
 
 
 class NamedTupleEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if is_namedtuple(obj):
-            return obj._asdict()  # Convert the named tuple to a dictionary
-        if isinstance(obj, Enum):
-            return obj.value
-        if isinstance(obj, bytes):
-            return str(obj)
-        return super().default(obj)
+    def default(self, o):
+        if is_namedtuple(o):
+            return o._asdict()  # Convert the named tuple to a dictionary
+        if isinstance(o, Enum):
+            return o.value
+        if isinstance(o, bytes):
+            return str(o)
+        return super().default(o)
 
 
 # Function to encode data dynamically

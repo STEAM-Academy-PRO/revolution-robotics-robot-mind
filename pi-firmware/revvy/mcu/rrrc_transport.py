@@ -300,7 +300,9 @@ class Command:
     OpCancel = 3
 
     @staticmethod
-    def create(op, command, payload=b""):
+    def create(op, command: int, payload: bytes = b""):
+        if command > 255:
+            raise ValueError(f"Command id must be a single byte")
         payload_length = len(payload)
         if payload_length > 255:
             raise ValueError(f"Payload is too long ({payload_length} bytes, 255 allowed)")
@@ -323,7 +325,7 @@ class Command:
         return pl
 
     @staticmethod
-    def start(command, payload: bytes):
+    def start(command: int, payload: bytes):
         """
         >>> Command.start(2, b'')
         bytearray(b'\\x00\\x02\\x00\\xff\\xffQ')
@@ -416,7 +418,7 @@ class RevvyTransport:
         self._stopwatch = Stopwatch()
         self.retry_reads = 100  # 100 seems like an excessive value
 
-    def send_command(self, command, payload=b"", get_result_delay=None) -> Response:
+    def send_command(self, command: int, payload: bytes = b"", get_result_delay=None) -> Response:
         """
         Send a command and get the result.
 
@@ -434,9 +436,8 @@ class RevvyTransport:
 
             try:
                 # once a command gets through and a valid response is read, this loop will exit
-                while (
-                    True
-                ):  # assume that integrity error is random and not caused by implementation differences
+                while True:
+                    # assume that integrity error is random and not caused by implementation differences
                     # send command and read back status
                     header = self._send_command(command_start)
 
@@ -446,6 +447,7 @@ class RevvyTransport:
                         if not command_get_result:
                             command_get_result = Command.get_result(command)
 
+                        # FIXME remove this delay
                         if get_result_delay:
                             time.sleep(get_result_delay)
                         header = self._send_command(command_get_result)

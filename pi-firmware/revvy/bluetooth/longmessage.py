@@ -2,6 +2,7 @@
 
 
 import io
+from math import ceil
 import os
 import tarfile
 import shutil
@@ -12,7 +13,7 @@ import struct
 
 from contextlib import suppress
 from json import JSONDecodeError
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 from revvy.utils.file_storage import StorageInterface, StorageError
 from revvy.utils.functions import split
@@ -186,7 +187,7 @@ class LongMessageHandler:
         self._long_message_storage = long_message_storage
         self._long_message_type = None
         self._status = LongMessageHandler.STATUS_IDLE
-        self._current_message = None
+        self._current_message: Optional[ReceivedLongMessage] = None
         self._message_updated_callback = None
         self._upload_started_callback = None
         self._upload_progress_callback = None
@@ -219,6 +220,7 @@ class LongMessageHandler:
             return ValidationErrorLongMessageStatusInfo
 
         assert self._status == LongMessageHandler.STATUS_WRITE
+        assert self._current_message is not None
         return LongMessageStatusInfo(
             LongMessageStatus.UPLOAD,
             hexdigest2bytes(self._current_message.md5),
@@ -413,7 +415,7 @@ class LongMessageImplementation:
     def __init__(self, robot_manager: RobotManager, storage: LongMessageStorage, asset_dir):
         self._robot_manager = robot_manager
         self._asset_dir = asset_dir
-        self._progress = None
+        self._progress: Optional[ProgressIndicator] = None
         self._storage = storage
 
         self._log = get_logger("LongMessageImplementation")
@@ -441,7 +443,7 @@ class LongMessageImplementation:
                 # calculate approximate chunk count
                 expected_size = 250000
                 chunk_size = len(message.data) / message.received_chunks
-                message.total_chunks = expected_size / chunk_size
+                message.total_chunks = ceil(expected_size / chunk_size)
                 self._progress.end = message.total_chunks
 
             if message.total_chunks != 0:
@@ -524,7 +526,8 @@ class LongMessageImplementation:
         elif message_type == LongMessageType.FRAMEWORK_DATA:
             # TODO: Eliminate calling robot status updates from the outside like this!
             self._robot_manager.robot.status.robot_status = RobotStatus.Updating
-            self._progress.show_indeterminate_loading_on_led_ring()
+            if self._progress is not None:
+                self._progress.show_indeterminate_loading_on_led_ring()
 
             # We wait for the bluetooth to respond with the final message.
             # We need to open a new thread for that so it lets this thread finish.
