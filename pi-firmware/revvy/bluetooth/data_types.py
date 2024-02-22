@@ -1,4 +1,7 @@
 # TODO: this probably isn't the best place
+import abc
+from enum import Enum
+import enum
 import struct
 from revvy.utils.bit_packer import pack_2_bit_number_array_32
 from revvy.utils.logger import get_logger
@@ -16,23 +19,24 @@ class MotorData(Serialize):
 
 
 class GyroData(Serialize):
-    """ A 3D vector """
+    """A 3D vector"""
+
     def __init__(self, a, b, c):
         self.a = a
         self.b = b
         self.c = c
 
     def serialize(self):
-        return struct.pack('fff', self.a, self.b, self.c)
+        return struct.pack("fff", self.a, self.b, self.c)
 
 
 class ProgramStatusCollection(Serialize):
     def __init__(self):
-        self._states = [0]*32
-        self._log = get_logger('ProgramStatusCollection')
+        self._states = [0] * 32
+        self._log = get_logger("ProgramStatusCollection")
 
     def update_button_value(self, button_id: int, status: int):
-        self._log(f'button state array id:{button_id} => stat: {status}')
+        self._log(f"button state array id:{button_id} => stat: {status}")
         self._states[button_id] = status
 
     def serialize(self):
@@ -65,17 +69,17 @@ class ScriptVariables(Serialize):
         # value of each slot, has the value in this slot been set at least once
 
         mask = 0
-        valuebuf = b''
+        valuebuf = b""
 
         for slot_idx in range(MAX_VARIABLE_SLOTS):
             value = self.script_variables[slot_idx]
-            if (value):
+            if value:
                 mask = mask | (1 << slot_idx)
             else:
                 value = 0.0
-            valuebuf += struct.pack('f', value)
+            valuebuf += struct.pack("f", value)
 
-        maskbuf = struct.pack('B', mask)
+        maskbuf = struct.pack("B", mask)
         msg = maskbuf + valuebuf
 
         return msg
@@ -89,31 +93,50 @@ class TimerData(Serialize):
         return struct.pack(">bf", 4, round(self.value, 0))
 
 
-class BackgroundControlState(Serialize):
-    def __init__(self, state):
-        self.__state = state
+class ABCEnumMeta(abc.ABCMeta, enum.EnumMeta):
+    # We need this metaclass to allow Serialize and Enum on the same type
+    # https://stackoverflow.com/a/56135108
+    def __new__(mcls, *args, **kw):
+        abstract_enum_cls = super().__new__(mcls, *args, **kw)
+        # Only check abstractions if members were defined.
+        if abstract_enum_cls._member_map_:
+            try:  # Handle existence of undefined abstract methods.
+                absmethods = list(abstract_enum_cls.__abstractmethods__)
+                if absmethods:
+                    missing = ", ".join(f"{method!r}" for method in absmethods)
+                    plural = "s" if len(absmethods) > 1 else ""
+                    raise TypeError(
+                        f"cannot instantiate abstract class {abstract_enum_cls.__name__!r}"
+                        f" with abstract method{plural} {missing}"
+                    )
+            except AttributeError:
+                pass
+        return abstract_enum_cls
 
-    def __state_to_str(self):
-        if self.__state == BackgroundControlState.STOPPED:
-            return 'bg_state:stopped'
-        if self.__state == BackgroundControlState.RUNNING:
-            return 'bg_state:running'
-        if self.__state == BackgroundControlState.PAUSED:
-            return 'bg_state:paused'
-        return 'bg_state:undefined'
 
-    def __str__(self):
+class BackgroundControlState(Serialize, Enum, metaclass=ABCEnumMeta):
+    STOPPED = 1
+    RUNNING = 2
+    PAUSED = 3
+
+    def __state_to_str(self) -> str:
+        if self == BackgroundControlState.STOPPED:
+            return "bg_state:stopped"
+        if self == BackgroundControlState.RUNNING:
+            return "bg_state:running"
+        if self == BackgroundControlState.PAUSED:
+            return "bg_state:paused"
+        return "bg_state:undefined"
+
+    def __str__(self) -> str:
         return self.__state_to_str()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__state_to_str()
 
     def serialize(self):
-        return struct.pack(">bl", 4, self.__state)
-
-BackgroundControlState.STOPPED = BackgroundControlState(1)
-BackgroundControlState.RUNNING = BackgroundControlState(2)
-BackgroundControlState.PAUSED  = BackgroundControlState(3)
+        # TODO: what's 4, and why do we specify big endian here?
+        return struct.pack(">bl", 4, self.value)
 
 
 # TODO: make this a base class for sensors to implement

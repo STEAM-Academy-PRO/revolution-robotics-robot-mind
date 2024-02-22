@@ -3,14 +3,21 @@ from revvy.robot.ports.motors.dc_motor import DcMotorController
 from revvy.robot.ports.sensors.simple import BumperSwitch, Hcsr04, ColorSensor
 
 
+# TODO: Right now we're pairing the driver type and the configuration. Instead, we should
+# create configuration objects that can create the driver instances. This way, we can
+# document the configuration options.
 class Motors:
     RevvyMotor = DriverConfig(
         driver=DcMotorController,
         config={
-            "speed_controller": [0.6065, 0.3935, 0, -150, 150],
-            "position_controller": [0.1, 0.0000, 0, -150, 150],
+            # sped units are ticks / 10ms
+            # P, I, D are dimensionless regulator coefficients
+            "speed_controller": [0.6065, 0.3935, 0, -150, 150],  # P, I, D, min speed, max speed
+            "position_controller": [0.1, 0.0000, 0, -150, 150],  # P, I, D, min speed, max speed
+            # max deceleration, max acceleration, in units of `[speed units] / 10ms`
             "acceleration_limits": [500, 500],
-            "max_current": 1.5,
+            "max_current": 1.5,  # Amps
+            # The identified motor characteristic: (input PWM value, output speed)
             "linearity": [
                 (0.5, 0),
                 (5.0154, 18),
@@ -19,8 +26,8 @@ class Motors:
                 (97.4151, 140),
                 (144.0972, 200),
             ],
-            "encoder_resolution": 12,
-            "gear_ratio": 64.8,
+            "encoder_resolution": 12,  # The number of ticks per revolution
+            "gear_ratio": 64.8,  # The gear ratio of the motor. It takes this many revolutions of the motor axle to turn the wheel once.
         },
     )
     RevvyMotor_CCW = DriverConfig(

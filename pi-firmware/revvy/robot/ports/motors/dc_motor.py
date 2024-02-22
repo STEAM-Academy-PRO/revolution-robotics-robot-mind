@@ -131,14 +131,16 @@ class DcMotorDriverConfig:
         self._linearity = LinearityConfig(port_config.get("linearity", {}))
 
     def serialize(self) -> bytes:
-        return [
-            *struct.pack("<f", self._resolution),
-            *self._position_pid.serialize(),
-            *self._speed_pid.serialize(),
-            *self._acceleration_limits.serialize(),
-            *struct.pack("<f", self._max_current),
-            *self._linearity.serialize(),
-        ]
+        return bytes(
+            [
+                *struct.pack("<f", self._resolution),
+                *self._position_pid.serialize(),
+                *self._speed_pid.serialize(),
+                *self._acceleration_limits.serialize(),
+                *struct.pack("<f", self._max_current),
+                *self._linearity.serialize(),
+            ]
+        )
 
 
 class DcMotorController(MotorPortDriver):
@@ -160,17 +162,35 @@ class DcMotorController(MotorPortDriver):
         self._timeout = 0
         port.interface.set_motor_port_config(port.id, self._port_config.serialize())
 
+    # TODO: explain the arguments' units
     # TODO: remove these in favour of "Command to ports" API? Keep in mind that drivetrain
     # sends multiple commands in one go.
     def create_set_power_command(self, power) -> bytes:
+        """Create a command to set the motor power of the current motor.
+
+        You can send the returned command (or multiple commands)
+        using `interface.set_motor_port_control_value`
+        """
         return SetPowerCommand(power).command_to_port(self._port.id - 1)
 
     def create_set_speed_command(self, speed, power_limit=None) -> bytes:
+        """Create a command to set the regulated speed of the current motor.
+
+        You can send the returned command (or multiple commands)
+        using `interface.set_motor_port_control_value`
+        """
         return SetSpeedCommand(speed, power_limit).command_to_port(self._port.id - 1)
 
     def create_absolute_position_command(
         self, position, speed_limit=None, power_limit=None
     ) -> bytes:
+        """Create a command to set the regulated position of the current motor.
+
+        The position is measured in degrees, counted from when the port is configured.
+
+        You can send the returned command (or multiple commands)
+        using `interface.set_motor_port_control_value`
+        """
         return SetPositionCommand(
             SetPositionCommand.REQUEST_ABSOLUTE, position, speed_limit, power_limit
         ).command_to_port(self._port.id - 1)
@@ -178,6 +198,11 @@ class DcMotorController(MotorPortDriver):
     def create_relative_position_command(
         self, position, speed_limit=None, power_limit=None
     ) -> bytes:
+        """Create a command to turn the current motor. The turning angle is relative to the current position.
+
+        You can send the returned command (or multiple commands)
+        using `interface.set_motor_port_control_value`
+        """
         return SetPositionCommand(
             SetPositionCommand.REQUEST_RELATIVE, position, speed_limit, power_limit
         ).command_to_port(self._port.id - 1)
