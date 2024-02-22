@@ -96,9 +96,7 @@ class Logger:
 
             # Print the newline ourselves.
             # This removes the possibility of racy threads to mess up the output.
-            message = (
-                f"[{START_TIME.elapsed:.2f}][{LEVELS[level]}][{thread_name}]{self.colored_tag} {message}\n"
-            )
+            message = f"[{START_TIME.elapsed:.2f}][{LEVELS[level]}][{thread_name}]{self.colored_tag} {message}\n"
             print(message, end="")
 
     def __call__(self, message: str, level=None):
@@ -164,7 +162,9 @@ def get_logger(
     for t in tag:
         base_tag += f"[{t}]"
         if base_tag in scoped_log_config["modules"]:
-            lowest_log_level = scoped_log_config["modules"][base_tag] # though lowest_log_level will be a misnomer
+            lowest_log_level = scoped_log_config["modules"][
+                base_tag
+            ]  # though lowest_log_level will be a misnomer
 
         colored_tag += "[" + hash_to_color(t) + "]"
 
@@ -172,10 +172,8 @@ def get_logger(
     if lowest_log_level == 5:
         lowest_log_level = scoped_log_config["min_log_level"]
 
-
     # Get default log level from config file if not provided
     if default_log_level is None:
         default_log_level = scoped_log_config["default_log_level"] or LogLevel.ERROR
-
 
     return Logger(base_tag, colored_tag, default_log_level, min_log_level=lowest_log_level)
