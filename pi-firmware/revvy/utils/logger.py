@@ -157,23 +157,24 @@ def get_logger(
     base_tag = base.tag if base else ""
     colored_tag = base.colored_tag if base else ""
 
-    lowest_log_level = 5
-
+    # Module or tag specific log level
+    level_filter = None
     for t in tag:
         base_tag += f"[{t}]"
         if base_tag in scoped_log_config["modules"]:
-            lowest_log_level = scoped_log_config["modules"][
-                base_tag
-            ]  # though lowest_log_level will be a misnomer
+            level_filter = scoped_log_config["modules"][base_tag]
 
         colored_tag += "[" + hash_to_color(t) + "]"
 
-    # Module or tag specific log level
-    if lowest_log_level == 5:
-        lowest_log_level = scoped_log_config["min_log_level"]
+    if not isinstance(level_filter, int):
+        level_filter = scoped_log_config["min_log_level"]
+        if not isinstance(level_filter, int):
+            level_filter = LogLevel.ERROR
 
     # Get default log level from config file if not provided
     if default_log_level is None:
         default_log_level = scoped_log_config["default_log_level"] or LogLevel.ERROR
+        if not isinstance(default_log_level, int):
+            default_log_level = LogLevel.ERROR
 
-    return Logger(base_tag, colored_tag, default_log_level, min_log_level=lowest_log_level)
+    return Logger(base_tag, colored_tag, default_log_level, level_filter)
