@@ -7,7 +7,7 @@ from pybleno import Bleno
 from revvy.bluetooth.services.battery import CustomBatteryService
 from revvy.bluetooth.services.device_information import DeviceInformationService
 from revvy.bluetooth.services.long_message import LongMessageService
-from revvy.robot.robot_events import RobotEvent
+from revvy.robot.robot_events import RobotEvent, SensorData
 from revvy.scripting.runtime import ScriptEvent
 
 from revvy.utils.device_name import get_device_name
@@ -110,9 +110,7 @@ class RevvyBLE:
 
         self._robot_manager.on(
             RobotEvent.SENSOR_VALUE_CHANGE,
-            lambda ref, sensor_reading: self._live.update_sensor(
-                sensor_reading.id, sensor_reading.raw_value
-            ),
+            lambda ref, sensor_reading: self._live.update_sensor(sensor_reading),
         )
 
         # Only send up ORIENTATION changes, NO GYRO as we are not using that anywhere.

@@ -238,10 +238,10 @@ class LiveMessageService(BlenoPrimaryService):
             )
         )
 
-    def update_sensor(self, sensor, value: SensorData):
+    def update_sensor(self, sensor_data: SensorData):
         """Send back sensor value to mobile."""
-        if 0 < sensor <= len(self._sensor_characteristics):
-            self._sensor_characteristics[sensor - 1].update(value)
+        if 0 < sensor_data.port_id <= len(self._sensor_characteristics):
+            self._sensor_characteristics[sensor_data.port_id - 1].update(sensor_data.serialize())
 
     def update_program_status(self, button_id: int, status: ScriptEvent):
         """Update the status of a button-triggered script"""

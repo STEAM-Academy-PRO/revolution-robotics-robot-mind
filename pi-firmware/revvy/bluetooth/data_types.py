@@ -3,6 +3,7 @@ import abc
 from enum import Enum
 import enum
 import struct
+from typing import Any
 from revvy.utils.bit_packer import pack_2_bit_number_array_32
 from revvy.utils.logger import get_logger
 from revvy.utils.serialize import Serialize
@@ -26,6 +27,9 @@ class GyroData(Serialize):
         self.b = b
         self.c = c
 
+    def __json__(self):
+        return {"a": self.a, "b": self.b, "c": self.c}
+
     def serialize(self):
         return struct.pack("fff", self.a, self.b, self.c)
 
@@ -46,6 +50,11 @@ class ProgramStatusCollection(Serialize):
 class ScriptVariables(Serialize):
     def __init__(self, variables: list):
         self.script_variables = variables
+
+    def __eq__(self, __value: object) -> bool:
+        if isinstance(__value, ScriptVariables):
+            return __value.script_variables == self.script_variables
+        return False
 
     def serialize(self):
         # I believe this should be a constant that's coming from one centralized place, rather
@@ -141,8 +150,20 @@ class BackgroundControlState(Serialize, Enum, metaclass=ABCEnumMeta):
 
 # TODO: make this a base class for sensors to implement
 class SensorData(Serialize):
-    def __init__(self, value):
+    def __init__(self, port_id: int, value: Any):
+        self.port_id = port_id
         self.value = value
+
+    def __json__(self):
+        return {"port_id": self.port_id, "value": self.value}
 
     def serialize(self):
         return self.value
+
+class UltrasonicSensorData(SensorData):
+    def serialize(self):
+        return round(self.value).to_bytes(2, "little") + b"\x00\x00"
+
+class BumperSensorData(SensorData):
+    def serialize(self):
+        return b"\x01" if self.value else b"\x00"
