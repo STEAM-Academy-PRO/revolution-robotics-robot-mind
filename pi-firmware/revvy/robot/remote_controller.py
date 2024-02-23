@@ -194,17 +194,21 @@ class RemoteController:
 
                     if is_button_pressed_change:
                         # Pushed the second time, STOP it!
-                        # log(f'stopping: {button.script.name}')
+                        log(f"stopping: {button.script.name}")
                         button.script.stop()
                         button.last_press_stopped_it = True
                     else:
                         # Just keeps on pushing.
                         pass
                 else:
+                    # If the user is holding the button, restart the program
                     if not button.last_press_stopped_it:
                         # it's not running, we need to start it!
-                        # log(f'starting program: {button.script.name}')
+                        log(f"starting program: {button.script.name}")
                         button.script.start()
+                    else:
+                        # The user is holding the button but that button press stopped the last run.
+                        pass
 
     def process_control_message(self, msg: RemoteControllerCommand):
         """
