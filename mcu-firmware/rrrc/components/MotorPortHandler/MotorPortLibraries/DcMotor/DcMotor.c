@@ -1,4 +1,5 @@
 #include "DcMotor.h"
+#include "SEGGER_RTT.h"
 
 #include "libraries/converter.h"
 #include "libraries/functions.h"
@@ -32,9 +33,18 @@ const float pulses_per_encoder_slit = 4.0f;
 const float pulses_per_encoder_slit = 2.0f;
 #endif
 
+typedef enum {
+    PositionBreakpointKind_Degrees,
+    PositionBreakpointKind_Relative
+} PositionBreakpointKind_t;
+
 typedef struct
 {
     /* configuration */
+    PidConfig_t slowPositionConfig;
+    PidConfig_t fastPositionConfig;
+    float positionBreakpoint; /** < in the unit specified by positionBreakpointKind, relative to the distance from the goal */
+    PositionBreakpointKind_t positionBreakpointKind;
     PID_t positionController;
     PID_t speedController;
     float resolution;
@@ -53,6 +63,7 @@ typedef struct
     float maxDeceleration;
 
     DriveRequest_t lastRequest;
+    int32_t positionRequestBreakpoint; /** < in encoder ticks */
 
     /* last status */
     uint8_t motorStatus;
@@ -272,6 +283,13 @@ static bool _is_motor_blocked(MotorLibrary_Dc_Data_t* libdata, float u)
     return true;
 }
 
+static void select_pid(PID_t* controller, const PidConfig_t* coefficients)
+{
+    controller->config.P = coefficients->P;
+    controller->config.I = coefficients->I;
+    controller->config.D = coefficients->D;
+}
+
 static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t* libdata)
 {
     if (libdata->lastRequest.request_type == DriveRequest_RequestType_Power)
@@ -297,10 +315,23 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
     }
     else
     {
-        /* update status if goal is reached */
-        if (abs_int32(libdata->lastPosition - libdata->lastRequest.request.position) < libdata->atLeastOneDegree)
+        int32_t distanceFromGoal = abs_int32(libdata->lastPosition - libdata->lastRequest.request.position);
+        if (distanceFromGoal < libdata->positionRequestBreakpoint)
         {
-            libdata->motorStatus = MOTOR_STATUS_GOAL_REACHED;
+            select_pid(&libdata->positionController, &libdata->slowPositionConfig);
+        }
+        else
+        {
+            select_pid(&libdata->positionController, &libdata->fastPositionConfig);
+        }
+
+        /* update status if goal is reached */
+        if (distanceFromGoal < libdata->atLeastOneDegree)
+        {
+            if (libdata->motorStatus != MOTOR_STATUS_GOAL_REACHED) {
+                SEGGER_RTT_printf(0, "Motor %u: goal reached\n", motorPort->port_idx);
+                libdata->motorStatus = MOTOR_STATUS_GOAL_REACHED;
+            }
         }
         /* calculate speed to reach requested position */
         reqSpeed = pid_update(&libdata->positionController, libdata->lastRequest.request.position, libdata->lastPosition);
@@ -316,6 +347,7 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
             _tick_timeout(&libdata->motorTimeout, MOTOR_TIMEOUT_THRESHOLD);
             if (_has_timeout_elapsed(&libdata->motorTimeout, MOTOR_TIMEOUT_THRESHOLD))
             {
+                SEGGER_RTT_printf(0, "Motor %u: stuck\n", motorPort->port_idx);
                 libdata->motorStatus = MOTOR_STATUS_STUCK;
                 ignore_last_drive_request(motorPort);
                 return 0;
@@ -421,56 +453,76 @@ void DcMotor_Gpio1Callback(void* port)
     }
 }
 
-static void dc_motor_init_controller(PID_t* controller, const uint8_t* buffer)
+static void dc_motor_read_pid_config(PidConfig_t* config, const uint8_t* buffer)
 {
-    pid_initialize(controller);
-    controller->config.P = get_float(&buffer[0]);
-    controller->config.I = get_float(&buffer[4]);
-    controller->config.D = get_float(&buffer[8]);
-
-    /* the limits will be copied before the first update if they are relevant, so init them to 0 */
-    controller->config.LowerLimit = 0.0f;
-    controller->config.UpperLimit = 0.0f;
+    config->P = get_float(&buffer[0]);
+    config->I = get_float(&buffer[4]);
+    config->D = get_float(&buffer[8]);
+    config->LowerLimit = get_float(&buffer[12]);
+    config->UpperLimit = get_float(&buffer[16]);
 }
 
 MotorLibraryStatus_t DcMotor_UpdateConfiguration(MotorPort_t* motorPort, const uint8_t* data, uint8_t size)
 {
     MotorLibrary_Dc_Data_t* libdata = (MotorLibrary_Dc_Data_t*) motorPort->libraryData;
-    const size_t header_size = 56u;
+    const size_t header_size = 81u;
+    /* Do we have the required data? */
     if (size < header_size)
     {
+        SEGGER_RTT_printf(0, "DcMotor_UpdateConfiguration: expected at least %u bytes, got %u\n", header_size, size);
         return MotorLibraryStatus_InputError;
     }
+    /* Linearity table is optional but must be 8 bytes per entry */
     if ((size - header_size) % 8 != 0u)
     {
+        SEGGER_RTT_printf(0, "DcMotor_UpdateConfiguration: linearity table size error\n");
         return MotorLibraryStatus_InputError;
     }
     size_t nNonlinearityPoints = (size - header_size) / 8u;
     if (nNonlinearityPoints > 9u) /** < 1 point is reserved for (0, 0) */
     {
+        SEGGER_RTT_printf(0, "DcMotor_UpdateConfiguration: linearity table too large: %u elements\n", nNonlinearityPoints);
         return MotorLibraryStatus_InputError;
     }
 
-    libdata->resolution = pulses_per_encoder_slit * get_float(&data[0]);
+    /* reset controller states & coefficients */
+    pid_initialize(&libdata->positionController);
+    pid_initialize(&libdata->speedController);
+
+    /* read parameters */
+    float encoder_slits = get_float(&data[0]);
+
+    dc_motor_read_pid_config(&libdata->slowPositionConfig, &data[4]);
+    dc_motor_read_pid_config(&libdata->fastPositionConfig, &data[24]);
+    switch (data[44])
+    {
+        case 0: libdata->positionBreakpointKind = PositionBreakpointKind_Degrees; break;
+        case 1: libdata->positionBreakpointKind = PositionBreakpointKind_Relative; break;
+        default:
+            SEGGER_RTT_printf(0, "DcMotor_UpdateConfiguration: invalid positionBreakpointKind: %u\n", data[44]);
+            return MotorLibraryStatus_InputError;
+    }
+    libdata->positionBreakpoint = get_float(&data[45]);
+    dc_motor_read_pid_config(&libdata->speedController.config, &data[49]);
+
+    libdata->maxDeceleration = get_float(&data[69]);
+    libdata->maxAcceleration = get_float(&data[73]);
+
+    Current_t maxCurrent = get_float(&data[77]);
+
+    /* calculate misc values */
+    libdata->resolution = pulses_per_encoder_slit * encoder_slits;
     libdata->atLeastOneDegree = lroundf(fabsf(libdata->resolution) / 360.0f);
     if (libdata->atLeastOneDegree == 0u)
     {
         libdata->atLeastOneDegree = 1u;
     }
 
-    dc_motor_init_controller(&libdata->positionController, &data[4]);
-    dc_motor_init_controller(&libdata->speedController, &data[24]);
+    libdata->positionControllerLowerLimit = libdata->slowPositionConfig.LowerLimit;
+    libdata->positionControllerUpperLimit = libdata->slowPositionConfig.UpperLimit;
 
-    libdata->positionControllerLowerLimit = get_float(&data[16]);
-    libdata->positionControllerUpperLimit = get_float(&data[20]);
-
-    libdata->speedControllerLowerLimit = get_float(&data[36]);
-    libdata->speedControllerUpperLimit = get_float(&data[40]);
-
-    libdata->maxDeceleration = get_float(&data[44]);
-    libdata->maxAcceleration = get_float(&data[48]);
-
-    Current_t maxCurrent = get_float(&data[52]);
+    libdata->speedControllerLowerLimit = libdata->speedController.config.LowerLimit;
+    libdata->speedControllerUpperLimit = libdata->speedController.config.UpperLimit;
 
     MotorPort_WriteMaxCurrent(motorPort, maxCurrent);
 
@@ -598,6 +650,20 @@ static MotorLibraryStatus_t _create_position_request(const MotorLibrary_Dc_Data_
 
     driveRequest->request_type = DriveRequest_RequestType_Position;
     driveRequest->request.position = requested_position;
+
+    switch (libdata->positionBreakpointKind) {
+        case PositionBreakpointKind_Degrees:
+            driveRequest->positionBreakpoint = degrees_to_ticks(libdata, libdata->positionBreakpoint);
+            break;
+        case PositionBreakpointKind_Relative: {
+            float distanceTicks = fabsf((float)(libdata->lastPosition - requested_position));
+            driveRequest->positionBreakpoint = libdata->positionBreakpoint * distanceTicks;
+            break;
+        }
+        default:
+            /* should not happen, we check for invalid values when reading the configuration */
+            break;
+    }
 
     return MotorLibraryStatus_Ok;
 }

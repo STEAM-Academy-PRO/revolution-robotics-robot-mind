@@ -60,6 +60,7 @@ typedef struct {
     float speed_limit;
     DriveRequest_RequestType_t request_type;
     DriveRequest_RequestValue_t request;
+    float positionBreakpoint;
 } DriveRequest_t;
 typedef float Current_t;
 typedef float Percentage_t;

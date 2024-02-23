@@ -250,58 +250,64 @@ static bool MotorPortHandler_Configure_async_call_argument_result;
 static void MotorPortHandler_Configure_async_call_Update(void);
 static DriveRequest_t CommWrapper_MotorPorts_DriveRequest_array[6] = {
     {
-        .version      = 0u,
-        .power_limit  = 0.0f,
-        .speed_limit  = 0.0f,
-        .request_type = DriveRequest_RequestType_Power,
-        .request      = {
+        .version            = 0u,
+        .power_limit        = 0.0f,
+        .speed_limit        = 0.0f,
+        .request_type       = DriveRequest_RequestType_Power,
+        .request            = {
             .power = 0
-        }
+        },
+        .positionBreakpoint = 0.0f
     },
     {
-        .version      = 0u,
-        .power_limit  = 0.0f,
-        .speed_limit  = 0.0f,
-        .request_type = DriveRequest_RequestType_Power,
-        .request      = {
+        .version            = 0u,
+        .power_limit        = 0.0f,
+        .speed_limit        = 0.0f,
+        .request_type       = DriveRequest_RequestType_Power,
+        .request            = {
             .power = 0
-        }
+        },
+        .positionBreakpoint = 0.0f
     },
     {
-        .version      = 0u,
-        .power_limit  = 0.0f,
-        .speed_limit  = 0.0f,
-        .request_type = DriveRequest_RequestType_Power,
-        .request      = {
+        .version            = 0u,
+        .power_limit        = 0.0f,
+        .speed_limit        = 0.0f,
+        .request_type       = DriveRequest_RequestType_Power,
+        .request            = {
             .power = 0
-        }
+        },
+        .positionBreakpoint = 0.0f
     },
     {
-        .version      = 0u,
-        .power_limit  = 0.0f,
-        .speed_limit  = 0.0f,
-        .request_type = DriveRequest_RequestType_Power,
-        .request      = {
+        .version            = 0u,
+        .power_limit        = 0.0f,
+        .speed_limit        = 0.0f,
+        .request_type       = DriveRequest_RequestType_Power,
+        .request            = {
             .power = 0
-        }
+        },
+        .positionBreakpoint = 0.0f
     },
     {
-        .version      = 0u,
-        .power_limit  = 0.0f,
-        .speed_limit  = 0.0f,
-        .request_type = DriveRequest_RequestType_Power,
-        .request      = {
+        .version            = 0u,
+        .power_limit        = 0.0f,
+        .speed_limit        = 0.0f,
+        .request_type       = DriveRequest_RequestType_Power,
+        .request            = {
             .power = 0
-        }
+        },
+        .positionBreakpoint = 0.0f
     },
     {
-        .version      = 0u,
-        .power_limit  = 0.0f,
-        .speed_limit  = 0.0f,
-        .request_type = DriveRequest_RequestType_Power,
-        .request      = {
+        .version            = 0u,
+        .power_limit        = 0.0f,
+        .speed_limit        = 0.0f,
+        .request_type       = DriveRequest_RequestType_Power,
+        .request            = {
             .power = 0
-        }
+        },
+        .positionBreakpoint = 0.0f
     }
 };
 

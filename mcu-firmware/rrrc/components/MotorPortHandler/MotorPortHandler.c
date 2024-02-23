@@ -428,13 +428,14 @@ void MotorPortHandler_Read_DriveRequest(uint32_t index, DriveRequest_t* value)
 
     /* End User Code Section: DriveRequest:read Start */
     *value = (DriveRequest_t) {
-        .version      = 0u,
-        .power_limit  = 0.0f,
-        .speed_limit  = 0.0f,
-        .request_type = DriveRequest_RequestType_Power,
-        .request      = {
+        .version            = 0u,
+        .power_limit        = 0.0f,
+        .speed_limit        = 0.0f,
+        .request_type       = DriveRequest_RequestType_Power,
+        .request            = {
             .power = 0
-        }
+        },
+        .positionBreakpoint = 0.0f
     };
     /* Begin User Code Section: DriveRequest:read End */
 

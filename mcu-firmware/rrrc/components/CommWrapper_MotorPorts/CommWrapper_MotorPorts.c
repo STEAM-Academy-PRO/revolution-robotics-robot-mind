@@ -3,9 +3,10 @@
 #include "utils_assert.h"
 
 /* Begin User Code Section: Declarations */
+#include "SEGGER_RTT.h"
 #include <string.h>
 
-static uint8_t config_buffer[128];
+static uint8_t config_buffer[256];
 
 #define MOTOR_PORT_IDX(x) ((x) - 1u)
 /* End User Code Section: Declarations */
@@ -125,6 +126,7 @@ Comm_Status_t CommWrapper_MotorPorts_Run_Command_SetPortConfig_Start(ConstByteAr
 
     if (commandPayload.count == 0u || commandPayload.count > ARRAY_SIZE(config_buffer) + 1u)
     {
+        SEGGER_RTT_printf(0, "Payload length error (%u)\n", commandPayload.count);
         return Comm_Status_Error_PayloadLengthError;
     }
 
