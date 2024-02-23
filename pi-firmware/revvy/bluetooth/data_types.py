@@ -170,9 +170,11 @@ class SensorData(Serialize):
     def serialize(self):
         return self.value
 
+
 class UltrasonicSensorData(SensorData):
     def serialize(self):
         return round(self.value).to_bytes(2, "little") + b"\x00\x00"
+
 
 class BumperSensorData(SensorData):
     def serialize(self):
