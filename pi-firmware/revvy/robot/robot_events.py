@@ -53,5 +53,3 @@ class MotorChangeData(NamedTuple):
     power: int
     speed: int
     pos: int
-
-

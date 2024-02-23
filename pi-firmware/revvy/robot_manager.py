@@ -356,7 +356,10 @@ class RobotManager:
         # Set up all the bound buttons to run the stored scripts.
         for button, script in enumerate(config.controller.buttons):
             if script:
-                log(f"Binding button {button} to script {script.name} with source: \n\n{script.source}\n\n", LogLevel.DEBUG)
+                log(
+                    f"Binding button {button} to script {script.name} with source: \n\n{script.source}\n\n",
+                    LogLevel.DEBUG,
+                )
                 script_handle = self._scripts.add_script(script, config)
                 script_handle.assign("list_slots", scriptvars)
                 self._remote_controller.link_button_to_runner(button, script_handle)
