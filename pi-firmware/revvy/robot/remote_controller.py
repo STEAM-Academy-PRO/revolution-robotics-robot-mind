@@ -89,9 +89,8 @@ class RemoteController:
         self._control_button_pressed = AutonomousModeRequest()
 
         self._analogActions = []  # ([channel], callback) pairs
-        self._analogStates = (
-            bytearray()
-        )  # the last analog values, used to compare if a callback needs to be fired
+        # the last analog values, used to compare if a callback needs to be fired
+        self._analogStates = bytearray()
 
         self._button_handlers = []
 

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import enum
 import struct
+from threading import Lock
 from typing import NamedTuple, Optional
 
 from revvy.robot.ports.common import PortInstance
@@ -206,6 +207,7 @@ class DcMotorController(MotorPortDriver):
 
         self._timeout = 0
         self._current_position_request: Optional[int] = None
+        self._lock = Lock()
         port.interface.set_motor_port_config(port.id, self._port_config.serialize())
 
     # TODO: explain the arguments' units
@@ -313,8 +315,6 @@ class DcMotorController(MotorPortDriver):
         awaiter.on_finished(_finished)
         awaiter.on_cancelled(_canceled)
 
-        self._awaiter = awaiter
-
         if pos_type == "absolute":
             position -= self._pos_offset
             command = self.create_absolute_position_command(position, speed_limit, power_limit)
@@ -323,8 +323,10 @@ class DcMotorController(MotorPortDriver):
         else:
             raise ValueError(f"Invalid pos_type {pos_type}")
 
-        response = self._port.interface.set_motor_port_control_value(command)
-        self._current_position_request = response[0]
+        with self._lock:
+            self._awaiter = awaiter
+            response = self._port.interface.set_motor_port_control_value(command)
+            self._current_position_request = response[0]
         self.log(f"set_position request id: {self._current_position_request}")
 
         return awaiter
@@ -334,22 +336,23 @@ class DcMotorController(MotorPortDriver):
         return self._status
 
     def _update_motor_status(self, status: MotorStatus, request_id: int):
-        self._status = status
-        awaiter = self._awaiter
-        if awaiter:
-            if self._current_position_request is not None:
-                if request_id != self._current_position_request:
-                    self.log(f"unexpected request id: {request_id}", LogLevel.DEBUG)
-                    return
+        with self._lock:
+            self._status = status
+            awaiter = self._awaiter
+            if awaiter:
+                if self._current_position_request is not None:
+                    if request_id != self._current_position_request:
+                        self.log(f"unexpected request id: {request_id}", LogLevel.DEBUG)
+                        return
 
-            if status == MotorStatus.NORMAL:
-                return
-            elif status == MotorStatus.GOAL_REACHED:
-                self.log("goal reached: {request_id}", LogLevel.DEBUG)
-                awaiter.finish()
-            elif status == MotorStatus.BLOCKED:
-                self.log("blocked: {request_id}", LogLevel.DEBUG)
-                awaiter.cancel()
+                if status == MotorStatus.NORMAL:
+                    return
+                elif status == MotorStatus.GOAL_REACHED:
+                    self.log(f"goal reached: {request_id}", LogLevel.DEBUG)
+                    awaiter.finish()
+                elif status == MotorStatus.BLOCKED:
+                    self.log(f"blocked: {request_id}", LogLevel.DEBUG)
+                    awaiter.cancel()
 
     def update_status(self, data):
         if len(data) == 11:
