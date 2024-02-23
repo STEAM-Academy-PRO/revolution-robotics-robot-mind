@@ -77,3 +77,15 @@
     position: absolute;
     top: 0px; left: 0px; width: 100%
 }
+
+.colorBox{
+    display: block;
+    margin: 0 auto;
+    width: 20px;
+    height: 20px;
+}
+
+
+.colorSensorTable{
+    text-align: center;
+}

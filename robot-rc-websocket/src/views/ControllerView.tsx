@@ -8,6 +8,7 @@ import { CameraView } from './CameraView';
 import { clearLog, getLog, log } from '../utils/log';
 import { RobotConfig, SensorType, SensorTypeResolve } from '../utils/Config';
 import { uploadConfig } from '../utils/commands';
+import { ColorSensor, ColorSensorReading } from '../utils/ColorSensor';
 
 const BUTTON_MAP_XBOX: { [id: number]: number } = {
   2: 0,
@@ -101,6 +102,11 @@ export default function ControllerView({
           switch (sensors[sensorId].type) {
             case SensorType.BUTTON:
               sensors[sensorId].setValue(sensorValue ? '1' : '0')
+              break
+            case SensorType.COLOR:
+              console.log('color sensor', sensorValue)
+              const colorReadings: ColorSensorReading = sensorValue
+              sensors[sensorId].setValue(colorReadings)
               break
             default:
               sensors[sensorId].setValue(sensorValue)
@@ -211,8 +217,9 @@ export default function ControllerView({
         <span class={styles.status}>motor angles: {motorAngles()?.join(' ')}</span>
         {Object.keys(sensors).map((sensorKey) => (
           <span class={styles.status}>
-            {SensorTypeResolve[sensors[sensorKey].type]}:
-            {sensors[sensorKey].value() || 0}
+            <SensorView type={SensorTypeResolve[sensors[sensorKey].type]}
+              value={sensors[sensorKey].value}
+            ></SensorView>
           </span>
         ))}
       </div>
@@ -239,6 +246,21 @@ export default function ControllerView({
       </div>
     </div>
   );
+}
+
+function SensorView({ type, value }: { value: Accessor<any>, type: string }) {
+  return <div>
+    {type}
+    <Show when={type === 'button'}>
+      {value()}
+    </Show>
+    <Show when={type === 'distance_sensor'}>
+      {value()}
+    </Show>
+    <Show when={type === 'color_sensor'}>
+      <ColorSensor value={value}></ColorSensor>
+    </Show>
+  </div>
 }
 
 

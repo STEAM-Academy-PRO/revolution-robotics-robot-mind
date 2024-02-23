@@ -1,12 +1,12 @@
 """ Sensor value wrapper: manages throttling of sensor readings for the mobile app """
 
 from typing import Optional
-from revvy.bluetooth.data_types import BumperSensorData, UltrasonicSensorData
+from revvy.bluetooth.data_types import BumperSensorData, ColorSensorData, UltrasonicSensorData
 from revvy.robot.configurations import Sensors
 from revvy.robot.ports.common import PortInstance
-from revvy.robot.ports.sensors.simple import BumperSwitch, ColorSensor, Hcsr04
+from revvy.robot.ports.sensors.simple import BumperSwitch, ColorSensor, ColorSensorReading, Hcsr04
 from revvy.utils.logger import get_logger
-from revvy.utils.observable import SmoothingObservable, simple_average
+from revvy.utils.observable import Observable, SmoothingObservable, simple_average
 from revvy.utils.subscription import Disposable
 
 # Sensor does send some noise up, seems to be not working above
@@ -58,37 +58,23 @@ class ColorSensorDataHandler(Disposable):
 
         sensor_port.driver.on_status_changed.add(self.update)
 
-        # self._value = SmoothingObservable(
-        #     value=0,
-        #     window_size=3,
-        #     # Do not update more frequent than 200ms
-        #     throttle_interval=0.2,
-        #     smoothening_function=simple_average,
-        # )
-        # self._value.subscribe(lambda v: log(f'ultrasonic {v}'))
+        self._value = Observable[ColorSensorReading](ColorSensorReading(), throttle_interval=0.2)
 
-        # self._value.subscribe(self._on_data_update)
+        self._value.subscribe(self._on_data_update)
 
-    # def _on_data_update(self, value):
-    #     """Need to convert the value back"""
-    #     self._data_update_callback(UltrasonicSensorData(self._sensor_port.id, value))
+    def _on_data_update(self, value):
+        """Need to convert the value back"""
+        self._data_update_callback(ColorSensorData(self._sensor_port.id, value))
 
     def update(self, port: PortInstance[ColorSensor]):
         """
         Dig out the first two bites.
         """
 
-        # This layer should NOT contain bit hacking.
-        # value = int.from_bytes(port.driver.raw_value[0:2], "little")
-        log(f'color sensor value {port.driver}')
-        # if 0 < value < MAX_ULTRASONIC_SENSOR_DISTANCE:
-        #     self._value.set(value)
+        self._value.set(port.driver.value)
 
     def dispose(self):
-        # self._value.unsubscribe(self._on_data_update)
-        pass
-
-
+        self._value.unsubscribe(self._on_data_update)
 
 
 class UltrasonicSensorDataHandler(Disposable):

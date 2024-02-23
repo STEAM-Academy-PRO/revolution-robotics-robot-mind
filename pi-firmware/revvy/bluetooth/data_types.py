@@ -179,3 +179,10 @@ class UltrasonicSensorData(SensorData):
 class BumperSensorData(SensorData):
     def serialize(self):
         return b"\x01" if self.value else b"\x00"
+
+
+class ColorSensorData(SensorData):
+    def serialize(self):
+        # TODO: this does not belong here. But I do know where it does.
+        # Where should complex type serialization go?
+        return self.value.serialize()
