@@ -110,9 +110,7 @@ class RevvyBLE:
 
         self._robot_manager.on(
             RobotEvent.SENSOR_VALUE_CHANGE,
-            lambda ref, sensor_reading: self._live.update_sensor(
-                sensor_reading.id, sensor_reading.raw_value
-            ),
+            lambda ref, sensor_reading: self._live.update_sensor(sensor_reading),
         )
 
         # Only send up ORIENTATION changes, NO GYRO as we are not using that anywhere.

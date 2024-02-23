@@ -55,8 +55,3 @@ class MotorChangeData(NamedTuple):
     pos: int
 
 
-class SensorEventData(NamedTuple):
-    """Ultrasonic sensor and button data. Not pretty, would be better with ints."""
-
-    id: int
-    raw_value: SensorData

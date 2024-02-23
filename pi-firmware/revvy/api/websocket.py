@@ -65,6 +65,8 @@ class NamedTupleEncoder(json.JSONEncoder):
             return o.value
         if isinstance(o, bytes):
             return str(o)
+        if callable(getattr(o, "__json__", None)):
+            return o.__json__()
         return super().default(o)
 
 

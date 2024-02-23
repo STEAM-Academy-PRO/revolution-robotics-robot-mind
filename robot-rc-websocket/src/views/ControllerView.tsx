@@ -9,7 +9,7 @@ import { clearLog, getLog, log } from '../utils/log';
 import { RobotConfig, SensorType, SensorTypeResolve } from '../utils/Config';
 import { uploadConfig } from '../utils/commands';
 
-const BUTTON_MAP_XBOX: {[id:number]: number} = {
+const BUTTON_MAP_XBOX: { [id: number]: number } = {
   2: 0,
   3: 2,
   0: 3,
@@ -31,27 +31,27 @@ export default function ControllerView({
   const [version, setVersion] = createSignal<string>()
   const [hasGamepad, setHasGamepad] = createSignal<boolean>(false)
   const [isConnected, setIsConnected] = createSignal<boolean>(true)
-  
+
   // Extend the values!
-  const sensors : {[id: number]: {value: Accessor<any>, setValue: Accessor<any>, type: SensorType}} = {}
+  const sensors: { [id: number]: { value: Accessor<any>, setValue: Accessor<any>, type: SensorType } } = {}
   config().robotConfig.sensors.map(
-    (config, i)=>{
+    (config, i) => {
       if (config) {
         const [value, setValue] = createSignal()
-        sensors[i + 1] = {value, setValue, type: config.type}
+        sensors[i + 1] = { value, setValue, type: config.type }
       }
     })
 
-  const reUploadConfig = ()=>{
+  const reUploadConfig = () => {
     uploadConfig(conn(), config())
     setIsConnected(true)
   }
 
   let logElement: HTMLPreElement;
 
-  createEffect(()=>{
+  createEffect(() => {
     getLog()
-    if (logElement){
+    if (logElement) {
       logElement.scrollTop = logElement.scrollHeight
     }
   })
@@ -87,7 +87,7 @@ export default function ControllerView({
           setMotorAngles(data.data)
           break
         case 'version_info':
-          setVersion(Object.keys(data.data).map((k)=>`${k}: ${data.data[k]}`).join(' '))
+          setVersion(Object.keys(data.data).map((k) => `${k}: ${data.data[k]}`).join(' '))
           break
         case 'program_status_change':
           buttons[data.data[0]].setStatus(data.data[1])
@@ -95,12 +95,18 @@ export default function ControllerView({
         case 'controller_lost':
           setIsConnected(false)
           break
-        case 'sensor_value_change': 
-          const sensorId = data.data[0]
-          const sensorValue = data.data[1]
+        case 'sensor_value_change':
+          const sensorId = data.data.port_id
+          const sensorValue = data.data.value
+          switch (sensors[sensorId].type) {
+            case SensorType.BUTTON:
+              sensors[sensorId].setValue(sensorValue ? '1' : '0')
+              break
+            default:
+              sensors[sensorId].setValue(sensorValue)
 
-          sensors[sensorId].setValue(sensorValue)
-        break
+          }
+          break
         default:
           console.log(`[message] Data received from server: ${data.event}`);
       }
@@ -128,10 +134,10 @@ export default function ControllerView({
     // set to a value to avoid flickering.
     // const isScreenControllerIsAtCenter = (!position.x() && !position.y())
 
-    const twoOtherAnalogs = {x: 0, y: 0}
+    const twoOtherAnalogs = { x: 0, y: 0 }
 
     // Gamepad support!
-    if (hasGamepad()){
+    if (hasGamepad()) {
       const gamepads = navigator.getGamepads();
       for (const gamepad of gamepads) {
         // Disregard empty slots.
@@ -188,25 +194,25 @@ export default function ControllerView({
     <div>
       <h1>
         Controller
-        </h1>
-        <span class={styles.controllerConnection}>
-          <Show when={isConnected()}>Connected 🔌</Show>
-          <Show when={!isConnected()}>
-              Disconnected 🚫
-              <Show when={conn()}>
-                <button onClick={reUploadConfig}>RESTART</button>
-              </Show>
+      </h1>
+      <span class={styles.controllerConnection}>
+        <Show when={isConnected()}>Connected 🔌</Show>
+        <Show when={!isConnected()}>
+          Disconnected 🚫
+          <Show when={conn()}>
+            <button onClick={reUploadConfig}>RESTART</button>
           </Show>
-        </span>
+        </Show>
+      </span>
       <div class={styles.statuses}>
         <span class={styles.status}>version: {version()}</span>
-        <span class={styles.status}>orientation: {orientation()?.join(' ')}</span>
+        <span class={styles.status}>orientation: {JSON.stringify(orientation())}</span>
         <span class={styles.status}>battery: {battery()?.join(' ')}</span>
         <span class={styles.status}>motor angles: {motorAngles()?.join(' ')}</span>
-        {Object.keys(sensors).map((sensorKey)=>(
+        {Object.keys(sensors).map((sensorKey) => (
           <span class={styles.status}>
-              { SensorTypeResolve[sensors[sensorKey].type] }:
-               {sensors[sensorKey].value() || 0}
+            {SensorTypeResolve[sensors[sensorKey].type]}:
+            {sensors[sensorKey].value() || 0}
           </span>
         ))}
       </div>

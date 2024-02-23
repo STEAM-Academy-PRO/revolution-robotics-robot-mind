@@ -15,7 +15,6 @@ from revvy.bluetooth.data_types import (
 from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_UNKNOWN
 from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
 from revvy.robot.robot import BatteryStatus
-from revvy.utils.bit_packer import pack_2_bit_number_array_32
 
 from revvy.utils.logger import get_logger
 from revvy.utils.serialize import Serialize
@@ -186,7 +185,8 @@ class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
         self._updateValueCallback = None
 
     def update(self, value: DataType):
-        value = value.serialize()
+        if isinstance(value, Serialize):
+            value = value.serialize()
         self._value = value
 
         callback = self._updateValueCallback
@@ -201,6 +201,7 @@ class StateControlCharacteristic(BackgroundProgramControlCharacteristic):
 class SensorCharacteristic(BrainToMobileCharacteristic):
     def update(self, value):
         # FIXME: prefix with data length is probably unnecessary
+        value = value.serialize()
         super().update([len(value), *value])
 
 
