@@ -7,7 +7,7 @@ from pybleno import Bleno
 from revvy.bluetooth.services.battery import CustomBatteryService
 from revvy.bluetooth.services.device_information import DeviceInformationService
 from revvy.bluetooth.services.long_message import LongMessageService
-from revvy.robot.robot_events import RobotEvent, SensorData
+from revvy.robot.robot_events import RobotEvent
 from revvy.scripting.runtime import ScriptEvent
 
 from revvy.utils.device_name import get_device_name

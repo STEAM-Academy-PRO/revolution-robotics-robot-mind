@@ -185,6 +185,8 @@ class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
         self._updateValueCallback = None
 
     def update(self, value: DataType):
+        if isinstance(value, Serialize):
+            value = value.serialize()
         self._value = value
 
         callback = self._updateValueCallback
@@ -199,6 +201,7 @@ class StateControlCharacteristic(BackgroundProgramControlCharacteristic):
 class SensorCharacteristic(BrainToMobileCharacteristic):
     def update(self, value):
         # FIXME: prefix with data length is probably unnecessary
+        value = value.serialize()
         super().update([len(value), *value])
 
 
