@@ -381,7 +381,7 @@ static void _update_status_data(uint8_t portIdx, const MotorLibrary_Dc_Data_t* l
     memcpy(&status[6], &libdata->currentSpeed, sizeof(float));
     status[10] = libdata->lastRequest.version;
 
-    MotorPortHandler_Call_UpdatePortStatus(portIdx, (ByteArray_t){status, 11u});
+    MotorPortHandler_Call_UpdatePortStatus(portIdx, (ByteArray_t){status, sizeof(status)});
 }
 
 MotorLibraryStatus_t DcMotor_Update(MotorPort_t* motorPort)
