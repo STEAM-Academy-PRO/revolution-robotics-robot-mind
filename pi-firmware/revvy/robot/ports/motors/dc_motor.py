@@ -7,6 +7,7 @@ from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motors.base import MotorConstants, MotorStatus, MotorPortDriver
 from revvy.utils.awaiter import Awaiter, Awaiter
 from revvy.utils.functions import clip
+from revvy.utils.logger import LogLevel
 
 
 class ThresholdKind(enum.IntEnum):
@@ -324,6 +325,7 @@ class DcMotorController(MotorPortDriver):
 
         response = self._port.interface.set_motor_port_control_value(command)
         self._current_position_request = response[0]
+        self.log(f"set_position request id: {self._current_position_request}")
 
         return awaiter
 
@@ -335,16 +337,18 @@ class DcMotorController(MotorPortDriver):
         self._status = status
         awaiter = self._awaiter
         if awaiter:
-            if status == MotorStatus.NORMAL:
-                return
-
             if self._current_position_request is not None:
                 if request_id != self._current_position_request:
+                    self.log(f"unexpected request id: {request_id}", LogLevel.DEBUG)
                     return
 
-            if status == MotorStatus.GOAL_REACHED:
+            if status == MotorStatus.NORMAL:
+                return
+            elif status == MotorStatus.GOAL_REACHED:
+                self.log("goal reached: {request_id}", LogLevel.DEBUG)
                 awaiter.finish()
             elif status == MotorStatus.BLOCKED:
+                self.log("blocked: {request_id}", LogLevel.DEBUG)
                 awaiter.cancel()
 
     def update_status(self, data):
