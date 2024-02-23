@@ -71,7 +71,7 @@ class ResourceHandle:
 
 
 class Resource:
-    def __init__(self, name: Union[str,List[str]] = "Resource"):
+    def __init__(self, name: Union[str, List[str]] = "Resource"):
         self._lock = Lock()
         self._log = get_logger(name, LogLevel.DEBUG)
         self._current_priority = -1

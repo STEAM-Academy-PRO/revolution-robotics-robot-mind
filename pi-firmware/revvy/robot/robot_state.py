@@ -127,5 +127,3 @@ class RobotState(Emitter[RobotEvent]):
             log(f"{str(e)}", LogLevel.WARNING)
         except Exception:
             log(traceback.format_exc())
-
-

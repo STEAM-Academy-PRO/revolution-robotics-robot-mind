@@ -146,7 +146,7 @@ class PortInstance(Generic[DriverType]):
         :param supported: A dictionary of supported drivers
         :param set_port_type: A function that sets the port type on the MCU
         """
-        self.log = get_logger(['Port', name, str(port_idx)])
+        self.log = get_logger(["Port", name, str(port_idx)])
         self._port_idx = port_idx
         self._interface = interface
         self._config_changed_callbacks = SimpleEventEmitter()

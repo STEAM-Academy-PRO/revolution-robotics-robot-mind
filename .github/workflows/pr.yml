@@ -152,6 +152,9 @@ jobs:
           pip install -r install/requirements.txt
           pip install -r install/requirements_test.txt
 
+          # check formatting
+          black --check .
+
           timeout 5m nose2 -B
 
   lint-pi-firmware:
@@ -182,8 +185,7 @@ jobs:
           pip install -r install/requirements.txt
           pip install -r install/requirements_test.txt
 
-          # run checks
-          black --check .
+          # run linter
           pyright
 
   archive-pi-firmware:
