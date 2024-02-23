@@ -8,7 +8,7 @@ It polls the MCU for updates in any states.
 
 """
 
-import math, copy
+import copy
 import traceback
 from revvy.bluetooth.data_types import BackgroundControlState, GyroData, ScriptVariables, TimerData
 from revvy.mcu.rrrc_transport import TransportException
@@ -18,6 +18,7 @@ from revvy.robot.robot_events import RobotEvent
 from revvy.robot.states.battery_state import BatteryState
 from revvy.utils.emitter import Emitter
 from revvy.utils.logger import LogLevel, get_logger
+from revvy.utils.math.floor0 import floor0
 from revvy.utils.observable import Observable
 from revvy.utils.thread_wrapper import ThreadWrapper, periodic
 
@@ -128,9 +129,3 @@ class RobotState(Emitter[RobotEvent]):
             log(traceback.format_exc())
 
 
-def floor0(number, round_to=1):
-    """Simple floor function that works reversed for minus values, having 0 between -1 and 1"""
-    if number < 0:
-        return math.ceil(number * round_to) / round_to
-    else:
-        return math.floor(number * round_to) / round_to

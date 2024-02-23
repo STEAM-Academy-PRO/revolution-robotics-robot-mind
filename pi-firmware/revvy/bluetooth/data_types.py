@@ -6,6 +6,7 @@ import struct
 from typing import Any
 from revvy.utils.bit_packer import pack_2_bit_number_array_32
 from revvy.utils.logger import get_logger
+from revvy.utils.math.floor0 import floor0
 from revvy.utils.serialize import Serialize
 
 
@@ -26,6 +27,15 @@ class GyroData(Serialize):
         self.a = a
         self.b = b
         self.c = c
+
+    def __eq__(self, __value: object) -> bool:
+        if isinstance(__value, GyroData):
+            return (
+                floor0(__value.a) == floor0(self.a)
+                and floor0(__value.b) == floor0(self.b)
+                and floor0(__value.c) == floor0(self.c)
+            )
+        return False
 
     def __json__(self):
         return {"a": self.a, "b": self.b, "c": self.c}
@@ -160,9 +170,11 @@ class SensorData(Serialize):
     def serialize(self):
         return self.value
 
+
 class UltrasonicSensorData(SensorData):
     def serialize(self):
         return round(self.value).to_bytes(2, "little") + b"\x00\x00"
+
 
 class BumperSensorData(SensorData):
     def serialize(self):
