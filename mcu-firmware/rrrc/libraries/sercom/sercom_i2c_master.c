@@ -1,9 +1,9 @@
 #include "sercom_i2c_master.h"
 #include <math.h>
 
-/**
- * Low-level asynchronous i2c master implementation to support reconfigurable interfaces.
- * This implementation assumes 24MHz clock and settings that are configured in the Pi firmware.
+/* Low-level asynchronous i2c master implementation to support reconfigurable interfaces.
+ * this implementation assumes 24MHz clock and
+ * a lot of settings that are fixed in our application
  */
 
 #define I2CM_INT_HANDLER_MASTER_BUS  0 /**< Data transmitted */
@@ -13,6 +13,7 @@
 static void i2c_slave_bus_callback(void* data);
 static void i2c_master_bus_callback(void* data);
 
+static void i2c_master_send_repeated_start(I2CMasterInstance_t* instance);
 static void i2c_master_send_stop(I2CMasterInstance_t* instance);
 static void i2c_master_abort_transaction(I2CMasterInstance_t* instance);
 static void i2c_master_continue_tx_transaction(I2CMasterInstance_t* instance);
@@ -37,31 +38,39 @@ static void i2c_master_send_ack(I2CMasterInstance_t* instance)
     i2c_master_command(instance, CMD_SEND_ACK);
 }
 
+static void i2c_master_send_repeated_start(I2CMasterInstance_t* instance)
+{
+    /* repeated start with the same address */
+    hri_sercomi2cm_set_CTRLB_ACKACT_bit(instance->hw);
+    i2c_master_command(instance, CMD_SEND_REPEATED_START);
+}
+
 static void i2c_master_send_stop(I2CMasterInstance_t* instance)
 {
     hri_sercomi2cm_set_CTRLB_ACKACT_bit(instance->hw);
     i2c_master_command(instance, CMD_SEND_STOP_CONDITION);
 }
 
-static bool i2c_master_start_transaction(I2CMasterInstance_t* instance)
+static bool i2c_master_start_transaction(I2CMasterInstance_t* instance, const I2CTransaction_t* transaction)
 {
     instance->current_transfer_count = 0u;
 
     sercom_set_interrupt_handler(instance, I2CM_INT_HANDLER_MASTER_BUS, &i2c_master_bus_callback);
-    uint8_t address = instance->current_transaction.slave_addr & 0xFEu;
+    uint8_t address = transaction->slave_addr;
 
-    switch (instance->current_transaction.type)
+    if (transaction->type == I2CTransaction_Read)
     {
-        case I2CTransaction_Read:
-            sercom_set_interrupt_handler(instance, I2CM_INT_HANDLER_SLAVE_BUS, &i2c_slave_bus_callback);
-            address = address | 0x01u;
-            break;
+        sercom_set_interrupt_handler(instance, I2CM_INT_HANDLER_SLAVE_BUS, &i2c_slave_bus_callback);
 
-        case I2CTransaction_Write:
-            break;
-
-        default:
-            return false;
+        address = (address | 0x01u);
+    }
+    else if (transaction->type == I2CTransaction_Write)
+    {
+        address = (address & 0xFEu);
+    }
+    else
+    {
+        return false;
     }
 
     hri_sercomi2cm_write_ADDR_reg(instance->hw, address);
@@ -99,16 +108,17 @@ static bool i2c_master_handle_end_of_transaction(I2CMasterInstance_t* instance)
     instance->current_transfer_count = 0u;
     instance->continue_transaction = false;
 
-    bool was_in_handler = instance->in_handler;
     instance->in_handler = true;
     callback(instance, transferred);
-    instance->in_handler = was_in_handler;
+    instance->in_handler = false;
 
     return instance->current_transaction.buffer != NULL;
 }
 
 static void i2c_master_abort_transaction(I2CMasterInstance_t* instance)
 {
+    I2CTransactionType_t prevType = instance->current_transaction.type;
+
     if (!i2c_master_handle_end_of_transaction(instance))
     {
         /* no continuation, send STOP */
@@ -116,26 +126,15 @@ static void i2c_master_abort_transaction(I2CMasterInstance_t* instance)
         return;
     }
 
-    /*
-    TODO: this code does not:
-
-    - send repeated start conditions
-    - send a start condition if transaction type changes (read <-> write)
-
-    This modification was made by Softeq, and it's not clear if it's correct.
-    */
     if (instance->continue_transaction == false)
     {
         i2c_master_send_stop(instance);
-
-        /*
-        At the risk of breaking the color sensors, I've removed the start condition from here.
-        If we don't have to continue, don't start a new transaction.
-        */
-    }
-    else
-    {
-        if (!i2c_master_start_transaction(instance))
+        if (!i2c_master_start_transaction(instance, &instance->current_transaction))
+        {
+            i2c_master_cleanup_transaction(instance);
+        }
+    }else {
+        if (!i2c_master_start_transaction(instance, &instance->current_transaction))
         {
             i2c_master_cleanup_transaction(instance);
         }
@@ -208,40 +207,31 @@ I2CResult_t sercom_i2c_master_init(I2CMasterInstance_t* instance, const I2CMaste
     }
 
     instance->hw = config->hw;
-    instance->in_handler = false;
-    instance->current_transfer_count = 0u;
-    instance->continue_transaction = false;
-
-    instance->current_transaction.count = 0u;
-    instance->current_transaction.buffer = NULL;
 
     hri_sercomi2cm_set_CTRLA_SWRST_bit(instance->hw);
 
-    /**
-     * CTRLA:
-     * - don't run in standby mode
-     * - no Slave SCL Low Extend Time-Out
-     * - no Master SCL Low Extended Time-Out
-     * - no inactive timeout
-     * - standard or fast mode
-     * - 300-600ns SDA hold time
-     * - no 4-wire mode
-     * - clock stretch before ack
-     */
+    /* CTRLA:
+        * - don't run in standby mode
+        * - no Slave SCL Low Extend Time-Out
+        * - no Master SCL Low Extended Time-Out
+        * - no inactive timeout
+        * - standard or fast mode
+        * - 300-600ns SDA hold time
+        * - no 4-wire mode
+        * - clock stretch before ack
+        */
     uint32_t ctrl_a = SERCOM_I2CM_CTRLA_MODE(0x05)
                     | SERCOM_I2CM_CTRLA_SDAHOLD(0x02);
 
-    /**
-     * CTRLB:
-     * - smart mode disabled
-     * - quick command disabled
-     */
+    /* CTRLB:
+        * - smart mode disabled
+        * - quick command disabled
+        */
     uint32_t ctrl_b = 0u;
 
-    /**
-     * CTRLC:
-     * no 32bit extension
-     */
+    /* CTRLC:
+        * no 32bit extension
+        */
     uint32_t ctrl_c = 0u;
 
     hri_sercomi2cm_write_CTRLA_reg(instance->hw, ctrl_a);
@@ -258,6 +248,9 @@ I2CResult_t sercom_i2c_master_init(I2CMasterInstance_t* instance, const I2CMaste
 
     hri_sercomi2cm_set_INTEN_MB_bit(instance->hw);
     hri_sercomi2cm_set_INTEN_SB_bit(instance->hw);
+
+    instance->current_transaction.count = 0u;
+    instance->current_transaction.buffer = NULL;
 
     return I2CResult_Ok;
 }
@@ -313,7 +306,7 @@ I2CResult_t sercom_i2c_master_transfer(I2CMasterInstance_t* instance, const I2CT
 
     /* data transmission is handled in the interrupt handlers, only set up address here */
     hri_sercomi2cm_clear_CTRLB_ACKACT_bit(instance->hw); // setup to send ACKs on read
-    if (!i2c_master_start_transaction(instance))
+    if (!i2c_master_start_transaction(instance, transaction))
     {
         instance->current_transaction.type = I2CTransaction_None;
 
