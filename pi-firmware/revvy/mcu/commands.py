@@ -350,13 +350,19 @@ class ReadSensorPortInfoCommand(Command[bytes]):
         return payload
 
 
-class SetMotorPortControlCommand(ReturnlessCommand):
+class SetMotorPortControlCommand(Command[bytes]):
     @property
     def command_id(self) -> int:
         return 0x14
 
     def __call__(self, command_bytes: bytes):
         return self._send(command_bytes)
+
+    def parse_response(self, payload: bytes):
+        if len(payload) == 0:
+            # we don't know the failure, we just get an empty response
+            raise ValueError("Failed to send motor control command")
+        return payload
 
 
 class ReadPortStatusCommand(Command, ABC):

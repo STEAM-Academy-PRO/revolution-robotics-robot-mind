@@ -57,7 +57,7 @@
         "DriveRequest_t": {
             "type": "struct",
             "fields": {
-                "version": "uint32_t",
+                "version": "uint8_t",
                 "power_limit": "float",
                 "speed_limit": "float",
                 "request_type": "DriveRequest_RequestType_t",

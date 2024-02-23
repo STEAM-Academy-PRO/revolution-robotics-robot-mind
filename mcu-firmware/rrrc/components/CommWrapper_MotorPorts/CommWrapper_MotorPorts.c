@@ -187,6 +187,7 @@ Comm_Status_t CommWrapper_MotorPorts_Run_Command_SetControlValue_Start(ConstByte
 {
     /* Begin User Code Section: Command_SetControlValue_Start:run Start */
     uint8_t processedBytes = 0u;
+    size_t command_index = 0;
     while (processedBytes < commandPayload.count)
     {
         uint8_t segmentHeader = commandPayload.bytes[processedBytes];
@@ -195,8 +196,13 @@ Comm_Status_t CommWrapper_MotorPorts_Run_Command_SetControlValue_Start(ConstByte
 
         if (portIdx >= CommWrapper_MotorPorts_Read_PortCount())
         {
-            response.bytes[0] = 0u;
-            *responseCount = 1u;
+            *responseCount = 0u;
+            return Comm_Status_Error_CommandError;
+        }
+
+        if (portIdx > response.count)
+        {
+            *responseCount = 0u;
             return Comm_Status_Error_CommandError;
         }
 
@@ -224,7 +230,11 @@ Comm_Status_t CommWrapper_MotorPorts_Run_Command_SetControlValue_Start(ConstByte
         __disable_irq();
         CommWrapper_MotorPorts_Write_DriveRequest(portIdx, &request);
         __set_PRIMASK(primask);
+
+        response.bytes[command_index] = request.version;
+        command_index++;
     }
+    *responseCount = command_index;
 
     return Comm_Status_Ok;
     /* End User Code Section: Command_SetControlValue_Start:run Start */

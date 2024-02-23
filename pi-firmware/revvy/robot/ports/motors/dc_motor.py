@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import enum
 import struct
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motors.base import MotorConstants, MotorStatus, MotorPortDriver
@@ -204,7 +204,7 @@ class DcMotorController(MotorPortDriver):
         self._status = MotorStatus.NORMAL
 
         self._timeout = 0
-        self._completed_task = 0
+        self._current_position_request: Optional[int] = None
         port.interface.set_motor_port_config(port.id, self._port_config.serialize())
 
     # TODO: explain the arguments' units
@@ -254,6 +254,7 @@ class DcMotorController(MotorPortDriver):
 
     def _cancel_awaiter(self):
         awaiter, self._awaiter = self._awaiter, None
+        self._current_position_request = None
         if awaiter:
             self.log("Cancelling previous request")
             awaiter.cancel()
@@ -321,7 +322,8 @@ class DcMotorController(MotorPortDriver):
         else:
             raise ValueError(f"Invalid pos_type {pos_type}")
 
-        self._port.interface.set_motor_port_control_value(command)
+        response = self._port.interface.set_motor_port_control_value(command)
+        self._current_position_request = response[0]
 
         return awaiter
 
@@ -329,24 +331,26 @@ class DcMotorController(MotorPortDriver):
     def status(self) -> MotorStatus:
         return self._status
 
-    def _update_motor_status(self, status: MotorStatus, current_task):
+    def _update_motor_status(self, status: MotorStatus, request_id: int):
         self._status = status
         awaiter = self._awaiter
         if awaiter:
             if status == MotorStatus.NORMAL:
-                pass
-            elif status == MotorStatus.GOAL_REACHED and current_task != self._completed_task:
-                self._completed_task = current_task
+                return
+
+            if self._current_position_request is not None:
+                if request_id != self._current_position_request:
+                    return
+
+            if status == MotorStatus.GOAL_REACHED:
                 awaiter.finish()
             elif status == MotorStatus.BLOCKED:
-                self._completed_task = current_task
                 awaiter.cancel()
-        else:
-            self._completed_task = current_task
 
     def update_status(self, data):
         if len(data) == 11:
-            status, self._power, self._pos, self._speed, current_task = struct.unpack("<bblfb", data)
+            raw_status = struct.unpack("<bblfb", data)
+            status, self._power, self._pos, self._speed, current_task = raw_status
 
             self._update_motor_status(MotorStatus(status), current_task)
             self.on_status_changed.trigger(self._port)
