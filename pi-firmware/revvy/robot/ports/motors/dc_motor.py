@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 import enum
 import struct
 from typing import NamedTuple
@@ -44,7 +44,7 @@ class MotorCommand(ABC):
     def __init__(self, request_type):
         self.request_type = request_type
 
-    @staticmethod
+    @abstractmethod
     def serialize(self) -> bytes:
         pass
 
@@ -159,7 +159,7 @@ class LinearityConfig:
         config = []
         for x, y in self._points:
             config += struct.pack("<ff", x, y)
-        return config
+        return bytes(config)
 
 
 class DcMotorDriverConfig:
