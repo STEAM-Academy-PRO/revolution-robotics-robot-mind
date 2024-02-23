@@ -1,4 +1,5 @@
 #include "DcMotor.h"
+#include "SEGGER_RTT.h"
 
 #include "libraries/converter.h"
 #include "libraries/functions.h"
@@ -466,16 +467,19 @@ MotorLibraryStatus_t DcMotor_UpdateConfiguration(MotorPort_t* motorPort, const u
     /* Do we have the required data? */
     if (size < header_size)
     {
+        SEGGER_RTT_printf(0, "DcMotor_UpdateConfiguration: expected at least %u bytes, got %u\n", header_size, size);
         return MotorLibraryStatus_InputError;
     }
     /* Linearity table is optional but must be 8 bytes per entry */
     if ((size - header_size) % 8 != 0u)
     {
+        SEGGER_RTT_printf(0, "DcMotor_UpdateConfiguration: linearity table size error\n");
         return MotorLibraryStatus_InputError;
     }
     size_t nNonlinearityPoints = (size - header_size) / 8u;
     if (nNonlinearityPoints > 9u) /** < 1 point is reserved for (0, 0) */
     {
+        SEGGER_RTT_printf(0, "DcMotor_UpdateConfiguration: linearity table too large: %u elements\n", nNonlinearityPoints);
         return MotorLibraryStatus_InputError;
     }
 
@@ -492,7 +496,9 @@ MotorLibraryStatus_t DcMotor_UpdateConfiguration(MotorPort_t* motorPort, const u
     {
         case 0: libdata->positionBreakpointKind = PositionBreakpointKind_Degrees; break;
         case 1: libdata->positionBreakpointKind = PositionBreakpointKind_Relative; break;
-        default: return MotorLibraryStatus_InputError;
+        default:
+            SEGGER_RTT_printf(0, "DcMotor_UpdateConfiguration: invalid positionBreakpointKind: %u\n", data[44]);
+            return MotorLibraryStatus_InputError;
     }
     libdata->positionBreakpoint = get_float(&data[45]);
     dc_motor_read_pid_config(&libdata->speedController.config, &data[49]);
