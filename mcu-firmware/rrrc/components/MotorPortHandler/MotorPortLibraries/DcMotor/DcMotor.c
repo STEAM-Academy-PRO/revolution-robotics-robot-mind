@@ -288,7 +288,6 @@ static void select_pid(PID_t* controller, const PidConfig_t* coefficients)
     controller->config.P = coefficients->P;
     controller->config.I = coefficients->I;
     controller->config.D = coefficients->D;
-    /* limits are updated when processing the new request */
 }
 
 static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t* libdata)
