@@ -104,11 +104,11 @@ export default function ControllerView({
               sensors[sensorId].setValue(sensorValue ? '1' : '0')
               break
             case SensorType.COLOR:
-              console.log('color sensor', sensorValue)
               const colorReadings: ColorSensorReading = sensorValue
               sensors[sensorId].setValue(colorReadings)
               break
             default:
+              // console.log('distance sensor', sensorValue)
               sensors[sensorId].setValue(sensorValue)
 
           }
@@ -250,7 +250,7 @@ export default function ControllerView({
 
 function SensorView({ type, value }: { value: Accessor<any>, type: string }) {
   return <div>
-    {type}
+    {type} <br/>
     <Show when={type === 'button'}>
       {value()}
     </Show>
