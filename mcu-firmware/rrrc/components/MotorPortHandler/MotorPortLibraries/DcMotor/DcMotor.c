@@ -329,7 +329,10 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
         /* update status if goal is reached */
         if (distanceFromGoal < libdata->atLeastOneDegree)
         {
-            libdata->motorStatus = MOTOR_STATUS_GOAL_REACHED;
+            if (libdata->motorStatus != MOTOR_STATUS_GOAL_REACHED) {
+                SEGGER_RTT_printf(0, "Motor %u: goal reached\n", motorPort->port_idx);
+                libdata->motorStatus = MOTOR_STATUS_GOAL_REACHED;
+            }
         }
         /* calculate speed to reach requested position */
         reqSpeed = pid_update(&libdata->positionController, libdata->lastRequest.request.position, libdata->lastPosition);
@@ -345,6 +348,7 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
             _tick_timeout(&libdata->motorTimeout, MOTOR_TIMEOUT_THRESHOLD);
             if (_has_timeout_elapsed(&libdata->motorTimeout, MOTOR_TIMEOUT_THRESHOLD))
             {
+                SEGGER_RTT_printf(0, "Motor %u: stuck\n", motorPort->port_idx);
                 libdata->motorStatus = MOTOR_STATUS_STUCK;
                 ignore_last_drive_request(motorPort);
                 return 0;
@@ -455,9 +459,8 @@ static void dc_motor_read_pid_config(PidConfig_t* config, const uint8_t* buffer)
     config->P = get_float(&buffer[0]);
     config->I = get_float(&buffer[4]);
     config->D = get_float(&buffer[8]);
-    /* limits are set when processing the request */
-    config->LowerLimit = 0.0f;
-    config->UpperLimit = 0.0f;
+    config->LowerLimit = get_float(&buffer[12]);
+    config->UpperLimit = get_float(&buffer[16]);
 }
 
 MotorLibraryStatus_t DcMotor_UpdateConfiguration(MotorPort_t* motorPort, const uint8_t* data, uint8_t size)
