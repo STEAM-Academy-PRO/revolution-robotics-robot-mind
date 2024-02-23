@@ -15,5 +15,6 @@
   "python.analysis.diagnosticMode": "workspace",
   "python.analysis.typeCheckingMode": "standard",
   "python.languageServer": "Pylance",
+  "editor.formatOnSave": true,
   "target": "raspberrypi.local"
 }
