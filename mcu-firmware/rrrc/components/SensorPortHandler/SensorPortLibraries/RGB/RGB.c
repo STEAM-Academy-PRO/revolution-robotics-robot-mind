@@ -232,6 +232,8 @@ static const i2c_command_t deinit_sequence[] =
     {.dir=I2C_DIR_RAW_WRITE, .address=PCA9633TK_ADDR<<1, .data=pca9633tk_deinit_sequence, .data_sz=ARRAY_SIZE(pca9633tk_deinit_sequence)},
 };
 
+static uint8_t VEML3328_control = VEML3328_CONF;
+static uint8_t VEML3328_id = VEML3328_DEVICE_ID_REG;
 static uint8_t VEML3328_colorR = VEML3328_R_DATA;
 static uint8_t VEML3328_colorG = VEML3328_G_DATA;
 static uint8_t VEML3328_colorB = VEML3328_B_DATA;

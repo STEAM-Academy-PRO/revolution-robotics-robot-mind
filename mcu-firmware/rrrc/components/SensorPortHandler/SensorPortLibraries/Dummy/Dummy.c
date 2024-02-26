@@ -51,10 +51,8 @@ void DummySensor_ReadSensorInfo(SensorPort_t* sensorPort, uint8_t page, uint8_t*
 
 static bool DummySensor_TestSensorOnPort(SensorPort_t *port, SensorOnPortStatus_t *result)
 {
-    (void) port;
-
-    *result = SensorOnPortStatus_NotPresent;
-    return true;
+  *result = SensorOnPortStatus_NotPresent;
+  return true;
 }
 
 const SensorLibrary_t sensor_library_dummy = 
