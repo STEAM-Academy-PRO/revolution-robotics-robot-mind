@@ -55,7 +55,7 @@ typedef union {
 } DriveRequest_RequestValue_t;
 
 typedef struct {
-    uint32_t version;
+    uint8_t version;
     float power_limit;
     float speed_limit;
     DriveRequest_RequestType_t request_type;
