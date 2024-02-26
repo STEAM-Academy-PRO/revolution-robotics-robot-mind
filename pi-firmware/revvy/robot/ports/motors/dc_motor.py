@@ -356,7 +356,7 @@ class DcMotorController(MotorPortDriver):
 
     def update_status(self, data):
         if len(data) == 11:
-            raw_status = struct.unpack("<bblfb", data)
+            raw_status = struct.unpack("<bblfB", data)
             status, self._power, self._pos, self._speed, current_task = raw_status
 
             self._update_motor_status(MotorStatus(status), current_task)

@@ -374,9 +374,10 @@ static void _update_status_data(uint8_t portIdx, const MotorLibrary_Dc_Data_t* l
 {
     int32_t pos_degrees = ticks_to_degrees(libdata, libdata->lastPosition);
 
+    // TODO: this really needs to be a (packed) struct
     uint8_t status[11];
     status[0] = libdata->motorStatus;
-    status[1] = (uint8_t) (pwm/2);
+    status[1] = (uint8_t) (pwm/2); // Divide by 2 to map 0..200 (physical timer config) to 0..100 (%)
     memcpy(&status[2], &pos_degrees, sizeof(int32_t));
     memcpy(&status[6], &libdata->currentSpeed, sizeof(float));
     status[10] = libdata->lastRequest.version;
