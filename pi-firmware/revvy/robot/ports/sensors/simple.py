@@ -67,9 +67,7 @@ class ColorSensorReading:
 
     """
 
-    def __init__(self, byte_array: Optional[bytes] = None):
-        if byte_array is None:
-            byte_array = b"\x00" * 12
+    def __init__(self, byte_array: bytes):
         self.top = Color.from_bytes(byte_array[0:3])
         self.right = Color.from_bytes(byte_array[3:6])
         self.left = Color.from_bytes(byte_array[6:9])
