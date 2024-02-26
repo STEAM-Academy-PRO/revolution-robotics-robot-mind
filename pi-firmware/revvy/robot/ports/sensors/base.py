@@ -4,9 +4,8 @@ from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler
 
 
-
 class SensorPortDriver(PortDriver):
-    def __init__(self, port: PortInstance, driver_name: str):
+    def __init__(self, port: PortInstance["SensorPortDriver"], driver_name: str):
         super().__init__(port, driver_name)
         self._port = port
         self._value = None
@@ -22,7 +21,7 @@ class SensorPortDriver(PortDriver):
     def has_data(self):
         return self._value is not None
 
-    def update_status(self, data):
+    def update_status(self, data: bytes):
         if len(data) == 0:
             self._value = None
             return
@@ -48,7 +47,7 @@ class SensorPortDriver(PortDriver):
         return self._raw_value
 
     @abstractmethod
-    def convert_sensor_value(self, raw):
+    def convert_sensor_value(self, raw: bytes):
         raise NotImplementedError
 
 
@@ -71,10 +70,10 @@ class NullSensor(SensorPortDriver):
     def __init__(self, port: PortInstance, config):
         super().__init__(port, "NotConfigured")
 
-    def update_status(self, data):
+    def update_status(self, data: bytes):
         pass
 
-    def convert_sensor_value(self, raw):
+    def convert_sensor_value(self, raw: bytes):
         pass
 
     @property

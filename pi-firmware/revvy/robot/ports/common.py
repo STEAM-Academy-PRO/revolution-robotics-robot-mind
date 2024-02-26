@@ -14,7 +14,7 @@ the MCU reads new data from a particular port.
 """
 
 from abc import ABC, abstractmethod
-from typing import Generic, NamedTuple, TypeVar
+from typing import Generic, Iterator, NamedTuple, TypeVar
 
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.emitter import SimpleEventEmitter
@@ -31,18 +31,18 @@ class PortDriver(ABC):
         self.log = get_logger(driver_name, base=port.log)
 
     @property
-    def driver_name(self):
+    def driver_name(self) -> str:
         return self._driver_name
 
     @property
     def on_status_changed(self) -> SimpleEventEmitter:
         return self._on_status_changed
 
-    def uninitialize(self):
+    def uninitialize(self) -> None:
         self._on_status_changed.clear()
 
     @abstractmethod
-    def update_status(self, data):
+    def update_status(self, data: bytes):
         """Processes port-specific data coming from the MCU."""
         pass
 
@@ -105,7 +105,7 @@ class PortHandler(Generic[DriverType]):
 
         return self._ports[port_idx - 1]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator["PortInstance[DriverType]"]:
         return self._ports.__iter__()
 
     @property
@@ -160,11 +160,11 @@ class PortInstance(Generic[DriverType]):
         return self._port_idx
 
     @property
-    def interface(self):
+    def interface(self) -> RevvyControl:
         return self._interface
 
     @property
-    def on_config_changed(self):
+    def on_config_changed(self) -> SimpleEventEmitter:
         """Port configuration change event emitter"""
         return self._config_changed_callbacks
 
