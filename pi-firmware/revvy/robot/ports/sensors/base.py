@@ -4,7 +4,6 @@ from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import PortHandler
 
 
-
 class SensorPortDriver(PortDriver):
     def __init__(self, port: PortInstance, driver_name: str):
         super().__init__(port, driver_name)
