@@ -47,7 +47,8 @@ class Color(NamedTuple):
     b: bytes
 
 
-color_from_bytes = lambda bytes: Color(bytes[0], bytes[1], bytes[2])
+def color_from_bytes(bytes):
+    Color(bytes[0], bytes[1], bytes[2])
 
 
 class ColorSensorReading:
