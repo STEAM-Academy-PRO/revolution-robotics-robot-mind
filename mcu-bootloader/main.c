@@ -15,7 +15,7 @@
 #define DEBUG_SKIP_FW_INTEGRITY_CHECK 0
 #endif
 
-static MasterCommunicationInterface_Config_t communicationConfig = 
+static MasterCommunicationInterface_Config_t communicationConfig =
 {
 };
 
@@ -27,7 +27,7 @@ static bool ringLedsChanged;
 extern uint32_t _srtt;
 extern uint32_t _ertt;
 
-static void clear_rtt() {
+static void clear_rtt(void) {
     // Clear the rtt segments
     for (uint32_t* pDest = &_srtt; pDest < &_ertt;) {
         *pDest++ = 0;
@@ -40,7 +40,7 @@ int main(void)
 
     StartupReason_t startupReason = FMP_CheckBootloaderModeRequest();
 
-    if (startupReason == StartupReason_PowerUp)
+    if (startupReason == StartupReason_PowerUp || startupReason == StartupReason_BrownOutReset)
     {
         clear_rtt();
     }
@@ -57,11 +57,16 @@ int main(void)
         case StartupReason_WatchdogReset:
             SEGGER_RTT_WriteString(0, "Startup reason: WDT reset\r\n");
             break;
+        case StartupReason_BrownOutReset:
+            SEGGER_RTT_WriteString(0, "Startup reason: brown-out event\r\n");
+            break;
     }
 
     SEGGER_RTT_WriteString(0, "Starting bootloader\r\n");
 
-    if (startupReason == StartupReason_PowerUp)
+    // We allow the app to start after a brown-out event. We trust the detector to prevent
+    // incorrect behavior.
+    if (startupReason == StartupReason_PowerUp || startupReason == StartupReason_BrownOutReset)
     {
         SEGGER_RTT_WriteString(0, "Checking firmware\r\n");
         /* TODO: debug bootloaders should look for empty header info and write it */
@@ -109,12 +114,13 @@ int main(void)
             // Bootloader mode was requested, do not show any indication
             break;
 
+        case StartupReason_BrownOutReset:
         case StartupReason_PowerUp:
             // We did not find any loadable application. Display an angry red light on the
             // bottom-most ring LED to indicate this.
             ringLeds[2] = (rgb_t) LED_RED;
             break;
-        
+
         case StartupReason_WatchdogReset:
             // The application is most likely inoperable. Display an angry red light on the
             // top and bottom ring LED to indicate this.
