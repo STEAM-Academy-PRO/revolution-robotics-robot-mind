@@ -53,7 +53,10 @@ typedef struct
     float nonlinearity_xs[10];
     float nonlinearity_ys[10];
 
-    /* copies to apply if drive request does not have limits */
+    /**
+    If drive request does not have limits (i.e. they are set to 0), we use the limits we received
+    during port configuration.
+    */
     float positionControllerLowerLimit;
     float positionControllerUpperLimit;
     float speedControllerLowerLimit;
@@ -191,7 +194,12 @@ static void _update_current_speed(MotorLibrary_Dc_Data_t* libdata)
     /* Calculate speed - 10ms cycle time, 2 consecutive samples */
     /* one complete revolution in one tick means 100 revolutions in a second */
     /* speed = dPos / dt, dt = 0.02s -> x50 */
+    //bool was_moving = (int)libdata->currentSpeed != 0;
     libdata->currentSpeed = map(posDiff + lastPosDiff, 0.0f, fabsf(libdata->resolution), 0.0f, 3000.0f);
+    //bool is_moving = (int)libdata->currentSpeed != 0;
+    //if (was_moving || is_moving){
+    //    SEGGER_RTT_printf(0, "Motor speed: %d\n", (int)libdata->currentSpeed);
+    //}
 }
 
 static void _process_new_request(const MotorPort_t* motorPort, MotorLibrary_Dc_Data_t* libdata, const DriveRequest_t* driveRequest)
@@ -250,7 +258,15 @@ static void _process_new_request(const MotorPort_t* motorPort, MotorLibrary_Dc_D
         }
         else
         {
-            /* create inverse table */
+            /*
+            Create inverse table (map from ys to xs, the swap is not a typo)
+
+            This maps the power limits to appropriate output limits of the speed controller, taking
+            motor characteristics into account.
+
+            // FIXME: this needs to be revisited, something is not quite right around these limits
+            or the linearization implementation.
+            */
             float xs[libdata->nonlinearity.size];
             for (size_t i = 0u; i < libdata->nonlinearity.size; i++)
             {

@@ -12,11 +12,12 @@ DC_MOTOR_SPEED_PID = PidConfig(
     p=0.4,
     i=0.5,
     d=0.8,
-    # min output PWM (?)
-    # FIXME: if above is right, this limits motor power
-    lower_output_limit=-150,
-    # max output PWM
-    upper_output_limit=150,
+    # Minimum and maximum output PWM.
+    # These values are not scaled with the linearity table,
+    # as opposed to user-specified power limits. The timers driving the motors have a range of
+    # -200 to 200.
+    lower_output_limit=-200,
+    upper_output_limit=200,
 )
 
 # sped units are ticks / 10ms
@@ -53,7 +54,7 @@ DC_MOTOR_LINEARITY_TABLE = [
     (97.4151, 140),
     (144.0972, 200),
 ]
-"""The identified motor characteristic: (input PWM value, output speed)"""
+"""The identified motor characteristic: (output speed, input PWM value)"""
 
 
 # TODO: Right now we're pairing the driver type and the configuration. Instead, we should
