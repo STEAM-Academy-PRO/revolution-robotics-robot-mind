@@ -42,12 +42,12 @@ class ColorSensor(SensorPortDriver):
 
 
 class Color(NamedTuple):
-    r: bytes
-    g: bytes
-    b: bytes
+    r: int
+    g: int
+    b: int
 
     @staticmethod
-    def from_bytes(bytes) -> "Color":
+    def from_bytes(bytes: bytes) -> "Color":
         return Color(bytes[0], bytes[1], bytes[2])
 
     def __str__(self) -> str:
@@ -78,9 +78,9 @@ class ColorSensorReading:
     def serialize(self) -> bytearray:
         byte_array = bytearray()
         for color in [self.top, self.right, self.left, self.middle]:
-            byte_array.extend(color.r)
-            byte_array.extend(color.g)
-            byte_array.extend(color.b)
+            byte_array.append(color.r)
+            byte_array.append(color.g)
+            byte_array.append(color.b)
         return byte_array
 
     def __str__(self) -> str:
