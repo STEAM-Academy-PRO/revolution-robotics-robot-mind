@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import enum
 import struct
 from threading import Lock
-from typing import NamedTuple, Optional
+from typing import List, NamedTuple, Optional
 
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motors.base import MotorConstants, MotorStatus, MotorPortDriver
@@ -143,7 +143,7 @@ class TwoValuePidConfig:
 
 
 class AccelerationLimitConfig:
-    def __init__(self, config):
+    def __init__(self, config: tuple[float, float]):
         (decMax, accMax) = config
 
         self._deceleration = decMax
@@ -154,7 +154,7 @@ class AccelerationLimitConfig:
 
 
 class LinearityConfig:
-    def __init__(self, config):
+    def __init__(self, config: List[tuple[float, int]]):
         self._points = config
 
     def serialize(self) -> bytes:
@@ -165,7 +165,8 @@ class LinearityConfig:
 
 
 class DcMotorDriverConfig:
-    def __init__(self, port_config):
+    # TODO: we should do better than 'dict'
+    def __init__(self, port_config: dict):
         self._port_config = port_config
         self._position_pid = TwoValuePidConfig(self._port_config["position_controller"])
         self._speed_pid = PidConfig(self._port_config["speed_controller"])
@@ -174,7 +175,7 @@ class DcMotorDriverConfig:
         self._max_current = port_config["max_current"]
         self._resolution = port_config["encoder_resolution"] * port_config["gear_ratio"]
 
-        self._linearity = LinearityConfig(port_config.get("linearity", {}))
+        self._linearity = LinearityConfig(port_config.get("linearity", []))
 
     def serialize(self) -> bytes:
         return bytes(
@@ -255,7 +256,7 @@ class DcMotorController(MotorPortDriver):
             SetPositionCommand.REQUEST_RELATIVE, position, speed_limit, power_limit
         ).command_to_port(self._port.id - 1)
 
-    def _cancel_awaiter(self):
+    def _cancel_awaiter(self) -> None:
         awaiter, self._awaiter = self._awaiter, None
         self._current_position_request = None
         if awaiter:
@@ -279,13 +280,13 @@ class DcMotorController(MotorPortDriver):
     def power(self):
         return self._power
 
-    def set_power(self, power):
+    def set_power(self, power) -> None:
         self._cancel_awaiter()
         self.log("set_power")
 
         self._port.interface.set_motor_port_control_value(self.create_set_power_command(power))
 
-    def set_speed(self, speed, power_limit=None):
+    def set_speed(self, speed, power_limit=None) -> None:
         self._cancel_awaiter()
         self.log("set_speed")
 
@@ -305,10 +306,10 @@ class DcMotorController(MotorPortDriver):
         self._cancel_awaiter()
         self.log("set_position")
 
-        def _finished():
+        def _finished() -> None:
             self._awaiter = None
 
-        def _canceled():
+        def _canceled() -> None:
             self.set_power(0)
 
         awaiter = Awaiter()
@@ -354,7 +355,7 @@ class DcMotorController(MotorPortDriver):
                     self.log(f"blocked: {request_id}", LogLevel.DEBUG)
                     awaiter.cancel()
 
-    def update_status(self, data):
+    def update_status(self, data) -> None:
         if len(data) == 11:
             raw_status = struct.unpack("<bblfB", data)
             status, self._power, self._pos, self._speed, current_task = raw_status

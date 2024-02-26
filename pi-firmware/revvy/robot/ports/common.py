@@ -160,7 +160,7 @@ class PortInstance(Generic[DriverType]):
         return self._port_idx
 
     @property
-    def interface(self):
+    def interface(self) -> RevvyControl:
         return self._interface
 
     @property
