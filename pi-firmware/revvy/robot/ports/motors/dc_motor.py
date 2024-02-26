@@ -114,31 +114,27 @@ class SetPositionCommand(MotorCommand):
         return control
 
 
-class PidConfig:
-    def __init__(self, config):
-        (p, i, d, lower_limit, upper_limit) = config
-
-        self._p = p
-        self._i = i
-        self._d = d
-        self._lower_output_limit = lower_limit
-        self._upper_output_limit = upper_limit
+class PidConfig(NamedTuple):
+    p: float
+    i: float
+    d: float
+    lower_output_limit: float
+    upper_output_limit: float
 
     def serialize(self) -> bytes:
         return struct.pack(
-            "<5f", self._p, self._i, self._d, self._lower_output_limit, self._upper_output_limit
+            "<5f", self.p, self.i, self.d, self.lower_output_limit, self.upper_output_limit
         )
 
 
-class TwoValuePidConfig:
-    def __init__(self, config):
-        self._slow = PidConfig(config["slow"])
-        self._fast = PidConfig(config["fast"])
-        self._fast_threshold: PositionThreshold = config["fast_threshold"]
+class TwoValuePidConfig(NamedTuple):
+    slow: PidConfig
+    fast: PidConfig
+    fast_threshold: PositionThreshold
 
     def serialize(self) -> bytes:
         return bytes(
-            [*self._slow.serialize(), *self._fast.serialize(), *self._fast_threshold.serialize()]
+            [*self.slow.serialize(), *self.fast.serialize(), *self.fast_threshold.serialize()]
         )
 
 
@@ -168,8 +164,8 @@ class DcMotorDriverConfig:
     # TODO: we should do better than 'dict'
     def __init__(self, port_config: dict):
         self._port_config = port_config
-        self._position_pid = TwoValuePidConfig(self._port_config["position_controller"])
-        self._speed_pid = PidConfig(self._port_config["speed_controller"])
+        self._position_pid = self._port_config["position_controller"]
+        self._speed_pid = self._port_config["speed_controller"]
         self._acceleration_limits = AccelerationLimitConfig(port_config["acceleration_limits"])
 
         self._max_current = port_config["max_current"]
