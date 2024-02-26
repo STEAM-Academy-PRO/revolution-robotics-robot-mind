@@ -62,7 +62,7 @@ typedef struct
     float maxAcceleration;
     float maxDeceleration;
 
-    DriveRequest_t lastRequest;
+    DriveRequest_t currentRequest;
     int32_t positionRequestBreakpoint; /** < in encoder ticks */
 
     /* last status */
@@ -107,7 +107,7 @@ static void ignore_last_drive_request(MotorPort_t* motorPort)
     driveRequest.power_limit = 0.0f;
 
     /* set this dummy request as active */
-    libdata->lastRequest = driveRequest;
+    libdata->currentRequest = driveRequest;
 }
 
 static int32_t degrees_to_ticks(const MotorLibrary_Dc_Data_t* libdata, float degrees)
@@ -124,7 +124,7 @@ MotorLibraryStatus_t DcMotor_Init(MotorPort_t* motorPort)
 {
     MotorLibrary_Dc_Data_t* libdata = MotorPortHandler_Call_Allocate(sizeof(MotorLibrary_Dc_Data_t));
 
-    libdata->lastRequest.version = 0u;
+    libdata->currentRequest.version = 0u;
 
     pid_initialize(&libdata->positionController);
     pid_initialize(&libdata->speedController);
@@ -194,9 +194,28 @@ static void _update_current_speed(MotorLibrary_Dc_Data_t* libdata)
     libdata->currentSpeed = map(posDiff + lastPosDiff, 0.0f, fabsf(libdata->resolution), 0.0f, 3000.0f);
 }
 
-static void _process_new_request(MotorLibrary_Dc_Data_t* libdata, const DriveRequest_t* driveRequest)
+static void _process_new_request(const MotorPort_t* motorPort, MotorLibrary_Dc_Data_t* libdata, const DriveRequest_t* driveRequest)
 {
-    DriveRequest_RequestType_t last_request_type = libdata->lastRequest.request_type;
+    DriveRequest_RequestType_t last_request_type = libdata->currentRequest.request_type;
+
+    const char* request_kind;
+    switch (driveRequest->request_type)
+    {
+        case DriveRequest_RequestType_Power:
+            request_kind = "power";
+            break;
+        case DriveRequest_RequestType_Speed:
+            request_kind = "speed";
+            break;
+        case DriveRequest_RequestType_Position:
+            request_kind = "position";
+            break;
+        default:
+            request_kind = "unknown";
+            break;
+    }
+
+    SEGGER_RTT_printf(0, "Motor %u: new %s request: %u\n", motorPort->port_idx, request_kind, driveRequest->version);
 
     if (last_request_type != driveRequest->request_type)
     {
@@ -204,14 +223,14 @@ static void _process_new_request(MotorLibrary_Dc_Data_t* libdata, const DriveReq
         pid_reset(&libdata->positionController);
     }
 
-    libdata->lastRequest = *driveRequest;
+    libdata->currentRequest = *driveRequest;
     libdata->motorStatus = MOTOR_STATUS_NORMAL;
     libdata->motorTimeout = 0u;
 
-    if (libdata->lastRequest.request_type != DriveRequest_RequestType_Power)
+    if (libdata->currentRequest.request_type != DriveRequest_RequestType_Power)
     {
         /* set up limits */
-        if (libdata->lastRequest.speed_limit == 0.0f)
+        if (libdata->currentRequest.speed_limit == 0.0f)
         {
             /* speed limits, already converted from dps to ticks per sec */
             libdata->positionController.config.LowerLimit = libdata->positionControllerLowerLimit;
@@ -219,11 +238,11 @@ static void _process_new_request(MotorLibrary_Dc_Data_t* libdata, const DriveReq
         }
         else
         {
-            libdata->positionController.config.LowerLimit = -libdata->lastRequest.speed_limit;
-            libdata->positionController.config.UpperLimit = libdata->lastRequest.speed_limit;
+            libdata->positionController.config.LowerLimit = -libdata->currentRequest.speed_limit;
+            libdata->positionController.config.UpperLimit = libdata->currentRequest.speed_limit;
         }
 
-        if (libdata->lastRequest.power_limit == 0.0f)
+        if (libdata->currentRequest.power_limit == 0.0f)
         {
             /* default power limits [as speed limits before static linearization] */
             libdata->speedController.config.LowerLimit = libdata->speedControllerLowerLimit;
@@ -245,7 +264,7 @@ static void _process_new_request(MotorLibrary_Dc_Data_t* libdata, const DriveReq
             };
 
             // rescale power_limit from -100..100 to -200..200 before lookup
-            float power_limit = linear_interpolate(inv, 2.0f * libdata->lastRequest.power_limit);
+            float power_limit = linear_interpolate(inv, 2.0f * libdata->currentRequest.power_limit);
             libdata->speedController.config.LowerLimit = -power_limit;
             libdata->speedController.config.UpperLimit = power_limit;
         }
@@ -293,16 +312,16 @@ static void select_pid(PID_t* controller, const PidConfig_t* coefficients)
 
 static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t* libdata)
 {
-    if (libdata->lastRequest.request_type == DriveRequest_RequestType_Power)
+    if (libdata->currentRequest.request_type == DriveRequest_RequestType_Power)
     {
-        return libdata->lastRequest.request.power;
+        return libdata->currentRequest.request.power;
     }
 
     float reqSpeed = 0.0f;
-    if (libdata->lastRequest.request_type == DriveRequest_RequestType_Speed)
+    if (libdata->currentRequest.request_type == DriveRequest_RequestType_Speed)
     {
         /* requested speed is given, already converted from si */
-        reqSpeed = libdata->lastRequest.request.speed;
+        reqSpeed = libdata->currentRequest.request.speed;
 
         /* acceleration limiting */
         if (libdata->currentSpeed > 0.0f)
@@ -316,7 +335,7 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
     }
     else
     {
-        int32_t distanceFromGoal = abs_int32(libdata->lastPosition - libdata->lastRequest.request.position);
+        int32_t distanceFromGoal = abs_int32(libdata->lastPosition - libdata->currentRequest.request.position);
         if (distanceFromGoal < libdata->positionRequestBreakpoint)
         {
             select_pid(&libdata->positionController, &libdata->slowPositionConfig);
@@ -330,12 +349,12 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
         if (distanceFromGoal < libdata->atLeastOneDegree)
         {
             if (libdata->motorStatus != MOTOR_STATUS_GOAL_REACHED) {
-                SEGGER_RTT_printf(0, "Motor %u: goal reached\n", motorPort->port_idx);
+                SEGGER_RTT_printf(0, "Motor %u: request %u: goal reached\n", motorPort->port_idx, libdata->currentRequest.version);
                 libdata->motorStatus = MOTOR_STATUS_GOAL_REACHED;
             }
         }
         /* calculate speed to reach requested position */
-        reqSpeed = pid_update(&libdata->positionController, libdata->lastRequest.request.position, libdata->lastPosition);
+        reqSpeed = pid_update(&libdata->positionController, libdata->currentRequest.request.position, libdata->lastPosition);
     }
 
     /* calculate drive value to control speed */
@@ -380,7 +399,7 @@ static void _update_status_data(uint8_t portIdx, const MotorLibrary_Dc_Data_t* l
     status[1] = (uint8_t) (pwm/2); // Divide by 2 to map 0..200 (physical timer config) to 0..100 (%)
     memcpy(&status[2], &pos_degrees, sizeof(int32_t));
     memcpy(&status[6], &libdata->currentSpeed, sizeof(float));
-    status[10] = libdata->lastRequest.version;
+    status[10] = libdata->currentRequest.version;
 
     MotorPortHandler_Call_UpdatePortStatus(portIdx, (ByteArray_t){status, sizeof(status)});
 }
@@ -395,9 +414,9 @@ MotorLibraryStatus_t DcMotor_Update(MotorPort_t* motorPort)
     _update_current_speed(libdata);
 
     /* do we have a new drive command? */
-    if (driveRequest.version != libdata->lastRequest.version)
+    if (driveRequest.version != libdata->currentRequest.version)
     {
-        _process_new_request(libdata, &driveRequest);
+        _process_new_request(motorPort, libdata, &driveRequest);
     }
 
     /* control the motor */
@@ -681,7 +700,7 @@ MotorLibraryStatus_t DcMotor_CreateDriveRequest(const MotorPort_t* motorPort, co
     const MotorLibrary_Dc_Data_t* libdata = (const MotorLibrary_Dc_Data_t*) motorPort->libraryData;
 
     /* make sure the request won't get ignored if the caller decides to apply it */
-    driveRequest->version = libdata->lastRequest.version + 1u;
+    driveRequest->version = libdata->currentRequest.version + 1u;
 
     switch (data[0])
     {
