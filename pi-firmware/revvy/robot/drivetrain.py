@@ -1,6 +1,8 @@
+from abc import ABC, abstractmethod
 import itertools
 from contextlib import suppress
 from threading import Timer
+from typing import Optional
 
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.imu import IMU
@@ -12,7 +14,7 @@ from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
 
 
-class DrivetrainController:
+class DrivetrainController(ABC):
     def __init__(self, drivetrain: "DifferentialDrivetrain"):
         self._drivetrain = drivetrain
         self._awaiter = Awaiter()
@@ -23,8 +25,9 @@ class DrivetrainController:
     def awaiter(self) -> Awaiter:
         return self._awaiter
 
-    def update(self):
-        raise NotImplementedError
+    @abstractmethod
+    def update(self) -> None:
+        pass
 
 
 class TimeController(DrivetrainController):
@@ -36,7 +39,7 @@ class TimeController(DrivetrainController):
         self._awaiter.on_cancelled(t.cancel)
         t.start()
 
-    def update(self):
+    def update(self) -> None:
         pass
 
 
@@ -55,7 +58,7 @@ class TurnController(DrivetrainController):
         self._last_yaw_change_time = Stopwatch()
         self._last_yaw_angle = None
 
-    def update(self):
+    def update(self) -> None:
         yaw = self._drivetrain.yaw
         error = self._target_angle - yaw
 
@@ -92,7 +95,7 @@ class MoveController(DrivetrainController):
 
         drivetrain._apply_positions(left, right, left_speed, right_speed, power_limit)
 
-    def update(self):
+    def update(self) -> None:
         if all(m.driver.status == MotorStatus.GOAL_REACHED for m in self._drivetrain.motors):
             self._awaiter.finish()
 
@@ -108,7 +111,7 @@ class DifferentialDrivetrain:
 
         self._log = get_logger("Drivetrain")
         self._imu = imu
-        self._controller = None
+        self._controller: Optional[DrivetrainController] = None
 
     @property
     def yaw(self):
@@ -126,12 +129,12 @@ class DifferentialDrivetrain:
     def right_motors(self) -> list[PortInstance[MotorPortDriver]]:
         return self._right_motors
 
-    def _abort_controller(self):
+    def _abort_controller(self) -> None:
         controller, self._controller = self._controller, None
         if controller:
             controller.awaiter.cancel()
 
-    def reset(self):
+    def reset(self) -> None:
         self._log("reset")
         self._abort_controller()
 
@@ -169,7 +172,7 @@ class DifferentialDrivetrain:
         with suppress(ValueError):
             self._right_motors.remove(motor)
 
-    def _on_motor_status_changed(self, _):
+    def _on_motor_status_changed(self, _) -> None:
         if all(m.driver.status == MotorStatus.BLOCKED for m in self._motors):
             self._log("All motors blocked, releasing")
             self._abort_controller()

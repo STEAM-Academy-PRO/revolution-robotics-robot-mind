@@ -123,16 +123,16 @@ class BackgroundProgramControlCharacteristic(Characteristic):
             }
         )
 
-    def onReadRequest(self, offset, callback):
+    def onReadRequest(self, offset, callback) -> None:
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def onSubscribe(self, max_value_size, update_value_callback):
-        self._updateValueCallback = update_value_callback
+    def onSubscribe(self, maxValueSize, updateValueCallback) -> None:
+        self._updateValueCallback = updateValueCallback
 
-    def onUnsubscribe(self):
+    def onUnsubscribe(self) -> None:
         self._updateValueCallback = None
 
     def update(self, value):
@@ -178,8 +178,8 @@ class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def onSubscribe(self, max_value_size, update_value_callback):
-        self._updateValueCallback = update_value_callback
+    def onSubscribe(self, maxValueSize, updateValueCallback) -> None:
+        self._updateValueCallback = updateValueCallback
 
     def onUnsubscribe(self):
         self._updateValueCallback = None
@@ -333,8 +333,8 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def onSubscribe(self, max_value_size, update_value_callback):
-        self._update_value_callback = update_value_callback
+    def onSubscribe(self, maxValueSize, updateValueCallback) -> None:
+        self._update_value_callback = updateValueCallback
 
     def onUnsubscribe(self):
         self._update_value_callback = None

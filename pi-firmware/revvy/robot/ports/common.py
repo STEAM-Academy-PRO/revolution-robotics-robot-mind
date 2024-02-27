@@ -164,7 +164,7 @@ class PortInstance(Generic[DriverType]):
         return self._interface
 
     @property
-    def on_config_changed(self):
+    def on_config_changed(self) -> SimpleEventEmitter:
         """Port configuration change event emitter"""
         return self._config_changed_callbacks
 
