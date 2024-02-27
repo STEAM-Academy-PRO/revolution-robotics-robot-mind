@@ -51,16 +51,19 @@ class TurnController(DrivetrainController):
         self._max_turn_wheel_speed = wheel_speed
         self._max_turn_power = power_limit
 
-        self._target_angle = turn_angle + drivetrain.yaw
+        self._turn_angle = turn_angle
+        self._start_angle = drivetrain.yaw
         self._last_yaw_change_time = Stopwatch()
         self._last_yaw_angle = None
 
     def update(self):
         yaw = self._drivetrain.yaw
-        error = self._target_angle - yaw
+        error = abs(self._turn_angle) - abs(self._start_angle - yaw)
+        abs_error = abs(error)
+        direction = 1 if self._turn_angle > 0 else -1
 
-        if abs(error) < 1:
-            # goal reached
+        if abs_error < 1 or abs_error > 2 * abs(self._turn_angle):
+            # goal reached or someone picked up the robot and started turning it by hand in the wrong direction?
             self._awaiter.finish()
 
         elif self._last_yaw_angle != yaw:
@@ -70,7 +73,9 @@ class TurnController(DrivetrainController):
             # try Kp=10 and saturate on max allowed wheel speed?
 
             # update motor speeds using a P regulator
-            p = clip(error * self.Kp, -self._max_turn_wheel_speed, self._max_turn_wheel_speed)
+            p = clip(
+                direction * error * self.Kp, -self._max_turn_wheel_speed, self._max_turn_wheel_speed
+            )
             self._drivetrain._apply_speeds(-p, p, self._max_turn_power)
 
         elif self._last_yaw_change_time.elapsed > 3:
