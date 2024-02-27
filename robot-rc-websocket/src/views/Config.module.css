@@ -13,7 +13,7 @@ textarea{
 pre{ text-align: left; overflow-x: auto }
 
 .clickable{ cursor: pointer; }
-.clickable:hover{ background-color: #ccc; }
+.clickable:hover{ background-color: #aaa; }
 
 .config{ width: 33% }
 

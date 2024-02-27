@@ -5,6 +5,7 @@ from enum import Enum
 import json
 import struct
 import threading
+from time import time
 import traceback
 from revvy.api.camera import Camera
 from revvy.utils.version import VERSION
@@ -18,7 +19,6 @@ from revvy.robot_manager import RobotManager
 from revvy.robot.rc_message_parser import parse_control_message
 from revvy.robot_config import RobotConfig
 
-from revvy.robot.remote_controller import RemoteControllerCommand
 from revvy.utils.logger import LogLevel, get_logger
 
 log = get_logger("WebSocket")
@@ -39,6 +39,7 @@ send_control_events = [
     RobotEvent.CAMERA_STOPPED,
     RobotEvent.CAMERA_ERROR,
     RobotEvent.CONTROLLER_LOST,
+    RobotEvent.ERROR,
 ]
 
 ignore_log_events = [
@@ -125,7 +126,7 @@ class RobotWebSocketApi:
             )
 
             self.send({"event": "version_info", "data": VERSION.get()})
-
+            last_control_message = time()
             # Listen for incoming messages
             async for message_raw in websocket:
                 # log(f"Received message: {message_raw}")
@@ -157,13 +158,17 @@ class RobotWebSocketApi:
                         )
 
                         command = parse_control_message(data)
+                        # log(
+                        #     f"Control message: {command.analog} - {round(time() - last_control_message, 4)*1000}ms"
+                        # )
+                        last_control_message = time()
                         self._robot_manager.handle_periodic_control_message(command)
+                        # Send back the packet ID to see LAG.
+                        self.send({"event": "control_confirm", "data": json_data["0"]})
                 except Exception as e:
-                    log(f"Control message failed: {message_type}: {e}")
+                    log(f"Loop failed: {message_type}: {e}")
                     log(traceback.format_exc())
-                    self.send(
-                        {"event": "ERROR", "data": f"Control message failed: {message_type}: {e}"}
-                    )
+                    self.send({"event": "ERROR", "data": f"{message_type}: {e}"})
                 # Send the received message back to the client
                 # await websocket.send(f"Received: {message_raw}")
 

@@ -1,11 +1,12 @@
 import { createSignal, createEffect, Accessor, Setter, For, Show, createMemo } from 'solid-js'
 
-import styles from './Config.module.css'
+import styles from './CodeEditor.module.css'
 
 import { RobotMessage, SocketWrapper } from '../utils/Communicator';
 import { uploadConfig } from '../utils/commands';
-import { BlocklyItem, DriveMode, RobotConfig, Sensor } from '../utils/Config';
+import { BlocklyItem, RobotConfig } from '../utils/Config';
 import CodeEditor from './CodeEditor';
+import { BlocklyView } from './BlocklyView';
 
 
 function CodeView({
@@ -18,6 +19,9 @@ function CodeView({
   const [editedCode, setEditedCode] = createSignal<string>('')
   const [configString, setConfigString] = createSignal<string>('');
   const [editedIndex, setEditedIndex] = createSignal<number | null>(null);
+  const [tab, setTab] = createSignal<string>('python');
+
+  const [codes, setCodes] = createSignal<Array<string>>([])
 
   createEffect(() => {
     try {
@@ -49,7 +53,7 @@ function CodeView({
 
   return (
     <div >
-      <div class={styles.controller}>
+      <div class={styles.codeEditor}>
         <div class={styles.column}>
           <div>
 
@@ -71,7 +75,7 @@ function CodeView({
 
             <p>
               <Show when={!configString()}>
-                <button onClick={() => {setConfigString(JSON.stringify(config(), null, 2)); setEdited(null)}}>RAW config</button>
+                <button onClick={() => { setConfigString(JSON.stringify(config(), null, 2)); setEdited(null) }}>RAW config</button>
               </Show>
             </p>
 
@@ -82,19 +86,23 @@ function CodeView({
           </div>
 
         </div>
-        <div class={styles.editor}></div>
         <Show when={edited() !== null}>
-          <CodeEditor value={editedCode} setValue={setEditedCode}></CodeEditor>
-        </Show>
+          <div>
+            <div class={styles.header}>
+              <a onClick={() => setTab('python')} class={styles.clickable}>python</a>
+              <a onClick={() => setTab('blockly')} class={styles.clickable}>blockly</a>
+            </div>
 
-        <Show when={configString()}>
-          <textarea value={configString()}
-            onChange={updateConfigString}
-            onKeyUp={updateConfigString}
-            ></textarea>
-            <div ref={editor}></div>
+            <div class={styles.editor}>
+              <Show when={tab() === 'python'}>
+                <CodeEditor value={editedCode} setValue={setEditedCode}></CodeEditor>
+              </Show>
+              <Show when={tab() === 'blockly'}>
+                <BlocklyView onSave={setEditedCode}/>
+              </Show>
+            </div>
+          </div>
         </Show>
-
 
       </div>
     </div>

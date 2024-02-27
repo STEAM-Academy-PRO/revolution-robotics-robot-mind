@@ -1,7 +1,8 @@
 import { Accessor, Setter } from "solid-js"
 import { createEmitter } from "@solid-primitives/event-bus";
 import { RobotConfig } from "./Config";
-import { log } from "./log";
+import { LogLevel, log } from "./log";
+import { RobotError } from "./Types";
 
 const PORT = 8765
 
@@ -78,7 +79,7 @@ export function connectToRobot(
     if (!endpoint()){
         log('Please enter an IP address to connect to your robot!')
         throw new Error('Missing IP address!')
-    }    
+    }
     log(`Connecting to ${endpoint()}`)
     setConnLoading(true)
     const socket = connectSocket(endpoint())
@@ -92,6 +93,22 @@ export function connectToRobot(
             case 'camera_started': break
             case 'camera_stopped': break
             case 'sensor_value_change': break
+            case 'control_confirm': break
+            case 'error':
+                let type = ''
+                switch (data.data.type) {
+                    case RobotError.BLOCKLY_BACKGROUND: type = 'Blockly Background'; break;
+                    case RobotError.BLOCKLY_BUTTON: type = 'Blockly Button'; break;
+                    case RobotError.MCU: type = 'MCU'; break;
+                    case RobotError.SYSTEM: type = 'System'; break;
+                }
+
+                const stack = data.data.stack.trim().split('\n')
+                const message = stack.pop()
+                log(`[error] ${type}: ${data.data.ref}:`, LogLevel.ERROR)
+                log(stack.join('\n'), LogLevel.WARN)
+                log(message, LogLevel.ERROR)
+                break
             default:
                 console.warn(`[message] Data received from server: ${data.event}`, data.data);
 

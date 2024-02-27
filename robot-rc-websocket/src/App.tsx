@@ -11,6 +11,7 @@ import DEFAULT_JSON from "./assets/robot-config.json"
 import { uploadConfig } from './utils/commands';
 import { RobotConfig } from './utils/Config';
 import CodeView from './views/CodeView';
+import { endpoint } from './settings';
 
 // Load default config as fallback.
 let defaultConfig: RobotConfig = DEFAULT_JSON as RobotConfig
@@ -21,7 +22,6 @@ function App() {
   const [connLoading, setConnLoading] = createSignal<boolean>(false)
   const [config, setConfig] = createSignal<RobotConfig>(defaultConfig);
   const [tab, setTab] = createSignal('configure')
-  const [endpoint, setEndpoint] = createSignal(localStorage.getItem('endpoint') || '');
 
   const isActive = createMemo(()=>tab() === 'play')
 
@@ -62,7 +62,6 @@ function App() {
       id: 'connect',
       label: 'Connection',
       children: <ConnectionView
-        endpoint={endpoint} setEndpoint={setEndpoint}
         connect={()=>connectToRobot(setConn, setConnLoading, endpoint, config)}
         disconnect={()=>disconnect(conn, setConn)}
         connection={conn}

@@ -1,12 +1,11 @@
-import { createSignal, Accessor, Setter, createEffect, onCleanup } from 'solid-js'
-import { SocketWrapper, WSEventType, connectToRobot } from '../utils/Communicator';
+import { Accessor, createEffect } from 'solid-js'
+import { SocketWrapper } from '../utils/Communicator';
 
 import styles from './Connection.module.css'
-import { clearLog, getLog } from '../utils/log';
+import { Log, clearLog } from '../utils/log';
+import { blocklyUrlBase, endpoint, setBlocklyUrlBase, setEndpoint } from '../settings';
 
 export default function ConnectionView({
-  endpoint,
-  setEndpoint,
   connect,
   connection,
   disconnect
@@ -14,30 +13,27 @@ export default function ConnectionView({
   : {
     connect: () => void
     disconnect: () => void
-    setEndpoint: Setter<string>,
-    endpoint: Accessor<string>,
     connection: Accessor<SocketWrapper | null>
   }) {
 
-  createEffect(() => {
-    localStorage.setItem('endpoint', endpoint());
-  });
 
   return (
     <div>
-
-      Robot on IP:n
-      <input type="text" value={endpoint()} onInput={(e) => setEndpoint(e.target.value)} />
-
-      {!connection() ?
+      <div>
+        Robot on IP:
+        <input type="text" value={endpoint()} onInput={(e) => setEndpoint(e.target.value)} />
+        {!connection() ?
         <button onClick={connect}>Connect</button> :
         <button onClick={disconnect}>Disconnect</button>
       }
+      </div>
       <div>
-        <button onClick={() => clearLog()}>clear</button> :
-        <pre class={styles.log}>
-          {getLog()}
-        </pre>
+        Blockly Endpoint:
+        <input type="text" value={blocklyUrlBase()} onInput={(e) => setBlocklyUrlBase(e.target.value)} />
+      </div>
+      
+      <div>
+        <Log />
       </div>
     </div>
   );

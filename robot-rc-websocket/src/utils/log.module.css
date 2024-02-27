@@ -1,0 +1,23 @@
+.error {
+    color: red
+}
+
+.warn {
+    color: orange
+}
+
+.info {
+    color: white
+}
+
+.time {
+    color: grey
+}
+
+.log {
+    background: var(--log-bg);
+    padding: 10px;
+    height: 500px;
+    text-align: left;
+    overflow-y: auto;
+}

@@ -36,6 +36,13 @@ class RobotError:
         self.stack = stack
         self.ref = ref
 
+    def __json__(self):
+        return {
+            "type": self.error_type,
+            "stack": self.stack,
+            "ref": self.ref,
+        }
+
     def hash(self):
         """For easy compare if we have to send it up again or not."""
         return hash((self.error_type, self.stack))

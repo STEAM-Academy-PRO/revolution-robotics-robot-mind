@@ -1,5 +1,46 @@
+.codeEditor{
+    display: flex; flex-direction: row;
+}
+
 .editor{
     text-align: left;
     background-color: var(--editor-background);
-    width: 100%
+    width: 80vw;
+    display: flex;
+    flex-direction: row;
+}
+
+.column { flex-direction: column; height: 80vh}
+
+.tabs{
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    width: 100%;
+    background-color: var(--editor-background);
+    border-bottom: 1px solid var(--editor-border);
+}
+
+.header{
+    display: flex;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+.header > a {
+    display: block; padding: 10px;
+}
+
+.content{
+    background: black;
+}
+
+.flex{ display: flex }
+
+.clickable{ cursor: pointer; }
+.clickable:hover{ background-color: #aaa; }
+
+.pre{
+    white-space: pre-wrap;
+    background: black
 }

@@ -5,7 +5,7 @@ import { mapAnalogNormal, toByte } from '../utils/mapping';
 import { Joystick } from '../components/Joystick';
 import styles from './Controller.module.css'
 import { CameraView } from './CameraView';
-import { clearLog, getLog, log } from '../utils/log';
+import { Log, log } from '../utils/log';
 import { RobotConfig, SensorType, SensorTypeResolve } from '../utils/Config';
 import { uploadConfig } from '../utils/commands';
 import { ColorSensor, ColorSensorReading } from '../utils/ColorSensor';
@@ -32,6 +32,12 @@ export default function ControllerView({
   const [version, setVersion] = createSignal<string>()
   const [hasGamepad, setHasGamepad] = createSignal<boolean>(false)
   const [isConnected, setIsConnected] = createSignal<boolean>(true)
+  const [controlSignal, setControlSignal] = createSignal<string>('')
+  const [turnaround, setTurnaround] = createSignal<number>(0)
+  const [orderError, setOrderError] = createSignal<number>(0)
+
+  let lastTimeControlMessageSent: number = new Date().getTime()
+  let lastControlMessageId: number = 0
 
   // Extend the values!
   const sensors: { [id: number]: { value: Accessor<any>, setValue: Accessor<any>, type: SensorType } } = {}
@@ -46,16 +52,9 @@ export default function ControllerView({
   const reUploadConfig = () => {
     uploadConfig(conn(), config())
     setIsConnected(true)
+    sendControlMessage()
   }
 
-  let logElement: HTMLPreElement;
-
-  createEffect(() => {
-    getLog()
-    if (logElement) {
-      logElement.scrollTop = logElement.scrollHeight
-    }
-  })
 
   window.addEventListener('gamepadconnected', (event) => {
     log('✅ 🎮 A gamepad was connected');
@@ -74,10 +73,26 @@ export default function ControllerView({
 
   const [motorAngles, setMotorAngles] = createSignal<Array<number>>([0, 0, 0, 0, 0, 0])
 
+  const BUFFER = 256
+  const turnaroundArray = new Array(BUFFER).fill(0)
+
   // Process incoming messages.
   createEffect(() => {
     conn()?.on(WSEventType.onMessage, (data) => {
       switch (data.event) {
+        case 'control_confirm':
+          // Ready for the next control message.
+          // console.log(data.data)
+          const now = new Date().getTime()
+          if (data.data !== lastControlMessageId) {
+            setOrderError(orderError() + 1)
+          }
+          turnaroundArray[data.data] = now - lastTimeControlMessageSent
+
+          setTurnaround(Math.round(turnaroundArray.reduce((a, b) => a + b, 0) / BUFFER))
+          // Small delay to have at least 15 ms between messages.
+          setTimeout(()=>sendControlMessage(), 10)
+          break
         case 'orientation_change':
           setOrientation(data.data)
           break
@@ -118,6 +133,9 @@ export default function ControllerView({
       }
     })
     setIsConnected(Boolean(conn()))
+    // if (conn()){
+    //   sendControlMessage()
+    // }
   })
 
   const position = new Position()
@@ -130,7 +148,7 @@ export default function ControllerView({
   // Try uncommenting the lines with doSendMove in them. The first time it stops receiving the messages
   // on the robot the state resets to not configured.
 
-  const interval = setInterval(() => {
+  const sendControlMessage = () => {
     if (!isActive() || !isConnected()) { return }
 
     last.x = position.x()
@@ -165,8 +183,10 @@ export default function ControllerView({
 
     const buttonByte = toByte(buttons.map((b) => b.get()))
 
+    const controlMessageId = i++ % 127 // keepalive - no need to change this as it's bluetooth specific
+
     const ctrlArray = new Uint8Array([
-      i++ % 127, // keepalive - no need to change this as it's bluetooth specific
+      controlMessageId,
       mapAnalogNormal(position.x()), // UInt8, left-right analog, value range: 0-255
       mapAnalogNormal(position.y()), // UInt8, bottom-top analog, value range: 0-255
 
@@ -189,11 +209,15 @@ export default function ControllerView({
     ])
 
     isActive() && conn()?.send(RobotMessage.control, ctrlArray)
-  }, 25)
+    const now = new Date().getTime()
+    setControlSignal(ctrlArray.join('') + ' ' + (now - lastTimeControlMessageSent) + 'ms')
+    lastTimeControlMessageSent = now
+    lastControlMessageId = controlMessageId
+  }
 
-  onCleanup(() => {
-    clearInterval(interval)
-  })
+  // onCleanup(() => {
+  //   clearInterval(interval)
+  // })
 
 
   return (
@@ -202,13 +226,7 @@ export default function ControllerView({
         Controller
       </h1>
       <span class={styles.controllerConnection}>
-        <Show when={isConnected()}>Connected 🔌</Show>
-        <Show when={!isConnected()}>
-          Disconnected 🚫
-          <Show when={conn()}>
-            <button onClick={reUploadConfig}>RESTART</button>
-          </Show>
-        </Show>
+
       </span>
       <div class={styles.statuses}>
         <span class={styles.status}>version: {version()}</span>
@@ -222,6 +240,18 @@ export default function ControllerView({
             ></SensorView>
           </span>
         ))}
+        <span class={styles.status}>
+          <Show when={isConnected()}>Connected 🔌 <br />ctrl: {controlSignal()}</Show>
+          <Show when={!isConnected()}>
+            Disconnected 🚫
+            <Show when={conn()}>
+              <button onClick={reUploadConfig}>RESTART</button>
+            </Show>
+          </Show>
+          <span> Turnaround: {turnaround()}ms </span>
+          <div class={styles.error} title="... meaning the message confirmations come back in the wrong order.">
+            Message Order Error: {orderError()}</div>
+        </span>
       </div>
       <div class={styles.controller}>
         <div class={styles.joystick}>
@@ -237,12 +267,7 @@ export default function ControllerView({
       {/* {buttons.map((b)=>b.get()?<>1</>:<>0</>)} */}
 
       <div>
-        <Show when={getLog()}>
-          <button onClick={() => clearLog()}>clear</button>
-        </Show>
-        <pre ref={logElement} class={styles.log}>
-          {getLog()}
-        </pre>
+        <Log />
       </div>
     </div>
   );
@@ -250,7 +275,7 @@ export default function ControllerView({
 
 function SensorView({ type, value }: { value: Accessor<any>, type: string }) {
   return <div>
-    {type} <br/>
+    {type} <br />
     <Show when={type === 'button'}>
       {value()}
     </Show>
