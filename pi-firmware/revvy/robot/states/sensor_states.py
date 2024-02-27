@@ -58,7 +58,9 @@ class ColorSensorDataHandler(Disposable):
 
         sensor_port.driver.on_status_changed.add(self.update)
 
-        self._value = Observable[ColorSensorReading](ColorSensorReading(), throttle_interval=0.2)
+        self._value = Observable[ColorSensorReading](
+            ColorSensorReading(b"\x00" * 12), throttle_interval=0.2
+        )
 
         self._value.subscribe(self._on_data_update)
 

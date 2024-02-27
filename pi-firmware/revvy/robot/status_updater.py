@@ -1,5 +1,9 @@
+from typing import Callable, List, Optional
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.logger import get_logger
+
+
+StatusUpdater = Callable[[bytes], None]
 
 
 class McuStatusUpdater:
@@ -31,17 +35,17 @@ class McuStatusUpdater:
         self._robot = robot
         self._is_enabled = [False] * 32
         self._is_enabled[self.mcu_updater_slots["reset"]] = True
-        self._handlers = [None] * 32
+        self._handlers: List[Optional[StatusUpdater]] = [None] * 32
         self._log = get_logger("McuStatusUpdater")
 
-    def reset(self):
+    def reset(self) -> None:
         self._log("reset all slots")
         self._is_enabled = [False] * 32
         self._is_enabled[self.mcu_updater_slots["reset"]] = True
         self._handlers = [None] * 32
         self._robot.status_updater_reset()
 
-    def enable_slot(self, slot, callback):
+    def enable_slot(self, slot, callback: StatusUpdater):
         slot_idx = self.mcu_updater_slots[slot]
         if not self._is_enabled[slot_idx]:
             self._is_enabled[slot_idx] = True
@@ -49,7 +53,7 @@ class McuStatusUpdater:
             self._robot.status_updater_control(slot_idx, True)
         self._handlers[slot_idx] = callback
 
-    def disable_slot(self, slot):
+    def disable_slot(self, slot) -> None:
         slot_idx = self.mcu_updater_slots[slot]
         if self._is_enabled[slot_idx]:
             self._is_enabled[slot_idx] = False
@@ -57,7 +61,7 @@ class McuStatusUpdater:
             self._robot.status_updater_control(slot_idx, False)
         self._handlers[slot_idx] = None
 
-    def read(self):
+    def read(self) -> None:
         data = self._robot.status_updater_read()
 
         idx = 0

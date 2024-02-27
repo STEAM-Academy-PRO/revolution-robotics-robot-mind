@@ -1,5 +1,5 @@
 import struct
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.sensors.base import SensorPortDriver
@@ -12,7 +12,7 @@ class BumperSwitch(SensorPortDriver):
     def __init__(self, port: PortInstance[SensorPortDriver], config):
         super().__init__(port, "BumperSwitch")
 
-    def convert_sensor_value(self, raw):
+    def convert_sensor_value(self, raw: bytes):
         assert len(raw) == 2
         return raw[0] == 1
 
@@ -21,7 +21,7 @@ class Hcsr04(SensorPortDriver):
     def __init__(self, port: PortInstance[SensorPortDriver], config):
         super().__init__(port, "HC_SR04")
 
-    def convert_sensor_value(self, raw):
+    def convert_sensor_value(self, raw: bytes):
         assert len(raw) == 4
         (dst,) = struct.unpack("<l", raw)
         if dst == 0:
@@ -33,7 +33,7 @@ class ColorSensor(SensorPortDriver):
     def __init__(self, port: PortInstance[SensorPortDriver], config):
         super().__init__(port, "RGB")
 
-    def convert_sensor_value(self, raw: bytearray):
+    def convert_sensor_value(self, raw: bytes):
         # 12 bytes: 4 sensors, RGB
         if len(raw) == 12:
             return ColorSensorReading(raw)
@@ -42,13 +42,19 @@ class ColorSensor(SensorPortDriver):
 
 
 class Color(NamedTuple):
-    r: bytes
-    g: bytes
-    b: bytes
+    r: int
+    g: int
+    b: int
 
+    @staticmethod
+    def from_bytes(bytes: bytes) -> "Color":
+        return Color(bytes[0], bytes[1], bytes[2])
 
-def color_from_bytes(bytes):
-    return Color(bytes[0], bytes[1], bytes[2])
+    def __str__(self) -> str:
+        return f"{self.r}, {self.g}, {self.b}"
+
+    def __json__(self) -> dict:
+        return {"r": self.r, "g": self.g, "b": self.b}
 
 
 class ColorSensorReading:
@@ -61,32 +67,32 @@ class ColorSensorReading:
 
     """
 
-    def __init__(self, byte_array: bytes = None):
-        if byte_array is None:
-            byte_array = b"\x00" * 12
-        self.top: Color = color_from_bytes(byte_array[0:3])
-        self.right: Color = color_from_bytes(byte_array[3:6])
-        self.left: Color = color_from_bytes(byte_array[6:9])
-        self.middle: Color = color_from_bytes(byte_array[9:12])
+    def __init__(self, byte_array: bytes):
+        self.top = Color.from_bytes(byte_array[0:3])
+        self.right = Color.from_bytes(byte_array[3:6])
+        self.left = Color.from_bytes(byte_array[6:9])
+        self.middle = Color.from_bytes(byte_array[9:12])
 
-    def serialize(self):
+    def serialize(self) -> bytearray:
         byte_array = bytearray()
         for color in [self.top, self.right, self.left, self.middle]:
-            byte_array.extend([color.r, color.g, color.b])
+            byte_array.append(color.r)
+            byte_array.append(color.g)
+            byte_array.append(color.b)
         return byte_array
 
-    def __str__(self):
+    def __str__(self) -> str:
         """This is really just for debugging."""
-        ret = f"Top: {self.top.r}, {self.top.g}, {self.top.b} "
-        ret += f"Left: {self.left.r}, {self.left.g}, {self.left.b} "
-        ret += f"Right: {self.right.r}, {self.right.g}, {self.right.b} "
-        ret += f"Middle: {self.middle.r}, {self.middle.g}, {self.middle.b}"
+        ret = f"Top: {self.top} "
+        ret += f"Left: {self.left} "
+        ret += f"Right: {self.right} "
+        ret += f"Middle: {self.middle}"
         return ret
 
-    def __json__(self):
+    def __json__(self) -> dict:
         return {
-            "top": {"r": self.top.r, "g": self.top.g, "b": self.top.b},
-            "right": {"r": self.right.r, "g": self.right.g, "b": self.right.b},
-            "left": {"r": self.left.r, "g": self.left.g, "b": self.left.b},
-            "middle": {"r": self.middle.r, "g": self.middle.g, "b": self.middle.b},
+            "top": self.top.__json__(),
+            "right": self.right.__json__(),
+            "left": self.left.__json__(),
+            "middle": self.middle.__json__(),
         }
