@@ -1,6 +1,60 @@
 from revvy.robot.ports.common import DriverConfig
-from revvy.robot.ports.motors.dc_motor import DcMotorController, PositionThreshold
+from revvy.robot.ports.motors.dc_motor import (
+    DcMotorController,
+    PidConfig,
+    PositionThreshold,
+    TwoValuePidConfig,
+)
 from revvy.robot.ports.sensors.simple import BumperSwitch, Hcsr04, ColorSensor
+
+
+DC_MOTOR_SPEED_PID = PidConfig(
+    p=0.4,
+    i=0.5,
+    d=0.8,
+    # Minimum and maximum output PWM.
+    # These values are not scaled with the linearity table,
+    # as opposed to user-specified power limits. The timers driving the motors have a range of
+    # -200 to 200.
+    lower_output_limit=-200,
+    upper_output_limit=200,
+)
+
+# sped units are ticks / 10ms
+DC_MOTOR_POSITION_PID_SLOW = PidConfig(
+    p=0.1,
+    i=0.0,
+    d=0.0,
+    # min speed
+    lower_output_limit=-150,
+    # max speed
+    upper_output_limit=150,
+)
+DC_MOTOR_POSITION_PID_FAST = PidConfig(
+    p=0.8,
+    i=0.0,
+    d=1.5,
+    # min speed
+    lower_output_limit=-150,
+    # max speed
+    upper_output_limit=150,
+)
+DC_MOTOR_POSITION_CONFIG = TwoValuePidConfig(
+    slow=DC_MOTOR_POSITION_PID_SLOW,
+    fast=DC_MOTOR_POSITION_PID_FAST,
+    fast_threshold=PositionThreshold.degrees(5),
+)
+
+
+DC_MOTOR_LINEARITY_TABLE = [
+    (0.5, 0),
+    (5.0154, 18),
+    (37.0370, 60),
+    (67.7083, 100),
+    (97.4151, 140),
+    (144.0972, 200),
+]
+"""The identified motor characteristic: (output speed, input PWM value)"""
 
 
 # TODO: Right now we're pairing the driver type and the configuration. Instead, we should
@@ -10,27 +64,12 @@ class Motors:
     RevvyMotor = DriverConfig(
         driver=DcMotorController,
         config={
-            # sped units are ticks / 10ms
-            # P, I, D are dimensionless regulator coefficients
-            "speed_controller": [0.4, 0.5, 0.8, -150, 150],  # P, I, D, min speed, max speed
-            "position_controller": {
-                "slow": [0.1, 0.0, 0.0, -150, 150],  # P, I, D, min speed, max speed
-                "fast": [0.8, 0.0, 1.5, -150, 150],  # P, I, D, min speed, max speed
-                # Distance from goal where we switch to the slow controller
-                "fast_threshold": PositionThreshold.degrees(5),
-            },
-            # max deceleration, max acceleration, in units of `[speed units] / 10ms`
+            "speed_controller": DC_MOTOR_SPEED_PID,
+            "position_controller": DC_MOTOR_POSITION_CONFIG,
+            # max deceleration, max acceleration, in units of `[speed units] / 10ms` (?)
             "acceleration_limits": [500, 500],
             "max_current": 1.5,  # Amps
-            # The identified motor characteristic: (input PWM value, output speed)
-            "linearity": [
-                (0.5, 0),
-                (5.0154, 18),
-                (37.0370, 60),
-                (67.7083, 100),
-                (97.4151, 140),
-                (144.0972, 200),
-            ],
+            "linearity": DC_MOTOR_LINEARITY_TABLE,
             "encoder_resolution": 12,  # The number of ticks per revolution
             "gear_ratio": 64.8,  # The gear ratio of the motor. It takes this many revolutions of the motor axle to turn the wheel once.
         },
@@ -38,22 +77,11 @@ class Motors:
     RevvyMotor_CCW = DriverConfig(
         driver=DcMotorController,
         config={
-            "speed_controller": [0.4, 0.5, 0.8, -150, 150],
-            "position_controller": {
-                "slow": [0.1, 0.0, 0.0, -150, 150],
-                "fast": [0.8, 0.0, 1.5, -150, 150],
-                "fast_threshold": PositionThreshold.degrees(5),
-            },
+            "speed_controller": DC_MOTOR_SPEED_PID,
+            "position_controller": DC_MOTOR_POSITION_CONFIG,
             "acceleration_limits": [500, 500],
             "max_current": 1.5,
-            "linearity": [
-                (0.5, 0),
-                (5.0154, 18),
-                (37.0370, 60),
-                (67.7083, 100),
-                (97.4151, 140),
-                (144.0972, 200),
-            ],
+            "linearity": DC_MOTOR_LINEARITY_TABLE,
             "encoder_resolution": -12,
             "gear_ratio": 64.8,
         },

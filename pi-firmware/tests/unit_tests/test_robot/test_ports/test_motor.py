@@ -112,6 +112,7 @@ class TestDcMotorDriver(unittest.TestCase):
         port.interface = Mock()
         port.interface.set_motor_port_config = Mock()
         port.interface.set_motor_port_control_value = Mock()
+        port.interface.set_motor_port_control_value.return_value = b"\x00"
         port.interface.get_motor_position = Mock()
         port.log = get_logger("MockPort")
 

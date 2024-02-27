@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Generic, Optional, TypeVar
 
 from revvy.utils.functions import split
-from revvy.utils.logger import get_logger
+from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.version import Version, FormatError
 from revvy.mcu.rrrc_transport import RevvyTransport, Response, ResponseStatus
 
@@ -54,8 +54,8 @@ class Command(ABC, Generic[ReturnType]):
         try:
             return self._process(response)
         except (UnknownCommandError, ValueError) as e:
-            self._log(f"Payload for error: {payload} (length {len(payload)})")
-            self._log(traceback.format_exc())
+            self._log(f"Payload for error: {payload} (length {len(payload)})", LogLevel.ERROR)
+            self._log(traceback.format_exc(), LogLevel.ERROR)
             raise e
 
     @abstractmethod
@@ -350,13 +350,19 @@ class ReadSensorPortInfoCommand(Command[bytes]):
         return payload
 
 
-class SetMotorPortControlCommand(ReturnlessCommand):
+class SetMotorPortControlCommand(Command[bytes]):
     @property
     def command_id(self) -> int:
         return 0x14
 
     def __call__(self, command_bytes: bytes):
         return self._send(command_bytes)
+
+    def parse_response(self, payload: bytes):
+        if len(payload) == 0:
+            # we don't know the failure, we just get an empty response
+            raise ValueError("Failed to send motor control command")
+        return payload
 
 
 class ReadPortStatusCommand(Command, ABC):

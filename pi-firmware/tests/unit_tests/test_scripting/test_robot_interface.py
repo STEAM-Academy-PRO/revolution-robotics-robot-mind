@@ -4,6 +4,7 @@ from revvy.robot.ports.common import DriverConfig, PortInstance
 from revvy.robot.ports.motors.base import MotorConstants, NullMotor
 
 from revvy.utils.functions import hex2rgb
+from revvy.utils.logger import get_logger
 from revvy.scripting.resource import Resource
 from revvy.scripting.robot_interface import (
     MotorPortWrapper,
@@ -84,6 +85,7 @@ class TestMotorPortWrapper(unittest.TestCase):
     def test_stop_does_not_throw_exception(self):
         mock_script = Mock()
         mock_script.is_stop_requested = False
+        mock_script.log = get_logger("MockLogger")
 
         mock_port = PortInstance(
             0,

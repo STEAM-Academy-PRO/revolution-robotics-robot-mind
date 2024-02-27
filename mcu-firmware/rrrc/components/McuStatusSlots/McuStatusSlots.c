@@ -6,7 +6,11 @@
 #include <math.h>
 #include <string.h>
 
-#define MAX_MOTOR_STATUS_SIZE   10
+// TODO: This component should now need to know about the status sizes. Allow port drivers to
+// configure a buffer size. The buffers should be owned by this component, which should be
+// responsible for keeping track of the size of the buffer and whether the buffer
+// needs to be reallocated if the size changes.
+#define MAX_MOTOR_STATUS_SIZE   11
 #define MAX_SENSOR_STATUS_SIZE  32
 
 #define STATUS_SLOT_BATTERY ((uint8_t) 10u)
@@ -17,8 +21,11 @@
 #define STATUS_SLOT_ORIENTATION ((uint8_t) 15u)
 
 typedef struct {
+    /** The buffer that hold the data. */
     ByteArray_t array;
+    /** The actual number of bytes in the buffer. */
     const uint8_t size;
+    /** An ID that is used to detect if the value has changed. Incremented on write. */
     uint8_t version;
 } slot_t;
 

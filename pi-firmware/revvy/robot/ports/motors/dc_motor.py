@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
 import enum
 import struct
-from typing import NamedTuple
+from threading import Lock
+from typing import List, NamedTuple, Optional
 
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motors.base import MotorConstants, MotorStatus, MotorPortDriver
 from revvy.utils.awaiter import Awaiter, Awaiter
 from revvy.utils.functions import clip
+from revvy.utils.logger import LogLevel
 
 
 class ThresholdKind(enum.IntEnum):
@@ -112,36 +114,32 @@ class SetPositionCommand(MotorCommand):
         return control
 
 
-class PidConfig:
-    def __init__(self, config):
-        (p, i, d, lower_limit, upper_limit) = config
-
-        self._p = p
-        self._i = i
-        self._d = d
-        self._lower_output_limit = lower_limit
-        self._upper_output_limit = upper_limit
+class PidConfig(NamedTuple):
+    p: float
+    i: float
+    d: float
+    lower_output_limit: float
+    upper_output_limit: float
 
     def serialize(self) -> bytes:
         return struct.pack(
-            "<5f", self._p, self._i, self._d, self._lower_output_limit, self._upper_output_limit
+            "<5f", self.p, self.i, self.d, self.lower_output_limit, self.upper_output_limit
         )
 
 
-class TwoValuePidConfig:
-    def __init__(self, config):
-        self._slow = PidConfig(config["slow"])
-        self._fast = PidConfig(config["fast"])
-        self._fast_threshold: PositionThreshold = config["fast_threshold"]
+class TwoValuePidConfig(NamedTuple):
+    slow: PidConfig
+    fast: PidConfig
+    fast_threshold: PositionThreshold
 
     def serialize(self) -> bytes:
         return bytes(
-            [*self._slow.serialize(), *self._fast.serialize(), *self._fast_threshold.serialize()]
+            [*self.slow.serialize(), *self.fast.serialize(), *self.fast_threshold.serialize()]
         )
 
 
 class AccelerationLimitConfig:
-    def __init__(self, config):
+    def __init__(self, config: tuple[float, float]):
         (decMax, accMax) = config
 
         self._deceleration = decMax
@@ -152,7 +150,7 @@ class AccelerationLimitConfig:
 
 
 class LinearityConfig:
-    def __init__(self, config):
+    def __init__(self, config: List[tuple[float, int]]):
         self._points = config
 
     def serialize(self) -> bytes:
@@ -163,16 +161,17 @@ class LinearityConfig:
 
 
 class DcMotorDriverConfig:
-    def __init__(self, port_config):
+    # TODO: we should do better than 'dict'
+    def __init__(self, port_config: dict):
         self._port_config = port_config
-        self._position_pid = TwoValuePidConfig(self._port_config["position_controller"])
-        self._speed_pid = PidConfig(self._port_config["speed_controller"])
+        self._position_pid = self._port_config["position_controller"]
+        self._speed_pid = self._port_config["speed_controller"]
         self._acceleration_limits = AccelerationLimitConfig(port_config["acceleration_limits"])
 
         self._max_current = port_config["max_current"]
         self._resolution = port_config["encoder_resolution"] * port_config["gear_ratio"]
 
-        self._linearity = LinearityConfig(port_config.get("linearity", {}))
+        self._linearity = LinearityConfig(port_config.get("linearity", []))
 
     def serialize(self) -> bytes:
         return bytes(
@@ -204,6 +203,8 @@ class DcMotorController(MotorPortDriver):
         self._status = MotorStatus.NORMAL
 
         self._timeout = 0
+        self._current_position_request: Optional[int] = None
+        self._lock = Lock()
         port.interface.set_motor_port_config(port.id, self._port_config.serialize())
 
     # TODO: explain the arguments' units
@@ -251,8 +252,9 @@ class DcMotorController(MotorPortDriver):
             SetPositionCommand.REQUEST_RELATIVE, position, speed_limit, power_limit
         ).command_to_port(self._port.id - 1)
 
-    def _cancel_awaiter(self):
+    def _cancel_awaiter(self) -> None:
         awaiter, self._awaiter = self._awaiter, None
+        self._current_position_request = None
         if awaiter:
             self.log("Cancelling previous request")
             awaiter.cancel()
@@ -274,13 +276,13 @@ class DcMotorController(MotorPortDriver):
     def power(self):
         return self._power
 
-    def set_power(self, power):
+    def set_power(self, power) -> None:
         self._cancel_awaiter()
         self.log("set_power")
 
         self._port.interface.set_motor_port_control_value(self.create_set_power_command(power))
 
-    def set_speed(self, speed, power_limit=None):
+    def set_speed(self, speed, power_limit=None) -> None:
         self._cancel_awaiter()
         self.log("set_speed")
 
@@ -300,17 +302,15 @@ class DcMotorController(MotorPortDriver):
         self._cancel_awaiter()
         self.log("set_position")
 
-        def _finished():
+        def _finished() -> None:
             self._awaiter = None
 
-        def _canceled():
+        def _canceled() -> None:
             self.set_power(0)
 
         awaiter = Awaiter()
         awaiter.on_finished(_finished)
         awaiter.on_cancelled(_canceled)
-
-        self._awaiter = awaiter
 
         if pos_type == "absolute":
             position -= self._pos_offset
@@ -320,7 +320,11 @@ class DcMotorController(MotorPortDriver):
         else:
             raise ValueError(f"Invalid pos_type {pos_type}")
 
-        self._port.interface.set_motor_port_control_value(command)
+        with self._lock:
+            self._awaiter = awaiter
+            response = self._port.interface.set_motor_port_control_value(command)
+            self._current_position_request = response[0]
+        self.log(f"set_position request id: {self._current_position_request}")
 
         return awaiter
 
@@ -328,22 +332,31 @@ class DcMotorController(MotorPortDriver):
     def status(self) -> MotorStatus:
         return self._status
 
-    def _update_motor_status(self, status: MotorStatus):
-        self._status = status
-        awaiter = self._awaiter
-        if awaiter:
-            if status == MotorStatus.NORMAL:
-                pass
-            elif status == MotorStatus.GOAL_REACHED:
-                awaiter.finish()
-            elif status == MotorStatus.BLOCKED:
-                awaiter.cancel()
+    def _update_motor_status(self, status: MotorStatus, request_id: int):
+        with self._lock:
+            self._status = status
+            awaiter = self._awaiter
+            if awaiter:
+                if self._current_position_request is not None:
+                    if request_id != self._current_position_request:
+                        self.log(f"unexpected request id: {request_id}", LogLevel.DEBUG)
+                        return
 
-    def update_status(self, data):
-        if len(data) == 10:
-            status, self._power, self._pos, self._speed = struct.unpack("<bblf", data)
+                if status == MotorStatus.NORMAL:
+                    return
+                elif status == MotorStatus.GOAL_REACHED:
+                    self.log(f"goal reached: {request_id}", LogLevel.DEBUG)
+                    awaiter.finish()
+                elif status == MotorStatus.BLOCKED:
+                    self.log(f"blocked: {request_id}", LogLevel.DEBUG)
+                    awaiter.cancel()
 
-            self._update_motor_status(MotorStatus(status))
+    def update_status(self, data) -> None:
+        if len(data) == 11:
+            raw_status = struct.unpack("<bblfB", data)
+            status, self._power, self._pos, self._speed, current_task = raw_status
+
+            self._update_motor_status(MotorStatus(status), current_task)
             self.on_status_changed.trigger(self._port)
         else:
             self.log(f"Received {len(data)} bytes of data instead of 10")

@@ -235,7 +235,7 @@ class MotorPortWrapper(Wrapper):
         resource: ResourceWrapper,
     ):
         super().__init__(script, resource)
-        self._log_prefix = f"MotorPortWrapper[motor {motor.id}]: "
+        self._log = get_logger(["MotorPortWrapper", f"{motor.id}"], base=script.log)
         self._motor = motor
 
     @property
@@ -247,11 +247,11 @@ class MotorPortWrapper(Wrapper):
         self._motor.pos = val
 
     def log(self, message):
-        self._script.log(self._log_prefix + message)
+        self._log(message)
 
     def configure(self, config):
         if type(config) is str:
-            self._script.log("Warning: Using deprecated named motor configuration")
+            self.log("Warning: Using deprecated named motor configuration")
             config = self._named_configurations[config]
 
         if self._script.is_stop_requested:
