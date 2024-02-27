@@ -91,7 +91,6 @@ def create_robot_mock():
 
 class RobotInterfaceMock(RobotInterface):
     def __init__(self, *args) -> None:
-        print("HOW did I not get here?? -------------------------------------")
         pass
 
     def release_resources(self, *args):
@@ -104,6 +103,7 @@ class RobotInterfaceMock(RobotInterface):
     def motors(self) -> PortCollection:
         return Mock()
 
+    @property
     def sensors(self) -> PortCollection:
         return Mock()
 

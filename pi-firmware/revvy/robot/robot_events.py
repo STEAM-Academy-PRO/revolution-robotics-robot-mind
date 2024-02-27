@@ -1,12 +1,13 @@
 """ Standardized Robot Events to all """
 
+from enum import Enum
 from typing import NamedTuple
 from revvy.bluetooth.data_types import SensorData
 
 from revvy.scripting.runtime import ScriptEvent
 
 
-class RobotEvent:
+class RobotEvent(Enum):
     """
     Robot communication events: these events are sent from the robot towards
     any interface that's subscribed to robot events.

@@ -699,6 +699,7 @@ class RobotInterface(ABC):
     def motors(self) -> PortCollection:
         pass
 
+    @property
     @abstractmethod
     def sensors(self) -> PortCollection:
         pass

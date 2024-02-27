@@ -78,16 +78,16 @@ class RevvyBLE:
         self._bleno = Bleno()
 
         # _bleno exposes it's on function runtime, which makes the linter sad.
-        self._bleno.on(
+        self._bleno.on(  # pyright: ignore[reportAttributeAccessIssue]
             "stateChange", self._on_state_change
-        )  # pyright: ignore[reportAttributeAccessIssue]
-        self._bleno.on(
+        )
+        self._bleno.on(  # pyright: ignore[reportAttributeAccessIssue]
             "advertisingStart", self._on_advertising_start
-        )  # pyright: ignore[reportAttributeAccessIssue]
+        )
         self._bleno.on("accept", self._on_connected)  # pyright: ignore[reportAttributeAccessIssue]
-        self._bleno.on(
+        self._bleno.on(  # pyright: ignore[reportAttributeAccessIssue]
             "disconnect", self._on_disconnect
-        )  # pyright: ignore[reportAttributeAccessIssue]
+        )
 
         self.subscribe_to_state_changes()
 

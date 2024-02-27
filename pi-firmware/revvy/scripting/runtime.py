@@ -3,7 +3,7 @@
 from enum import Enum
 import time
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from revvy.utils.emitter import Emitter
 
 # To have types, use this to avoid circular dependencies.
@@ -155,7 +155,8 @@ class ScriptManager:
     def add_script(
         self,
         script: ScriptDescriptor,
-        config: "RobotConfig" = None,
+        # tests don't pass a config, which is weird and probably wrong
+        config: Optional["RobotConfig"] = None,
         robot_wrapper_class=RobotWrapper,
     ):
         # TODO: This is a not a good place here: we should not need to check if a script
@@ -169,8 +170,9 @@ class ScriptManager:
         script_handle = ScriptHandle(self, script, script.name, self._globals)
         try:
             # Note: Due to dependency injection, this is wrapped out.
+            # FIXME the lint ignore shouldn't be there. Fix tests.
             interface = robot_wrapper_class(
-                script_handle, self._robot, config, self._robot.resources, script.priority
+                script_handle, self._robot, config, self._robot.resources, script.priority  # type: ignore tests pass a None and a mock wrapper
             )
             script_handle.on_stopping(interface.release_resources)
             script_handle.on_stopped(interface.release_resources)

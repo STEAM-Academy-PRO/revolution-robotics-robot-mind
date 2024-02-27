@@ -39,25 +39,25 @@ class MemoryStorage(StorageInterface):
     def __init__(self):
         self._entries = {}
 
-    def read_metadata(self, name):
-        if name not in self._entries:
+    def read_metadata(self, filename):
+        if filename not in self._entries:
             raise StorageElementNotFoundError
 
-        file_entry = self._entries[name]
+        file_entry = self._entries[filename]
         return {**file_entry.meta, "md5": file_entry.md5, "length": len(file_entry.data)}
 
-    def write(self, name, data, metadata=None, md5=None):
+    def write(self, filename, data, metadata=None, md5=None):
         if md5 is None:
             md5 = bytestr_hash(data)
 
         if metadata is None:
             metadata = {}
 
-        self._entries[name] = MemoryStorageItem(md5, data, metadata)
+        self._entries[filename] = MemoryStorageItem(md5, data, metadata)
 
-    def read(self, name):
-        metadata = self.read_metadata(name)
-        data = self._entries[name].data
+    def read(self, filename):
+        metadata = self.read_metadata(filename)
+        data = self._entries[filename].data
 
         if bytestr_hash(data) != metadata["md5"]:
             raise IntegrityError("Checksum")
