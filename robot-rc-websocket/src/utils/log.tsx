@@ -18,7 +18,9 @@ export const log = (msg: any, level: LogLevel = LogLevel.INFO) => {
     msg,
     time: new Date().toLocaleTimeString("en-US", { hour12: false })
   })
-  console.error(msg)
+  if (level === LogLevel.ERROR) {
+    console.error(msg)
+  }
   setLog(newList);
 }
 
@@ -26,7 +28,6 @@ export function Log() {
   let logElement: HTMLDivElement;
   createEffect(() => {
     _log()
-    console.warn('changed', _log())
     if (logElement) {
       logElement.scrollTop = logElement.scrollHeight
     }

@@ -91,7 +91,7 @@ export default function ControllerView({
 
           setTurnaround(Math.round(turnaroundArray.reduce((a, b) => a + b, 0) / BUFFER))
           // Small delay to have at least 15 ms between messages.
-          setTimeout(()=>sendControlMessage(), 10)
+          setTimeout(() => sendControlMessage(), 10)
           break
         case 'orientation_change':
           setOrientation(data.data)
@@ -128,6 +128,7 @@ export default function ControllerView({
 
           }
           break
+        case 'error': break
         default:
           console.log(`[message] Data received from server: ${data.event}`);
       }
@@ -244,10 +245,14 @@ export default function ControllerView({
           <Show when={isConnected()}>Connected 🔌 <br />ctrl: {controlSignal()}</Show>
           <Show when={!isConnected()}>
             Disconnected 🚫
-            <Show when={conn()}>
-              <button onClick={reUploadConfig}>RESTART</button>
-            </Show>
           </Show>
+
+          <Show when={conn()}>
+            <div>
+              <button onClick={reUploadConfig}>RESTART</button>
+            </div>
+          </Show>
+
           <span> Turnaround: {turnaround()}ms </span>
           <div class={styles.error} title="... meaning the message confirmations come back in the wrong order.">
             Message Order Error: {orderError()}</div>

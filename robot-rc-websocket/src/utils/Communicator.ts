@@ -57,12 +57,12 @@ export function connectSocket(ip: string): SocketWrapper {
     };
 
     socket.onerror = function (e) {
-        console.warn(`[error]`, e);
+        console.error(`[error]`, e);
         emitter.emit(WSEventType.onError, e)
     };
     return {
         send: (type: RobotMessage, msg: any) => {
-            if(type!== RobotMessage.control) console.log('send', type, msg)
+            if(type!== RobotMessage.control) console.warn('send', type, msg)
             return socket.send(JSON.stringify({ type, body: msg }))
         },
         close: () => socket.close(),
