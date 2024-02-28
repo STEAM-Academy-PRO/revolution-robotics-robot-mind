@@ -1,10 +1,7 @@
 #!/usr/bin/python3
 
-import argparse
 from logging import Logger
 import sys
-import time
-import traceback
 from typing import Callable
 from revvy.api.programmed import ProgrammedRobotController
 from revvy.firmware_updater import update_firmware_if_needed
@@ -21,7 +18,7 @@ from revvy.utils.directories import CURRENT_INSTALLATION_PATH
 # noinspection unused-import
 from revvy.utils.error_reporter import revvy_error_handler
 
-log = get_logger("test example")
+log = get_logger("TestRunner")
 
 
 def test_scenario(log: Logger, controller: ProgrammedRobotController):
@@ -48,7 +45,7 @@ def test_scenario(log: Logger, controller: ProgrammedRobotController):
     controller.press_button(1)
 
 
-def run_scenario(scenario: Callable[[ProgrammedRobotController], None]):
+def run_scenario(scenario: Callable[[ProgrammedRobotController], None]) -> bool:
     """Runs a new test scenario"""
     log = get_logger(f"{scenario.__name__}")
 
@@ -80,4 +77,12 @@ if __name__ == "__main__":
         sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
 
     # List test scenarios here
-    run_scenario(test_scenario)
+    scenarios = [test_scenario]
+    failed = []
+    for scenario in scenarios:
+        if not run_scenario(scenario):
+            failed.append(scenario.__name__)
+
+    if failed:
+        log(f"Failed scenarios: {failed}")
+        sys.exit(1)
