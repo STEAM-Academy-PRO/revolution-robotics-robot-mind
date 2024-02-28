@@ -20,6 +20,8 @@ from revvy.utils.error_reporter import revvy_error_handler
 
 log = get_logger("TestRunner")
 
+# TODO: overwrite get_logger to capture log output into memory
+
 
 def test_scenario(log: Logger, controller: ProgrammedRobotController):
     """A demo script that plays a sound when a button is pressed."""
