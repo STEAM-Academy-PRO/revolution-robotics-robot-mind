@@ -83,7 +83,7 @@ class Resource:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._lock.__exit__(exc_type, exc_val, exc_tb)
 
-    def reset(self):
+    def reset(self) -> None:
         # self._log('Reset')
         with self._lock:
             handle, self._active_handle = self._active_handle, null_handle
@@ -115,13 +115,13 @@ class Resource:
                 )
                 return null_handle
 
-    def _create_new_handle(self, with_priority, on_taken_away):
+    def _create_new_handle(self, with_priority, on_taken_away) -> None:
         self._current_priority = with_priority
         self._active_handle = ResourceHandle(self)
         if on_taken_away:
             self._active_handle.on_interrupted.add(on_taken_away)
 
-    def release(self, resource_handle):
+    def release(self, resource_handle) -> None:
         with self._lock:
             if self._active_handle == resource_handle:
                 self._active_handle = null_handle

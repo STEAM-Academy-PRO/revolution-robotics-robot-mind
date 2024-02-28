@@ -65,7 +65,7 @@ class UserScriptRGBChannel(Enum):
     REAR = 4
 
 
-def user_to_sensor_channel(user_channel):
+def user_to_sensor_channel(user_channel: UserScriptRGBChannel) -> RGBChannelSensor:
     mapping = [
         (UserScriptRGBChannel.FRONT, RGBChannelSensor.FRONT),
         (UserScriptRGBChannel.LEFT, RGBChannelSensor.LEFT),
@@ -86,7 +86,7 @@ class ResourceWrapper:
         self._priority = priority
         self._current_handle = None
 
-    def _release_handle(self):
+    def _release_handle(self) -> None:
         self._current_handle = None
 
     def request(self, callback=None):
@@ -102,7 +102,7 @@ class ResourceWrapper:
 
         return self._current_handle
 
-    def release(self):
+    def release(self) -> None:
         handle = self._current_handle
         if handle:
             handle.interrupt()
@@ -338,13 +338,16 @@ class MotorPortWrapper(Wrapper):
 
 
 def wrap_async_method(owner: Wrapper, method):
-    def _wrapper(*args, **kwargs):
-        def _interrupted():
+    def _wrapper(*args, **kwargs) -> None:
+        def _interrupted() -> None:
+            """Cancels the awaiter if someone with higher priority takes over the resource."""
             if awaiter:
                 awaiter.cancel()
 
-        with owner.try_take_resource(_interrupted) as resource:
-            if resource:
+        resource_outer = owner.try_take_resource(_interrupted)
+        # TODO: figure out when this can return something that is not a context manager
+        if resource_outer:
+            with resource_outer as resource:
                 awaiter = method(*args, **kwargs)
                 if awaiter:
                     awaiter.wait()
@@ -352,10 +355,11 @@ def wrap_async_method(owner: Wrapper, method):
     return _wrapper
 
 
-def wrap_sync_method(owner, method):
-    def _wrapper(*args, **kwargs):
-        with owner.try_take_resource() as resource:
-            if resource:
+def wrap_sync_method(owner: Wrapper, method):
+    def _wrapper(*args, **kwargs) -> None:
+        resource_outer = owner.try_take_resource()
+        if resource_outer:
+            with resource_outer as resource:
                 method(*args, **kwargs)
 
     return _wrapper
@@ -368,10 +372,10 @@ class DriveTrainWrapper(Wrapper):
         self.turn = wrap_async_method(self, self.__drivetrain.turn)
         self.drive = wrap_async_method(self, self.__drivetrain.drive)
 
-    def __log(self, message):
+    def __log(self, message: str):
         self._script.log("DriveTrain: " + message)
 
-    def set_speed(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM):
+    def set_speed(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM) -> None:
         # self.__log("set_speed")
 
         resource = self.try_take_resource()
@@ -385,7 +389,7 @@ class DriveTrainWrapper(Wrapper):
                 if speed == 0:
                     resource.release()
 
-    def set_speeds(self, sl, sr):
+    def set_speeds(self, sl, sr) -> None:
         resource = self.try_take_resource()
         if resource:
             try:
