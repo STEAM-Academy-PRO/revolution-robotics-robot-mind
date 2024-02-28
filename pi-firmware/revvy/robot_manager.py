@@ -428,7 +428,6 @@ class RobotManager:
         self._robot.led.start_animation(RingLed.Off)
 
     def _on_bg_script_error(self, script_handle: ScriptHandle, exception: Exception):
-        self._show_script_error(script_handle, exception)
 
         bg_blockly_error = revvy_error_handler.report_error(
             RobotErrorType.BLOCKLY_BACKGROUND,
@@ -441,6 +440,8 @@ class RobotManager:
         # event driven now, we need the notification to be sent out.
         self.trigger(RobotEvent.ERROR, bg_blockly_error)
 
+        self._show_script_error(script_handle, exception)
+
     def _on_script_error(self, script_handle: ScriptHandle, exception: Exception):
         """
         Handle runner script errors gracefully, and type out what caused it to bail!
@@ -450,7 +451,6 @@ class RobotManager:
             RobotEvent.PROGRAM_STATUS_CHANGE,
             ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.ERROR),
         )
-        self._show_script_error(script_handle, exception)
 
         btn_blockly_error = revvy_error_handler.report_error(
             RobotErrorType.BLOCKLY_BUTTON, traceback.format_exc(), script_handle.descriptor.ref_id
@@ -458,6 +458,8 @@ class RobotManager:
 
         # Same as the above.
         self.trigger(RobotEvent.ERROR, btn_blockly_error)
+
+        self._show_script_error(script_handle, exception)
 
     def _on_script_stopped(self, script_handle: ScriptHandle, data=None):
         """If we want to send back script status stopped change, this is the place."""
