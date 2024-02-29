@@ -17,7 +17,11 @@
             "siren": "siren.mp3",
             "ta_da": "tada.mp3",
             "uh_oh": "uh-oh.mp3",
-            "yee_haw": "yee-haw.mp3"
+            "yee_haw": "yee-haw.mp3",
+            "s_bootup": "s_bootup.mp3",
+            "s_connect": "s_connect.mp3",
+            "s_disconnect": "s_disconnect.mp3",
+            "s_bug": "s_bug.mp3"
         }
     }
 }
