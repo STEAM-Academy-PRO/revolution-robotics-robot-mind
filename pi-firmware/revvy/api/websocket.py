@@ -126,6 +126,8 @@ class RobotWebSocketApi:
                 {"event": RobotEvent.BATTERY_CHANGE, "data": self._robot_manager.robot.battery}
             )
 
+            self._robot_manager.robot.play_tune("s_connect")
+
             self.send({"event": "version_info", "data": VERSION.get()})
             last_control_message = time()
             # Listen for incoming messages
@@ -186,6 +188,7 @@ class RobotWebSocketApi:
 
         except websockets.exceptions.ConnectionClosedError:
             pass  # Connection closed, ignore the error
+            self._robot_manager.robot.play_tune("s_disconnect")
         finally:
             # Print a message when a connection is closed
             log(f"Client disconnected: {websocket.remote_address}")
