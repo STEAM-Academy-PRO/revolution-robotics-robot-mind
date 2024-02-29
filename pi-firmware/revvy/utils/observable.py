@@ -8,10 +8,13 @@ Outside code can subscribe to these events and react to them.
 import copy
 import threading
 from time import time
+import traceback
 
 from typing import Generic, Optional, TypeVar, Callable, List
 
 from revvy.utils.emitter import SimpleEventEmitter
+
+from revvy.utils.error_reporter import RobotErrorType, revvy_error_handler
 
 
 VariableType = TypeVar("VariableType")
@@ -61,7 +64,11 @@ class Observable(Generic[VariableType]):
 
     def _check_pending_update(self) -> None:
         if self._update_pending:
-            self.notify()
+            try:
+                self.notify()
+            except Exception:
+                # As this is running in the timer's thread, we need to manually catch it.
+                revvy_error_handler.report_error(RobotErrorType.SYSTEM, traceback.format_exc())
 
     def set(self, new_data: VariableType):
         if new_data != self._data:
