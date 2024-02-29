@@ -60,7 +60,6 @@ class ValidateConfigCharacteristic(Characteristic):
         return self._state
 
     def update_validate_config_result(self, state, motors_bitmask, sensors):
-
         self._state = state
         self._value = struct.pack(
             "BBBBBB", state, motors_bitmask, sensors[0], sensors[1], sensors[2], sensors[3]
@@ -69,48 +68,9 @@ class ValidateConfigCharacteristic(Characteristic):
         log("validate_config::update:", self._value)
 
 
-class CustomBatteryLevelCharacteristic(Characteristic):
-    """Custom battery service that contains 2 characteristics"""
-
-    def __init__(self, uuid, description):
-        super().__init__(
-            {
-                "uuid": uuid,
-                "properties": ["read", "notify"],
-                "value": None,  # needs to be None because characteristic is not constant value
-                "descriptors": [Descriptor({"uuid": "2901", "value": description})],
-            }
-        )
-
-        self._updateValueCallback = None
-        self._value = 99  # initial value only
-
-    def onReadRequest(self, offset, callback):
-        if offset:
-            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
-        else:
-            callback(Characteristic.RESULT_SUCCESS, [self._value])
-
-    def onSubscribe(self, maxValueSize, updateValueCallback):
-        self._updateValueCallback = updateValueCallback
-
-    def onUnsubscribe(self):
-        self._updateValueCallback = None
-
-    def update_value(self, value):
-        if self._value == value:  # don't update if there is no change
-            return
-        self._value = value
-
-        update_value_callback = self._updateValueCallback
-        if update_value_callback:
-            update_value_callback([value])
-
-
 class BackgroundProgramControlCharacteristic(Characteristic):
     def __init__(self, uuid, description, callback):
         self._value = []
-        self._updateValueCallback = None
         self._callbackFn = callback
         super().__init__(
             {
@@ -129,18 +89,12 @@ class BackgroundProgramControlCharacteristic(Characteristic):
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def onSubscribe(self, maxValueSize, updateValueCallback) -> None:
-        self._updateValueCallback = updateValueCallback
-
-    def onUnsubscribe(self) -> None:
-        self._updateValueCallback = None
-
     def update(self, value):
         self._value = value
 
-        callback = self._updateValueCallback
-        if callback:
-            callback(value)
+        update_notified_value = self.updateValueCallback
+        if update_notified_value:
+            update_notified_value(self._value)
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:
@@ -160,7 +114,6 @@ DataType = TypeVar("DataType", bound=Serialize)
 class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
     def __init__(self, uuid, description):
         self._value = []
-        self._updateValueCallback = None
         super().__init__(
             {
                 "uuid": uuid,
@@ -178,20 +131,14 @@ class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def onSubscribe(self, maxValueSize, updateValueCallback) -> None:
-        self._updateValueCallback = updateValueCallback
-
-    def onUnsubscribe(self):
-        self._updateValueCallback = None
-
     def update(self, value: DataType):
         if isinstance(value, Serialize):
             value = value.serialize()
         self._value = value
 
-        callback = self._updateValueCallback
-        if callback:
-            callback(value)
+        update_notified_value = self.updateValueCallback
+        if update_notified_value:
+            update_notified_value(self._value)
 
 
 class StateControlCharacteristic(BackgroundProgramControlCharacteristic):
@@ -315,7 +262,6 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
                 ],
             }
         )
-        self._update_value_callback = None
 
     def onWriteRequest(self, data, offset, withoutResponse, callback):
         if offset:
@@ -333,17 +279,12 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def onSubscribe(self, maxValueSize, updateValueCallback) -> None:
-        self._update_value_callback = updateValueCallback
-
-    def onUnsubscribe(self):
-        self._update_value_callback = None
-
     def update(self, value):
         self._value = value
 
-        if self._update_value_callback:
-            self._update_value_callback(value)
+        update_notified_value = self.updateValueCallback
+        if update_notified_value:
+            update_notified_value(self._value)
 
 
 class LongMessageCharacteristic(Characteristic):
@@ -395,7 +336,19 @@ class LongMessageCharacteristic(Characteristic):
             callback(result)
 
 
-class UnifiedBatteryInfoCharacteristic(CustomBatteryLevelCharacteristic):
+class UnifiedBatteryInfoCharacteristic(Characteristic):
+    def __init__(self, uuid, description):
+        super().__init__(
+            {
+                "uuid": uuid,
+                "properties": ["read", "notify"],
+                "value": None,  # needs to be None because characteristic is not constant value
+                "descriptors": [Descriptor({"uuid": "2901", "value": description})],
+            }
+        )
+
+        self._value = [0, 0, 0, 0]  # initial value only
+
     def onReadRequest(self, offset, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
@@ -414,5 +367,6 @@ class UnifiedBatteryInfoCharacteristic(CustomBatteryLevelCharacteristic):
 
         self._value = new_value
 
-        if self._updateValueCallback:
-            self._updateValueCallback(self._value)
+        update_notified_value = self.updateValueCallback
+        if update_notified_value:
+            update_notified_value(self._value)

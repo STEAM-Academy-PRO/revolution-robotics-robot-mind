@@ -104,10 +104,11 @@ class RemoteController:
         # the user presses something on a joystick, therefore we have to
         # know the difference in code
         self._joystick_mode = False
-        self.__next_deadline = MESSAGE_MAX_PERIOD
 
-    def get_next_deadline(self):
-        return self.__next_deadline
+        # Wait time is in the middle of integration, we have to have default
+        # behavior for mobile versions that will have zeroes in deadline field
+        # Previous expectation was 200ms
+        self.next_message_deadline = DEFAULT_MESSAGE_DEADLINE
 
     def on_joystick_action(self):
         # This is a one shot action to detect first joystick input
@@ -220,8 +221,10 @@ class RemoteController:
         self.process_background_command(msg.background_command)
         self.process_analog_command(msg.analog)
         self.run_button_script(msg.buttons)
-        if msg.next_deadline is not None:
-            self.__next_deadline = msg.next_deadline
+        if msg.next_deadline is None or msg.next_deadline < DEFAULT_MESSAGE_DEADLINE:
+            self.next_message_deadline = DEFAULT_MESSAGE_DEADLINE
+        else:
+            self.next_message_deadline = msg.next_deadline
 
     def link_button_to_runner(self, button_id, script_handle: ScriptHandle):
         log(f"registering callbacks for Button: {button_id}")
@@ -280,7 +283,7 @@ class RemoteController:
 
 
 FIRST_MESSAGE_TIMEOUT = 5
-MESSAGE_MAX_PERIOD = 1
+DEFAULT_MESSAGE_DEADLINE = 1
 
 
 class RemoteControllerScheduler:
@@ -295,12 +298,8 @@ class RemoteControllerScheduler:
         self._message = message
         self._data_ready_event.set()
 
-    def _wait_for_message(self, ctx, wait_time):
-        # Wait time is in the middle of integration, we have to have default
-        # behavior for mobile versions that will have zeroes in deadline field
-        # Previous expectation was 200ms
-        wait_time_default = 0.2
-        timeout_sec = wait_time if wait_time else wait_time_default
+    def _wait_for_message(self, ctx, wait_time) -> bool:
+        timeout_sec = wait_time
         timeout = not self._data_ready_event.wait(timeout_sec)
         self._data_ready_event.clear()
 
@@ -324,7 +323,7 @@ class RemoteControllerScheduler:
                 self._controller.process_control_message(self._message)
 
                 # wait for the other messages
-                while self._wait_for_message(ctx, self._controller.get_next_deadline()):
+                while self._wait_for_message(ctx, self._controller.next_message_deadline):
                     self._controller.process_control_message(self._message)
 
             if not ctx.stop_requested:
