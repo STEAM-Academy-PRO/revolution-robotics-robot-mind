@@ -145,6 +145,7 @@ def get_logger(
     tag: Union[str, List[str]],
     default_log_level: Optional[int] = None,
     base: Optional[Logger] = None,
+    logger_type=Logger,
 ):
     """
     Returns specific module logger.
@@ -177,4 +178,4 @@ def get_logger(
         if not isinstance(default_log_level, int):
             default_log_level = LogLevel.ERROR
 
-    return Logger(base_tag, colored_tag, default_log_level, level_filter)
+    return logger_type(base_tag, colored_tag, default_log_level, level_filter)

@@ -108,9 +108,11 @@ class ErrorHandler:
 
         log(log_message, LogLevel.ERROR)
 
-    def register_uncaught_exception_handler(self) -> None:
+    def register_uncaught_exception_handler(self):
+        old = sys.excepthook
         sys.excepthook = self.handle_uncaught_system_exception
         log("Uncaught exception handler registered")
+        return old
 
     def pop_error(self):
         """Remove and return the last element of the array"""
