@@ -136,7 +136,7 @@ class Robot(RobotInterface):
         return self._imu
 
     @property
-    def status(self):
+    def status(self) -> RobotStatusIndicator:
         return self._status
 
     # TODO: these 2 return the wrong type? What was the intent?

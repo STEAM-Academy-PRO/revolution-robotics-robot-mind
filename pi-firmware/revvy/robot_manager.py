@@ -53,7 +53,7 @@ class RevvyStatusCode(enum.IntEnum):
 class RobotManager:
     """High level class to manage robot state and configuration"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._log = get_logger("RobotManager")
         self.needs_interrupting = True
 
@@ -478,7 +478,7 @@ class RobotManager:
             ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.STOP),
         )
 
-    def robot_stop(self):
+    def robot_stop(self) -> None:
         """On exiting let's reset all states."""
         self._robot_state.stop_polling_mcu()
         self._robot.status.controller_status = RemoteControllerStatus.NotConnected
@@ -488,7 +488,7 @@ class RobotManager:
         self._scripts.reset()
         self._robot.stop()
 
-    def _ping_robot(self, timeout=0):
+    def _ping_robot(self, timeout=0) -> None:
         stopwatch = Stopwatch()
         retry_ping = True
         self._log("pinging")
