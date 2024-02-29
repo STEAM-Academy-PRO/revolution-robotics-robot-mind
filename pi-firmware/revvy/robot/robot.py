@@ -116,9 +116,6 @@ class Robot(RobotInterface):
     def resources(self):
         return self._resources
 
-    def __del__(self):
-        self._comm_interface.close()
-
     @property
     def script_variables(self):
         return self._script_variables

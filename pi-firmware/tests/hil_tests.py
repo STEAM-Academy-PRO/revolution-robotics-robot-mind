@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
-from revvy.utils.logger import get_logger, Logger
+import traceback
+from revvy.utils.logger import LogLevel, get_logger, Logger
 from tests.hil_test_utils.log import install_memory_logger, take_messages, red, green, clear_logs
 
 # Grab a logger factory before we overwrite the function
@@ -95,11 +96,17 @@ if __name__ == "__main__":
     log(f"pack: {CURRENT_INSTALLATION_PATH}")
     log(f"file: {__file__}")
 
-    # Make sure we run tests with the latest firmware
-    if not update_firmware_if_needed():
-        log("Revvy not started because the robot has no functional firmware")
-        # exiting with integrity error forces the loader to try a previous package
-        sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
+    try:
+        # Make sure we run tests with the latest firmware
+        if not update_firmware_if_needed():
+            log("Revvy not started because the robot has no functional firmware")
+            # exiting with integrity error forces the loader to try a previous package
+            sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
+    finally:
+        # bit of a hack, but the updater uses memory logger and we want to see its messages
+        # if it fails
+        for message in take_messages():
+            print(message)
 
     # List test scenarios here
     scenarios = [test_failing_scenario, test_scenario]
@@ -112,6 +119,10 @@ if __name__ == "__main__":
                 total += 1
                 log(f"Running scenario: {scenario.__name__}")
                 success = run_scenario(scenario)
+            except Exception as e:
+                log(red(f"Error running scenario: {scenario.__name__}"), LogLevel.ERROR)
+                log(f"Exception: {e}", LogLevel.ERROR)
+                log(traceback.format_exc(), LogLevel.DEBUG)
             finally:
                 if success:
                     log(green(f"{scenario.__name__}: ok"))
