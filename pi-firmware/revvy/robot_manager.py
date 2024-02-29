@@ -430,7 +430,7 @@ class RobotManager:
         self._robot.led.start_animation(RingLed.Off)
 
     def _on_analog_script_error(self, *args):
-        """ Analog script errors run in separate thread, report them as System errors. """
+        """Analog script errors run in separate thread, report them as System errors."""
         error = revvy_error_handler.report_error(RobotErrorType.SYSTEM, traceback.format_exc())
         self.trigger(RobotEvent.ERROR, error)
 
