@@ -147,7 +147,11 @@ class RobotWebSocketApi:
                         log(f"Incoming Configuration Message: [{message_type}]")
 
                         parsed_config = RobotConfig.from_string(message["body"])
+                        configure_start_time = time()
                         self._robot_manager.robot_configure(parsed_config)
+                        self.send(
+                            {"event": "confirm_success", "data": time() - configure_start_time}
+                        )
 
                     if message_type == "control":
                         json_data = message["body"]

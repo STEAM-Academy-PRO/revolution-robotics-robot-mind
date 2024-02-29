@@ -80,6 +80,9 @@ export default function ControllerView({
   createEffect(() => {
     conn()?.on(WSEventType.onMessage, (data) => {
       switch (data.event) {
+        case 'confirm_success':
+          sendControlMessage()
+          break
         case 'control_confirm':
           // Ready for the next control message.
           // console.log(data.data)
