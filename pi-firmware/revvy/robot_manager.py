@@ -95,6 +95,12 @@ class RobotManager:
 
         self.on(RobotEvent.MCU_TICK, lambda *args: self.process_autonomous_requests())
 
+        # When anything gets caught by the error handler, send a robot event,
+        # so all the connected interfaces get it!
+        revvy_error_handler.register_on_error_callback(
+            lambda error: self.trigger(RobotEvent.ERROR, error)
+        )
+
     def handle_periodic_control_message(self, message: RemoteControllerCommand):
         self._remote_controller_scheduler.periodic_control_message_handler(message)
 
@@ -431,21 +437,15 @@ class RobotManager:
 
     def _on_analog_script_error(self, *args):
         """Analog script errors run in separate thread, report them as System errors."""
-        error = revvy_error_handler.report_error(RobotErrorType.SYSTEM, traceback.format_exc())
-        self.trigger(RobotEvent.ERROR, error)
+        revvy_error_handler.report_error(RobotErrorType.SYSTEM, traceback.format_exc())
 
     def _on_bg_script_error(self, script_handle: ScriptHandle, exception: Exception):
 
-        bg_blockly_error = revvy_error_handler.report_error(
+        revvy_error_handler.report_error(
             RobotErrorType.BLOCKLY_BACKGROUND,
             traceback.format_exc(),
             script_handle.descriptor.ref_id,
         )
-
-        # We need to notify the connected devices about the error too.
-        # The above command adds the error to the queue, but as we are
-        # event driven now, we need the notification to be sent out.
-        self.trigger(RobotEvent.ERROR, bg_blockly_error)
 
         # Do it at the and as it's blocking.
         self._show_script_error(script_handle, exception)
@@ -460,12 +460,9 @@ class RobotManager:
             ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.ERROR),
         )
 
-        btn_blockly_error = revvy_error_handler.report_error(
+        revvy_error_handler.report_error(
             RobotErrorType.BLOCKLY_BUTTON, traceback.format_exc(), script_handle.descriptor.ref_id
         )
-
-        # Same as the above.
-        self.trigger(RobotEvent.ERROR, btn_blockly_error)
 
         # Do it at the and as it's blocking.
         self._show_script_error(script_handle, exception)

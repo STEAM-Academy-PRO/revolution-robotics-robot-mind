@@ -1,7 +1,8 @@
 from enum import IntEnum
 import sys
+from threading import current_thread
 import traceback
-from typing import Dict, List
+from typing import Callable, Dict, List
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.mcu_error import McuErrorReader
 
@@ -92,7 +93,11 @@ class ErrorHandler:
     def __init__(self):
         self._error_queue: List[RobotError] = []
         self._error_map: Dict[int, RobotError] = {}
+        self._on_error_callback: Callable = None
         # self.register_uncaught_exception_handler()
+
+    def register_on_error_callback(self, callback: Callable):
+        self._on_error_callback = callback
 
     def handle_uncaught_system_exception(self, exception_type, value, trace):
         """Log uncaught exceptions and put them in a queue for reporting."""
@@ -117,7 +122,7 @@ class ErrorHandler:
 
     def report_error(self, error_type: RobotErrorType, trace: str, ref: int = 0):
         """Send error to the queue up if it hasn't been posted already."""
-        new_robot_error = RobotError(error_type, trace, ref)
+        new_robot_error = RobotError(error_type, f"{trace} [{current_thread().name}]", ref)
         error_hash = new_robot_error.hash()
         if error_hash not in self._error_map:
             self._error_map[error_hash] = new_robot_error
@@ -127,6 +132,8 @@ class ErrorHandler:
             log("Error QUEUED")
         else:
             log("Caught error reported already, not reporting again.")
+        if self._on_error_callback:
+            self._on_error_callback(new_robot_error)
         return new_robot_error
 
     def read_mcu_errors(self, robot_control: RevvyControl):
@@ -143,4 +150,4 @@ class ErrorHandler:
             error_reader.clear()
 
 
-revvy_error_handler = ErrorHandler()
+revvy_error_handler: ErrorHandler = ErrorHandler()
