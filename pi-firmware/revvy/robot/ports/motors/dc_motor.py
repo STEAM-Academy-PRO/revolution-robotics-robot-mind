@@ -6,9 +6,11 @@ from typing import List, NamedTuple, Optional
 
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motors.base import MotorConstants, MotorStatus, MotorPortDriver
-from revvy.utils.awaiter import Awaiter, Awaiter
+from revvy.utils.awaiter import Awaiter
 from revvy.utils.functions import clip
 from revvy.utils.logger import LogLevel
+
+MOTOR_PACKET_SIZE_BYTES = 11
 
 
 class ThresholdKind(enum.IntEnum):
@@ -352,14 +354,14 @@ class DcMotorController(MotorPortDriver):
                     awaiter.cancel()
 
     def update_status(self, data) -> None:
-        if len(data) == 11:
+        if len(data) == MOTOR_PACKET_SIZE_BYTES:
             raw_status = struct.unpack("<bblfB", data)
             status, self._power, self._pos, self._speed, current_task = raw_status
 
             self._update_motor_status(MotorStatus(status), current_task)
             self.on_status_changed.trigger(self._port)
         else:
-            self.log(f"Received {len(data)} bytes of data instead of 10")
+            self.log(f"Received {len(data)} bytes of data instead of {MOTOR_PACKET_SIZE_BYTES}")
 
     def stop(self, action: int = MotorConstants.ACTION_RELEASE):
         self.log("stop")
