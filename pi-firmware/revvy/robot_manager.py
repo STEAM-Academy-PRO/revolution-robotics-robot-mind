@@ -349,6 +349,7 @@ class RobotManager:
         # set up remote controller
         for analog in config.controller.analog:
             script_handle = self._scripts.add_script(analog["script"], config)
+            script_handle.on(ScriptEvent.ERROR, self._on_analog_script_error)
             self._remote_controller.on_analog_values(
                 analog["channels"], partial(start_analog_script, script_handle)
             )
@@ -427,6 +428,11 @@ class RobotManager:
         self._robot.sound.play_tune("s_bug")
         time.sleep(2)
         self._robot.led.start_animation(RingLed.Off)
+
+    def _on_analog_script_error(self, *args):
+        """ Analog script errors run in separate thread, report them as System errors. """
+        error = revvy_error_handler.report_error(RobotErrorType.SYSTEM, traceback.format_exc())
+        self.trigger(RobotEvent.ERROR, error)
 
     def _on_bg_script_error(self, script_handle: ScriptHandle, exception: Exception):
 
