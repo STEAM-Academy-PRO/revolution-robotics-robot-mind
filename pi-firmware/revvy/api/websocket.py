@@ -8,6 +8,7 @@ import threading
 from time import time
 import traceback
 from revvy.api.camera import Camera
+from revvy.utils.error_reporter import RobotErrorType
 from revvy.utils.version import VERSION
 
 import websockets
@@ -167,10 +168,17 @@ class RobotWebSocketApi:
                         self.send({"event": "control_confirm", "data": json_data["0"]})
                 except Exception as e:
                     log(f"Loop failed: {message_type}: {e}")
-                    log(traceback.format_exc())
-                    self.send({"event": "ERROR", "data": f"{message_type}: {e}"})
-                # Send the received message back to the client
-                # await websocket.send(f"Received: {message_raw}")
+                    stack = traceback.format_exc()
+                    self.send(
+                        {
+                            "event": "error",
+                            "data": {
+                                "stack": f"{stack}\n{message_type}: {e}",
+                                "type": RobotErrorType.SYSTEM,
+                                "ref": 0,
+                            },
+                        }
+                    )
 
         except websockets.exceptions.ConnectionClosedError:
             pass  # Connection closed, ignore the error
@@ -181,6 +189,7 @@ class RobotWebSocketApi:
     def send(self, message):
         for ws in self._connections:
             try:
+                # log(f'msg: {message["event"]}')
                 asyncio.run_coroutine_threadsafe(ws.send(encode_data(message)), self._event_loop)
             except Exception as e:
                 log(f"send error {str(e)}", LogLevel.ERROR)

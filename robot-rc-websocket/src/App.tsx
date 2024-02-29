@@ -15,22 +15,22 @@ import { endpoint } from './settings';
 
 // Load default config as fallback.
 let defaultConfig: RobotConfig = DEFAULT_JSON as RobotConfig
-try { defaultConfig = JSON.parse(localStorage.getItem('config') || '') as RobotConfig || DEFAULT_JSON} catch (e){}
+try { defaultConfig = JSON.parse(localStorage.getItem('config') || '') as RobotConfig || DEFAULT_JSON } catch (e) { }
 
 function App() {
-  const [conn, setConn] = createSignal<SocketWrapper|null>(null)
+  const [conn, setConn] = createSignal<SocketWrapper | null>(null)
   const [connLoading, setConnLoading] = createSignal<boolean>(false)
   const [config, setConfig] = createSignal<RobotConfig>(defaultConfig);
   const [tab, setTab] = createSignal('configure')
 
-  const isActive = createMemo(()=>tab() === 'play')
+  const isActive = createMemo(() => tab() === 'play')
 
   // When switching to play mode, automatically upload the config!
-  createEffect(()=>{if (tab() === 'play') {uploadConfig(conn(), config())};})
+  // createEffect(()=>{if (tab() === 'play') {uploadConfig(conn(), config())};})
 
 
-  const connectOrDisconnect = ()=>{
-    if (conn()){
+  const connectOrDisconnect = () => {
+    if (conn()) {
       disconnect(conn, setConn)
     } else {
       connectToRobot(setConn, setConnLoading, endpoint, config)
@@ -44,29 +44,29 @@ function App() {
   });
 
   const menuItems = [{
-      id: 'configure',
-      label: 'Configure',
-      children: <ConfigurationView config={config} setConfig={setConfig} conn={conn} />
-    },
-    {
-      id: 'code',
-      label: 'Code',
-      children: <CodeView config={config} setConfig={setConfig} conn={conn} />
-    },
-    {
-      id: 'play',
-      label: 'Play',
-      children: <ControllerView conn={conn} isActive={isActive} endpoint={endpoint} config={config}/>
-    },
-    {
-      id: 'connect',
-      label: 'Connection',
-      children: <ConnectionView
-        connect={()=>connectToRobot(setConn, setConnLoading, endpoint, config)}
-        disconnect={()=>disconnect(conn, setConn)}
-        connection={conn}
-      />
-    }
+    id: 'configure',
+    label: 'Configure',
+    children: <ConfigurationView config={config} setConfig={setConfig} conn={conn} />
+  },
+  {
+    id: 'code',
+    label: 'Code',
+    children: <CodeView config={config} setConfig={setConfig} conn={conn} />
+  },
+  {
+    id: 'play',
+    label: 'Play',
+    children: <ControllerView conn={conn} isActive={isActive} endpoint={endpoint} config={config} />
+  },
+  {
+    id: 'connect',
+    label: 'Connection',
+    children: <ConnectionView
+      connect={() => connectToRobot(setConn, setConnLoading, endpoint, config)}
+      disconnect={() => disconnect(conn, setConn)}
+      connection={conn}
+    />
+  }
   ]
 
   return (
@@ -80,8 +80,8 @@ function App() {
             </li>
           )}
         </ul>
-        <div onClick={()=>connectOrDisconnect()} class={styles.clickable}>
-          {conn()?<>🟢</>:connLoading()?<>🟡</>:<>🔴</>}
+        <div onClick={() => connectOrDisconnect()} class={styles.clickable}>
+          {conn() ? <>🟢</> : connLoading() ? <>🟡</> : <>🔴</>}
         </div>
 
       </div>
