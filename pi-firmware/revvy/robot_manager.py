@@ -410,6 +410,7 @@ class RobotManager:
 
     def _show_script_error(self, script_handle: ScriptHandle, exception: Exception):
         """
+        Blocks thread for 2 seconds!
         On code execution error, do send visible signals
         to the user about the code being broken.
         """
@@ -440,6 +441,7 @@ class RobotManager:
         # event driven now, we need the notification to be sent out.
         self.trigger(RobotEvent.ERROR, bg_blockly_error)
 
+        # Do it at the and as it's blocking.
         self._show_script_error(script_handle, exception)
 
     def _on_script_error(self, script_handle: ScriptHandle, exception: Exception):
@@ -459,6 +461,7 @@ class RobotManager:
         # Same as the above.
         self.trigger(RobotEvent.ERROR, btn_blockly_error)
 
+        # Do it at the and as it's blocking.
         self._show_script_error(script_handle, exception)
 
     def _on_script_stopped(self, script_handle: ScriptHandle, data=None):
