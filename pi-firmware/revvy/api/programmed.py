@@ -1,7 +1,7 @@
 import copy
 from threading import Lock, Thread
 import time
-from revvy.robot.remote_controller import RemoteControllerCommand
+from revvy.robot.remote_controller import BleAutonomousCmd, RemoteControllerCommand
 from revvy.robot_config import RobotConfig
 from revvy.robot_manager import RevvyStatusCode, RobotManager
 from revvy.utils.logger import get_logger
@@ -15,7 +15,7 @@ class ProgrammedRobotController:
         self.message = RemoteControllerCommand(
             analog=bytearray([0] * 6),
             buttons=bytearray([0] * 32),
-            background_command=None,
+            background_command=BleAutonomousCmd.NONE,
             next_deadline=1,
         )
         self.lock = Lock()
