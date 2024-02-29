@@ -60,51 +60,12 @@ class ValidateConfigCharacteristic(Characteristic):
         return self._state
 
     def update_validate_config_result(self, state, motors_bitmask, sensors):
-
         self._state = state
         self._value = struct.pack(
             "BBBBBB", state, motors_bitmask, sensors[0], sensors[1], sensors[2], sensors[3]
         )
 
         log("validate_config::update:", self._value)
-
-
-class CustomBatteryLevelCharacteristic(Characteristic):
-    """Custom battery service that contains 2 characteristics"""
-
-    def __init__(self, uuid, description):
-        super().__init__(
-            {
-                "uuid": uuid,
-                "properties": ["read", "notify"],
-                "value": None,  # needs to be None because characteristic is not constant value
-                "descriptors": [Descriptor({"uuid": "2901", "value": description})],
-            }
-        )
-
-        self._updateValueCallback = None
-        self._value = 99  # initial value only
-
-    def onReadRequest(self, offset, callback):
-        if offset:
-            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
-        else:
-            callback(Characteristic.RESULT_SUCCESS, [self._value])
-
-    def onSubscribe(self, maxValueSize, updateValueCallback):
-        self._updateValueCallback = updateValueCallback
-
-    def onUnsubscribe(self):
-        self._updateValueCallback = None
-
-    def update_value(self, value):
-        if self._value == value:  # don't update if there is no change
-            return
-        self._value = value
-
-        update_value_callback = self._updateValueCallback
-        if update_value_callback:
-            update_value_callback([value])
 
 
 class BackgroundProgramControlCharacteristic(Characteristic):
@@ -395,7 +356,26 @@ class LongMessageCharacteristic(Characteristic):
             callback(result)
 
 
-class UnifiedBatteryInfoCharacteristic(CustomBatteryLevelCharacteristic):
+class UnifiedBatteryInfoCharacteristic(Characteristic):
+    def __init__(self, uuid, description):
+        super().__init__(
+            {
+                "uuid": uuid,
+                "properties": ["read", "notify"],
+                "value": None,  # needs to be None because characteristic is not constant value
+                "descriptors": [Descriptor({"uuid": "2901", "value": description})],
+            }
+        )
+
+        self._updateValueCallback = None
+        self._value = [0, 0, 0, 0]  # initial value only
+
+    def onSubscribe(self, maxValueSize, updateValueCallback):
+        self._updateValueCallback = updateValueCallback
+
+    def onUnsubscribe(self):
+        self._updateValueCallback = None
+
     def onReadRequest(self, offset, callback):
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
