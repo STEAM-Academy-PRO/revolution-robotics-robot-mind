@@ -122,7 +122,7 @@ class ErrorHandler:
 
     def report_error(self, error_type: RobotErrorType, trace: str, ref: int = 0):
         """Send error to the queue up if it hasn't been posted already."""
-        new_robot_error = RobotError(error_type, trace + f" [{current_thread().name}]", ref)
+        new_robot_error = RobotError(error_type, f"{trace} [{current_thread().name}]", ref)
         error_hash = new_robot_error.hash()
         if error_hash not in self._error_map:
             self._error_map[error_hash] = new_robot_error
