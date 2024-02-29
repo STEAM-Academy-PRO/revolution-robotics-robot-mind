@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 from revvy.utils.logger import Logger
-from tests.hil_test_utils.runner import run_test_scenarios
+from tests.hil_tests.hil_test_utils.runner import run_test_scenarios
 
 from revvy.api.programmed import ProgrammedRobotController
 from revvy.robot.robot_events import RobotEvent

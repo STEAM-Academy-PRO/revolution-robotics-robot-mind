@@ -1,6 +1,12 @@
 import traceback
 from revvy.utils.logger import LogLevel, get_logger, Logger
-from tests.hil_test_utils.log import install_memory_logger, take_messages, red, green, clear_logs
+from tests.hil_tests.hil_test_utils.log import (
+    install_memory_logger,
+    take_messages,
+    red,
+    green,
+    clear_logs,
+)
 
 # Grab a logger factory before we overwrite the function
 get_printing_logger = get_logger

@@ -48,7 +48,7 @@ ssh $USER@$HOST "sudo systemctl stop revvy"
 # For debug mode, run ./debug 1
 if [ "$#" -ge 1 ] && [ "$1" -eq 1 ]; then
 
-    DEBUG_RUNNER="cd $TARGET && python3 -u -m debugpy --listen 0.0.0.0:$DEBUG_PORT --wait-for-client -m tests.hil_tests >/dev/null 2>&1 & "
+    DEBUG_RUNNER="cd $TARGET && python3 -u -m debugpy --listen 0.0.0.0:$DEBUG_PORT --wait-for-client -m tests.hil_tests.tests >/dev/null 2>&1 & "
 
     # As netstat -tnlp requires sudo permissions, it'll show a warning
     # as we are not running it with sudo on the stderr stream.
@@ -68,7 +68,7 @@ if [ "$#" -ge 1 ] && [ "$1" -eq 1 ]; then
     ssh $USER@$HOST $WAIT_FOR_DEBUGGER
 else
     # Simple deploy, no debugger: just start running, do not wait for debugger.
-    RUNNER="cd $TARGET && python3 -u -m tests.hil_tests"
+    RUNNER="cd $TARGET && python3 -u -m tests.hil_tests.tests"
     ssh $USER@$HOST $RUNNER
 fi
 
