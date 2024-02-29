@@ -46,7 +46,6 @@ class RevvyTransportI2C(RevvyTransportBase):
     def __init__(self, bus):
         log(f"Opening I2C bus: {bus}", LogLevel.DEBUG)
         self._bus = SMBus(bus)
-        time.sleep(1)
 
     def _bind(self, address):
         return RevvyTransport(RevvyTransportI2CDevice(address, self))
