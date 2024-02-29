@@ -203,19 +203,19 @@ class RobotManager:
 
         self._log("Connection to MCU established")
         self._robot.status.robot_status = RobotStatus.NotConfigured
-        self._robot.play_tune("robot2")
+        self._robot.play_tune("s_bootup")
 
     def on_connected(self, device_name):
         """When interface connects"""
         self._log(f"{device_name} device connected!")
         self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
-        self._robot.play_tune("bell")
+        self._robot.play_tune("s_connect")
 
     def on_disconnected(self):
         """Reset, play tune"""
         self._log("Device disconnected!")
         self._robot.status.controller_status = RemoteControllerStatus.NotConnected
-        self._robot.play_tune("disconnect")
+        self._robot.play_tune("s_disconnect")
         self.reset_configuration()
 
     def on_connection_changed(self, is_connected):
@@ -424,7 +424,7 @@ class RobotManager:
 
         # Brain bug LED effect with "uh oh" sound.
         self._robot.led.start_animation(RingLed.Bug)
-        self._robot.sound.play_tune("uh_oh")
+        self._robot.sound.play_tune("s_bug")
         time.sleep(2)
         self._robot.led.start_animation(RingLed.Off)
 
