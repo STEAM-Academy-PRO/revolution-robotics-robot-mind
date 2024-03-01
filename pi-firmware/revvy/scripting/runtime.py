@@ -92,6 +92,10 @@ class ScriptHandle(Emitter[ScriptEvent]):
     def is_running(self):
         return self._thread.is_running
 
+    @property
+    def priority(self) -> int:
+        return self.descriptor.priority
+
     def assign(self, name, value):
         self._globals[name] = value
 
@@ -174,7 +178,7 @@ class ScriptManager:
             # Note: Due to dependency injection, this is wrapped out.
             # FIXME the lint ignore shouldn't be there. Fix tests.
             interface = robot_wrapper_class(
-                script_handle, self._robot, config, self._robot.resources, script.priority  # type: ignore tests pass a None and a mock wrapper
+                script_handle, self._robot, config, self._robot.resources  # type: ignore tests pass a None and a mock wrapper
             )
             script_handle.on_stopping(interface.release_resources)
             script_handle.on_stopped(interface.release_resources)

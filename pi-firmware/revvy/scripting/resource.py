@@ -25,6 +25,7 @@ class NullHandle:
         pass
 
 
+# We return this if the resource is not available, but... why?
 null_handle = NullHandle()
 
 
@@ -71,6 +72,12 @@ class ResourceHandle:
 
 
 class Resource:
+    """
+    A global token that symbolizes some shared hardware element, implementing priority-based access.
+
+    Resources need to be bound to scripts before they can be accessed.
+    """
+
     def __init__(self, name: Union[str, List[str]] = "Resource"):
         self._lock = Lock()
         self._log = get_logger(name, LogLevel.DEBUG)

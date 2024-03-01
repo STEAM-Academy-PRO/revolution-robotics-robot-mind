@@ -19,7 +19,7 @@ from math import floor, sqrt
 from numbers import Number
 from enum import Enum
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 # # To have types, use this to avoid circular dependencies.
 if TYPE_CHECKING:
@@ -81,9 +81,18 @@ def user_to_sensor_channel(user_channel: UserScriptRGBChannel) -> RGBChannelSens
 
 
 class ResourceWrapper:
-    def __init__(self, resource: Resource, priority=0):
+    """Controls a particular resource at a given priority.
+
+    By themselves, resources do not implement any peripheral functionality, they just control
+    their shared access. A single resource can be bound to multiple priorities using multiple
+    ResourceWrapper classes, then the priority-bound resource can be shared between multiple
+    scripts."""
+
+    # TODO: the priority is the script's priority, so we may want to move this class into Wrapper
+    # to remove a level of indirection.
+    def __init__(self, resource: Resource, script: "ScriptHandle"):
         self._resource = resource
-        self._priority = priority
+        self._priority = script.priority
         self._current_handle = None
 
     def _release_handle(self) -> None:
@@ -108,13 +117,15 @@ class ResourceWrapper:
             handle.interrupt()
 
 
-class Wrapper:
+class Wrapper(ABC):
+    """Binds a resource to a script and provides a way to use it.
+
+    Inside a resource wrapper, we may need to access the scripting environment. This base class
+    provides this access and also exposes the priority management of the resource."""
+
     def __init__(self, script: "ScriptHandle", resource: ResourceWrapper):
         self._resource = resource
         self._script = script
-
-    def sleep(self, s: float):
-        self._script.sleep(s)
 
     def try_take_resource(self, callback=None):
         if self._script.is_stop_requested:
@@ -144,7 +155,12 @@ class SensorPortWrapper(Wrapper):
         "RGB": Sensors.SofteqCS,
     }
 
-    def __init__(self, script, sensor: PortInstance[SensorPortDriver], resource: ResourceWrapper):
+    def __init__(
+        self,
+        script: "ScriptHandle",
+        sensor: PortInstance[SensorPortDriver],
+        resource: ResourceWrapper,
+    ):
         super().__init__(script, resource)
         self._sensor = sensor
 
@@ -160,7 +176,7 @@ class SensorPortWrapper(Wrapper):
             raise InterruptedError
 
         while not self._sensor.driver.has_data:
-            self.sleep(0.1)
+            self._script.sleep(0.1)
 
         return self._sensor.driver.value
 
@@ -183,7 +199,7 @@ def color_string_to_rgb(color_string):
 class RingLedWrapper(Wrapper):
     """Wrapper class to expose LED ring to user scripts"""
 
-    def __init__(self, script, ring_led: RingLed, resource: ResourceWrapper):
+    def __init__(self, script: "ScriptHandle", ring_led: RingLed, resource: ResourceWrapper):
         super().__init__(script, resource)
         self._ring_led = ring_led
         self._user_leds = [0] * ring_led.count
@@ -195,21 +211,11 @@ class RingLedWrapper(Wrapper):
     def start_animation(self, scenario):
         self.using_resource(partial(self._ring_led.start_animation, scenario))
 
-    def set(self, leds: list, color):
-        """Instead of just failing, use the MOD if an LED index is out of range"""
-
-        # print(f'RingLedWrapper: set leds:{leds}, color:{color}')
-        # def out_of_range(led_idx):
-        #     return not 0 < led_idx <= len(self._user_leds)
-
-        # if any(map(out_of_range, leds)):
-        #     raise IndexError(f'Led index must be between 1 and {len(self._user_leds)}')
-
+    def set(self, leds: List[int], color):
         rgb = color_string_to_rgb(color)
 
         for idx in leds:
-            index = (floor(idx) - 1) % len(self._user_leds)
-            # log(f'led {idx} = {index} col {rgb} len {len(self._user_leds)}')
+            index = (idx - 1) % len(self._user_leds)
             self._user_leds[index] = rgb
 
         self.using_resource(partial(self._ring_led.display_user_frame, self._user_leds))
@@ -246,12 +252,10 @@ class MotorPortWrapper(Wrapper):
     def pos(self, val):
         self._motor.pos = val
 
-    def log(self, message):
-        self._log(message)
-
     def configure(self, config):
+        # TODO: do we even expose this to blockly?
         if type(config) is str:
-            self.log("Warning: Using deprecated named motor configuration")
+            self._log("Warning: Using deprecated named motor configuration")
             config = self._named_configurations[config]
 
         if self._script.is_stop_requested:
@@ -260,7 +264,9 @@ class MotorPortWrapper(Wrapper):
         self._motor.configure(config)
 
     def move(self, direction, amount, unit_amount, limit, unit_limit):
-        self.log("move")
+        self._log("move")
+
+        # convert complete rotations to degrees
         if unit_amount == MotorConstants.UNIT_ROT:
             unit_amount = MotorConstants.UNIT_DEG
             amount *= 360
@@ -299,13 +305,13 @@ class MotorPortWrapper(Wrapper):
         awaiter = None
 
         def _interrupted():
-            self.log("interrupted")
+            self._log("interrupted")
             if awaiter:
                 awaiter.cancel()
 
         with self.try_take_resource(_interrupted) as resource:
             if resource:
-                self.log("start movement")
+                self._log("start movement")
                 awaiter = resource.run_uninterruptable(set_fns[unit_amount][unit_limit][direction])
 
                 if unit_amount == MotorConstants.UNIT_DEG:
@@ -313,13 +319,13 @@ class MotorPortWrapper(Wrapper):
                     awaiter.wait()
 
                 elif unit_amount == MotorConstants.UNIT_SEC:
-                    self.sleep(amount)
+                    self._script.sleep(amount)
                     resource.run_uninterruptable(partial(self._motor.driver.set_power, 0))
-                self.log("movement finished")
+                self._log("movement finished")
 
     def spin(self, direction, rotation, unit_rotation):
         # start moving depending on limits
-        self.log("spin")
+        self._log("spin")
         set_speed_fns = {
             MotorConstants.UNIT_SPEED_RPM: {
                 MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_speed(rotation),
@@ -366,7 +372,7 @@ def wrap_sync_method(owner: Wrapper, method):
 
 
 class DriveTrainWrapper(Wrapper):
-    def __init__(self, script, drivetrain, resource: ResourceWrapper):
+    def __init__(self, script: "ScriptHandle", drivetrain, resource: ResourceWrapper):
         super().__init__(script, resource)
         self.__drivetrain = drivetrain
         self.turn = wrap_async_method(self, self.__drivetrain.turn)
@@ -400,7 +406,7 @@ class DriveTrainWrapper(Wrapper):
 
 
 class SoundWrapper(Wrapper):
-    def __init__(self, script, sound: Sound, resource: ResourceWrapper):
+    def __init__(self, script: "ScriptHandle", sound: Sound, resource: ResourceWrapper):
         super().__init__(script, resource)
         self._sound = sound
 
@@ -743,9 +749,10 @@ class RobotWrapper(RobotInterface):
         robot: RobotInterface,
         config: "RobotConfig",
         resources: dict,
-        priority=0,
     ):
-        self._resources = {name: ResourceWrapper(resources[name], priority) for name in resources}
+        # Bind resources to priorities. TODO: this really shouldn't be necessary, we should
+        # implement this in the wrapper classes.
+        self._resources = {name: ResourceWrapper(resources[name], script) for name in resources}
         self._robot = robot
 
         motor_wrappers = [
@@ -826,6 +833,8 @@ class RobotWrapper(RobotInterface):
         base_speed=0.03,
         stop_line=0,
     ):
+        # TODO: if anything, line following is a builtin script, not a robot API.
+        # Maybe there's an issue trying to control all this from blockly?
         if direction:
             base_speed = -base_speed
         self._drivetrain.set_speeds(
