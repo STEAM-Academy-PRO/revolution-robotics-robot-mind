@@ -10,7 +10,6 @@ from revvy.scripting.robot_interface import (
     MotorPortWrapper,
     RingLedWrapper,
     PortCollection,
-    ResourceWrapper,
 )
 
 
@@ -21,10 +20,11 @@ class TestRingLed(unittest.TestCase):
         led_mock.display_user_frame = Mock()
         led_mock.count = 6
 
-        led_resource = ResourceWrapper(Resource(), 0)
-
         script = Mock()
         script.is_stop_requested = False
+        script.priority = 0
+
+        led_resource = Resource()
 
         rw = RingLedWrapper(script, led_mock, led_resource)
         rw.set(leds=[-50], color="#112233")
@@ -41,10 +41,11 @@ class TestRingLed(unittest.TestCase):
         led_mock.display_user_frame = Mock()
         led_mock.count = 6
 
-        led_resource = ResourceWrapper(Resource(), 0)
-
         script = Mock()
         script.is_stop_requested = False
+        script.priority = 0
+
+        led_resource = Resource()
 
         rw = RingLedWrapper(script, led_mock, led_resource)
         rw.set(leds=[1], color="#112233")
@@ -86,6 +87,7 @@ class TestMotorPortWrapper(unittest.TestCase):
         mock_script = Mock()
         mock_script.is_stop_requested = False
         mock_script.log = get_logger("MockLogger")
+        mock_script.priority = 0
 
         mock_port = PortInstance(
             0,
@@ -96,6 +98,6 @@ class TestMotorPortWrapper(unittest.TestCase):
             Mock(),
         )
 
-        wrapper = MotorPortWrapper(mock_script, mock_port, ResourceWrapper(Resource()))
+        wrapper = MotorPortWrapper(mock_script, mock_port, Resource())
 
         wrapper.stop(action=MotorConstants.ACTION_RELEASE)

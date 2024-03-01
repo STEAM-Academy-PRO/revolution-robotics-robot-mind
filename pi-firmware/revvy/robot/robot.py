@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from functools import partial
 from typing import Callable, NamedTuple
 import time
@@ -104,6 +103,7 @@ class Robot(RobotInterface):
         self.update_status = self._status_updater.read
         self.ping = self._robot_control.ping
 
+        # We implement priority-based interruption and access of these resources:
         self._resources = {
             "led_ring": Resource("RingLed"),
             "drivetrain": Resource("DriveTrain"),
