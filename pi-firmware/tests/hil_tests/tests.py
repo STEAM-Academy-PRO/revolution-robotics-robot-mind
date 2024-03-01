@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 from revvy.utils.logger import Logger
 from tests.hil_tests.hil_test_utils.runner import run_test_scenarios
 
@@ -12,8 +10,7 @@ from revvy.utils.functions import b64_encode_str
 
 
 def can_play_sound(log: Logger, controller: ProgrammedRobotController):
-    """A demo script that plays a sound when a button is pressed."""
-    config = RobotConfig()
+    """A demo test case that configures a script to play a sound when a remote controller button is pressed."""
 
     def fail_on_script_error(*e) -> None:
         # In this test, if we encounter an error, let's just stop and exit
@@ -21,6 +18,7 @@ def can_play_sound(log: Logger, controller: ProgrammedRobotController):
 
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
 
+    config = RobotConfig()
     config.process_script(
         {
             "assignments": {"buttons": [{"id": 1, "priority": 0}]},
