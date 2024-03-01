@@ -433,9 +433,7 @@ class RobotManager:
 
         # Brain bug LED effect with "uh oh" sound.
         self._robot.led.start_animation(RingLed.Bug)
-        finished = Event()
-        self._robot.sound.play_tune("s_bug", lambda: finished.set())
-        finished.wait()
+        self._robot.sound.play_tune_blocking("s_bug")
         self._robot.led.start_animation(RingLed.Off)
 
     def _on_analog_script_error(self, *args):

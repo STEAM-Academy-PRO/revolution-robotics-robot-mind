@@ -169,7 +169,7 @@ class Robot(RobotInterface):
         return self._ring_led
 
     @property
-    def sound(self):
+    def sound(self) -> Sound:
         return self._sound
 
     def play_tune(self, name):
