@@ -1,6 +1,6 @@
+from enum import Enum
 from numbers import Number
 import time
-import copy
 
 from threading import Event
 import traceback
@@ -25,7 +25,7 @@ class RemoteControllerCommand(NamedTuple):
 log = get_logger("RemoteController")
 
 
-class BleAutonomousCmd:
+class BleAutonomousCmd(Enum):
     NONE = 0
     START = 10
     PAUSE = 11
@@ -33,60 +33,25 @@ class BleAutonomousCmd:
     RESET = 13
 
 
-class AutonomousModeRequest:
+class AutonomousModeRequest(Enum):
     NONE = 0
     STOP = 1
     START = 2
     PAUSE = 3
     RESUME = 4
 
-    def __init__(self):
-        self.__state = AutonomousModeRequest.NONE
 
-    def set_start_request(self):
-        self.__state = AutonomousModeRequest.START
-
-    def set_stop_request(self):
-        self.__state = AutonomousModeRequest.STOP
-
-    def set_pause_request(self):
-        self.__state = AutonomousModeRequest.PAUSE
-
-    def set_resume_request(self):
-        self.__state = AutonomousModeRequest.RESUME
-
-    def is_start_pending(self):
-        return self.__state == AutonomousModeRequest.START
-
-    def is_stop_pending(self):
-        return self.__state == AutonomousModeRequest.STOP
-
-    def is_pause_pending(self):
-        return self.__state == AutonomousModeRequest.PAUSE
-
-    def is_resume_pending(self):
-        return self.__state == AutonomousModeRequest.RESUME
-
-    def clear_pending(self):
-        self.__state = AutonomousModeRequest.NONE
-
-
-class ButtonHandler:
+class ButtonHandler(NamedTuple):
     id: Number
     script: ScriptHandle
     last_button_value: bool
-
-    def __init__(self, id, script, last_button_value):
-        self.id = id
-        self.script = script
-        self.last_button_value = last_button_value
 
 
 class RemoteController:
 
     def __init__(self):
         self._background_control_state = BackgroundControlState.STOPPED
-        self._control_button_pressed = AutonomousModeRequest()
+        self._control_button_pressed = AutonomousModeRequest.NONE
 
         self._analogActions = []  # ([channel], callback) pairs
         # the last analog values, used to compare if a callback needs to be fired
@@ -135,15 +100,35 @@ class RemoteController:
         self._joystick_mode = False
 
     def process_background_command(self, cmd: int):
+        # TODO: (╯°□°）╯︵ ┻━┻
+        # Processes the autonomous command, sets up a bunch of state and flags
+        # The actual autonomous command is then handled by the MCU_TICK event, which is nonsense.
+        # Additionally, the state should not be equal to the last command immediately.
         if cmd == BleAutonomousCmd.START:
             log(f"start background program: {cmd}")
-            self.start_background_functions()
+            self._background_control_state = BackgroundControlState.RUNNING
+            self._control_button_pressed = AutonomousModeRequest.START
+            if not self._joystick_mode:
+                self._processing = True
+                self._processing_time = 0.0
+                self._previous_time = time.time()
         elif cmd == BleAutonomousCmd.PAUSE:
-            self.pause_background_functions()
+            self._background_control_state = BackgroundControlState.PAUSED
+            self._control_button_pressed = AutonomousModeRequest.PAUSE
+            self.timer_increment()
+            self._processing = False
+            self._previous_time = None
         elif cmd == BleAutonomousCmd.RESUME:
-            self.resume_background_functions()
+            self._background_control_state = BackgroundControlState.RUNNING
+            self._control_button_pressed = AutonomousModeRequest.RESUME
+            self._processing = True
+            self._previous_time = time.time()
         elif cmd == BleAutonomousCmd.RESET:
-            self.reset_background_functions()
+            self._background_control_state = BackgroundControlState.STOPPED
+            self._control_button_pressed = AutonomousModeRequest.STOP
+            self._processing = False
+            self._processing_time = 0.0
+            self._previous_time = None
 
     def process_analog_command(self, analog_cmd: bytearray):
         """
@@ -229,38 +214,12 @@ class RemoteController:
     def link_button_to_runner(self, button_id, script_handle: ScriptHandle):
         log(f"registering callbacks for Button: {button_id}")
         log(script_handle.descriptor.source, LogLevel.DEBUG)
-        self._button_handlers.append(ButtonHandler(button_id, script_handle, False))
+        self._button_handlers.append(
+            ButtonHandler(id=button_id, script=script_handle, last_button_value=False)
+        )
 
     def on_analog_values(self, channels, action):
         self._analogActions.append((channels, action))
-
-    def start_background_functions(self):
-        self._background_control_state = BackgroundControlState.RUNNING
-        self._control_button_pressed.set_start_request()
-        if not self._joystick_mode:
-            self._processing = True
-            self._processing_time = 0.0
-            self._previous_time = time.time()
-
-    def reset_background_functions(self):
-        self._background_control_state = BackgroundControlState.STOPPED
-        self._control_button_pressed.set_stop_request()
-        self._processing = False
-        self._processing_time = 0.0
-        self._previous_time = None
-
-    def pause_background_functions(self):
-        self._background_control_state = BackgroundControlState.PAUSED
-        self._control_button_pressed.set_pause_request()
-        self.timer_increment()
-        self._processing = False
-        self._previous_time = None
-
-    def resume_background_functions(self):
-        self._background_control_state = BackgroundControlState.RUNNING
-        self._control_button_pressed.set_resume_request()
-        self._processing = True
-        self._previous_time = time.time()
 
     def timer_increment(self):
         if self._processing:
@@ -276,9 +235,9 @@ class RemoteController:
     def background_control_state(self) -> BackgroundControlState:
         return self._background_control_state
 
-    def fetch_autonomous_requests(self):
-        result = copy.copy(self._control_button_pressed)
-        self._control_button_pressed.clear_pending()
+    def take_autonomous_requests(self):
+        result = self._control_button_pressed
+        self._control_button_pressed = AutonomousModeRequest.NONE
         return result
 
 
