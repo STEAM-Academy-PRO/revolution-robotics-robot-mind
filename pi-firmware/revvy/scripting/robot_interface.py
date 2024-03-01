@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING, List
 if TYPE_CHECKING:
     from revvy.scripting.runtime import ScriptHandle
     from revvy.robot_config import RobotConfig
+    from revvy.robot.drivetrain import DifferentialDrivetrain
 
 
 from revvy.robot.configurations import Motors, Sensors
@@ -123,8 +124,8 @@ class Wrapper(ABC):
     Inside a resource wrapper, we may need to access the scripting environment. This base class
     provides this access and also exposes the priority management of the resource."""
 
-    def __init__(self, script: "ScriptHandle", resource: ResourceWrapper):
-        self._resource = resource
+    def __init__(self, script: "ScriptHandle", resource: Resource):
+        self._resource = ResourceWrapper(resource, script)
         self._script = script
 
     def try_take_resource(self, callback=None):
@@ -143,11 +144,15 @@ class Wrapper(ABC):
             with resource_ctx as resource:
                 callback(resource)
 
+    def force_release_resource(self):
+        self._resource.release()
+
 
 class SensorPortWrapper(Wrapper):
     """Wrapper class to expose sensor ports to user scripts"""
 
     # TODO: move these to configurations.py
+    # FIXME: are they even used?
     _named_configurations = {
         "NotConfigured": None,
         "BumperSwitch": Sensors.BumperSwitch,
@@ -159,7 +164,7 @@ class SensorPortWrapper(Wrapper):
         self,
         script: "ScriptHandle",
         sensor: PortInstance[SensorPortDriver],
-        resource: ResourceWrapper,
+        resource: Resource,
     ):
         super().__init__(script, resource)
         self._sensor = sensor
@@ -199,7 +204,7 @@ def color_string_to_rgb(color_string):
 class RingLedWrapper(Wrapper):
     """Wrapper class to expose LED ring to user scripts"""
 
-    def __init__(self, script: "ScriptHandle", ring_led: RingLed, resource: ResourceWrapper):
+    def __init__(self, script: "ScriptHandle", ring_led: RingLed, resource: Resource):
         super().__init__(script, resource)
         self._ring_led = ring_led
         self._user_leds = [0] * ring_led.count
@@ -238,7 +243,7 @@ class MotorPortWrapper(Wrapper):
         self,
         script: "ScriptHandle",
         motor: PortInstance[MotorPortDriver],
-        resource: ResourceWrapper,
+        resource: Resource,
     ):
         super().__init__(script, resource)
         self._log = get_logger(["MotorPortWrapper", f"{motor.id}"], base=script.log)
@@ -372,7 +377,9 @@ def wrap_sync_method(owner: Wrapper, method):
 
 
 class DriveTrainWrapper(Wrapper):
-    def __init__(self, script: "ScriptHandle", drivetrain, resource: ResourceWrapper):
+    def __init__(
+        self, script: "ScriptHandle", drivetrain: "DifferentialDrivetrain", resource: Resource
+    ):
         super().__init__(script, resource)
         self.__drivetrain = drivetrain
         self.turn = wrap_async_method(self, self.__drivetrain.turn)
@@ -406,7 +413,7 @@ class DriveTrainWrapper(Wrapper):
 
 
 class SoundWrapper(Wrapper):
-    def __init__(self, script: "ScriptHandle", sound: Sound, resource: ResourceWrapper):
+    def __init__(self, script: "ScriptHandle", sound: Sound, resource: Resource):
         super().__init__(script, resource)
         self._sound = sound
 
@@ -675,8 +682,8 @@ class PortCollection:
     Used by blockly to access ports by mobile-configured names.
     """
 
-    def __init__(self, ports):
-        self._ports = list(ports)
+    def __init__(self, ports: List[Wrapper]):
+        self._ports = ports
         self._alias_map = {}
 
     @property
@@ -750,30 +757,24 @@ class RobotWrapper(RobotInterface):
         config: "RobotConfig",
         resources: dict,
     ):
-        # Bind resources to priorities. TODO: this really shouldn't be necessary, we should
-        # implement this in the wrapper classes.
-        self._resources = {name: ResourceWrapper(resources[name], script) for name in resources}
         self._robot = robot
 
         motor_wrappers = [
-            MotorPortWrapper(script, port, self._resources[f"motor_{port.id}"])
-            for port in robot.motors
+            MotorPortWrapper(script, port, resources[f"motor_{port.id}"]) for port in robot.motors
         ]
         self._motors = PortCollection(motor_wrappers)
         self._motors.aliases.update(config.motors.names)
 
         sensor_wrappers = [
-            SensorPortWrapper(script, port, self._resources[f"sensor_{port.id}"])
+            SensorPortWrapper(script, port, resources[f"sensor_{port.id}"])
             for port in robot.sensors
         ]
         self._sensors = PortCollection(sensor_wrappers)
         self._sensors.aliases.update(config.sensors.names)
 
-        self._sound = SoundWrapper(script, robot.sound, self._resources["sound"])
-        self._ring_led = RingLedWrapper(script, robot.led, self._resources["led_ring"])
-        self._drivetrain = DriveTrainWrapper(
-            script, robot.drivetrain, self._resources["drivetrain"]
-        )
+        self._sound = SoundWrapper(script, robot.sound, resources["sound"])
+        self._ring_led = RingLedWrapper(script, robot.led, resources["led_ring"])
+        self._drivetrain = DriveTrainWrapper(script, robot.drivetrain, resources["drivetrain"])
 
         self._script = script
 
@@ -784,8 +785,18 @@ class RobotWrapper(RobotInterface):
         self.time = robot.time
 
     def release_resources(self, none=None):
-        for res in self._resources.values():
-            res.release()
+        # Sensor wrappers
+        for sensor in self._sensors:
+            sensor.force_release_resource()
+
+        # Motor wrappers
+        for sensor in self._motors:
+            sensor.force_release_resource()
+
+        # Others
+        self._sound.force_release_resource()
+        self._ring_led.force_release_resource()
+        self._drivetrain.force_release_resource()
 
     def time(self):
         return self._robot.time
