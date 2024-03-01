@@ -14,6 +14,7 @@ from threading import Event
 
 from revvy.robot.robot import Robot
 from revvy.robot.remote_controller import (
+    AutonomousModeRequest,
     RemoteController,
     RemoteControllerCommand,
     RemoteControllerScheduler,
@@ -160,14 +161,14 @@ class RobotManager:
     # be linked with the robot's state handler.
     def process_autonomous_requests(self):
         if self._autonomous == "ready":
-            req = self.remote_controller.fetch_autonomous_requests()
-            if req.is_start_pending():
+            req = self.remote_controller.take_autonomous_requests()
+            if req == AutonomousModeRequest.START:
                 self._bg_controlled_scripts.start_all_scripts()
-            elif req.is_pause_pending():
+            elif req == AutonomousModeRequest.PAUSE:
                 self._bg_controlled_scripts.pause_all_scripts()
-            elif req.is_stop_pending():
+            elif req == AutonomousModeRequest.STOP:
                 self._bg_controlled_scripts.stop_all_scripts()
-            elif req.is_resume_pending():
+            elif req == AutonomousModeRequest.RESUME:
                 self._bg_controlled_scripts.resume_all_scripts()
 
     @property
