@@ -186,7 +186,7 @@ class SensorPortWrapper(Wrapper):
         return self._sensor.driver.value
 
 
-def color_string_to_rgb(color_string):
+def color_string_to_rgb(color_string: str):
     """Interface can accept colot_string in several formats
     this can be a hex value like #or actual color name like 'red' or 'black'"""
 
@@ -197,6 +197,7 @@ def color_string_to_rgb(color_string):
     if color_string.startswith("#"):
         return hex2rgb(color_string)
 
+    # TODO: throw an exception?
     print(f"Color string format not recognised: {color_string}")
     return None
 

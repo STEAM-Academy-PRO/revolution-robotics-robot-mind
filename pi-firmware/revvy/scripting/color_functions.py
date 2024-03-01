@@ -32,7 +32,7 @@ color_name_map = {
 }
 
 
-def color_name_to_rgb(color_name):
+def color_name_to_rgb(color_name: str):
     try:
         return color_name_map[color_name]
     except KeyError:
