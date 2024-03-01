@@ -219,13 +219,13 @@ class ThreadContext:
         self.stop = thread.stop
         self.on_stopped = thread.on_stop_requested
 
-    def sleep(self, s):
+    def sleep(self, s: float):
         if self._stop_event.wait(s):
             raise InterruptedError
         self._pause_event.wait()
 
     @property
-    def stop_requested(self):
+    def stop_requested(self) -> bool:
         return self._stop_event.is_set()
 
 

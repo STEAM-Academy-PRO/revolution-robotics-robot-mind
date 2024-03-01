@@ -113,7 +113,7 @@ class Wrapper:
         self._resource = resource
         self._script = script
 
-    def sleep(self, s):
+    def sleep(self, s: float):
         self._script.sleep(s)
 
     def try_take_resource(self, callback=None):
@@ -122,10 +122,10 @@ class Wrapper:
 
         return self._resource.request(callback)
 
-    def using_resource(self, callback):
+    def using_resource(self, callback) -> None:
         self.if_resource_available(lambda res: res.run_uninterruptable(callback))
 
-    def if_resource_available(self, callback):
+    def if_resource_available(self, callback) -> None:
         # If the resource is not available, try_take_resource returns None.
         resource_ctx = self.try_take_resource()
         if resource_ctx:
@@ -407,16 +407,16 @@ class SoundWrapper(Wrapper):
         self.set_volume = sound.set_volume
         self._is_playing = False
 
-    def _sound_finished(self):
+    def _sound_finished(self) -> None:
         # this runs on a different thread independent of the script
         self._is_playing = False
 
-    def _play(self, name):
+    def _play(self, name: str):
         if not self._is_playing:
             self._is_playing = True  # one sound per thread at the same time
             self._sound.play_tune(name, self._sound_finished)
 
-    def play_tune(self, name):
+    def play_tune(self, name: str):
         # immediately releases resource after starting the playback
         self.if_resource_available(lambda _: self._play(name))
 

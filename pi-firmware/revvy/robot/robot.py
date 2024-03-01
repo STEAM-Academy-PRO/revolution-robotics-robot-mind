@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from functools import partial
 from typing import Callable, NamedTuple
+import time
 
 from revvy.hardware_dependent.sound import SoundControlV1, SoundControlV2
 from revvy.mcu.rrrc_control import RevvyTransportBase
@@ -64,6 +65,8 @@ class Robot(RobotInterface):
 
         self._robot_control = self._comm_interface.create_application_control()
 
+        self.wait_for_mcu()
+
         self._stopwatch = Stopwatch()
 
         setup = {
@@ -112,12 +115,21 @@ class Robot(RobotInterface):
             },
         }
 
+    def wait_for_mcu(self) -> None:
+        """Waits for the MCU interface to become available."""
+        stopwatch = Stopwatch()
+        while stopwatch.elapsed < 10:
+            try:
+                self._robot_control.read_operation_mode()
+                return
+            except OSError:
+                time.sleep(0.5)
+
+        raise TimeoutError("Could not connect to Board! Bailing.")
+
     @property
     def resources(self):
         return self._resources
-
-    def __del__(self):
-        self._comm_interface.close()
 
     @property
     def script_variables(self):
@@ -136,7 +148,7 @@ class Robot(RobotInterface):
         return self._imu
 
     @property
-    def status(self):
+    def status(self) -> RobotStatusIndicator:
         return self._status
 
     # TODO: these 2 return the wrong type? What was the intent?
@@ -157,7 +169,7 @@ class Robot(RobotInterface):
         return self._ring_led
 
     @property
-    def sound(self):
+    def sound(self) -> Sound:
         return self._sound
 
     def play_tune(self, name):

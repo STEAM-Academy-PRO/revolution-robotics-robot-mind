@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import struct
 import binascii
 from enum import Enum
@@ -285,12 +286,14 @@ class TransportException(Exception):
     pass
 
 
-class RevvyTransportInterface:
-    def read(self, length):
-        raise NotImplementedError()
+class RevvyTransportInterface(ABC):
+    @abstractmethod
+    def read(self, length: int) -> bytes:
+        pass
 
-    def write(self, data):
-        raise NotImplementedError()
+    @abstractmethod
+    def write(self, data: bytes):
+        pass
 
 
 class Command:

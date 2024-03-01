@@ -1,6 +1,7 @@
 from functools import partial
 import json
 import os
+from threading import Event
 
 from revvy.hardware_dependent.sound import SoundControlBase
 from revvy.utils.assets import Assets
@@ -44,25 +45,39 @@ class Sound:
         sound_interface.set_default_volume(sound_config["default_volume"])
         sound_interface.set_volume(sound_config["default_volume"])
 
-    def play_tune(self, name, callback=None):
+    def play_tune(self, name: str, callback=None) -> bool:
+        """Play a tune with the given name. If a callback is given, it will be called when the tune finishes.
+
+        Returns True if the tune was found and started, False otherwise (e.g. in case of too many
+        parallel sound requests).
+        """
         try:
             key, self._key = self._key, self._key + 1
-            player_thread = self._sound.play_sound(
-                self._get_sound_path(name), partial(self._finished, key)
-            )
+            sound_file = self._get_sound_path(name)
+            # TODO: we should return a less ad-hoc sound handle here. Working with the thread
+            # and the finished callback directly is not ideal.
+            player_thread = self._sound.play_sound(sound_file, partial(self._finished, key))
             if player_thread:
                 self._playing[key] = (player_thread, callback)
+                return True
         except KeyError:
             self._log(f"Sound not found: {name}")
+        return False
 
-    def _finished(self, key):
+    def play_tune_blocking(self, name: str):
+        """Play a tune and wait for it to finish."""
+        finished = Event()
+        if self.play_tune(name, lambda: finished.set()):
+            finished.wait()
+
+    def _finished(self, key: int):
         callback = self._playing[key][1]
         del self._playing[key]
 
         if callback:
             callback()
 
-    def wait(self):
+    def wait(self) -> None:
         playing = self._playing.copy()
         for play in playing.values():
             thread = play[0]

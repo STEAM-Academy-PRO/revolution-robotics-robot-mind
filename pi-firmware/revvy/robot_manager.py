@@ -53,7 +53,7 @@ class RevvyStatusCode(enum.IntEnum):
 class RobotManager:
     """High level class to manage robot state and configuration"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._log = get_logger("RobotManager")
         self.needs_interrupting = True
 
@@ -188,13 +188,16 @@ class RobotManager:
 
     def exit(self, status_code):
         self._log(f"exit requested with code {status_code}")
-        self._status_code = status_code
+        if self._status_code == RevvyStatusCode.OK:
+            self._status_code = status_code
         if self.needs_interrupting:
             os.kill(os.getpid(), signal.SIGINT)
         self.exited.set()
 
     def wait_for_exit(self):
         self.exited.wait()
+        # make sure we don't get stuck with the speakers on
+        self.robot.sound.wait()
         return self._status_code
 
     def robot_start(self):
@@ -424,15 +427,13 @@ class RobotManager:
         self._log(f"ERROR in userscript: {script_handle.descriptor.name}", LogLevel.ERROR)
         self._log(f"ERROR:  {str(exception)}", LogLevel.ERROR)
         self._log(
-            f"Source that caused the error: \n\n{script_handle.descriptor.source}\n\n",
-            LogLevel.ERROR,
+            f"Source that caused the error: \n\n{script_handle.descriptor.source}\n", LogLevel.ERROR
         )
         self._log(f"{traceback.format_exc()}", LogLevel.ERROR)
 
         # Brain bug LED effect with "uh oh" sound.
         self._robot.led.start_animation(RingLed.Bug)
-        self._robot.sound.play_tune("s_bug")
-        time.sleep(2)
+        self._robot.sound.play_tune_blocking("s_bug")
         self._robot.led.start_animation(RingLed.Off)
 
     def _on_analog_script_error(self, *args):
@@ -475,7 +476,7 @@ class RobotManager:
             ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.STOP),
         )
 
-    def robot_stop(self):
+    def robot_stop(self) -> None:
         """On exiting let's reset all states."""
         self._robot_state.stop_polling_mcu()
         self._robot.status.controller_status = RemoteControllerStatus.NotConnected
@@ -485,7 +486,7 @@ class RobotManager:
         self._scripts.reset()
         self._robot.stop()
 
-    def _ping_robot(self, timeout=0):
+    def _ping_robot(self, timeout=0) -> None:
         stopwatch = Stopwatch()
         retry_ping = True
         self._log("pinging")
