@@ -46,7 +46,8 @@ class TimeWrapper:
 class ScriptHandle(Emitter[ScriptEvent]):
     """Creates a controller from a script descirptor"""
 
-    def _default_sleep(self, _):
+    def _prevent_incorrect_sleep(self, _: float):
+        # The script is not running, so calling its sleep() is an error.
         self.log("Error: default sleep called")
         raise Exception("Script not running")
 
@@ -60,7 +61,7 @@ class ScriptHandle(Emitter[ScriptEvent]):
         self.name = name
         self._runnable = descriptor.runnable
         self.descriptor = descriptor
-        self.sleep = self._default_sleep
+        self.sleep = self._prevent_incorrect_sleep
         self._thread = ThreadWrapper(self._run, name)
         self.log = get_logger(["Script", name])
         self.stop = self._thread.stop
@@ -94,15 +95,16 @@ class ScriptHandle(Emitter[ScriptEvent]):
     def assign(self, name, value):
         self._globals[name] = value
 
-    def _run(self, ctx):
+    def _run(self, ctx: ThreadContext):
         try:
             # script control interface
             def _terminate():
                 self.stop()
                 raise InterruptedError
 
-            ctx.terminate = _terminate
-            ctx.terminate_all = lambda: self._owner.stop_all_scripts(False)
+            # adding new methods to the context, that we may use from blockly-generated code
+            ctx.terminate = _terminate  # pyright: ignore
+            ctx.terminate_all = lambda: self._owner.stop_all_scripts(False)  # pyright: ignore
 
             self.sleep = ctx.sleep
             self.log("Starting script")
@@ -114,7 +116,7 @@ class ScriptHandle(Emitter[ScriptEvent]):
         finally:
             # restore to release reference on context
             self.log("Script finished")
-            self.sleep = self._default_sleep
+            self.sleep = self._prevent_incorrect_sleep
 
     def reset_variables(self, *args):
         if "list_slots" in self._globals:
