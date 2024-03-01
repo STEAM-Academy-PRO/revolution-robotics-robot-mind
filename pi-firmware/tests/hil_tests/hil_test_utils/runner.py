@@ -31,7 +31,8 @@ def run_scenario(scenario: Callable[[Logger, ProgrammedRobotController], None]) 
     clear_logs()
     log = get_logger(f"{scenario.__name__}")
 
-    old_exc_hook = revvy_error_handler.register_uncaught_exception_handler()
+    old_exc_hook = old = sys.excepthook
+    revvy_error_handler.register_uncaught_exception_handler()
     robot_manager = RobotManager()
 
     try:
