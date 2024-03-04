@@ -13,15 +13,6 @@ from revvy.utils.thread_wrapper import ThreadWrapper, ThreadContext
 from revvy.utils.logger import LogLevel, get_logger
 
 
-class RemoteControllerCommand(NamedTuple):
-    """Raw message coming through the ble interface"""
-
-    analog: bytearray
-    buttons: bytearray
-    background_command: int
-    next_deadline: Optional[int]
-
-
 log = get_logger("RemoteController")
 
 
@@ -31,6 +22,15 @@ class BleAutonomousCmd(Enum):
     PAUSE = 11
     RESUME = 12
     RESET = 13
+
+
+class RemoteControllerCommand(NamedTuple):
+    """Raw message coming through the ble interface"""
+
+    analog: bytearray
+    buttons: bytearray
+    background_command: BleAutonomousCmd
+    next_deadline: Optional[int]
 
 
 class AutonomousModeRequest(Enum):
@@ -99,7 +99,7 @@ class RemoteController:
         self._previous_time = None
         self._joystick_mode = False
 
-    def process_background_command(self, cmd: int):
+    def process_background_command(self, cmd: BleAutonomousCmd):
         # TODO: (╯°□°）╯︵ ┻━┻
         # Processes the autonomous command, sets up a bunch of state and flags
         # The actual autonomous command is then handled by the MCU_TICK event, which is nonsense.
