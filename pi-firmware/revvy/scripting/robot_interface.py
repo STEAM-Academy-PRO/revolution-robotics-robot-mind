@@ -19,7 +19,7 @@ from math import floor, sqrt
 from numbers import Number
 from enum import Enum
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Callable, Generic, List, Optional, TypeVar, Union
 
 # # To have types, use this to avoid circular dependencies.
 if TYPE_CHECKING:
@@ -81,58 +81,40 @@ def user_to_sensor_channel(user_channel: UserScriptRGBChannel) -> RGBChannelSens
     return RGBChannelSensor.UNDEFINED
 
 
-class ResourceWrapper:
-    """Controls a particular resource at a given priority.
+class Wrapper(ABC):
+    """Binds a shared resource (e.g. a motor port) to a script and provides a way to use it.
 
-    By themselves, resources do not implement any peripheral functionality, they just control
-    their shared access. A single resource can be bound to multiple priorities using multiple
-    ResourceWrapper classes, then the priority-bound resource can be shared between multiple
-    scripts."""
+    Inside a resource wrapper, we may need to access the scripting environment. This base class
+    provides this access, while also taking script priorities into account."""
 
-    # TODO: the priority is the script's priority, so we may want to move this class into Wrapper
-    # to remove a level of indirection.
-    def __init__(self, resource: Resource, script: "ScriptHandle"):
+    # FIXME: resource priority semantics are unclear, surprising and not very well usable.
+
+    def __init__(self, script: "ScriptHandle", resource: Resource):
         self._resource = resource
-        self._priority = script.priority
+        self._script = script
         self._current_handle = None
 
-    def _release_handle(self) -> None:
-        self._current_handle = None
+    def try_take_resource(self, on_interrupted: Optional[Callable[[], None]] = None):
+        if self._script.is_stop_requested:
+            raise InterruptedError
 
-    def request(self, callback=None):
         if self._current_handle:
             return self._current_handle
 
-        handle = self._resource.request(self._priority, callback)
+        handle = self._resource.request(self._script.priority, on_interrupted)
         if handle:
-            handle.on_interrupted.add(self._release_handle)
-            handle.on_released.add(self._release_handle)
+
+            def _release_handle() -> None:
+                self._current_handle = None
+
+            # lints ignored because pyright doesn't understand that if hand is true,
+            # it's not a null_handle
+            handle.on_interrupted.add(_release_handle)  # pyright: ignore
+            handle.on_released.add(_release_handle)  # pyright: ignore
 
             self._current_handle = handle
 
         return self._current_handle
-
-    def release(self) -> None:
-        handle = self._current_handle
-        if handle:
-            handle.interrupt()
-
-
-class Wrapper(ABC):
-    """Binds a resource to a script and provides a way to use it.
-
-    Inside a resource wrapper, we may need to access the scripting environment. This base class
-    provides this access and also exposes the priority management of the resource."""
-
-    def __init__(self, script: "ScriptHandle", resource: Resource):
-        self._resource = ResourceWrapper(resource, script)
-        self._script = script
-
-    def try_take_resource(self, callback=None):
-        if self._script.is_stop_requested:
-            raise InterruptedError
-
-        return self._resource.request(callback)
 
     def using_resource(self, callback) -> None:
         self.if_resource_available(lambda res: res.run_uninterruptable(callback))
@@ -144,21 +126,14 @@ class Wrapper(ABC):
             with resource_ctx as resource:
                 callback(resource)
 
-    def force_release_resource(self):
-        self._resource.release()
+    def force_release_resource(self) -> None:
+        handle = self._current_handle
+        if handle:
+            handle.interrupt()
 
 
 class SensorPortWrapper(Wrapper):
     """Wrapper class to expose sensor ports to user scripts"""
-
-    # TODO: move these to configurations.py
-    # FIXME: are they even used?
-    _named_configurations = {
-        "NotConfigured": None,
-        "BumperSwitch": Sensors.BumperSwitch,
-        "HC_SR04": Sensors.Ultrasonic,
-        "RGB": Sensors.SofteqCS,
-    }
 
     def __init__(
         self,
@@ -168,12 +143,6 @@ class SensorPortWrapper(Wrapper):
     ):
         super().__init__(script, resource)
         self._sensor = sensor
-
-    def configure(self, config):
-        if type(config) is str:
-            self._script.log("Warning: Using deprecated named sensor configuration")
-            config = self._named_configurations[config]
-        self.using_resource(partial(self._sensor.configure, config))
 
     def read(self):
         """Return the last converted value"""
@@ -233,13 +202,6 @@ class MotorPortWrapper(Wrapper):
     max_rpm = 150
     timeout = 5
 
-    # TODO: move these to configurations.py
-    _named_configurations = {
-        "NotConfigured": None,
-        "RevvyMotor": Motors.RevvyMotor,
-        "RevvyMotor_CCW": Motors.RevvyMotor_CCW,
-    }
-
     def __init__(
         self,
         script: "ScriptHandle",
@@ -257,17 +219,6 @@ class MotorPortWrapper(Wrapper):
     @pos.setter
     def pos(self, val):
         self._motor.pos = val
-
-    def configure(self, config):
-        # TODO: do we even expose this to blockly?
-        if type(config) is str:
-            self._log("Warning: Using deprecated named motor configuration")
-            config = self._named_configurations[config]
-
-        if self._script.is_stop_requested:
-            raise InterruptedError
-
-        self._motor.configure(config)
 
     def move(self, direction, amount, unit_amount, limit, unit_limit):
         self._log("move")
@@ -676,22 +627,25 @@ class LineDriver:
         return LineDriver.FOLLOW_LINE_RESULT_CONTINUE
 
 
-class PortCollection:
+PortType = TypeVar("PortType", bound=Wrapper)
+
+
+class PortCollection(Generic[PortType]):
     """
     Provides named access to a list of ports.
 
     Used by blockly to access ports by mobile-configured names.
     """
 
-    def __init__(self, ports: List[Wrapper]):
+    def __init__(self, ports: List[PortType]):
         self._ports = ports
-        self._alias_map = {}
+        self._alias_map: dict[str, int] = {}
 
     @property
-    def aliases(self):
+    def aliases(self) -> dict[str, int]:
         return self._alias_map
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: Union[int, str]) -> PortType:
         if type(item) is str:
             # access by name
             if item in self._alias_map.keys():
