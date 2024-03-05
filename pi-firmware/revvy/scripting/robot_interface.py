@@ -627,17 +627,17 @@ class LineDriver:
         return LineDriver.FOLLOW_LINE_RESULT_CONTINUE
 
 
-PortType = TypeVar("PortType", bound=Wrapper)
+PortWrapper = TypeVar("PortWrapper", bound=Wrapper)
 
 
-class PortCollection(Generic[PortType]):
+class PortCollection(Generic[PortWrapper]):
     """
     Provides named access to a list of ports.
 
     Used by blockly to access ports by mobile-configured names.
     """
 
-    def __init__(self, ports: List[PortType]):
+    def __init__(self, ports: List[PortWrapper]):
         self._ports = ports
         self._alias_map: dict[str, int] = {}
 
@@ -645,7 +645,7 @@ class PortCollection(Generic[PortType]):
     def aliases(self) -> dict[str, int]:
         return self._alias_map
 
-    def __getitem__(self, item: Union[int, str]) -> PortType:
+    def __getitem__(self, item: Union[int, str]) -> PortWrapper:
         if type(item) is str:
             # access by name
             if item in self._alias_map.keys():

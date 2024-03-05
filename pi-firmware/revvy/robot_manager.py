@@ -92,6 +92,7 @@ class RobotManager:
         self._robot_state.start_polling_mcu()
 
         self.on = self._robot_state.on
+        self.on_all = self._robot_state.on_all
         self.trigger = self._robot_state.trigger
 
         self.on(RobotEvent.MCU_TICK, lambda *args: self.process_autonomous_requests())

@@ -4,7 +4,7 @@ from threading import Event
 
 from mock import Mock
 
-from revvy.utils.thread_wrapper import ThreadWrapper, ThreadContext
+from revvy.utils.thread_wrapper import ThreadWrapper, ThreadContext, ThreadWrapperState
 
 
 class TestThreadWrapper(unittest.TestCase):
@@ -120,7 +120,7 @@ class TestThreadWrapper(unittest.TestCase):
             for i in range(3):
                 tw.start()
                 tw.stop().wait()
-                self.assertEqual(ThreadWrapper.STOPPED, tw.state)
+                self.assertEqual(ThreadWrapperState.STOPPED, tw.state)
                 self.assertNotEqual(0, mock.call_count)
         finally:
             tw.exit()
@@ -199,11 +199,11 @@ class TestThreadWrapper(unittest.TestCase):
         tw.start().wait()
         tw.stop()
         tw.start()
-        self.assertEqual(ThreadWrapper.STOPPING, tw.state)
+        self.assertEqual(ThreadWrapperState.STOPPING, tw.state)
         allow_stop.set()
 
         time.sleep(0.1)
-        self.assertEqual(ThreadWrapper.RUNNING, tw.state)
+        self.assertEqual(ThreadWrapperState.RUNNING, tw.state)
 
         allow_stop.set()
         tw.exit()
@@ -228,7 +228,7 @@ class TestThreadWrapper(unittest.TestCase):
                 if not tw.stop().wait(2):
                     self.fail("Failed to stop thread")
 
-                self.assertEqual(ThreadWrapper.STOPPED, tw.state)
+                self.assertEqual(ThreadWrapperState.STOPPED, tw.state)
                 self.assertEqual(1, mock.call_count)
         finally:
             tw.exit()

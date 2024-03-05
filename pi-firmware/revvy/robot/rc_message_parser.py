@@ -14,7 +14,7 @@ def parse_control_message(data: bytearray) -> RemoteControllerCommand:
     analog_values = data[1:7]
     deadline_packed = data[7:11]
     next_deadline = struct.unpack("<I", deadline_packed)[0]
-    button_values = bytearray(bits_to_bool_list(data[11:15]))
+    button_values = bits_to_bool_list(data[11:15])
 
     return RemoteControllerCommand(
         analog=analog_values,

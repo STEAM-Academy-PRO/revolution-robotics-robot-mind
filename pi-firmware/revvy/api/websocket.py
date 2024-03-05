@@ -89,7 +89,7 @@ class RobotWebSocketApi:
         # Sends events through robot state!
         self._camera = Camera(robot_manager._robot_state.trigger)
 
-        robot_manager.on("all", self.all_event_capture)
+        robot_manager.on_all(self.all_event_capture)
 
     def all_event_capture(self, object_ref, evt, data=None):
         if evt not in ignore_log_events:

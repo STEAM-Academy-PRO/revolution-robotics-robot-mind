@@ -1,7 +1,7 @@
 """ Simple event emitter lib """
 
 from contextlib import suppress
-from typing import Callable, Dict, Generic, List, TypeVar
+from typing import Callable, Dict, Generic, List, Literal, TypeVar, Union
 
 from revvy.utils.logger import LogLevel, get_logger
 
@@ -41,14 +41,12 @@ class SimpleEventEmitter:
 class Emitter(Generic[CustomEventType]):
     """Event emitter base class to inherit from."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._events_handlers: Dict[CustomEventType, SimpleEventEmitter] = {}
         self._all_handlers = SimpleEventEmitter()
 
     def on(self, event: CustomEventType, callback: Callable):
         """Subscribe to script runner events"""
-        if event == "all":
-            self._all_handlers.add(callback)
 
         if event not in self._events_handlers:
             self._events_handlers[event] = SimpleEventEmitter()
@@ -60,11 +58,15 @@ class Emitter(Generic[CustomEventType]):
                 "Dev error: Emitter wants to add the same function reference to the same event twice."
             )
 
+    def on_all(self, callback: Callable):
+        """Subscribe to script runner events"""
+        self._all_handlers.add(callback)
+
     def off(self, event, callback: Callable):
         """unsubscribe from event"""
         self._events_handlers[event].remove(callback)
 
-    def clear(self):
+    def clear(self) -> None:
         self._events_handlers.clear()
 
     def trigger(self, event_type: CustomEventType, data=None):
