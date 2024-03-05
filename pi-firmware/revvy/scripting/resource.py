@@ -1,5 +1,5 @@
 from threading import Lock
-from typing import List, Union
+from typing import Callable, List, Optional, Union
 
 from revvy.utils.emitter import SimpleEventEmitter
 from revvy.utils.logger import get_logger, LogLevel
@@ -25,7 +25,8 @@ class NullHandle:
         pass
 
 
-# We return this if the resource is not available, but... why?
+# We return this if the resource is not available, but... why? we should return None if we can't
+# get the resource, and then the user can check if the handle is null.
 null_handle = NullHandle()
 
 
@@ -101,7 +102,7 @@ class Resource:
 
             self._current_priority = -1
 
-    def request(self, with_priority=0, on_taken_away=None):
+    def request(self, with_priority=0, on_taken_away: Optional[Callable[[], None]] = None):
         with self._lock:
             if not self._active_handle:
                 self._log(f"create handle for priority {with_priority}")
