@@ -51,8 +51,7 @@ def _default_bus_factory() -> RevvyTransportBase:
     return RevvyTransportI2C(1)
 
 
-# FIXME: why is this RobotInterface? The base class causes problems for the linter, and also doesn't seem to be necessary anywhere.
-class Robot(RobotInterface):
+class Robot:
     def __init__(self, bus_factory: Callable[[], RevvyTransportBase] = _default_bus_factory):
         self._bus_factory = bus_factory
 
@@ -75,6 +74,7 @@ class Robot(RobotInterface):
         }
 
         self._ring_led = RingLed(self._robot_control)
+        assert VERSION.hw is not None
         self._sound = Sound(setup[VERSION.hw]())
 
         self._status = RobotStatusIndicator(self._robot_control)
@@ -151,7 +151,6 @@ class Robot(RobotInterface):
     def status(self) -> RobotStatusIndicator:
         return self._status
 
-    # TODO: these 2 return the wrong type? What was the intent?
     @property
     def motors(self) -> MotorPortHandler:
         return self._motor_ports
@@ -161,21 +160,21 @@ class Robot(RobotInterface):
         return self._sensor_ports
 
     @property
-    def drivetrain(self):
+    def drivetrain(self) -> DifferentialDrivetrain:
         return self._drivetrain
 
     @property
-    def led(self):
+    def led(self) -> RingLed:
         return self._ring_led
 
     @property
     def sound(self) -> Sound:
         return self._sound
 
-    def play_tune(self, name):
-        self._sound.play_tune(name)
+    def play_tune(self, name: str) -> bool:
+        return self._sound.play_tune(name)
 
-    def time(self):
+    def time(self) -> float:
         return self._stopwatch.elapsed
 
     def __validate_one_sensor_port(self, sensor_idx, expected_type):
@@ -196,12 +195,12 @@ class Robot(RobotInterface):
 
         return SENSOR_ON_PORT_UNKNOWN
 
-    def reset(self):
+    def reset(self) -> None:
         self._log("reset()")
         self._ring_led.start_animation(RingLed.BreathingGreen)
         self._status_updater.reset()
 
-        def _process_battery_slot(data):
+        def _process_battery_slot(data) -> None:
             assert len(data) == 4
             main_status, main_percentage, motor_bat_present, motor_percentage = data
 
@@ -230,5 +229,5 @@ class Robot(RobotInterface):
         self._status.robot_status = RobotStatus.NotConfigured
         self._status.update()
 
-    def stop(self):
+    def stop(self) -> None:
         self._sound.wait()

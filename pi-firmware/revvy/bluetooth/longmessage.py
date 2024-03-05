@@ -19,7 +19,6 @@ from revvy.utils.file_storage import StorageInterface, StorageError
 from revvy.utils.functions import split
 from revvy.utils.logger import get_logger
 from revvy.utils.progress_indicator import ProgressIndicator
-from revvy.utils.functions import str_to_func
 
 from revvy.robot.led_ring import RingLed
 from revvy.robot.status import RobotStatus
@@ -488,9 +487,7 @@ class LongMessageImplementation:
             test_script_source = message.data.decode()
             self._log(f"Running test script: \n{test_script_source}")
 
-            script_descriptor = ScriptDescriptor(
-                "test_kit", str_to_func(test_script_source), 0, source=test_script_source
-            )
+            script_descriptor = ScriptDescriptor.from_string("test_kit", test_script_source, 0)
 
             self._robot_manager.robot_configure(empty_robot_config)
 

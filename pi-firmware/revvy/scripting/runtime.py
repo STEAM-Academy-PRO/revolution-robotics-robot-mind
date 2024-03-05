@@ -3,8 +3,9 @@
 from enum import Enum
 import time
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 from revvy.utils.emitter import Emitter
+from revvy.utils.functions import str_to_func
 
 # To have types, use this to avoid circular dependencies.
 if TYPE_CHECKING:
@@ -24,17 +25,36 @@ class ScriptEvent(Enum):
 
 class ScriptDescriptor:
     name: str
-    runnable: callable
+    runnable: Callable
     priority: int
     source: str
-    ref_id: str
+    ref_id: Optional[int]
 
-    def __init__(self, name, runnable, priority, source="", ref_id=None):
+    def __init__(
+        self,
+        name: str,
+        runnable: Callable,
+        priority: int,
+        source: str,
+        ref_id: Optional[int] = None,
+    ):
         self.name = name
         self.runnable = runnable
         self.priority = priority
         self.source = source
         self.ref_id = ref_id
+
+    @staticmethod
+    def from_string(
+        name: str, source: str, priority: int, ref_id: Optional[int] = None
+    ) -> "ScriptDescriptor":
+        return ScriptDescriptor(
+            name,
+            str_to_func(source),
+            priority,
+            source,
+            ref_id,
+        )
 
 
 class TimeWrapper:
