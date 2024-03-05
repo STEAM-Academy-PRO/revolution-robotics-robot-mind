@@ -1,71 +1,37 @@
-// import logo from './logo.svg';
 import styles from './App.module.css';
 
-import { createSignal, createEffect, createMemo, Switch, Match } from 'solid-js'
-import ConfigurationView from './views/ConfigurationView';
-import ControllerView from './views/ControllerView';
-import ConnectionView from './views/ConnectionView';
-import { SocketWrapper, connectToRobot, disconnect } from './utils/Communicator';
+import { createSignal, createMemo, Switch, Match } from 'solid-js'
 
-import DEFAULT_JSON from "./assets/robot-config.json"
-import { uploadConfig } from './utils/commands';
-import { RobotConfig } from './utils/Config';
+import ConfigView from './views/ConfigView';
+import PlayView from './views/PlayView';
+import SettingsView from './views/SettingsView';
 import CodeView from './views/CodeView';
-import { endpoint } from './settings';
+
+import { connLoading, connectOrDisconnect } from './utils/Communicator';
+import { conn } from './settings';
 
 // Load default config as fallback.
-let defaultConfig: RobotConfig = DEFAULT_JSON as RobotConfig
-try { defaultConfig = JSON.parse(localStorage.getItem('config') || '') as RobotConfig || DEFAULT_JSON } catch (e) { }
 
 function App() {
-  const [conn, setConn] = createSignal<SocketWrapper | null>(null)
-  const [connLoading, setConnLoading] = createSignal<boolean>(false)
-  const [config, setConfig] = createSignal<RobotConfig>(defaultConfig);
+
   const [tab, setTab] = createSignal('configure')
 
   const isActive = createMemo(() => tab() === 'play')
 
-  // When switching to play mode, automatically upload the config!
-  // createEffect(()=>{if (tab() === 'play') {uploadConfig(conn(), config())};})
-
-
-  const connectOrDisconnect = () => {
-    if (conn()) {
-      disconnect(conn, setConn)
-    } else {
-      connectToRobot(setConn, setConnLoading, endpoint, config)
-    }
-  }
-
-  createEffect(() => {
-    config()
-    console.warn('saving config', config())
-    localStorage.setItem('config', JSON.stringify(config()));
-  });
-
   const menuItems = [{
     id: 'configure',
     label: 'Configure',
-    children: <ConfigurationView config={config} setConfig={setConfig} conn={conn} />
+    children: <ConfigView />
   },
   {
     id: 'code',
     label: 'Code',
-    children: <CodeView config={config} setConfig={setConfig} conn={conn} />
+    children: <CodeView />
   },
   {
     id: 'play',
     label: 'Play',
-    children: <ControllerView conn={conn} isActive={isActive} endpoint={endpoint} config={config} />
-  },
-  {
-    id: 'connect',
-    label: 'Connection',
-    children: <ConnectionView
-      connect={() => connectToRobot(setConn, setConnLoading, endpoint, config)}
-      disconnect={() => disconnect(conn, setConn)}
-      connection={conn}
-    />
+    children: <PlayView isActive={isActive} />
   }
   ]
 

@@ -1,14 +1,16 @@
-import { createSignal, createEffect, onCleanup, Accessor, Setter, Show } from 'solid-js'
-import { RobotMessage, SocketWrapper, WSEventType } from '../utils/Communicator';
+import { createSignal, createEffect, Accessor, Setter, Show, createMemo } from 'solid-js'
+import { RobotMessage, WSEventType } from '../utils/Communicator';
 import { Position } from '../utils/Position';
 import { mapAnalogNormal, toByte } from '../utils/mapping';
 import { Joystick } from '../components/Joystick';
-import styles from './Controller.module.css'
 import { CameraView } from './CameraView';
 import { Log, log } from '../utils/log';
-import { RobotConfig, SensorType, SensorTypeResolve } from '../utils/Config';
+import { SensorType, SensorTypeResolve, currentConfig } from '../utils/Config';
 import { uploadConfig } from '../utils/commands';
 import { ColorSensor, ColorSensorReading } from '../utils/ColorSensor';
+import { conn } from '../settings';
+
+import styles from './Play.module.css'
 
 const BUTTON_MAP_XBOX: { [id: number]: number } = {
   2: 0,
@@ -17,14 +19,10 @@ const BUTTON_MAP_XBOX: { [id: number]: number } = {
   1: 1
 }
 
-export default function ControllerView({
-  conn, isActive,
-  endpoint,
-  config,
+export default function PlayView({
+  isActive,
 }: {
-  conn: Accessor<SocketWrapper | null>, isActive: Accessor<boolean>,
-  endpoint: Accessor<string>,
-  config: Accessor<RobotConfig>
+  isActive: Accessor<boolean>,
 }) {
 
   const [orientation, setOrientation] = createSignal<Array<number>>()
@@ -39,22 +37,31 @@ export default function ControllerView({
   let lastTimeControlMessageSent: number = new Date().getTime()
   let lastControlMessageId: number = 0
 
-  // Extend the values!
-  const sensors: { [id: number]: { value: Accessor<any>, setValue: Accessor<any>, type: SensorType } } = {}
-  config().robotConfig.sensors.map(
-    (config, i) => {
-      if (config) {
-        const [value, setValue] = createSignal()
-        sensors[i + 1] = { value, setValue, type: config.type }
-      }
-    })
+  interface SensorView {
+    value: Accessor<any>,
+    setValue: Accessor<any>,
+    type: SensorType
+  }
+
+  // Render sensors based on the config!
+  const sensors: Accessor<{ [id: number]: SensorView }> = createMemo(() => {
+    const sensors: { [id: number]: SensorView } = {}
+    currentConfig().robotConfig.sensors.map(
+      (config, i) => {
+        if (config) {
+          const [value, setValue] = createSignal()
+          sensors[i + 1] = { value, setValue, type: config.type }
+        }
+      })
+    return sensors
+  })
 
   const reUploadConfig = () => {
-    uploadConfig(conn(), config())
+    console.log(currentConfig())
+    uploadConfig(conn(), currentConfig())
     setIsConnected(true)
     sendControlMessage()
   }
-
 
   window.addEventListener('gamepadconnected', (event) => {
     log('✅ 🎮 A gamepad was connected');
@@ -85,7 +92,6 @@ export default function ControllerView({
           break
         case 'control_confirm':
           // Ready for the next control message.
-          // console.log(data.data)
           const now = new Date().getTime()
           if (data.data !== lastControlMessageId) {
             setOrderError(orderError() + 1)
@@ -117,17 +123,17 @@ export default function ControllerView({
         case 'sensor_value_change':
           const sensorId = data.data.port_id
           const sensorValue = data.data.value
-          switch (sensors[sensorId].type) {
+          switch (sensors()[sensorId].type) {
             case SensorType.BUTTON:
-              sensors[sensorId].setValue(sensorValue ? '1' : '0')
+              sensors()[sensorId].setValue(sensorValue ? '1' : '0')
               break
             case SensorType.COLOR:
               const colorReadings: ColorSensorReading = sensorValue
-              sensors[sensorId].setValue(colorReadings)
+              sensors()[sensorId].setValue(colorReadings)
               break
             default:
               // console.log('distance sensor', sensorValue)
-              sensors[sensorId].setValue(sensorValue)
+              sensors()[sensorId].setValue(sensorValue)
 
           }
           break
@@ -143,10 +149,12 @@ export default function ControllerView({
   })
 
   const position = new Position()
+  const position2 = new Position()
 
   let i = 0
 
   let last = { x: 0, y: 0 }
+  let last2 = { x: 0, y: 0 }
 
   // We have to send the control messages whenever we uploaded it, or else it resets configuration state.
   // Try uncommenting the lines with doSendMove in them. The first time it stops receiving the messages
@@ -157,6 +165,9 @@ export default function ControllerView({
 
     last.x = position.x()
     last.y = position.y()
+
+    last2.x = position2.x()
+    last2.y = position2.y()
 
     // Only allow gamepad, if we are not having the joystick on the screen
     // set to a value to avoid flickering.
@@ -173,8 +184,11 @@ export default function ControllerView({
         // Analog controls for drive.
         position.setX(gamepad.axes[0] * 0.8)
         position.setY((-gamepad.axes[1]) * 0.8)
-        twoOtherAnalogs.x = gamepad.axes[2]
-        twoOtherAnalogs.y = gamepad.axes[3]
+
+        // 2nd joystick
+        position2.setX(gamepad.axes[2] * 0.8)
+        position2.setY((-gamepad.axes[3]) * 0.8)
+
 
         // Process the gamepad buttons, map them to the controller. See map up there.
         Object.keys(BUTTON_MAP_XBOX).map((keySrt) => {
@@ -194,8 +208,8 @@ export default function ControllerView({
       mapAnalogNormal(position.x()), // UInt8, left-right analog, value range: 0-255
       mapAnalogNormal(position.y()), // UInt8, bottom-top analog, value range: 0-255
 
-      twoOtherAnalogs.x, // Gamepad 2 analog
-      twoOtherAnalogs.y, // Gamepad 3 analog
+      mapAnalogNormal(position2.x()), // UInt8, left-right analog, value range: 0-255
+      mapAnalogNormal(position2.y()), // UInt8, bottom-top analog, value range: 0-255
       0, // unused analog
       0, // unused analog
 
@@ -237,10 +251,10 @@ export default function ControllerView({
         <span class={styles.status}>orientation: {JSON.stringify(orientation())}</span>
         <span class={styles.status}>battery: {battery()?.join(' ')}</span>
         <span class={styles.status}>motor angles: {motorAngles()?.join(' ')}</span>
-        {Object.keys(sensors).map((sensorKey) => (
+        {Object.keys(sensors()).map((sensorKey) => (
           <span class={styles.status}>
-            <SensorView type={SensorTypeResolve[sensors[sensorKey].type]}
-              value={sensors[sensorKey].value}
+            <SensorView type={SensorTypeResolve[sensors()[sensorKey].type]}
+              value={sensors()[sensorKey].value}
             ></SensorView>
           </span>
         ))}
@@ -266,14 +280,12 @@ export default function ControllerView({
           <Joystick enabled={isConnected} position={position}></Joystick>
         </div>
         <div class={styles.placeholder}>
-          <CameraView conn={conn} endpoint={endpoint} />
+          <CameraView />
         </div>
         <div class={styles.controllerButtons}>
           <Buttons list={buttons} />
         </div>
       </div>
-      {/* {buttons.map((b)=>b.get()?<>1</>:<>0</>)} */}
-
       <div>
         <Log />
       </div>

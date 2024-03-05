@@ -2,54 +2,72 @@ import { createSignal, createEffect, Accessor, Setter, For, Show, createMemo } f
 
 import styles from './CodeEditor.module.css'
 
-import { RobotMessage, SocketWrapper } from '../utils/Communicator';
+import { RobotMessage } from '../utils/Communicator';
 import { uploadConfig } from '../utils/commands';
-import { BlocklyItem, RobotConfig } from '../utils/Config';
+import { DriveMode, Program, scriptBindings, currentConfig, driveMode, handleDriveChange, programs, setScriptBindings, setPrograms, scriptBindingTargets } from '../utils/Config';
 import CodeEditor from './CodeEditor';
 import { BlocklyView } from './BlocklyView';
+import { conn } from '../settings';
 
 
-function CodeView({
-  config, setConfig,
-  conn
-}: { config: Accessor<RobotConfig>, setConfig: Setter<RobotConfig>, conn: Accessor<SocketWrapper | null> }) {
+function CodeView() {
 
-  const [isSendEnabled, setIsSendEnabled] = createSignal(false);
-  const [edited, setEdited] = createSignal<BlocklyItem | null>(null)
+  const [edited, setEdited] = createSignal<Program | null>(null)
   const [editedCode, setEditedCode] = createSignal<string>('')
   const [configString, setConfigString] = createSignal<string>('');
   const [editedIndex, setEditedIndex] = createSignal<number | null>(null);
+  const [editedName, setEditedName] = createSignal<string>('')
+
   const [tab, setTab] = createSignal<string>('python');
 
-  const [codes, setCodes] = createSignal<Array<string>>([])
+  const handleSend = () => {
+    uploadConfig(conn(), currentConfig())
+    conn()?.send(RobotMessage.configure, JSON.stringify(currentConfig()))
+  }
+
+  const addProgram = () => {
+    const newProgramList = programs().slice()
+    const newProgram = { name: String(programs().length + 1), code: "robot.led.set(leds=[1,2,3,4,5,6,7,8,9,10,11,12], color='#0000ff')\n\n" }
+    newProgramList.push(newProgram)
+    setEdited(newProgram)
+    setPrograms(newProgramList)
+  }
 
   createEffect(() => {
-    try {
-      setIsSendEnabled(Boolean(conn()))
-    } catch (e) {
-      setIsSendEnabled(false)
-    }
-  });
+    setEditedCode(edited()?.code || '')
+    setEditedName(edited()?.name || '')
+  })
 
-  const handleSend = () => {
-    uploadConfig(conn(), config())
-    conn()?.send(RobotMessage.configure, JSON.stringify(config()))
+  const saveCode = (code: string) => {
+    setEditedCode(code)
+    saveEdited()
+    const newProgramList = programs().slice()
+    const editedInd = editedIndex()
+    console.log('save')
+    if (!editedInd && editedInd !== 0) { return }
+    newProgramList[editedInd] = Object.assign({}, edited())
+    setPrograms(newProgramList)
+    console.log(newProgramList)
   }
 
-  const saveCode = () => {
-    const newConfig = Object.assign({}, config()) as RobotConfig
-    const editedCodeBlock = edited()
-    if (editedCodeBlock) {
-      editedCodeBlock.pythoncode = btoa(editedCode())
+  const saveEdited = () => {
+    const current = edited()
+    if (current !== null) {
+      current.code = editedCode()
+      current.name = editedName()
     }
-    setConfig(newConfig)
   }
 
-  const updateConfigString = (e: Event) => setConfigString((e.target as HTMLTextAreaElement).value || '')
+  const toggleBinding = (binding: string) => {
+    const newBindings = Object.assign({}, scriptBindings())
+    if (scriptBindings()[binding]) {
+      newBindings[binding] = ''
+    } else {
+      newBindings[binding] = editedName()
+    }
+    setScriptBindings(newBindings)
+  }
 
-  createEffect(() => setEditedCode(atob(edited()?.pythoncode || '')))
-
-  let editor
 
   return (
     <div >
@@ -57,32 +75,26 @@ function CodeView({
         <div class={styles.column}>
           <div>
 
-            <h4>Button Bindings</h4>
-            <For each={config().blocklyList.filter((c) => !c.builtinScriptName)}>{(script, i) =>
-              <div class={styles.clickable} classList={{ [styles.active]: editedIndex() === i() }} onClick={() => {
-                setEdited(null)
-                setEdited(script)
-                setEditedIndex(i)
-                setConfigString('')
-              }}>{String(i())}</div>
-            }</For>
-
-            <p>
-              <Show when={edited() !== null}>
-                <button onClick={() => saveCode()}>SAVE CODE</button>
-              </Show>
-            </p>
-
-            <p>
-              <Show when={!configString()}>
-                <button onClick={() => { setConfigString(JSON.stringify(config(), null, 2)); setEdited(null) }}>RAW config</button>
-              </Show>
-            </p>
-
-            <p>
-              <button onClick={handleSend} disabled={!isSendEnabled()}>Send</button>
-            </p>
-
+            <h4>Programs</h4>
+            <div>
+              <For each={programs()}>{(program, i) =>
+                <div class={styles.clickable} classList={{ [styles.active]: editedIndex() === i() }} onClick={() => {
+                  setEdited(null)
+                  setEdited(program)
+                  setEditedIndex(i)
+                  setConfigString('')
+                }}>{String(i() + 1)} - {program.name}</div>
+              }</For>
+              <a class={styles.clickable} onClick={addProgram}>+ Add</a>
+            </div>
+            <div>
+              <p>Joystick mode</p>
+              <select value={driveMode()} onChange={handleDriveChange}>
+                <For each={Object.values(DriveMode)}>{(mode) =>
+                  <option value={mode}>{mode}</option>
+                }</For>
+              </select>
+            </div>
           </div>
 
         </div>
@@ -91,14 +103,29 @@ function CodeView({
             <div class={styles.header}>
               <a onClick={() => setTab('python')} class={styles.clickable}>python</a>
               <a onClick={() => setTab('blockly')} class={styles.clickable}>blockly</a>
+
+              <For each={scriptBindingTargets}>{(binding: string) =>
+                <a class={styles.clickable}
+                  classList={{
+                    [styles.active]: Boolean(scriptBindings()[binding] === editedName())
+                  }}
+                  onClick={() => {
+                    toggleBinding(binding)
+                    console.warn(binding)
+                  }} >{binding}</a>
+              }
+              </For>
             </div>
 
-            <div class={styles.editor}>
+            <div class={styles.editorWrapper}>
+              <div>
+                Program Name: <input type="text" value={editedName()} onInput={(e) => { setEditedName(e.target.value); saveEdited() }} />
+              </div>
               <Show when={tab() === 'python'}>
-                <CodeEditor value={editedCode} setValue={setEditedCode}></CodeEditor>
+                <CodeEditor value={editedCode} setValue={saveCode}></CodeEditor>
               </Show>
               <Show when={tab() === 'blockly'}>
-                <BlocklyView onSave={setEditedCode}/>
+                <BlocklyView onSave={setEditedCode} />
               </Show>
             </div>
           </div>
@@ -109,4 +136,5 @@ function CodeView({
   );
 }
 
-export default CodeView;
+export default CodeView
+

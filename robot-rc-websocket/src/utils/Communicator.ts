@@ -1,10 +1,21 @@
-import { Accessor, Setter } from "solid-js"
+import { createSignal } from "solid-js"
 import { createEmitter } from "@solid-primitives/event-bus";
-import { RobotConfig } from "./Config";
+import { currentConfig } from "./Config";
 import { LogLevel, log } from "./log";
 import { RobotError } from "./Types";
+import { conn, endpoint, setConn } from "../settings";
 
 const PORT = 8765
+
+export const [connLoading, setConnLoading] = createSignal<boolean>(false)
+
+export function connectOrDisconnect() {
+    if (conn()) {
+        disconnect()
+    } else {
+        connectToRobot()
+    }
+}
 
 export type SocketWrapper = {
     send: (type: RobotMessage, message?: any) => void
@@ -62,7 +73,9 @@ export function connectSocket(ip: string): SocketWrapper {
     };
     return {
         send: (type: RobotMessage, msg: any) => {
-            if(type!== RobotMessage.control) console.warn('send', type, msg)
+            if (type !== RobotMessage.control) {
+                console.warn('send', type, msg)
+            }
             return socket.send(JSON.stringify({ type, body: msg }))
         },
         close: () => socket.close(),
@@ -70,13 +83,9 @@ export function connectSocket(ip: string): SocketWrapper {
     }
 }
 
-export function connectToRobot(
-    setConn: Setter<SocketWrapper | null>,
-    setConnLoading: Setter<boolean>,
-    endpoint: Accessor<string>,
-    configString: Accessor<RobotConfig>) {
+export function connectToRobot() {
 
-    if (!endpoint()){
+    if (!endpoint()) {
         log('Please enter an IP address to connect to your robot!')
         throw new Error('Missing IP address!')
     }
@@ -119,7 +128,7 @@ export function connectToRobot(
         log('Socket Connection Established!')
         setConn(socket)
         setConnLoading(false)
-        socket.send(RobotMessage.configure, JSON.stringify(configString()))
+        socket.send(RobotMessage.configure, JSON.stringify(currentConfig()))
     })
     socket.on(WSEventType.onClose, (wasClean) => {
         log(wasClean ? 'Socket Connection Closed Nicely!' : 'Socket Connection Dropped.')
@@ -134,7 +143,7 @@ export function connectToRobot(
 }
 
 
-export function disconnect(conn: Accessor<SocketWrapper | null>, setConn: Setter<SocketWrapper | null>) {
+export function disconnect() {
     if (conn()) {
         conn()?.close()
         setConn(null);

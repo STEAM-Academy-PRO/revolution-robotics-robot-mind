@@ -1,5 +1,5 @@
 import { Accessor, Show, createEffect, createSignal } from "solid-js"
-import styles from '../views/Controller.module.css'
+import styles from '../views/Play.module.css'
 
 export function ColorSensor({ value }: { value: Accessor<ColorSensorReading> }) {
 

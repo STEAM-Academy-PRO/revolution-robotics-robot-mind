@@ -36,7 +36,9 @@ robot.led.set(leds=[1,2,3], color=(robot.read_color(1)))
 robot.led.start_animation(RingLed.Siren)`
 
 
-function CodeEditor({ value, setValue }: { value: Accessor<string>, setValue: Setter<string> }) {
+function CodeEditor({ value, setValue }: {
+  value: Accessor<string>, setValue: (code: string) => void
+}) {
 
   let editorRef: HTMLDivElement;
   let editor: EditorView;
