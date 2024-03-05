@@ -74,5 +74,63 @@ def test_motor_for_i2c_bug(log: Logger, controller: ProgrammedRobotController):
     controller.robot_manager.robot._robot_control.test_motor_on_port(6, 60, 10)
 
 
+def sensors_can_be_read(log: Logger, controller: ProgrammedRobotController):
+    """A test case that configures a script to read sensors."""
+
+    def fail_on_script_error(*e) -> None:
+        # In this test, if we encounter an error, let's just stop and exit
+        controller.robot_manager.exit(RevvyStatusCode.ERROR)
+
+    controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
+
+    config = RobotConfig()
+    config.add_motor(None)
+    config.add_motor(None)
+    config.add_motor(None)
+    config.add_motor({"type": 1, "name": "motor4"})
+    config.add_motor(None)
+    config.add_motor(None)
+
+    config.add_sensor({"type": 1, "name": "distance_sensor"})
+    config.add_sensor(None)
+    config.add_sensor({"type": 3, "name": "button"})
+    config.add_sensor({"type": 4, "name": "color_sensor"})
+
+    config.process_script(
+        {
+            "assignments": {"buttons": [{"id": 1, "priority": 0}]},
+            "pythonCode": b64_encode_str(
+                """
+# different ways to read the gyroscope
+robot.imu.orientation.yaw
+robot.imu.yaw_angle
+
+# sensor peripherals
+robot.sensors["distance_sensor"].read()
+robot.sensors["button"].read()
+robot.read_color(4)
+robot.read_hue(4)
+
+# motor peripherals
+robot.motors["motor4"].pos
+"""
+            ),
+        },
+        0,
+    )
+
+    controller.configure(config)
+
+    log("Start script")
+    controller.press_button(1)
+
+
 if __name__ == "__main__":
-    run_test_scenarios([can_play_sound, can_stop_script_with_long_sleep, test_motor_for_i2c_bug])
+    run_test_scenarios(
+        [
+            can_play_sound,
+            can_stop_script_with_long_sleep,
+            sensors_can_be_read,
+            test_motor_for_i2c_bug,
+        ]
+    )

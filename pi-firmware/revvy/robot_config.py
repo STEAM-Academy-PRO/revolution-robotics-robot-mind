@@ -1,4 +1,3 @@
-from enum import Enum
 import json
 from json import JSONDecodeError
 
@@ -10,7 +9,7 @@ from revvy.utils.logger import get_logger
 
 log = get_logger("RobotConfig")
 
-motor_types = [
+MOTOR_TYPES = [
     None,
     Motors.RevvyMotor,
     # motor
@@ -20,7 +19,7 @@ motor_types = [
     ],
 ]
 
-motor_sides = ["left", "right"]
+MOTOR_SIDES = ["left", "right"]
 
 SENSOR_TYPES = [
     None,
@@ -171,6 +170,32 @@ class RobotConfig:
             )
             self.background_scripts.append(script_desc)
 
+    def add_motor(self, motor) -> None:
+        i = len(self.motors._ports) + 1
+
+        if motor["type"] == 2:
+            # drivetrain
+            motor_type = MOTOR_TYPES[2][motor["side"]][motor["reversed"]]
+            self.drivetrain[MOTOR_SIDES[motor["side"]]].append(i)
+
+        else:
+            motor_type = MOTOR_TYPES[motor["type"]]
+
+        if motor_type is not None:
+            self.motors.names[motor["name"]] = i
+
+        self.motors[i] = motor_type
+
+    def add_sensor(self, sensor) -> None:
+        i = len(self.sensors._ports) + 1
+
+        sensor_type = SENSOR_TYPES[sensor["type"]]
+
+        if sensor_type is not None:
+            self.sensors.names[sensor["name"]] = i
+
+        self.sensors[i] = sensor_type
+
     @staticmethod
     def from_string(config_string):
         try:
@@ -207,49 +232,27 @@ class RobotConfig:
             raise ConfigError("Failed to decode received controller configuration") from e
 
         try:
-            i = 1
             motors = robot_config.get("motors", []) if type(robot_config) is dict else []
             for motor in motors:
                 if not motor:
                     motor = {"type": 0}
-
-                if motor["type"] == 2:
-                    # drivetrain
-                    motor_type = motor_types[2][motor["side"]][motor["reversed"]]
-                    config.drivetrain[motor_sides[motor["side"]]].append(i)
-
-                else:
-                    motor_type = motor_types[motor["type"]]
-
-                if motor_type is not None:
-                    config.motors.names[motor["name"]] = i
-
-                config.motors[i] = motor_type
-                i += 1
+                config.add_motor(motor)
         except (TypeError, IndexError, KeyError, ValueError) as e:
             raise ConfigError("Failed to decode received motor configuration") from e
 
         try:
-            i = 1
             sensors = robot_config.get("sensors", []) if type(robot_config) is dict else []
             for sensor in sensors:
                 if not sensor:
                     sensor = {"type": 0}
-
-                sensor_type = SENSOR_TYPES[sensor["type"]]
-
-                if sensor_type is not None:
-                    config.sensors.names[sensor["name"]] = i
-
-                config.sensors[i] = sensor_type
-                i += 1
+                config.add_sensor(sensor)
 
         except (TypeError, IndexError, KeyError, ValueError) as e:
             raise ConfigError("Failed to decode received sensor configuration") from e
 
         return config
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.motors = PortConfig()
         self.sensors = PortConfig()
         self.drivetrain = {"left": [], "right": []}
