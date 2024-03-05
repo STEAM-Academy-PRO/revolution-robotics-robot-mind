@@ -1,3 +1,4 @@
+import time
 from revvy.utils.logger import Logger
 from tests.hil_tests.hil_test_utils.runner import run_test_scenarios
 
@@ -10,7 +11,7 @@ from revvy.utils.functions import b64_encode_str
 
 
 def can_play_sound(log: Logger, controller: ProgrammedRobotController):
-    """A demo test case that configures a script to play a sound when a remote controller button is pressed."""
+    """A test case that configures a script to play a sound when a remote controller button is pressed."""
 
     def fail_on_script_error(*e) -> None:
         # In this test, if we encounter an error, let's just stop and exit
@@ -33,5 +34,34 @@ def can_play_sound(log: Logger, controller: ProgrammedRobotController):
     controller.press_button(1)
 
 
+def can_stop_script_with_long_sleep(log: Logger, controller: ProgrammedRobotController):
+    """A test case that configures a script to sleep for a long time. We then stop the script by pressing a button."""
+
+    def fail_on_script_error(*e) -> None:
+        # In this test, if we encounter an error, let's just stop and exit
+        controller.robot_manager.exit(RevvyStatusCode.ERROR)
+
+    controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
+
+    config = RobotConfig()
+    config.process_script(
+        {
+            "assignments": {"buttons": [{"id": 1, "priority": 0}]},
+            "pythonCode": b64_encode_str("""time.sleep(10000)"""),
+        },
+        0,
+    )
+
+    controller.configure(config)
+
+    log("Start script")
+    controller.press_button(1)
+
+    time.sleep(0.2)
+
+    log("Stop script")
+    controller.press_button(1)
+
+
 if __name__ == "__main__":
-    run_test_scenarios([can_play_sound])
+    run_test_scenarios([can_play_sound, can_stop_script_with_long_sleep])
