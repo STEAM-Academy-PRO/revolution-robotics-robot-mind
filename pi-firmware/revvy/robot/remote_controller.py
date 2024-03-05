@@ -2,7 +2,7 @@ from enum import Enum
 from numbers import Number
 import time
 
-from threading import Event
+from threading import Event, Lock
 import traceback
 from typing import Callable, NamedTuple, Optional
 from revvy.bluetooth.data_types import BackgroundControlState, TimerData
@@ -31,6 +31,14 @@ class RemoteControllerCommand(NamedTuple):
     buttons: bytearray
     background_command: BleAutonomousCmd
     next_deadline: Optional[int]
+
+
+EMPTY_REMOTE_CONTROLLER_COMMAND = RemoteControllerCommand(
+    analog=bytearray(),
+    buttons=bytearray(),
+    background_command=BleAutonomousCmd.NONE,
+    next_deadline=None,
+)
 
 
 class AutonomousModeRequest(Enum):
@@ -251,7 +259,7 @@ class RemoteControllerScheduler:
         self._data_ready_event = Event()
         self._controller_detected_callback = None
         self._controller_lost_callback = None
-        self._message = None
+        self._message = EMPTY_REMOTE_CONTROLLER_COMMAND
 
     def periodic_control_message_handler(self, message: RemoteControllerCommand):
         self._message = message
