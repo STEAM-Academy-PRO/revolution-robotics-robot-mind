@@ -1,5 +1,6 @@
 import json
 from json import JSONDecodeError
+from typing import Optional
 
 from revvy.robot.configurations import Motors, Sensors
 from revvy.scripting.runtime import ScriptDescriptor
@@ -104,7 +105,7 @@ def json_get_field(obj, keys, optional, value_type=None):
 
 class RobotConfig:
     @staticmethod
-    def create_runnable(script, script_num):
+    def create_runnable(script: str, script_num: int):
         script_name = json_get_field(
             script, ["builtinScriptName", "builtinscriptname"], optional=True
         )
@@ -126,6 +127,7 @@ class RobotConfig:
 
         ### TODO: This is a HACK!!! Blockly should not be generating
         # import time\n headers, if we do not want them.
+        # We re-bind time.sleep to refer to the thread context's function, so we can interrupt it
         script_source_code = script_source_code.replace("import time\n", "")
 
         return str_to_func(script_source_code, script_num), script_source_code
@@ -203,7 +205,7 @@ class RobotConfig:
         self.sensors[i] = sensor_type
 
     @staticmethod
-    def from_string(config_string):
+    def from_string(config_string: str) -> "RobotConfig":
         try:
             json_config = json.loads(config_string)
         except JSONDecodeError as e:
@@ -216,7 +218,7 @@ class RobotConfig:
             json_config, ["robotConfig", "robotconfig"], optional=False, value_type=dict
         )
 
-        blockly_list = json_get_field(
+        blockly_list: Optional[list] = json_get_field(
             json_config, ["blocklyList", "blocklylist"], optional=True, value_type=list
         )
 
@@ -231,11 +233,12 @@ class RobotConfig:
             # background scripts at the start of play session.
             config.background_initial_state = "running"
 
-        try:
-            for script_idx, script in enumerate(blockly_list):
-                config.process_script(script, script_idx)
-        except (TypeError, IndexError, KeyError, ValueError) as e:
-            raise ConfigError("Failed to decode received controller configuration") from e
+        if blockly_list is not None:
+            try:
+                for script_idx, script in enumerate(blockly_list):
+                    config.process_script(script, script_idx)
+            except (TypeError, IndexError, KeyError, ValueError) as e:
+                raise ConfigError("Failed to decode received controller configuration") from e
 
         try:
             for motor in robot_config.get("motors", []):

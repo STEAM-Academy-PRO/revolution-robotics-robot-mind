@@ -2,7 +2,7 @@ from enum import IntEnum
 import sys
 from threading import current_thread
 import traceback
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Optional
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.mcu_error import McuErrorReader
 
@@ -28,14 +28,13 @@ class RobotError:
 
     error_type: RobotErrorType
     stack: str
-    # Blockly errors need a ref, so we can tell
-    # which blockly program caused the error.
+    # Blockly errors need a ref, so we can tell which blockly program caused the error.
     ref: int
 
-    def __init__(self, error_type: RobotErrorType, stack: str, ref: int = 0):
+    def __init__(self, error_type: RobotErrorType, stack: str, ref: Optional[int]):
         self.error_type = error_type
         self.stack = stack
-        self.ref = ref
+        self.ref = 255 if ref is None else ref
 
     def __json__(self):
         return {
@@ -120,7 +119,7 @@ class ErrorHandler:
         """True if error queue not empty"""
         return self._error_queue
 
-    def report_error(self, error_type: RobotErrorType, trace: str, ref: int = 0):
+    def report_error(self, error_type: RobotErrorType, trace: str, ref: Optional[int] = None):
         """Send error to the queue up if it hasn't been posted already."""
         new_robot_error = RobotError(error_type, f"{trace} [{current_thread().name}]", ref)
         error_hash = new_robot_error.hash()
@@ -141,7 +140,7 @@ class ErrorHandler:
         error_reader = McuErrorReader(robot_control)
         log("Reading MCU errors...")
         for error_entry in error_reader.read_all():
-            self.report_error(RobotErrorType.MCU, error_entry)
+            self.report_error(RobotErrorType.MCU, error_entry, None)
 
         # This is not super ideal as we are not making sure that the error
         # actually gets sent up, however we do run this function only

@@ -25,7 +25,7 @@ from revvy.robot.robot_events import ProgramStatusChange, RobotEvent
 from revvy.robot.robot_state import RobotState
 from revvy.robot.states.sensor_states import create_sensor_data_wrapper
 from revvy.robot.status import RobotStatus, RemoteControllerStatus
-from revvy.robot_config import empty_robot_config
+from revvy.robot_config import RobotConfig, empty_robot_config
 from revvy.scripting.robot_interface import MotorConstants
 from revvy.scripting.runtime import ScriptEvent, ScriptHandle, ScriptManager
 from revvy.utils.logger import LogLevel, get_logger
@@ -267,7 +267,7 @@ class RobotManager:
 
         revvy_error_handler.read_mcu_errors(self._robot.robot_control)
 
-    def robot_configure(self, config):
+    def robot_configure(self, config: RobotConfig):
         """
         Does the bindings of ports, variables, sensors and motors
         background scripts and button scripts, starts the Remote.
