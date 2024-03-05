@@ -1,10 +1,10 @@
+from dataclasses import dataclass
 from enum import Enum
-from numbers import Number
 import time
 
-from threading import Event, Lock
+from threading import Event
 import traceback
-from typing import Callable, NamedTuple, Optional
+from typing import Callable, NamedTuple, Optional, List
 from revvy.bluetooth.data_types import BackgroundControlState, TimerData
 from revvy.scripting.runtime import ScriptHandle
 
@@ -28,14 +28,14 @@ class RemoteControllerCommand(NamedTuple):
     """Raw message coming through the ble interface"""
 
     analog: bytearray
-    buttons: bytearray
+    buttons: List[bool]
     background_command: BleAutonomousCmd
     next_deadline: Optional[int]
 
 
 EMPTY_REMOTE_CONTROLLER_COMMAND = RemoteControllerCommand(
     analog=bytearray(),
-    buttons=bytearray(),
+    buttons=[False] * 32,
     background_command=BleAutonomousCmd.NONE,
     next_deadline=None,
 )
@@ -49,15 +49,17 @@ class AutonomousModeRequest(Enum):
     RESUME = 4
 
 
-class ButtonHandler(NamedTuple):
-    id: Number
+@dataclass
+class ButtonHandler:
+    id: int
     script: ScriptHandle
     last_button_value: bool
+    last_press_stopped_it: bool
 
 
 class RemoteController:
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._background_control_state = BackgroundControlState.STOPPED
         self._control_button_pressed = AutonomousModeRequest.NONE
 
@@ -65,7 +67,7 @@ class RemoteController:
         # the last analog values, used to compare if a callback needs to be fired
         self._analogStates = bytearray()
 
-        self._button_handlers = []
+        self._button_handlers: List[ButtonHandler] = []
 
         self._processing = False
         self._processing_time = 0.0
@@ -161,7 +163,7 @@ class RemoteController:
                 # looks like an action was registered for an analog channel that we didn't receive
                 log(f'Skip analog handler for channels {", ".join(map(str, channels))}')
 
-    def run_button_script(self, button_pressed_list):
+    def run_button_script(self, button_pressed_list: List[bool]):
         """
         On the controller user binds blockly programs to the buttons.
         Here we iterate over the handlers and the button states, and if the button is pressed
@@ -223,13 +225,18 @@ class RemoteController:
         log(f"registering callbacks for Button: {button_id}")
         log(script_handle.descriptor.source, LogLevel.DEBUG)
         self._button_handlers.append(
-            ButtonHandler(id=button_id, script=script_handle, last_button_value=False)
+            ButtonHandler(
+                id=button_id,
+                script=script_handle,
+                last_button_value=False,
+                last_press_stopped_it=False,
+            )
         )
 
-    def on_analog_values(self, channels, action):
+    def on_analog_values(self, channels, action) -> None:
         self._analogActions.append((channels, action))
 
-    def timer_increment(self):
+    def timer_increment(self) -> None:
         if self._processing:
             current_time = time.time()
             self._processing_time += current_time - self._previous_time
@@ -243,7 +250,7 @@ class RemoteController:
     def background_control_state(self) -> BackgroundControlState:
         return self._background_control_state
 
-    def take_autonomous_requests(self):
+    def take_autonomous_requests(self) -> AutonomousModeRequest:
         result = self._control_button_pressed
         self._control_button_pressed = AutonomousModeRequest.NONE
         return result
@@ -254,6 +261,10 @@ DEFAULT_MESSAGE_DEADLINE = 1
 
 
 class RemoteControllerScheduler:
+    """Receive remote controller control messages, and pass them to the controller.
+
+    This class is responsible for handling message timeouts and controller detection/loss."""
+
     def __init__(self, rc: RemoteController):
         self._controller = rc
         self._data_ready_event = Event()
@@ -262,15 +273,32 @@ class RemoteControllerScheduler:
         self._message = EMPTY_REMOTE_CONTROLLER_COMMAND
 
     def periodic_control_message_handler(self, message: RemoteControllerCommand):
+        """This function is called by the ble interface to pass the received control message."""
         self._message = message
         self._data_ready_event.set()
 
-    def _wait_for_message(self, ctx, wait_time) -> bool:
-        timeout_sec = wait_time
+    def _wait_for_message(
+        self, ctx: ThreadContext, timeout_sec: float
+    ) -> Optional[RemoteControllerCommand]:
+        """Wait for the next message from the controller, or a stop request.
+
+        If this function returns None, the remote controller thread will stop. This can happen
+        in two ways:
+        - a stop request was received, which is mostly interesting during development and testing
+        - the timeout was reached, and we assume that the remote controller disconnected
+        """
         timeout = not self._data_ready_event.wait(timeout_sec)
         self._data_ready_event.clear()
 
-        return not (timeout or ctx.stop_requested)
+        if timeout or ctx.stop_requested:
+            return None
+
+        # swap out the message with an empty one
+        # if we wanted to be 100% correct here, we should use a 1-element queue. However,
+        # the swap is atomic, so in the worst case we just miss messages for a short time.
+        message, self._message = self._message, EMPTY_REMOTE_CONTROLLER_COMMAND
+
+        return message
 
     def handle_controller(self, ctx: ThreadContext):
         try:
@@ -282,16 +310,16 @@ class RemoteControllerScheduler:
 
             # wait for first message
             stopwatch = Stopwatch()
-            if self._wait_for_message(ctx, FIRST_MESSAGE_TIMEOUT):
+            message = self._wait_for_message(ctx, FIRST_MESSAGE_TIMEOUT)
+            if message is not None:
                 log(f"Time to first message: {stopwatch.elapsed}s")
                 if self._controller_detected_callback:
                     self._controller_detected_callback()
 
-                self._controller.process_control_message(self._message)
-
-                # wait for the other messages
-                while self._wait_for_message(ctx, self._controller.next_message_deadline):
-                    self._controller.process_control_message(self._message)
+                # process message and wait for the next one
+                while message is not None:
+                    self._controller.process_control_message(message)
+                    message = self._wait_for_message(ctx, self._controller.next_message_deadline)
 
             if not ctx.stop_requested:
                 log("Controller lost due to timeout!", LogLevel.WARNING)
