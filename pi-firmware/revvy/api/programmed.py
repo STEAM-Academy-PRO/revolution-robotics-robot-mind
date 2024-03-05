@@ -14,7 +14,7 @@ class ProgrammedRobotController:
         self.robot_manager.needs_interrupting = False
         self.message = RemoteControllerCommand(
             analog=bytearray([0] * 6),
-            buttons=bytearray([0] * 32),
+            buttons=[False] * 32,
             background_command=BleAutonomousCmd.NONE,
             next_deadline=1,
         )
@@ -48,17 +48,17 @@ class ProgrammedRobotController:
         self.log("Stopped programmed robot controller")
         self.robot_manager.exit(RevvyStatusCode.OK)
 
-    def _on_input_changed(self):
+    def _on_input_changed(self) -> None:
         self.message_updated.clear()
 
-    def _wait_for_input_processed(self):
+    def _wait_for_input_processed(self) -> None:
         self.message_updated.wait()
 
     # Raw input control
 
     def set_button_value(self, button: int, value: bool):
         with self.lock:
-            self.message.buttons[button] = 1 if value else 0
+            self.message.buttons[button] = value
             self._on_input_changed()
         self._wait_for_input_processed()
 

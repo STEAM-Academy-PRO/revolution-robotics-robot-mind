@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from revvy.robot_config import RobotConfig
 
 from revvy.utils.logger import get_logger
-from revvy.utils.thread_wrapper import ThreadContext, ThreadWrapper
+from revvy.utils.thread_wrapper import ThreadContext, ThreadWrapper, ThreadWrapperState
 from revvy.scripting.robot_interface import RobotWrapper
 
 
@@ -86,7 +86,7 @@ class ScriptHandle(Emitter[ScriptEvent]):
 
     @property
     def is_stop_requested(self):
-        return self._thread.state in [ThreadWrapper.STOPPING, ThreadWrapper.STOPPED]
+        return self._thread.state in [ThreadWrapperState.STOPPING, ThreadWrapperState.STOPPED]
 
     @property
     def is_running(self):
@@ -110,6 +110,9 @@ class ScriptHandle(Emitter[ScriptEvent]):
             ctx.terminate = _terminate  # pyright: ignore
             ctx.terminate_all = lambda: self._owner.stop_all_scripts(False)  # pyright: ignore
 
+            # We provide a custom sleep implementation to the scripts, so they can be interrupted
+            # Using the default `time.sleep` would make it impossible to stop the script in a timely
+            # manner
             self.sleep = ctx.sleep
             self.log("Starting script")
             self.trigger(ScriptEvent.START)
@@ -122,7 +125,7 @@ class ScriptHandle(Emitter[ScriptEvent]):
             self.log("Script finished")
             self.sleep = self._prevent_incorrect_sleep
 
-    def reset_variables(self, *args):
+    def reset_variables(self, *args) -> None:
         if "list_slots" in self._globals:
             for var in self._globals["list_slots"]:
                 self.log(f"resetting_variable: {var}")

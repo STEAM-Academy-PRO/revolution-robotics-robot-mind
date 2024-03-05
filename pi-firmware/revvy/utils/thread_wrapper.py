@@ -1,10 +1,21 @@
+from enum import Enum
 import time
 from threading import Event, Thread, Lock, RLock
 import traceback
+from typing import Callable
 from revvy.utils.error_reporter import RobotErrorType, revvy_error_handler
 from revvy.utils.emitter import SimpleEventEmitter
 
 from revvy.utils.logger import LogLevel, get_logger
+
+
+class ThreadWrapperState(Enum):
+    STOPPED = 0
+    STARTING = 1
+    RUNNING = 2
+    STOPPING = 3
+    EXITED = 4
+    PAUSED = 5
 
 
 class ThreadWrapper:
@@ -13,13 +24,6 @@ class ThreadWrapper:
     Threads are not automatically stopped (as it is not possible), but a stop request can be read using the
     context object that is passed to the thread function
     """
-
-    STOPPED = 0
-    STARTING = 1
-    RUNNING = 2
-    STOPPING = 3
-    EXITED = 4
-    PAUSED = 5
 
     def __init__(self, func, name: str = "WorkerThread"):
         self._log = get_logger(["ThreadWrapper", name])
@@ -40,18 +44,19 @@ class ThreadWrapper:
         self._thread_stopped_event.set()
         # caller can wait for the thread function to start running
         self._thread_running_event = Event()
-        self._state = ThreadWrapper.STOPPED
+        self._state = ThreadWrapperState.STOPPED
         self._is_exiting = False
         self._thread = Thread(target=self._thread_func, args=(), name=name)
         self._thread.start()
 
-    def _wait_for_start(self):
+    def _wait_for_start(self) -> bool:
+        """Wait for the thread to be started. Returns False if the thread is exiting."""
         self._control.wait()
         self._control.clear()
 
-        return self._state == ThreadWrapper.STARTING
+        return self._state == ThreadWrapperState.STARTING
 
-    def _thread_func(self):
+    def _thread_func(self) -> None:
         try:
             ctx = ThreadContext(self, self._stop_event, self._pause_flag)
             while self._wait_for_start():
@@ -75,58 +80,62 @@ class ThreadWrapper:
                 finally:
                     self._enter_stopped()
         finally:
-            self._state = ThreadWrapper.EXITED
+            self._state = ThreadWrapperState.EXITED
 
-    def _enter_started(self):
+    def _enter_started(self) -> None:
         with self._lock:
             self._stop_event.clear()
-            self._state = ThreadWrapper.RUNNING
+            self._state = ThreadWrapperState.RUNNING
             self._thread_running_event.set()
         self._log("thread started")
 
-    def _enter_stopped(self):
+    def _enter_stopped(self) -> None:
         self._log("stopped")
         with self._lock:
-            self._state = ThreadWrapper.STOPPED
+            self._state = ThreadWrapperState.STOPPED
             self._thread_running_event.clear()
             self._thread_stopped_event.set()
             self._log("call stopped callbacks")
             self._stopped_callbacks.trigger()
 
     @property
-    def state(self):
+    def state(self) -> ThreadWrapperState:
         return self._state
 
     @property
-    def is_running(self):
+    def is_running(self) -> bool:
         return self._thread_running_event.is_set()
 
-    def _start(self):
-        if not self._is_exiting:
-            self._log("starting")
-            self._thread_stopped_event.clear()
-            self._state = ThreadWrapper.STARTING
-            self._control.set()
-
-    def start(self):
+    def start(self) -> Event:
         """
         Only allows one instance of the script to run.
         If the thread is stopping, it's going to restart it right after.
+
+        :return: the event that is set when the thread actually starts running.
         """
-        assert self._state != ThreadWrapper.EXITED, "thread has already exited"
+        assert self._state != ThreadWrapperState.EXITED, "thread has already exited"
         assert not self._is_exiting, "can not start an exiting thread"
+
+        def _start(thread: "ThreadWrapper"):
+            if thread._is_exiting:
+                return
+            thread._log("starting")
+            thread._thread_stopped_event.clear()
+            thread._state = ThreadWrapperState.STARTING
+            thread._control.set()
 
         with self._interface_lock:
             with self._lock:
-                if self._state in [ThreadWrapper.STARTING, ThreadWrapper.RUNNING]:
+                if self._state in [ThreadWrapperState.STARTING, ThreadWrapperState.RUNNING]:
                     return self._thread_running_event
 
-                if self._state == ThreadWrapper.STOPPING:
+                if self._state == ThreadWrapperState.STOPPING:
                     self._log("thread is stopping when start is called")
-                    self.on_stopped(self._start)
+                    # Defer start until the thread is stopped
+                    self.on_stopped(lambda: _start(self))
                     return self._thread_running_event
 
-            self._start()
+            _start(self)
 
             return self._thread_running_event
 
@@ -148,20 +157,24 @@ class ThreadWrapper:
 
     def do_stop(self) -> Event:
         with self._interface_lock:
-            if self._state in [ThreadWrapper.STOPPING, ThreadWrapper.STOPPED, ThreadWrapper.EXITED]:
+            if self._state in [
+                ThreadWrapperState.STOPPING,
+                ThreadWrapperState.STOPPED,
+                ThreadWrapperState.EXITED,
+            ]:
                 self._log("stop already called. Currently in state: %s" % self._state)
             else:
                 self._log("stopping")
 
-                if self._state == ThreadWrapper.STARTING:
+                if self._state == ThreadWrapperState.STARTING:
                     self._log("startup is in progress, wait for thread to start running")
                     self._thread_running_event.wait()
 
                 with self._lock:
-                    if self._state == ThreadWrapper.RUNNING:
+                    if self._state == ThreadWrapperState.RUNNING:
                         self._log("request stop")
 
-                        self._state = ThreadWrapper.STOPPING
+                        self._state = ThreadWrapperState.STOPPING
                         self._stop_event.set()
                         self.resume_thread()
                         call_callbacks = True
@@ -175,7 +188,7 @@ class ThreadWrapper:
 
             return self._thread_stopped_event
 
-    def exit(self):
+    def exit(self) -> None:
         with self._interface_lock:
             self._log("exiting")
             self._is_exiting = True
@@ -190,23 +203,26 @@ class ThreadWrapper:
 
             self._log("exited")
 
-    def on_stopped(self, callback):
+    def on_stopped(self, callback: Callable):
         self._stopped_callbacks.add(callback)
 
-    def on_error(self, callback):
+    def on_error(self, callback: Callable):
         self._error_callbacks.add(callback)
 
-    def on_stop_requested(self, callback):
-        if self._state == ThreadWrapper.STOPPING:
+    def on_stop_requested(self, callback) -> None:
+        if self._state == ThreadWrapperState.STOPPING:
             callback()
         else:
             self._stop_requested_callbacks.add(callback)
 
-    def pause_thread(self):
+    def pause_thread(self) -> None:
+        # pause essentially means that a script calling `sleep` will not wake up. We insert a bunch
+        # of `sleep` calls in the blockly to create the illusion of parallel execution, so
+        # this may be good enough for now?
         self._log("pause thread")
         self._pause_flag.clear()
 
-    def resume_thread(self):
+    def resume_thread(self) -> None:
         self._log("resume thread")
         self._pause_flag.set()
 
@@ -220,6 +236,7 @@ class ThreadContext:
         self.on_stopped = thread.on_stop_requested
 
     def sleep(self, s: float):
+        """A custom sleep function that can be interrupted by stop()"""
         if self._stop_event.wait(s):
             raise InterruptedError
         self._pause_event.wait()
@@ -229,7 +246,7 @@ class ThreadContext:
         return self._stop_event.is_set()
 
 
-def periodic(fn, period, name="PeriodicThread"):
+def periodic(fn: Callable, period: float, name: str = "PeriodicThread") -> ThreadWrapper:
     """
     Call fn periodically
 
@@ -245,11 +262,12 @@ def periodic(fn, period, name="PeriodicThread"):
             fn()
 
             _next_call += period
-            diff = _next_call - time.time()
+            now = time.time()
+            diff = _next_call - now
             if diff > 0:
                 time.sleep(diff)
             else:
                 # period was missed, let's restart
-                _next_call = time.time()
+                _next_call = now
 
     return ThreadWrapper(_call_periodically, name)
