@@ -3,11 +3,11 @@ import struct
 import binascii
 from enum import Enum
 from threading import Lock
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 import time
 
 from revvy.utils.functions import retry
-from revvy.utils.logger import LogLevel, get_logger
+from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
 
 log = get_logger("rrrc_transport")
@@ -272,7 +272,7 @@ crc7_table = (
 )
 
 
-def crc7(data, crc=0xFF):
+def crc7(data, crc: int = 0xFF) -> int:
     """
     >>> crc7(b'foobar')
     16
@@ -328,7 +328,7 @@ class Command:
         return pl
 
     @staticmethod
-    def start(command: int, payload: bytes):
+    def start(command: int, payload: bytes) -> bytearray:
         """
         >>> Command.start(2, b'')
         bytearray(b'\\x00\\x02\\x00\\xff\\xffQ')
@@ -336,7 +336,7 @@ class Command:
         return Command.create(Command.OpStart, command, payload)
 
     @staticmethod
-    def get_result(command):
+    def get_result(command: int) -> bytearray:
         """
         >>> Command.get_result(2)
         bytearray(b'\\x02\\x02\\x00\\xff\\xff=')
@@ -344,7 +344,7 @@ class Command:
         return Command.create(Command.OpGetResult, command)
 
     @staticmethod
-    def cancel(command):
+    def cancel(command: int) -> bytearray:
         return Command.create(Command.OpCancel, command)
 
 
@@ -373,7 +373,7 @@ class ResponseHeader(NamedTuple):
     raw: bytes
 
     @staticmethod
-    def create(data: bytes):
+    def create(data: bytes) -> "ResponseHeader":
         try:
             if not ResponseHeader.is_valid(data):
                 raise ValueError("Header checksum error")
@@ -400,10 +400,10 @@ class ResponseHeader(NamedTuple):
             return False
         return True
 
-    def validate_payload(self, payload):
+    def validate_payload(self, payload) -> bool:
         return self.payload_checksum == binascii.crc_hqx(payload, 0xFFFF)
 
-    def is_same_as(self, response_header):
+    def is_same_as(self, response_header) -> bool:
         return self.raw == response_header
 
 
@@ -477,7 +477,7 @@ class RevvyTransport:
         @return: The header data
         """
 
-        def _read_response_header_once():
+        def _read_response_header_once() -> ResponseHeader:
             header_bytes = self._transport.read(5)
 
             return ResponseHeader.create(header_bytes)
@@ -490,12 +490,12 @@ class RevvyTransport:
 
         return header
 
-    def _read_payload(self, header: ResponseHeader, retries=5) -> bytes:
+    def _read_payload(self, header: ResponseHeader, retries: int = 5) -> bytes:
         """
         Read the rest of the response
 
-        Reading always starts with the header (nondestructive) so we need to read the header and verify that
-        we receive the same header as before
+        Reading always starts with the header (nondestructive) so we need to read the header and
+        verify that we receive the same header as before
 
         @param header: The expected header
         @param retries: How many times the read can be retried in case an error happens
@@ -504,7 +504,7 @@ class RevvyTransport:
         if header.payload_length == 0:
             return b""
 
-        def _read_payload_once():
+        def _read_payload_once() -> Optional[bytes]:
             # read header and payload
             response_bytes = self._transport.read(5 + header.payload_length)
             response_header, response_payload = (
@@ -515,12 +515,12 @@ class RevvyTransport:
             # make sure we read the same response data we expect
             if not header.is_same_as(response_header):
                 # raise ValueError('Read payload: Unexpected header received')
-                return 0
+                return None
 
             # make sure data is intact
             if not header.validate_payload(response_payload):
                 # raise ValueError('Read payload: payload contents invalid')
-                return 0
+                return None
 
             return response_payload
 
@@ -536,8 +536,8 @@ class RevvyTransport:
         """
         Send a command and return the response header
 
-        This function waits for the slave MCU to finish processing the command and returns if it is done or the
-        timeout defined in the class header elapses.
+        This function waits for the slave MCU to finish processing the command and returns if it is
+        done or the timeout defined in the class header elapses.
 
         @param command: The command bytes to send
         @return: The response header
@@ -545,7 +545,8 @@ class RevvyTransport:
         self._transport.write(command)
         self._stopwatch.reset()
         while self._stopwatch.elapsed < self.timeout:
-            response = self._read_response_header(retries=100)
-            if response is not None and response.status != ResponseStatus.Busy:
+            response = self._read_response_header(retries=self.retry_reads)
+            # Busy means the MCU is not ready for this command yet and we should retry later.
+            if response.status != ResponseStatus.Busy:
                 return response
         raise TimeoutError

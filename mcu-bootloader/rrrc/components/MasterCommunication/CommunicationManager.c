@@ -80,13 +80,13 @@ static Comm_Status_t _handleOperation_Start(const Comm_Command_t* command, uint8
 size_t Comm_Handle(const Comm_Command_t* command, Comm_Response_t* response, size_t responseBufferSize)
 {
     const size_t responseHeaderSize = sizeof(Comm_ResponseHeader_t);
-    
+
     ASSERT(responseBufferSize > responseHeaderSize);
     ASSERT((responseBufferSize - responseHeaderSize) < 256u); /* protocol limitation */
     uint8_t payloadBufferSize = responseBufferSize - responseHeaderSize;
     uint8_t payloadSize = 0u;
     Comm_Status_t resultStatus;
-    
+
     if (!_commandValid(command))
     {
         SEGGER_RTT_printf(0, "Command integrity error\n");

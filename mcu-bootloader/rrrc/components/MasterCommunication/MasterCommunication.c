@@ -3,14 +3,14 @@
 
 static uint8_t responseBuffer[256];
 
-static Comm_ResponseHeader_t defaultResponse = 
+static Comm_ResponseHeader_t defaultResponse =
 {
     .status = Comm_Status_Busy,
     .payloadLength = 0u,
     .payloadChecksum = 0xFFFFu
 };
 
-static Comm_ResponseHeader_t longRxErrorResponse = 
+static Comm_ResponseHeader_t longRxErrorResponse =
 {
     .status = Comm_Status_Error_PayloadLengthError,
     .payloadLength = 0u,

@@ -56,7 +56,7 @@ def get_serial():
     return cpu_serial
 
 
-def retry(fn, retries=5, error_handler=None):
+def retry(fn, retries: int = 5, error_handler=None):
     """Retry the given function a number of times, or until it returns True or None"""
     retry_num = 0
     while retry_num < retries:
