@@ -450,14 +450,13 @@ class RevvyTransport:
                         if not command_get_result:
                             command_get_result = Command.get_result(command)
 
-                        # FIXME remove this delay
-                        if get_result_delay:
-                            time.sleep(get_result_delay)
-                        header = self._send_command(command_get_result)
-                        while header.status == ResponseStatus.Pending:
+                        while True:  # TODO: ensure that this loop is not infinite
                             if get_result_delay:
+                                # FIXME remove this delay
                                 time.sleep(get_result_delay)
                             header = self._send_command(command_get_result)
+                            if header.status != ResponseStatus.Pending:
+                                break
 
                     # check result
                     # return a result even in case of an error, except when we know we have to resend
