@@ -62,6 +62,8 @@ def can_stop_script_with_long_sleep(log: Logger, controller: ProgrammedRobotCont
     log("Stop script")
     controller.press_button(1)
 
+    controller.wait_for_scripts_to_end()
+
 
 def test_motor_for_i2c_bug(log: Logger, controller: ProgrammedRobotController):
     # I'm using this test locally to test a non-deterministic I2C bug.
@@ -123,6 +125,8 @@ robot.motors["motor4"].pos
 
     log("Start script")
     controller.press_button(1)
+
+    controller.wait_for_scripts_to_end()
 
 
 if __name__ == "__main__":

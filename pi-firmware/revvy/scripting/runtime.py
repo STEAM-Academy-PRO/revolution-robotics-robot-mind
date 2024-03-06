@@ -89,7 +89,7 @@ class ScriptHandle(Emitter[ScriptEvent]):
         return self._thread.state in [ThreadWrapperState.STOPPING, ThreadWrapperState.STOPPED]
 
     @property
-    def is_running(self):
+    def is_running(self) -> bool:
         return self._thread.is_running
 
     @property

@@ -54,6 +54,11 @@ class ProgrammedRobotController:
     def _wait_for_input_processed(self) -> None:
         self.message_updated.wait()
 
+    def wait_for_scripts_to_end(self) -> None:
+        for script in self.robot_manager._scripts._scripts.values():
+            if script.is_running:
+                time.sleep(0.1)
+
     # Raw input control
 
     def set_button_value(self, button: int, value: bool):
