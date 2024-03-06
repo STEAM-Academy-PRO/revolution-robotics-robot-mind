@@ -232,21 +232,14 @@ class RobotConfig:
             raise ConfigError("Failed to decode received controller configuration") from e
 
         try:
-            motors = robot_config.get("motors", []) if type(robot_config) is dict else []
-            for motor in motors:
-                if not motor:
-                    motor = {"type": 0}
-                config.add_motor(motor)
+            for motor in robot_config.get("motors", []):
+                config.add_motor(motor or {"type": 0})
         except (TypeError, IndexError, KeyError, ValueError) as e:
             raise ConfigError("Failed to decode received motor configuration") from e
 
         try:
-            sensors = robot_config.get("sensors", []) if type(robot_config) is dict else []
-            for sensor in sensors:
-                if not sensor:
-                    sensor = {"type": 0}
-                config.add_sensor(sensor)
-
+            for sensor in robot_config.get("sensors", []):
+                config.add_sensor(sensor or {"type": 0})
         except (TypeError, IndexError, KeyError, ValueError) as e:
             raise ConfigError("Failed to decode received sensor configuration") from e
 
