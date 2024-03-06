@@ -4,7 +4,7 @@ import time
 
 from threading import Event
 import traceback
-from typing import Callable, NamedTuple, Optional, List
+from typing import Callable, NamedTuple, Optional, List, Tuple, Type
 from revvy.bluetooth.data_types import BackgroundControlState, TimerData
 from revvy.scripting.runtime import ScriptHandle
 
@@ -57,13 +57,17 @@ class ButtonHandler:
     last_press_stopped_it: bool
 
 
+AnalogAction = Tuple[List[int], ScriptHandle]
+""" ([channel], callback) pairs"""
+
+
 class RemoteController:
 
     def __init__(self) -> None:
         self._background_control_state = BackgroundControlState.STOPPED
         self._control_button_pressed = AutonomousModeRequest.NONE
 
-        self._analogActions = []  # ([channel], callback) pairs
+        self._analogActions: List[AnalogAction] = []
         # the last analog values, used to compare if a callback needs to be fired
         self._analogStates = bytearray()
 
@@ -158,7 +162,7 @@ class RemoteController:
                     changed = True
 
                 if changed:
-                    action([analog_cmd[x] for x in channels])
+                    action.start(channels=[analog_cmd[x] for x in channels])
             except IndexError:
                 # looks like an action was registered for an analog channel that we didn't receive
                 log(f'Skip analog handler for channels {", ".join(map(str, channels))}')
@@ -233,7 +237,7 @@ class RemoteController:
             )
         )
 
-    def on_analog_values(self, channels, action) -> None:
+    def on_analog_values(self, channels, action: ScriptHandle) -> None:
         self._analogActions.append((channels, action))
 
     def timer_increment(self) -> None:
