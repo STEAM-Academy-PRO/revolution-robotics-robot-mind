@@ -129,6 +129,45 @@ robot.motors["motor4"].pos
     controller.wait_for_scripts_to_end()
 
 
+def trying_to_access_uncofigured_sensor_raises_error(
+    log: Logger, controller: ProgrammedRobotController
+):
+    """A test case that configures a script to read sensors, but the sensors are not configured. We expect an error to be raised."""
+
+    error_raised = False
+
+    def expect_script_error(*e) -> None:
+        # In this test, if we encounter an error, let's just stop and exit
+        nonlocal error_raised
+        error_raised = True
+
+    controller.robot_manager.on(RobotEvent.ERROR, expect_script_error)
+
+    config = RobotConfig()
+    config.process_script(
+        {
+            "assignments": {"buttons": [{"id": 1, "priority": 0}]},
+            "pythonCode": b64_encode_str(
+                """
+robot.sensors["distance_sensor"].read()
+"""
+            ),
+        },
+        0,
+    )
+
+    controller.configure(config)
+
+    log("Start script")
+    controller.press_button(1)
+
+    controller.wait_for_scripts_to_end()
+
+    if not error_raised:
+        log("Expected error was not raised")
+        controller.robot_manager.exit(RevvyStatusCode.ERROR)
+
+
 if __name__ == "__main__":
     run_test_scenarios(
         [
@@ -136,5 +175,6 @@ if __name__ == "__main__":
             can_stop_script_with_long_sleep,
             sensors_can_be_read,
             test_motor_for_i2c_bug,
+            trying_to_access_uncofigured_sensor_raises_error,
         ]
     )
