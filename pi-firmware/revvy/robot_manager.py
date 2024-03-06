@@ -354,16 +354,11 @@ class RobotManager:
             # sensor_port.on_status_changed.add(lambda p:
             #  self.trigger(RobotEvent.SENSOR_VALUE_CHANGE, SensorEventData(p.id, p.raw_value)))
 
-        def start_analog_script(src, channels):
-            src.start(channels=channels)
-
         # set up remote controller
         for analog in config.controller.analog:
             script_handle = self._scripts.add_script(analog["script"], config)
             script_handle.on(ScriptEvent.ERROR, self._on_analog_script_error)
-            self._remote_controller.on_analog_values(
-                analog["channels"], partial(start_analog_script, script_handle)
-            )
+            self._remote_controller.on_analog_values(analog["channels"], script_handle)
 
         # Set up all the bound buttons to run the stored scripts.
         for button, script in enumerate(config.controller.buttons):
