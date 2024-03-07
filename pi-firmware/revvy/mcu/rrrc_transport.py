@@ -3,7 +3,7 @@ import struct
 import binascii
 from enum import Enum
 from threading import Lock
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Union
 import time
 
 from revvy.utils.functions import retry
@@ -374,26 +374,24 @@ class ResponseHeader(NamedTuple):
 
     @staticmethod
     def create(data: bytes) -> "ResponseHeader":
-        try:
-            if not ResponseHeader.is_valid(data):
-                raise ValueError("Header checksum error")
+        if len(data) < 5:
+            raise ValueError(f"Header too short. Received {len(data)} bytes, expected at least 5")
 
-            header_bytes = data[0:4]
-            status, _payload_length, _payload_checksum = struct.unpack("<BBH", header_bytes)
-            return ResponseHeader(
-                status=ResponseStatus(status),
-                payload_length=_payload_length,
-                payload_checksum=_payload_checksum,
-                raw=header_bytes,
-            )
-        except IndexError as e:
-            raise ValueError("Header too short") from e
+        if not ResponseHeader.is_valid(data):
+            raise ValueError("Header checksum error")
+
+        header_bytes = data[0:4]
+        status, _payload_length, _payload_checksum = struct.unpack("<BBH", header_bytes)
+        return ResponseHeader(
+            status=ResponseStatus(status),
+            payload_length=_payload_length,
+            payload_checksum=_payload_checksum,
+            raw=header_bytes,
+        )
 
     @staticmethod
     def is_valid(data: bytes):
         """Checks if a communication header is valid"""
-        if data == None:
-            return False
         header_bytes = data[0:4]
         if crc7(header_bytes) != data[4]:
             # log(f"Header Check CRC error: {str(data)} !=  {str(header_bytes)}", LogLevel.WARNING)
@@ -504,7 +502,9 @@ class RevvyTransport:
         if header.payload_length == 0:
             return b""
 
-        def _read_payload_once() -> Optional[bytes]:
+        def _read_payload_once() -> Union[bool, bytes]:
+            # Returns False on error, because retry() treats None as success.
+
             # read header and payload
             response_bytes = self._transport.read(5 + header.payload_length)
             response_header, response_payload = (
@@ -514,13 +514,11 @@ class RevvyTransport:
 
             # make sure we read the same response data we expect
             if not header.is_same_as(response_header):
-                # raise ValueError('Read payload: Unexpected header received')
-                return None
+                return False
 
             # make sure data is intact
             if not header.validate_payload(response_payload):
-                # raise ValueError('Read payload: payload contents invalid')
-                return None
+                return False
 
             return response_payload
 
