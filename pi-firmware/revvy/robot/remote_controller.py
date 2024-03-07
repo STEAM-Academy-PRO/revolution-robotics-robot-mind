@@ -7,6 +7,7 @@ import traceback
 from typing import Callable, NamedTuple, Optional, List
 from revvy.bluetooth.data_types import BackgroundControlState, TimerData
 from revvy.scripting.runtime import ScriptHandle
+from revvy.utils import error_reporter
 
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.thread_wrapper import ThreadWrapper, ThreadContext
@@ -330,6 +331,9 @@ class RemoteControllerScheduler:
             self._controller.reset()
             log("exited")
         except Exception as e:
+            error_reporter.revvy_error_handler.report_error(
+                error_reporter.RobotErrorType.SYSTEM, traceback.format_exc()
+            )
             log(str(e), LogLevel.ERROR)
             log(traceback.format_exc(), LogLevel.ERROR)
 
