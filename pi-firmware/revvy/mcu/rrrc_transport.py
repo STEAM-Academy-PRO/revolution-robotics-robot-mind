@@ -381,11 +381,11 @@ class ResponseHeader(NamedTuple):
             raise ValueError("Header checksum error")
 
         header_bytes = data[0:4]
-        status, _payload_length, _payload_checksum = struct.unpack("<BBH", header_bytes)
+        status, payload_length, payload_checksum = struct.unpack("<BBH", header_bytes)
         return ResponseHeader(
             status=ResponseStatus(status),
-            payload_length=_payload_length,
-            payload_checksum=_payload_checksum,
+            payload_length=payload_length,
+            payload_checksum=payload_checksum,
             raw=header_bytes,
         )
 
