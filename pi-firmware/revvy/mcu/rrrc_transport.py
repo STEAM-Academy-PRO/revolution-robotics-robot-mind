@@ -378,7 +378,7 @@ class ResponseHeader(NamedTuple):
             raise ValueError(f"Header too short. Received {len(data)} bytes, expected at least 5")
 
         if not ResponseHeader.is_valid(data):
-            raise ValueError("Header checksum error")
+            raise ValueError(f"Header checksum error. Data = {list(data)}")
 
         header_bytes = data[0:4]
         status, payload_length, payload_checksum = struct.unpack("<BBH", header_bytes)
@@ -409,14 +409,14 @@ class Response(NamedTuple):
 
 class RevvyTransport:
     _mutex = Lock()  # we only have a single I2C interface
-    timeout = 75  # [seconds] how long the slave is allowed to respond with "busy"
+    timeout = 5  # [seconds] how long the MCU is allowed to respond with "busy" or no response
 
     def __init__(self, transport: RevvyTransportInterface):
         self._transport = transport
         self._stopwatch = Stopwatch()
         self.retry_reads = 100  # 100 seems like an excessive value
 
-    def send_command(self, command: int, payload: bytes = b"", get_result_delay=None) -> Response:
+    def send_command(self, command: int, payload: bytes = b"") -> Response:
         """
         Send a command and get the result.
 
@@ -446,9 +446,6 @@ class RevvyTransport:
                             command_get_result = Command.get_result(command)
 
                         while True:  # TODO: ensure that this loop is not infinite
-                            if get_result_delay:
-                                # FIXME remove this delay
-                                time.sleep(get_result_delay)
                             header = self._send_command(command_get_result)
                             if header.status != ResponseStatus.Pending:
                                 break
@@ -456,13 +453,13 @@ class RevvyTransport:
                     # check result
                     # return a result even in case of an error, except when we know we have to resend
                     if header.status != ResponseStatus.Error_CommandIntegrityError:
-                        response_payload = self._read_payload(header, retries=self.retry_reads)
+                        response_payload = self._read_payload(header)
                         # print("command: ", command, "response_payload:", response_payload)
                         return Response(header.status, response_payload)
             except TimeoutError:
                 return Response(ResponseStatus.Error_Timeout, b"")
 
-    def _read_response_header(self, retries=5) -> ResponseHeader:
+    def _read_response_header(self) -> ResponseHeader:
         """
         Read header part of response message
 
@@ -477,7 +474,7 @@ class RevvyTransport:
 
             return ResponseHeader.create(header_bytes)
 
-        header = retry(_read_response_header_once, retries, lambda e: None)
+        header = retry(_read_response_header_once, self.retry_reads, lambda e: None)
 
         if not header:
             # log("Connection lost with the board, retry limit reached!", LogLevel.ERROR)
@@ -485,7 +482,7 @@ class RevvyTransport:
 
         return header
 
-    def _read_payload(self, header: ResponseHeader, retries: int = 5) -> bytes:
+    def _read_payload(self, header: ResponseHeader) -> bytes:
         """
         Read the rest of the response
 
@@ -493,7 +490,6 @@ class RevvyTransport:
         verify that we receive the same header as before
 
         @param header: The expected header
-        @param retries: How many times the read can be retried in case an error happens
         @return: The payload bytes
         """
         if header.payload_length == 0:
@@ -519,7 +515,7 @@ class RevvyTransport:
 
             return response_payload
 
-        payload = retry(_read_payload_once, retries)
+        payload = retry(_read_payload_once, self.retry_reads)
 
         if not payload:
             # log("Connection lost with the board, retry limit reached!", LogLevel.ERROR)
@@ -540,8 +536,10 @@ class RevvyTransport:
         self._transport.write(command)
         self._stopwatch.reset()
         while self._stopwatch.elapsed < self.timeout:
-            response = self._read_response_header(retries=self.retry_reads)
+            response = self._read_response_header()
             # Busy means the MCU is not ready for this command yet and we should retry later.
             if response.status != ResponseStatus.Busy:
+                if response.status != ResponseStatus.Ok:
+                    log(f"response.status: {response.status}")
                 return response
         raise TimeoutError

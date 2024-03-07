@@ -2,6 +2,7 @@
 #include "utils_assert.h"
 
 #include <stdbool.h>
+#include "SEGGER_RTT.h"
 
 static const Comm_CommandHandler_t* comm_commandTable = NULL;
 static size_t comm_commandTableSize = 0u;
@@ -94,15 +95,30 @@ size_t Comm_Handle(const Comm_Command_t* command, Comm_Response_t* response, siz
 
     if (!_commandValid(command))
     {
+        SEGGER_RTT_printf(
+            0,
+            "Header CRC error. Command header = [0x%X 0x%X 0x%X]\n",
+            command->header.operation,
+            command->header.command,
+            command->header.payloadLength
+        );
         resultStatus = Comm_Status_Error_CommandIntegrityError;
     }
     else if (!_payloadValid(command))
     {
+        SEGGER_RTT_printf(
+            0,
+            "Payload CRC error. Command header = [0x%X 0x%X 0x%X]\n",
+            command->header.operation,
+            command->header.command,
+            command->header.payloadLength
+        );
         resultStatus = Comm_Status_Error_PayloadIntegrityError;
     }
     else if (command->header.command >= comm_commandTableSize || comm_commandTable[command->header.command].Start == NULL)
     {
         /* unimplemented command */
+        SEGGER_RTT_printf(0, "Unknown command 0x%X\n", command->header.command);
         resultStatus = Comm_Status_Error_UnknownCommand;
     }
     else
@@ -115,23 +131,34 @@ size_t Comm_Handle(const Comm_Command_t* command, Comm_Response_t* response, siz
         {
             case Comm_Operation_Start:
                 resultStatus = _handleOperation_Start(command, responseArray, &payloadSize);
+                // SEGGER_RTT_printf(0, "Start 0x%X: %d\n", command->header.command, resultStatus);
                 break;
 
             case Comm_Operation_GetResult:
                 resultStatus = _handleOperation_GetResult(command, responseArray, &payloadSize);
+                // SEGGER_RTT_printf(0, "GetResult 0x%X: %d\n", command->header.command, resultStatus);
                 break;
 
             case Comm_Operation_Cancel:
                 resultStatus = _handleOperation_Cancel(command);
+                // SEGGER_RTT_printf(0, "Cancel 0x%X: %d\n", command->header.command, resultStatus);
                 break;
 
             case Comm_Operation_Restart:
                 (void) _handleOperation_Cancel(command);
                 resultStatus = _handleOperation_Start(command, responseArray, &payloadSize);
+                // SEGGER_RTT_printf(0, "Restart 0x%X: %d\n", command->header.command, resultStatus);
                 break;
 
             default:
                 resultStatus = Comm_Status_Error_UnknownOperation;
+                SEGGER_RTT_printf(
+                    0,
+                    "Unknown operation. Command header = [0x%X 0x%X 0x%X]\n",
+                    command->header.operation,
+                    command->header.command,
+                    command->header.payloadLength
+                );
                 break;
         }
     }

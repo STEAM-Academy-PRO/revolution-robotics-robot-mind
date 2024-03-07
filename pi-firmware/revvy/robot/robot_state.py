@@ -125,5 +125,7 @@ class RobotState(Emitter[RobotEvent]):
             log("Status Update Error from MCU", LogLevel.WARNING)
         except OSError as e:
             log(f"{str(e)}", LogLevel.WARNING)
+        except ValueError:
+            pass  # already logged
         except Exception:
             log(traceback.format_exc())

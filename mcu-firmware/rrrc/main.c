@@ -73,6 +73,7 @@ void assert_failed(const char *file, uint32_t line)
 
     if (!in_assert)
     {
+        SEGGER_RTT_printf(0, "Assertion failed: %s:%d\r\n", file, line);
         in_assert = true;
         ErrorInfo_t data = {
             .error_id = ERROR_ID_ASSERTION_FAILURE

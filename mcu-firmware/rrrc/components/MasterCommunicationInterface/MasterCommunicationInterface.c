@@ -12,13 +12,14 @@
 #include <peripheral_clk_config.h>
 #include <limits.h>
 #include "error_ids.h"
+#include "SEGGER_RTT.h"
 
 static TaskHandle_t communicationTaskHandle;
 
 static MasterCommunicationInterface_Config_t config;
 
 const uint32_t RX_BUFFER_OVERFLOW = 0xFFFFFFFEu;
-const uint32_t TX_DONE = 0xFFFFFFFFu;
+const uint32_t TX_DONE = 0xFFFFFFFFu; /** < Pi read data from MCU buffer */
 
 static const uint8_t* rxBuffer;
 
@@ -54,6 +55,7 @@ static void CommunicationTask(void *user_data)
         {
             if (bytesReceived == RX_BUFFER_OVERFLOW)
             {
+                SEGGER_RTT_WriteString(0, "Rx overflow\n");
                 MasterCommunicationInterface_Run_SetResponse(config.rx_overflow_response);
             }
             else if (bytesReceived == TX_DONE)

@@ -119,7 +119,7 @@ class RobotManager:
         )
 
     # TODO: not used.
-    def validate_config(self, motors, sensors, motor_load_power, threshold, callback):
+    def validate_config(self, motors, sensors, motor_load_power, threshold, callback):  # -> Any:
         self._log(
             "validate req: motors={}, sensors={},pwr:{},sen:{}".format(
                 motors, sensors, motor_load_power, threshold
@@ -181,7 +181,7 @@ class RobotManager:
         return self._status_code
 
     @property
-    def robot(self):
+    def robot(self) -> Robot:
         return self._robot
 
     @property

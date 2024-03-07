@@ -310,6 +310,7 @@ Comm_Status_t CommWrapper_MotorPorts_Run_Command_TestMotorOnPort_GetResult(ByteA
     /* End User Code Section: Command_TestMotorOnPort_GetResult:run Start */
     /* Begin User Code Section: Command_TestMotorOnPort_GetResult:run End */
 
+    SEGGER_RTT_WriteString(0, "Should never reach this\n");
     /* End User Code Section: Command_TestMotorOnPort_GetResult:run End */
 }
 
