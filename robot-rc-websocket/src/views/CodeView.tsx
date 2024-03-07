@@ -14,16 +14,10 @@ function CodeView() {
 
   const [edited, setEdited] = createSignal<Program | null>(null)
   const [editedCode, setEditedCode] = createSignal<string>('')
-  const [configString, setConfigString] = createSignal<string>('');
   const [editedIndex, setEditedIndex] = createSignal<number | null>(null);
   const [editedName, setEditedName] = createSignal<string>('')
-
   const [tab, setTab] = createSignal<string>('python');
 
-  const handleSend = () => {
-    uploadConfig(conn(), currentConfig())
-    conn()?.send(RobotMessage.configure, JSON.stringify(currentConfig()))
-  }
 
   const addProgram = () => {
     const newProgramList = programs().slice()
@@ -31,6 +25,18 @@ function CodeView() {
     newProgramList.push(newProgram)
     setEdited(newProgram)
     setPrograms(newProgramList)
+  }
+
+  const deleteProgram = () => {
+    if (editedCode()){
+      if (!confirm('Sure delete?')) { return }
+    }
+    const newProgramList = programs().slice()
+    const editedInd = editedIndex()
+    if (!editedInd && editedInd !== 0) { return }
+    newProgramList.splice(editedInd, 1)
+    setPrograms(newProgramList)
+    setEdited(null)
   }
 
   createEffect(() => {
@@ -82,7 +88,6 @@ function CodeView() {
                   setEdited(null)
                   setEdited(program)
                   setEditedIndex(i)
-                  setConfigString('')
                 }}>{String(i() + 1)} - {program.name}</div>
               }</For>
               <a class={styles.clickable} onClick={addProgram}>+ Add</a>
@@ -103,7 +108,9 @@ function CodeView() {
             <div class={styles.header}>
               <a onClick={() => setTab('python')} class={styles.clickable}>python</a>
               <a onClick={() => setTab('blockly')} class={styles.clickable}>blockly</a>
-
+              <a onClick={() => deleteProgram()} class={styles.clickable}>DELETE</a>
+              <div class={styles.assignments}></div>
+              <a>Assignments:</a>
               <For each={scriptBindingTargets}>{(binding: string) =>
                 <a class={styles.clickable}
                   classList={{

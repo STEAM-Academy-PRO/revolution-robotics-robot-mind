@@ -44,7 +44,7 @@ export const scriptBindingTargets = [
     'button_right',
     'button_down',
     'button_left'
-  ]
+]
 
 let prevConfig = currentConfig()
 
@@ -74,10 +74,12 @@ createEffect(() => {
     return conf
 })
 
-function buildBlocklyItems(){
+function buildBlocklyItems() {
     const ret: Array<BlocklyItem> = []
     Object.keys(scriptBindings()).forEach((key) => {
-        const pythonCodeBase64 = btoa(programs().find((p) => p.name === scriptBindings()[key])?.code || '')
+        const program = programs().find((p) => p.name === scriptBindings()[key])
+        if (!program) { return }
+        const pythonCodeBase64 = btoa(program.code)
 
         if (key === 'drive') {
             ret.push(createPredefinedDriveBlocklyItem(driveMode(), pythonCodeBase64))
@@ -89,10 +91,13 @@ function buildBlocklyItems(){
                         priority: 0
                     }]
                 },
-                pythoncode: btoa(pythonCodeBase64)
+                pythoncode: pythonCodeBase64
             })
         }
     })
+    if (!scriptBindings()['drive']) {
+        ret.push(createPredefinedDriveBlocklyItem(driveMode()))
+    }
     return ret
 }
 
@@ -123,7 +128,7 @@ export interface BlocklyItem {
     pythoncode?: string
 }
 
-function createPredefinedDriveBlocklyItem(mode: DriveMode, pythonCode: string): BlocklyItem {
+function createPredefinedDriveBlocklyItem(mode: DriveMode, pythonCode?: string): BlocklyItem {
     const ret: BlocklyItem = {
         assignments: {
             analog: [{
