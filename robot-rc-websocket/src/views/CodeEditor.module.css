@@ -32,6 +32,7 @@
     padding: 10px;
     cursor: pointer;
     border-radius: 5px;
+    justify-content: space-between;
 }
 .header > a {
     display: block; padding: 10px;
@@ -45,6 +46,10 @@
 
 .clickable{ cursor: pointer; }
 .clickable:hover{ background-color: #777; }
+
+.assignments{
+    margin-left:auto;
+}
 
 .pre{
     white-space: pre-wrap;
