@@ -26,7 +26,7 @@ class Command(ABC, Generic[ReturnType]):
         self._transport = transport
         self._command_byte = self.command_id
 
-        self._log = get_logger(f"{type(self).__name__} [id={self._command_byte}]")
+        self._log = get_logger(f"{type(self).__name__} [id={hex(self._command_byte)}]")
 
     @property
     @abstractmethod

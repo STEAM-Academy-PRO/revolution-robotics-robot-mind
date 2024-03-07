@@ -63,5 +63,16 @@ def can_stop_script_with_long_sleep(log: Logger, controller: ProgrammedRobotCont
     controller.press_button(1)
 
 
+def test_motor_for_i2c_bug(log: Logger, controller: ProgrammedRobotController):
+    # I'm using this test locally to test a non-deterministic I2C bug.
+    def fail_on_script_error(*e) -> None:
+        # In this test, if we encounter an error, let's just stop and exit
+        controller.robot_manager.exit(RevvyStatusCode.ERROR)
+
+    controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
+
+    controller.robot_manager.robot._robot_control.test_motor_on_port(6, 60, 10)
+
+
 if __name__ == "__main__":
-    run_test_scenarios([can_play_sound, can_stop_script_with_long_sleep])
+    run_test_scenarios([can_play_sound, can_stop_script_with_long_sleep, test_motor_for_i2c_bug])
