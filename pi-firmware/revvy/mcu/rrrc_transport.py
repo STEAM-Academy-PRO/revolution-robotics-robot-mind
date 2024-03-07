@@ -401,9 +401,6 @@ class ResponseHeader(NamedTuple):
     def validate_payload(self, payload) -> bool:
         return self.payload_checksum == binascii.crc_hqx(payload, 0xFFFF)
 
-    def is_same_as(self, response_header) -> bool:
-        return self.raw == response_header
-
 
 class Response(NamedTuple):
     status: ResponseStatus
@@ -513,7 +510,7 @@ class RevvyTransport:
             )  # skip checksum byte
 
             # make sure we read the same response data we expect
-            if not header.is_same_as(response_header):
+            if header.raw != response_header:
                 return False
 
             # make sure data is intact
