@@ -53,7 +53,7 @@ static Comm_Status_t _handleOperation_GetResult(const Comm_Command_t* command, B
 {
     if (comm_commandTable[command->header.command].GetResult == NULL)
     {
-        return Comm_Status_Error_InternalError;
+        return Comm_Status_Error_InvalidOperation;
     }
     else
     {
