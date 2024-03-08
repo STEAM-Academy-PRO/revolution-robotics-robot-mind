@@ -406,11 +406,11 @@ class Response(NamedTuple):
 class RevvyTransport:
     _mutex = Lock()  # we only have a single I2C interface
     timeout = 5  # [seconds] how long the MCU is allowed to respond with "busy" or no response
+    retry = 100  # FIXME: 100 seems like an excessive value
 
     def __init__(self, transport: RevvyTransportInterface):
         self._transport = transport
         self._stopwatch = Stopwatch()
-        self.retry_reads = 100  # 100 seems like an excessive value
 
     def send_command(self, command: int, payload: bytes = b"") -> Response:
         """
@@ -441,7 +441,7 @@ class RevvyTransport:
                         if not command_get_result:
                             command_get_result = Command.get_result(command)
 
-                        while True:  # TODO: ensure that this loop is not infinite
+                        while True:
                             header = self._send_command(command_get_result)
                             if header.status != ResponseStatus.Pending:
                                 break
@@ -469,7 +469,7 @@ class RevvyTransport:
             header_bytes = self._transport.read(5)
             return ResponseHeader.create(header_bytes)
 
-        header = retry(_read_response_header_once, self.retry_reads, lambda e: None)
+        header = retry(_read_response_header_once, self.retry, lambda e: None)
 
         if not header:
             log("Error reading response header: retry limit reached!", LogLevel.ERROR)
@@ -510,7 +510,7 @@ class RevvyTransport:
 
             return response_payload
 
-        payload = retry(_read_payload_once, self.retry_reads)
+        payload = retry(_read_payload_once, self.retry)
 
         if not payload:
             log("Error reading response payload: retry limit reached!", LogLevel.ERROR)

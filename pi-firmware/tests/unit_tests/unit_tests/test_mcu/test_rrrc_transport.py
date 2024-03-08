@@ -131,7 +131,7 @@ class TestRevvyTransport(unittest.TestCase):
             ]
         )
         rt = RevvyTransport(mock_interface)
-        rt.retry_reads = 5
+        rt.retry = 5
         self.assertRaises(BrokenPipeError, lambda: rt.send_command(10))
         self.assertEqual(1, len(mock_interface._writes))
         self.assertEqual(6, len(mock_interface._reads))
