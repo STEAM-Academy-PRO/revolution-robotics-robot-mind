@@ -7,7 +7,7 @@ from typing import NamedTuple, Union
 import time
 
 from revvy.utils.functions import retry
-from revvy.utils.logger import get_logger
+from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.stopwatch import Stopwatch
 
 log = get_logger("rrrc_transport")
@@ -471,13 +471,12 @@ class RevvyTransport:
 
         def _read_response_header_once() -> ResponseHeader:
             header_bytes = self._transport.read(5)
-
             return ResponseHeader.create(header_bytes)
 
         header = retry(_read_response_header_once, self.retry_reads, lambda e: None)
 
         if not header:
-            # log("Connection lost with the board, retry limit reached!", LogLevel.ERROR)
+            log("Error reading response header: retry limit reached!", LogLevel.ERROR)
             raise BrokenPipeError("Read response header error")
 
         return header
@@ -518,7 +517,7 @@ class RevvyTransport:
         payload = retry(_read_payload_once, self.retry_reads)
 
         if not payload:
-            # log("Connection lost with the board, retry limit reached!", LogLevel.ERROR)
+            log("Error reading response payload: retry limit reached!", LogLevel.ERROR)
             raise BrokenPipeError("Read payload: Retry limit reached")
 
         return payload

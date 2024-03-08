@@ -18,8 +18,9 @@ static TaskHandle_t communicationTaskHandle;
 
 static MasterCommunicationInterface_Config_t config;
 
-const uint32_t RX_BUFFER_OVERFLOW = 0xFFFFFFFEu;
-const uint32_t TX_DONE = 0xFFFFFFFFu; /** < Pi read data from MCU buffer */
+const uint32_t RX_DONE = 0x80000000u;
+const uint32_t RX_BUFFER_OVERFLOW = 0x40000000u;
+const uint32_t TX_DONE = 0x20000000u; /** < Pi read data from MCU buffer */
 
 static const uint8_t* rxBuffer;
 
@@ -44,8 +45,8 @@ static void CommunicationTask(void *user_data)
     i2c_hal_receive();
     for (;;)
     {
-        uint32_t bytesReceived;
-        BaseType_t notified = xTaskNotifyWait(ULONG_MAX, ULONG_MAX, &bytesReceived, config.rx_timeout);
+        uint32_t rxFlags;
+        BaseType_t notified = xTaskNotifyWait(ULONG_MAX, ULONG_MAX, &rxFlags, config.rx_timeout);
 
         if (!notified)
         {
@@ -53,19 +54,24 @@ static void CommunicationTask(void *user_data)
         }
         else
         {
-            if (bytesReceived == RX_BUFFER_OVERFLOW)
+            if ((rxFlags & RX_DONE) != 0)
             {
-                SEGGER_RTT_WriteString(0, "Rx overflow\n");
-                MasterCommunicationInterface_Run_SetResponse(config.rx_overflow_response);
+                uint32_t bytesReceived = rxFlags & ~(TX_DONE | RX_BUFFER_OVERFLOW | RX_DONE);
+                if ((rxFlags & RX_BUFFER_OVERFLOW) != 0)
+                {
+                    SEGGER_RTT_printf(0, "Rx overflow: %d received\n", bytesReceived);
+                    MasterCommunicationInterface_Run_SetResponse(config.rx_overflow_response);
+                }
+                else
+                {
+                    ConstByteArray_t message = {.bytes = rxBuffer, .count = bytesReceived};
+                    MasterCommunicationInterface_RaiseEvent_OnMessageReceived(message);
+                }
             }
-            else if (bytesReceived == TX_DONE)
+
+            if ((rxFlags & TX_DONE) != 0)
             {
                 MasterCommunicationInterface_RaiseEvent_OnTransmissionComplete();
-            }
-            else
-            {
-                ConstByteArray_t message = {.bytes = rxBuffer, .count = bytesReceived};
-                MasterCommunicationInterface_RaiseEvent_OnMessageReceived(message);
             }
         }
     }
@@ -85,9 +91,9 @@ void i2c_hal_rx_complete(const uint8_t *buffer, size_t bufferSize, size_t bytesR
 
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     if (bufferSize < bytesReceived) {
-        xTaskNotifyFromISR(communicationTaskHandle, RX_BUFFER_OVERFLOW, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
+        xTaskNotifyFromISR(communicationTaskHandle, RX_DONE | RX_BUFFER_OVERFLOW, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
     } else {
-        xTaskNotifyFromISR(communicationTaskHandle, bytesReceived, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
+        xTaskNotifyFromISR(communicationTaskHandle, RX_DONE | bytesReceived, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
     }
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
