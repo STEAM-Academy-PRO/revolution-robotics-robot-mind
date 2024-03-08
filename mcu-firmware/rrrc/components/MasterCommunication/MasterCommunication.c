@@ -21,7 +21,7 @@ static Comm_ResponseHeader_t longRxErrorResponse =
 };
 /* End User Code Section: Declarations */
 
-void MasterCommunication_Run_OnInit(const Comm_CommandHandler_t* commandTable, size_t commandTableSize)
+void MasterCommunication_Run_OnInit(Comm_CommandHandler_t* commandTable, size_t commandTableSize)
 {
     /* Begin User Code Section: OnInit:run Start */
     Comm_ProtectMessageHeader(&defaultResponse);

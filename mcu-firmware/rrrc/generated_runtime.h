@@ -81,6 +81,7 @@ typedef struct {
     Comm_CommandHandler_Start_t Start;
     Comm_CommandHandler_GetResult_t GetResult;
     Comm_CommandHandler_Cancel_t Cancel;
+    bool ExecutionInProgress;
 } Comm_CommandHandler_t;
 
 typedef enum {

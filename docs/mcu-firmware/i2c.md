@@ -35,11 +35,17 @@ the `Status`. The dom may issue the following requests:
 Starts a Command. May contain a Command-specific payload.
 May immediately call the `GetResult` handler and provide the result.
 
+A `StartCommand` must be polled for a result. This polling should be repeated until a non-`Pending`
+result is returned. If a command of the same kind is already being executed when sending
+`StartCommand`, an `InvalidOperation` error is returned.
+
 ### GetResult Request
 
-Polls a Command and returns its result if it's finished.
-Request contains which Command should be polled.
-Returns `Pending` as status while the command execution is not finished.
+Polls a Command and returns its result if it's finished. Request contains which Command should be
+polled. Returns `Pending` as status while the command execution is not finished.
+
+A `GetResult` must be preceded by a `StartCommand`. If command execution is not in progress, an
+`InvalidOperation` error is returned.
 
 ### CancelCommand Request
 
@@ -106,7 +112,6 @@ Possible status values:
 - `9, Comm_Status_Error_CommandError`: response contains additional command-specific error data
 - `10, Comm_Status_Error_InternalError`: other errors indicating internal programming errors
 
-> TODO: What if I send a Get Result without a prior Start?
 > FIXME: `Comm_Status_Error_PayloadLengthError` is also used in the command implementations and can
 > signal that the payload is not of an expected length. While technically not incorrect, should
 > return separate errors.

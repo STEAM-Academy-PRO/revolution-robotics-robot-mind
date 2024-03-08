@@ -5,6 +5,7 @@
 #define COMPONENT_TYPES_COMM_WRAPPER__LED_DISPLAY_H_
 
 #include "libraries/color.h"
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -61,6 +62,7 @@ typedef struct {
     Comm_CommandHandler_Start_t Start;
     Comm_CommandHandler_GetResult_t GetResult;
     Comm_CommandHandler_Cancel_t Cancel;
+    bool ExecutionInProgress;
 } Comm_CommandHandler_t;
 
 #endif /* COMPONENT_TYPES_COMM_WRAPPER__LED_DISPLAY_H_ */

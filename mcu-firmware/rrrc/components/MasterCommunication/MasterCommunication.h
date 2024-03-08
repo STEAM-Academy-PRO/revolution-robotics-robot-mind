@@ -4,6 +4,7 @@
 #ifndef COMPONENT_TYPES_MASTER_COMMUNICATION_H_
 #define COMPONENT_TYPES_MASTER_COMMUNICATION_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -39,6 +40,7 @@ typedef struct {
     Comm_CommandHandler_Start_t Start;
     Comm_CommandHandler_GetResult_t GetResult;
     Comm_CommandHandler_Cancel_t Cancel;
+    bool ExecutionInProgress;
 } Comm_CommandHandler_t;
 
 #endif /* COMPONENT_TYPES_MASTER_COMMUNICATION_H_ */
@@ -47,7 +49,7 @@ typedef struct {
 
 /* End User Code Section: Declarations */
 
-void MasterCommunication_Run_OnInit(const Comm_CommandHandler_t* commandTable, size_t commandTableSize);
+void MasterCommunication_Run_OnInit(Comm_CommandHandler_t* commandTable, size_t commandTableSize);
 void MasterCommunication_Run_HandleCommand(ConstByteArray_t message);
 ConstByteArray_t MasterCommunication_Constant_DefaultResponse(void);
 ConstByteArray_t MasterCommunication_Constant_LongRxErrorResponse(void);

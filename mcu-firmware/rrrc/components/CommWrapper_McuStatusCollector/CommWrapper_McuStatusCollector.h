@@ -4,6 +4,7 @@
 #ifndef COMPONENT_TYPES_COMM_WRAPPER__MCU_STATUS_COLLECTOR_H_
 #define COMPONENT_TYPES_COMM_WRAPPER__MCU_STATUS_COLLECTOR_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -39,6 +40,7 @@ typedef struct {
     Comm_CommandHandler_Start_t Start;
     Comm_CommandHandler_GetResult_t GetResult;
     Comm_CommandHandler_Cancel_t Cancel;
+    bool ExecutionInProgress;
 } Comm_CommandHandler_t;
 
 #endif /* COMPONENT_TYPES_COMM_WRAPPER__MCU_STATUS_COLLECTOR_H_ */

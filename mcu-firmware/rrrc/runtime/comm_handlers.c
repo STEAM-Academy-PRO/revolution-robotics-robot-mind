@@ -17,53 +17,53 @@ static Comm_Status_t CommWrapper_IMUOrientationEstimator_Reset_Start(ConstByteAr
     return Comm_Status_Ok;
 }
 
-const Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT] =
+Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT] =
 {
     /* other commands */
-    [0x00u] = { .Start = &PingMessageHandler_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x01u] = { .Start = &CommWrapper_VersionProvider_Run_Command_ReadHardwareVersion_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x02u] = { .Start = &CommWrapper_VersionProvider_Run_Command_ReadFirmwareVersion_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x04u] = { .Start = &MasterStatusObserver_Run_Command_SetMasterStatus_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x05u] = { .Start = &BluetoothStatusObserver_Run_Command_SetBluetoothStatus_Start, .GetResult = NULL, .Cancel = NULL },
+    [0x00u] = { .Start = &PingMessageHandler_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x01u] = { .Start = &CommWrapper_VersionProvider_Run_Command_ReadHardwareVersion_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x02u] = { .Start = &CommWrapper_VersionProvider_Run_Command_ReadFirmwareVersion_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x04u] = { .Start = &MasterStatusObserver_Run_Command_SetMasterStatus_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x05u] = { .Start = &BluetoothStatusObserver_Run_Command_SetBluetoothStatus_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
 
     /* [0x06 - 0x0A]: reserved for bootloader */
-    [0x06u] = { .Start = &CommWrapper_Bootloader_Run_Command_GetOperationMode_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x0Bu] = { .Start = &CommWrapper_Bootloader_Run_Command_RebootToBootloader_Start, .GetResult = NULL, .Cancel = NULL },
+    [0x06u] = { .Start = &CommWrapper_Bootloader_Run_Command_GetOperationMode_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x0Bu] = { .Start = &CommWrapper_Bootloader_Run_Command_RebootToBootloader_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
 
     /* motor commands */
-    [0x10u] = { .Start = &CommWrapper_MotorPorts_Run_Command_GetPortAmount_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x11u] = { .Start = &CommWrapper_MotorPorts_Run_Command_GetPortTypes_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x12u] = { .Start = &CommWrapper_MotorPorts_Run_Command_SetPortType_Start, .GetResult = &CommWrapper_MotorPorts_Run_Command_SetPortType_GetResult, .Cancel = NULL },
-    [0x13u] = { .Start = &CommWrapper_MotorPorts_Run_Command_SetPortConfig_Start, .GetResult = &CommWrapper_MotorPorts_Run_Command_SetPortConfig_GetResult, .Cancel = NULL },
-    [0x14u] = { .Start = &CommWrapper_MotorPorts_Run_Command_SetControlValue_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x15u] = { .Start = &CommWrapper_MotorPorts_Run_Command_TestMotorOnPort_Start, .GetResult = CommWrapper_MotorPorts_Run_Command_TestMotorOnPort_GetResult, .Cancel = NULL},
+    [0x10u] = { .Start = &CommWrapper_MotorPorts_Run_Command_GetPortAmount_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x11u] = { .Start = &CommWrapper_MotorPorts_Run_Command_GetPortTypes_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x12u] = { .Start = &CommWrapper_MotorPorts_Run_Command_SetPortType_Start, .GetResult = &CommWrapper_MotorPorts_Run_Command_SetPortType_GetResult, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x13u] = { .Start = &CommWrapper_MotorPorts_Run_Command_SetPortConfig_Start, .GetResult = &CommWrapper_MotorPorts_Run_Command_SetPortConfig_GetResult, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x14u] = { .Start = &CommWrapper_MotorPorts_Run_Command_SetControlValue_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x15u] = { .Start = &CommWrapper_MotorPorts_Run_Command_TestMotorOnPort_Start, .GetResult = CommWrapper_MotorPorts_Run_Command_TestMotorOnPort_GetResult, .Cancel = NULL, .ExecutionInProgress = false },
 
     /* sensor commands */
-    [0x20u] = { .Start = &CommWrapper_SensorPorts_Run_Command_GetPortAmount_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x21u] = { .Start = &CommWrapper_SensorPorts_Run_Command_GetPortTypes_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x22u] = { .Start = &CommWrapper_SensorPorts_Run_Command_SetPortType_Start, .GetResult = &CommWrapper_SensorPorts_Run_Command_SetPortType_GetResult, .Cancel = NULL },
-    [0x23u] = { .Start = &CommWrapper_SensorPorts_Run_Command_SetPortConfig_Start, .GetResult = &CommWrapper_SensorPorts_Run_Command_SetPortConfig_GetResult, .Cancel = NULL },
-    [0x24u] = { .Start = &CommWrapper_SensorPorts_Run_Command_ReadSensorInfo_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x25u] = { .Start = &CommWrapper_SensorPorts_Run_Command_TestSensorOnPort_Start, .GetResult = CommWrapper_SensorPorts_Run_Command_TestSensorOnPort_GetResult, .Cancel = NULL },
+    [0x20u] = { .Start = &CommWrapper_SensorPorts_Run_Command_GetPortAmount_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x21u] = { .Start = &CommWrapper_SensorPorts_Run_Command_GetPortTypes_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x22u] = { .Start = &CommWrapper_SensorPorts_Run_Command_SetPortType_Start, .GetResult = &CommWrapper_SensorPorts_Run_Command_SetPortType_GetResult, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x23u] = { .Start = &CommWrapper_SensorPorts_Run_Command_SetPortConfig_Start, .GetResult = &CommWrapper_SensorPorts_Run_Command_SetPortConfig_GetResult, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x24u] = { .Start = &CommWrapper_SensorPorts_Run_Command_ReadSensorInfo_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x25u] = { .Start = &CommWrapper_SensorPorts_Run_Command_TestSensorOnPort_Start, .GetResult = CommWrapper_SensorPorts_Run_Command_TestSensorOnPort_GetResult, .Cancel = NULL, .ExecutionInProgress = false },
 
     /* led ring commands */
-    [0x30u] = { .Start = &CommWrapper_LedDisplay_Run_Command_GetScenarioTypes_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x31u] = { .Start = &CommWrapper_LedDisplay_Run_Command_SetScenarioType_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x32u] = { .Start = &CommWrapper_LedDisplay_Run_Command_GetRingLedAmount_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x33u] = { .Start = &CommWrapper_LedDisplay_Run_Command_SetUserFrame_Start, .GetResult = NULL, .Cancel = NULL },
+    [0x30u] = { .Start = &CommWrapper_LedDisplay_Run_Command_GetScenarioTypes_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x31u] = { .Start = &CommWrapper_LedDisplay_Run_Command_SetScenarioType_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x32u] = { .Start = &CommWrapper_LedDisplay_Run_Command_GetRingLedAmount_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x33u] = { .Start = &CommWrapper_LedDisplay_Run_Command_SetUserFrame_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
 
     /* MCU status updater commands */
-    [0x3Au] = { .Start = &CommWrapper_McuStatusCollector_Run_Command_Reset_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x3Bu] = { .Start = &CommWrapper_McuStatusCollector_Run_Command_ControlSlot_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x3Cu] = { .Start = &CommWrapper_McuStatusCollector_Run_Command_ReadStatus_Start, .GetResult = NULL, .Cancel = NULL },
+    [0x3Au] = { .Start = &CommWrapper_McuStatusCollector_Run_Command_Reset_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x3Bu] = { .Start = &CommWrapper_McuStatusCollector_Run_Command_ControlSlot_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
+    [0x3Cu] = { .Start = &CommWrapper_McuStatusCollector_Run_Command_ReadStatus_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
 
     /* Error storage commands */
-    [0x3Du] = { .Start = &CommWrapper_ErrorStorage_Run_Command_ReadCount_Start, .GetResult = NULL, .Cancel = NULL }, /* Read stored error count */
-    [0x3Eu] = { .Start = &CommWrapper_ErrorStorage_Run_Command_ReadErrors_Start, .GetResult = NULL, .Cancel = NULL }, /* Read errors starting with the given index */
-    [0x3Fu] = { .Start = &CommWrapper_ErrorStorage_Run_Command_ClearMemory_Start, .GetResult = NULL, .Cancel = NULL }, /* Clear error memory */
-    [0x40u] = { .Start = &CommWrapper_ErrorStorage_Run_Command_StoreTestError_Start, .GetResult = NULL, .Cancel = NULL}, /* Record a test error */
+    [0x3Du] = { .Start = &CommWrapper_ErrorStorage_Run_Command_ReadCount_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false }, /* Read stored error count */
+    [0x3Eu] = { .Start = &CommWrapper_ErrorStorage_Run_Command_ReadErrors_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false }, /* Read errors starting with the given index */
+    [0x3Fu] = { .Start = &CommWrapper_ErrorStorage_Run_Command_ClearMemory_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false }, /* Clear error memory */
+    [0x40u] = { .Start = &CommWrapper_ErrorStorage_Run_Command_StoreTestError_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false }, /* Record a test error */
 
-    [0x41u] = { .Start = &CommWrapper_IMUOrientationEstimator_Reset_Start, .GetResult = NULL, .Cancel = NULL},
+    [0x41u] = { .Start = &CommWrapper_IMUOrientationEstimator_Reset_Start, .GetResult = NULL, .Cancel = NULL, .ExecutionInProgress = false },
 };
 
 static Comm_Status_t PingMessageHandler_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount)

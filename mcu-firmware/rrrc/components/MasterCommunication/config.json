@@ -68,14 +68,18 @@
             "fields": {
                 "Start": "Comm_CommandHandler_Start_t",
                 "GetResult": "Comm_CommandHandler_GetResult_t",
-                "Cancel": "Comm_CommandHandler_Cancel_t"
+                "Cancel": "Comm_CommandHandler_Cancel_t",
+                "ExecutionInProgress": "bool"
             }
         }
     },
     "runnables": {
         "OnInit": {
             "arguments": {
-                "commandTable": "Comm_CommandHandler_t",
+                "commandTable": {
+                    "data_type": "Comm_CommandHandler_t",
+                    "direction": "inout"
+                },
                 "commandTableSize": "size_t"
             }
         },
