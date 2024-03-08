@@ -46,7 +46,7 @@ static void CommunicationTask(void *user_data)
     for (;;)
     {
         uint32_t rxFlags;
-        BaseType_t notified = xTaskNotifyWait(ULONG_MAX, ULONG_MAX, &rxFlags, config.rx_timeout);
+        BaseType_t notified = xTaskNotifyWait(0, ULONG_MAX, &rxFlags, config.rx_timeout);
 
         if (!notified)
         {
@@ -91,9 +91,9 @@ void i2c_hal_rx_complete(const uint8_t *buffer, size_t bufferSize, size_t bytesR
 
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     if (bufferSize < bytesReceived) {
-        xTaskNotifyFromISR(communicationTaskHandle, RX_DONE | RX_BUFFER_OVERFLOW, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
+        xTaskNotifyFromISR(communicationTaskHandle, RX_DONE | RX_BUFFER_OVERFLOW, eSetBits, &xHigherPriorityTaskWoken);
     } else {
-        xTaskNotifyFromISR(communicationTaskHandle, RX_DONE | bytesReceived, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
+        xTaskNotifyFromISR(communicationTaskHandle, RX_DONE | bytesReceived, eSetBits, &xHigherPriorityTaskWoken);
     }
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
@@ -103,7 +103,7 @@ void i2c_hal_tx_complete(void)
     ASSERT(communicationTaskHandle);
 
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    xTaskNotifyFromISR(communicationTaskHandle, TX_DONE, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
+    xTaskNotifyFromISR(communicationTaskHandle, TX_DONE, eSetBits, &xHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
