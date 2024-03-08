@@ -58,17 +58,11 @@
                 }
             }
         },
-        "Comm_CommandHandler_Cancel_t": {
-            "type": "func_ptr",
-            "return_type": "void",
-            "arguments": {}
-        },
         "Comm_CommandHandler_t": {
             "type": "struct",
             "fields": {
                 "Start": "Comm_CommandHandler_Start_t",
                 "GetResult": "Comm_CommandHandler_GetResult_t",
-                "Cancel": "Comm_CommandHandler_Cancel_t",
                 "ExecutionInProgress": "bool"
             }
         }

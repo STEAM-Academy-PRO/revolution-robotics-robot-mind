@@ -21,9 +21,6 @@ class TestCommand(unittest.TestCase):
         ch = Command.get_result(5)
         self.assertEqual(2, ch[0])
 
-        ch = Command.cancel(5)
-        self.assertEqual(3, ch[0])
-
     def test_max_payload_length_is_255(self):
         ch = Command.start(5, b"\x00" * 25)
         self.assertEqual(6 + 25, len(ch))

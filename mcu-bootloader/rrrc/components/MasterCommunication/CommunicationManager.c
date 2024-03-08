@@ -25,26 +25,8 @@ void Comm_Init(const Comm_CommandHandler_t* commandTable, size_t commandTableSiz
 {
     ASSERT(commandTable);
 
-    if (comm_commandTable != NULL)
-    {
-        for (size_t i = 0u; i < comm_commandTableSize; i++)
-        {
-            comm_commandTable[i].Cancel();
-        }
-    }
-
     comm_commandTable     = commandTable;
     comm_commandTableSize = commandTableSize;
-}
-
-static Comm_Status_t _handleOperation_Cancel(const Comm_Command_t* command)
-{
-    if (comm_commandTable[command->header.command].Cancel != NULL)
-    {
-        comm_commandTable[command->header.command].Cancel();
-    }
-
-    return Comm_Status_Ok;
 }
 
 static Comm_Status_t _handleOperation_GetResult(const Comm_Command_t* command, uint8_t* responseBuffer, uint8_t payloadBufferSize, uint8_t* responseLength)
@@ -106,16 +88,7 @@ size_t Comm_Handle(const Comm_Command_t* command, Comm_Response_t* response, siz
     {
         switch (command->header.operation)
         {
-            case Comm_Operation_Cancel:
-                resultStatus = _handleOperation_Cancel(command);
-                break;
-
             case Comm_Operation_Start:
-                resultStatus = _handleOperation_Start(command, (uint8_t*) response->payload, payloadBufferSize, &payloadSize);
-                break;
-
-            case Comm_Operation_Restart:
-                (void) _handleOperation_Cancel(command);
                 resultStatus = _handleOperation_Start(command, (uint8_t*) response->payload, payloadBufferSize, &payloadSize);
                 break;
 
@@ -124,7 +97,7 @@ size_t Comm_Handle(const Comm_Command_t* command, Comm_Response_t* response, siz
                 break;
 
             default:
-                SEGGER_RTT_printf(0, "Unknown operation\n");
+                SEGGER_RTT_printf(0, "Unknown operation %d\n", command->header.operation);
                 resultStatus = Comm_Status_Error_UnknownOperation;
                 break;
         }

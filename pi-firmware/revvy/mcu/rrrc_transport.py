@@ -298,9 +298,9 @@ class RevvyTransportInterface(ABC):
 
 class Command:
     OpStart = 0
-    OpRestart = 1
+    # OpRestart removed
     OpGetResult = 2
-    OpCancel = 3
+    # OpCancel removed
 
     @staticmethod
     def create(op, command: int, payload: bytes = b""):
@@ -342,10 +342,6 @@ class Command:
         bytearray(b'\\x02\\x02\\x00\\xff\\xff=')
         """
         return Command.create(Command.OpGetResult, command)
-
-    @staticmethod
-    def cancel(command: int) -> bytearray:
-        return Command.create(Command.OpCancel, command)
 
 
 class ResponseStatus(Enum):

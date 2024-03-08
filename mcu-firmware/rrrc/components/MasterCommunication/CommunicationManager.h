@@ -6,10 +6,10 @@
 
 typedef enum
 {
-    Comm_Operation_Start,
-    Comm_Operation_Restart,
-    Comm_Operation_GetResult,
-    Comm_Operation_Cancel
+    Comm_Operation_Start = 0,
+    // Comm_Operation_Restart, // Removed
+    Comm_Operation_GetResult = 2,
+    // Comm_Operation_Cancel // Removed
 } Comm_Operation_t;
 
 typedef struct

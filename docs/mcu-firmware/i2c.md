@@ -47,18 +47,6 @@ polled. Returns `Pending` as status while the command execution is not finished.
 A `GetResult` must be preceded by a `StartCommand`. If command execution is not in progress, an
 `InvalidOperation` error is returned.
 
-### CancelCommand Request
-
-Calls the Cancel handler and returns its response. May be unimplemented.
-
-### RestartCommand Request
-
-Shorthand that Cancels and Starts the command again. May contain a Command-specific payload.
-
-> Cancel and Restart are not used currently by the Pi firmware. Maybe we should implement a
-> max run time for each command and send a Cancel on timeout, but the MCU could only log the
-> cancellation and reset itself in most cases.
-
 ```
 Request
 +--------+---------+
@@ -99,8 +87,6 @@ Possible status values:
   depending on the Request:
   - `StartCommand`: the command was executed and its result is immediately available.
   - `GetResult`: the command has finished its execution and its result is available.
-  - `Cancel`: always returns `Comm_Status_Ok`
-  - `Restart`: same as `StartCommand`
 - `1, Comm_Status_Busy`: the previous command has not been fully processed yet. The `dom` should repeat reading the response.
 - `2, Comm_Status_Pending`: command execution is in progress, no data supplied. The `dom` should continue polling using the `GetResult` request.
 - `3, Comm_Status_Error_UnknownOperation`: the `Request` field contains an invalid value
