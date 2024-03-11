@@ -25,11 +25,19 @@ if __name__ == "__main__":
     parser.add_argument("--imu-yaw", help="Read IMU yaw angle", action="store_true")
     parser.add_argument("--raw-imu", help="Read raw IMU acceleration", action="store_true")
     parser.add_argument("--raw-gyro", help="Read raw IMU rotation", action="store_true")
+    parser.add_argument("--imu", help="Read IMU orientation angles", action="store_true")
 
     args = parser.parse_args()
 
     if not (
-        args.s1 or args.s2 or args.s3 or args.s4 or args.imu_yaw or args.raw_imu or args.raw_gyro
+        args.s1
+        or args.s2
+        or args.s3
+        or args.s4
+        or args.imu_yaw
+        or args.raw_imu
+        or args.raw_gyro
+        or args.imu
     ):
         print("No ports configured")
         sys.exit(0)
@@ -49,9 +57,11 @@ if __name__ == "__main__":
         pattern += "\t{6}"
     if args.raw_gyro:
         pattern += "\t{7}"
+    if args.imu:
+        pattern += "\t{8}"
 
     sensor_data_changed = False
-    sensor_data = [0, None, None, None, None, None, None, None]
+    sensor_data = [0, None, None, None, None, None, None, None, None]
 
     ### Before we enter the main loop, let's load up
     if not update_firmware_if_needed():
@@ -81,6 +91,12 @@ if __name__ == "__main__":
             angle = robot.imu.rotation
             if angle != sensor_data[7]:
                 sensor_data[7] = angle
+                sensor_data_changed = True
+
+        if args.imu:
+            angle = robot.imu.orientation
+            if angle != sensor_data[8]:
+                sensor_data[8] = angle
                 sensor_data_changed = True
 
         if sensor_data_changed:
