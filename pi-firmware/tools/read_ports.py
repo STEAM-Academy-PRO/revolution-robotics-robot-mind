@@ -2,7 +2,6 @@
 import argparse
 import sys
 from revvy.firmware_updater import update_firmware_if_needed
-from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 
 from revvy.robot.configurations import Sensors
 from revvy.robot_manager import RevvyStatusCode

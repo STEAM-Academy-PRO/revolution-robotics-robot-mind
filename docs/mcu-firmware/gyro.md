@@ -71,4 +71,6 @@ drift value and resets sample collection.
 The `IMUOrientationEstimator` component implements [Madgwick's algorithm](https://ahrs.readthedocs.io/en/latest/filters/madgwick.html#orientation-from-imu) to estimate orientations from the acceleration and angular speed
 inputs.
 
+The component outputs orientation in quaternions and Euler angles.
+
 > FIXME: We need to make sure we don't mix up our frames of reference in this component.

@@ -21,9 +21,8 @@ class McuStatusUpdater:
         "battery": 10,
         "axl": 11,
         "gyro": 12,
-        "yaw": 13,
-        "reset": 14,
-        "orientation": 15,
+        "reset": 13,
+        "orientation": 14,
     }
     """Class to read status from the MCU
 
