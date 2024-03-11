@@ -73,4 +73,4 @@ inputs.
 
 The component outputs orientation in quaternions and Euler angles.
 
-> FIXME: We need to make sure we don't mix up our frames of reference in this component.
+> FIXME: The Euler angle conversion may introduce incontinuities (k*90° jumps)
