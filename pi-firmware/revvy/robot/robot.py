@@ -144,7 +144,7 @@ class Robot(RobotInterface):
         return self._battery
 
     @property
-    def imu(self):
+    def imu(self) -> IMU:
         return self._imu
 
     @property
