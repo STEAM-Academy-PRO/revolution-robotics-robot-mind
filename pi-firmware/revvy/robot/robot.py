@@ -196,7 +196,7 @@ class Robot(RobotInterface):
 
         return SENSOR_ON_PORT_UNKNOWN
 
-    def reset(self):
+    def reset(self) -> None:
         self._log("reset()")
         self._ring_led.start_animation(RingLed.BreathingGreen)
         self._status_updater.reset()
