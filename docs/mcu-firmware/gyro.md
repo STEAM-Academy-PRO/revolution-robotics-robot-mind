@@ -69,3 +69,5 @@ The `IMUOrientationEstimator` component implements [Madgwick's algorithm](https:
 inputs.
 
 The component outputs orientation in quaternions and Euler angles.
+
+> FIXME: robot's axies are different from the sensor. We will want to revisit this part in the future.

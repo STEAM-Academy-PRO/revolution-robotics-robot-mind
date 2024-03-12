@@ -26,25 +26,6 @@ static bool is_vector_empty(const Vector3D_t *v)
     return v->x == 0.0f && v->y == 0.0f && v->z == 0.0f;
 }
 
-/**
- * Constrains an angle given in the interval of [-2pi; 2pi] between [-pi; pi].
- */
-static float constrain_angle(const float angle)
-{
-    if (angle < (float) -M_PI)
-    {
-        return 2.0f * (float) M_PI + angle;
-    }
-    else if (angle > (float) M_PI)
-    {
-        return -2.0f * (float) M_PI + angle;
-    }
-    else
-    {
-        return angle;
-    }
-}
-
 static Orientation3D_t to_euler_angles(const Quaternion_t orientation)
 {
     Orientation3D_t angles;
@@ -60,22 +41,17 @@ static Orientation3D_t to_euler_angles(const Quaternion_t orientation)
     float sqw = w * w;
 
     // Algorithm adapted from: http://euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/index.htm
-    // conventions:
-    // * z is the vertical axis
-    // * heading is about z
-    // * roll is about x
-    // * pitch is about y
     // * out input is normalised
     float test = x * y + z * w; // this is basically attitude
     if (test > 0.499f)
     {
-        angles.yaw = constrain_angle(2.0f * atan2f(x, w));
+        angles.yaw = 2.0f * atan2f(x, w);
         angles.pitch = M_PI_2;
         angles.roll = 0.0f;
     }
     else if (test < -0.499f)
     {
-        angles.yaw = constrain_angle(-2.0f * atan2f(x, w));
+        angles.yaw = -2.0f * atan2f(x, w);
         angles.pitch = -M_PI_2;
         angles.roll = 0.0f;
     }
@@ -251,18 +227,23 @@ static void UpdateOrientationResult(const Quaternion_t result)
     Orientation3D_t euler = to_euler_angles(orientation);
     IMUOrientationEstimator_Write_OrientationEuler(&euler);
 
-    /* track yaw angle past the 360° mark */
+    /*
+     * Track yaw angle past the 360° mark
+     *
+     * yaw is the current rotation around the vertical (Z) axis
+     *
+     * positive yaw, dYaw, nTurns: clockwise rotation
+     *
+     * orientation estimation returns values between [-360, 360]
+     * the difference between angles is only expected to jump a half turn if it overflows
+     * sign of dYaw indicates direction of rotation
+     */
+
     float yaw = rad_to_deg(euler.yaw);
 
-    /*
-    * yaw is the current rotation around the vertical (Z) axis
-    * positive yaw, dYaw, nTurns: counterclockwise rotation
-    * orientation estimation returns values between [-180, 180] (inclusive?)
-    * the difference between angles is only expected to jump a half turn if it overflows
-    * sign of dYaw indicates direction of rotation (current > last => positive => CCW)
-    * dYaw > 180 -> assume current value underflowed while rotating CW (!) -> -1 turns
-    */
+    /* Track turns by detecting under/overflows */
     float dYaw = yaw - lastYaw;
+    lastYaw = yaw;
     if (dYaw > 180.0f)
     {
         nTurns -= 1;
@@ -271,8 +252,6 @@ static void UpdateOrientationResult(const Quaternion_t result)
     {
         nTurns += 1;
     }
-
-    lastYaw = yaw;
 
     const Orientation3D_t eulerDegrees = {
         .pitch = rad_to_deg(euler.pitch),
