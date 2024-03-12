@@ -68,6 +68,16 @@ drift value and resets sample collection.
 The `IMUOrientationEstimator` component implements [Madgwick's algorithm](https://ahrs.readthedocs.io/en/latest/filters/madgwick.html#orientation-from-imu) to estimate orientations from the acceleration and angular speed
 inputs.
 
-The component outputs orientation in quaternions and Euler angles.
+The component outputs orientation in quaternions and Euler angles. The yaw angle takes multiple
+rotations into account.
 
-> FIXME: robot's axies are different from the sensor. We will want to revisit this part in the future.
+The robot's orientation is defined around the following frame of reference:
+
+- The Brain is starting horizontal (R logo looks "up")
+- Yaw: rotation around the vertical axis pointing out of the R logo.
+- Pitch: initially around the horizontal axis pointing from the R logo toward the sensor ports.
+- Roll: initially around the horizontal axis pointing from the R logo toward the M4 motor port.
+
+This frame is fixed to the world, meaning the axies are invariant to the Brain's orientation change.
+Rotation is defined according to the left-hand rule, i.e. a positive yaw angle means the robot has
+rotated clockwise when observed from above.

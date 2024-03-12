@@ -239,7 +239,7 @@ static void UpdateOrientationResult(const Quaternion_t result)
      * sign of dYaw indicates direction of rotation
      */
 
-    float yaw = rad_to_deg(euler.yaw);
+    float yaw = rad_to_deg(euler.yaw) - 180.0f;
 
     /* Track turns by detecting under/overflows */
     float dYaw = yaw - lastYaw;
