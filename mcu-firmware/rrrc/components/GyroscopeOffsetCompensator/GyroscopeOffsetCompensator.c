@@ -7,13 +7,18 @@
 #include <stdint.h>
 #include <math.h>
 
-static bool offset_calibrated;
+static bool offsetCalibrated;
 static Vector3D_t averageAngularSpeed;
 static Vector3D_t sumAngularSpeed;
 static uint32_t averageAngularSpeedSamples;
 
 #define AVERAGE_NUM_SAMPLES ((uint32_t)1000u)
 
+/**
+ * Restart the averaging process.
+ *
+ * Does not affect signal output: compensates using the old average until new one is calculated.
+ */
 static void restart_averaging(void)
 {
     /* start a new calibration immediately */
@@ -27,7 +32,7 @@ static void restart_averaging(void)
 void GyroscopeOffsetCompensator_Run_OnInit(void)
 {
     /* Begin User Code Section: OnInit:run Start */
-    offset_calibrated = false;
+    offsetCalibrated = false;
 
     restart_averaging();
 
@@ -54,35 +59,44 @@ void GyroscopeOffsetCompensator_Run_Update(void)
         }
         else
         {
+            // Continuously collect samples if the brain is not moving. Start updating the average
+            // once we have enough samples.
             if (averageAngularSpeedSamples < AVERAGE_NUM_SAMPLES)
             {
-                sumAngularSpeed.x += angularSpeed.x;
-                sumAngularSpeed.y += angularSpeed.y;
-                sumAngularSpeed.z += angularSpeed.z;
-
                 ++averageAngularSpeedSamples;
+            }
+            else
+            {
+                // If our buffer is full, we remove the average. This has a similar effect to
+                // removing the oldest sample, albeit turns the averaging into an estimation.
+                // Still, it's better to track changes continuously instead of
+                // once every 2.5 seconds.
+                sumAngularSpeed.x -= averageAngularSpeed.x;
+                sumAngularSpeed.y -= averageAngularSpeed.y;
+                sumAngularSpeed.z -= averageAngularSpeed.z;
+            }
 
-                if (averageAngularSpeedSamples == AVERAGE_NUM_SAMPLES)
-                {
-                    averageAngularSpeed.x = sumAngularSpeed.x / AVERAGE_NUM_SAMPLES;
-                    averageAngularSpeed.y = sumAngularSpeed.y / AVERAGE_NUM_SAMPLES;
-                    averageAngularSpeed.z = sumAngularSpeed.z / AVERAGE_NUM_SAMPLES;
+            sumAngularSpeed.x += angularSpeed.x;
+            sumAngularSpeed.y += angularSpeed.y;
+            sumAngularSpeed.z += angularSpeed.z;
 
-                    offset_calibrated = true;
+            if (averageAngularSpeedSamples == AVERAGE_NUM_SAMPLES)
+            {
+                averageAngularSpeed.x = sumAngularSpeed.x / AVERAGE_NUM_SAMPLES;
+                averageAngularSpeed.y = sumAngularSpeed.y / AVERAGE_NUM_SAMPLES;
+                averageAngularSpeed.z = sumAngularSpeed.z / AVERAGE_NUM_SAMPLES;
 
-                    restart_averaging();
-                }
+                offsetCalibrated = true;
             }
         }
 
-        if (offset_calibrated)
+        if (offsetCalibrated)
         {
-            const Vector3D_t output =
-                {
-                    .x = angularSpeed.x - averageAngularSpeed.x,
-                    .y = angularSpeed.y - averageAngularSpeed.y,
-                    .z = angularSpeed.z - averageAngularSpeed.z,
-                };
+            const Vector3D_t output = (Vector3D_t) {
+                .x = angularSpeed.x - averageAngularSpeed.x,
+                .y = angularSpeed.y - averageAngularSpeed.y,
+                .z = angularSpeed.z - averageAngularSpeed.z,
+            };
 
             GyroscopeOffsetCompensator_Write_CompensatedAngularSpeeds(&output);
         }

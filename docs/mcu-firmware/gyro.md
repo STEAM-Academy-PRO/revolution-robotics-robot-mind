@@ -63,9 +63,6 @@ drift value and resets sample collection.
 > FIXME: The component starts outputting data only after determining the first average. This means that
 > powering on the Brain on a rotating platform may never provide a rotation output.
 
-> FIXME: The component tries to save memory by not implementing a proper siding window. However, the 2.5
-> second measurement delay may be too long to introduce errors.
-
 ### Orientation estimation
 
 The `IMUOrientationEstimator` component implements [Madgwick's algorithm](https://ahrs.readthedocs.io/en/latest/filters/madgwick.html#orientation-from-imu) to estimate orientations from the acceleration and angular speed
