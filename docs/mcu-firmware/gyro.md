@@ -69,5 +69,3 @@ The `IMUOrientationEstimator` component implements [Madgwick's algorithm](https:
 inputs.
 
 The component outputs orientation in quaternions and Euler angles.
-
-> FIXME: The Euler angle conversion may introduce incontinuities (k*90° jumps)

@@ -4,6 +4,7 @@
 
 /* Begin User Code Section: Declarations */
 #include <math.h>
+// #include "SEGGER_RTT.h"
 
 static Quaternion_t orientation;
 
@@ -48,10 +49,15 @@ static Orientation3D_t to_euler_angles(const Quaternion_t orientation)
 {
     Orientation3D_t angles;
 
-    float w = orientation.q0;
-    float x = orientation.q1;
-    float y = orientation.q2;
-    float z = orientation.q3;
+    float x = orientation.q0;
+    float y = orientation.q1;
+    float z = orientation.q2;
+    float w = orientation.q3;
+
+    float sqx = x * x;
+    float sqy = y * y;
+    float sqz = z * z;
+    float sqw = w * w;
 
     // Algorithm adapted from: http://euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/index.htm
     // conventions:
@@ -59,29 +65,25 @@ static Orientation3D_t to_euler_angles(const Quaternion_t orientation)
     // * heading is about z
     // * roll is about x
     // * pitch is about y
-    float test = z * x - w * y; // this is basically attitude
-    const float vertical_threshold = 0.49f;
-    if (test > vertical_threshold)
+    // * out input is normalised
+    float test = x * y + z * w; // this is basically attitude
+    if (test > 0.499f)
     {
-        angles.yaw = constrain_angle(-2.0f * atan2f(-z, w));
+        angles.yaw = constrain_angle(2.0f * atan2f(x, w));
         angles.pitch = M_PI_2;
         angles.roll = 0.0f;
     }
-    else if (test < -vertical_threshold)
+    else if (test < -0.499f)
     {
-        angles.yaw = constrain_angle(2.0f * atan2f(-z, w));
+        angles.yaw = constrain_angle(-2.0f * atan2f(x, w));
         angles.pitch = -M_PI_2;
         angles.roll = 0.0f;
     }
     else
     {
-        float sqx = x * x;
-        float sqy = y * y;
-        float sqz = z * z;
-
         // roll (x-axis rotation)
-        float sinr_cosp = 2.0f * (w * x + y * z);
-        float cosr_cosp = 1.0f - 2.0f * (sqx + sqy);
+        float sinr_cosp = 2.0f * (y * w - x * z);
+        float cosr_cosp = sqx - sqy - sqz + sqw;
         angles.roll = atan2f(sinr_cosp, cosr_cosp);
 
         // pitch (y-axis rotation)
@@ -89,8 +91,8 @@ static Orientation3D_t to_euler_angles(const Quaternion_t orientation)
         angles.pitch = asinf(sinp);
 
         // yaw (z-axis rotation)
-        float siny_cosp = 2.0f * (w * z + x * y);
-        float cosy_cosp = 1.0f - 2.0f * (sqy + sqz);
+        float siny_cosp = 2.0f * (x * w - y * z);
+        float cosy_cosp = -sqx + sqy - sqz + sqw;
         angles.yaw = atan2f(siny_cosp, cosy_cosp);
     }
 
@@ -277,6 +279,7 @@ static void UpdateOrientationResult(const Quaternion_t result)
         .roll = rad_to_deg(euler.roll),
         .yaw = yaw + nTurns * 360.0f,
     };
+    // SEGGER_RTT_printf(0, "%d %d %d\n", (int32_t) eulerDegrees.yaw, (int32_t) eulerDegrees.pitch, (int32_t) eulerDegrees.roll);
     IMUOrientationEstimator_Write_OrientationEulerDegrees(&eulerDegrees);
 }
 
