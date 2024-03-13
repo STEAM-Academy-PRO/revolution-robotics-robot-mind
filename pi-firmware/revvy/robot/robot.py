@@ -14,7 +14,6 @@ from revvy.robot.sound import Sound
 from revvy.robot.status import RobotStatusIndicator, RobotStatus
 from revvy.robot.status_updater import McuStatusUpdater
 from revvy.scripting.resource import Resource
-from revvy.scripting.robot_interface import RobotInterface
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.version import VERSION, Version
@@ -45,17 +44,9 @@ class BatteryStatus(NamedTuple):
     motor: int
 
 
-def _default_bus_factory() -> RevvyTransportBase:
-    from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-
-    return RevvyTransportI2C(1)
-
-
 class Robot:
-    def __init__(self, bus_factory: Callable[[], RevvyTransportBase] = _default_bus_factory):
-        self._bus_factory = bus_factory
-
-        self._comm_interface = self._bus_factory()
+    def __init__(self, interface: RevvyTransportBase):
+        self._comm_interface = interface
 
         self._log = get_logger("Robot")
 

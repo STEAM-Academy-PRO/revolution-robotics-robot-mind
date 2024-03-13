@@ -3,6 +3,7 @@ import argparse
 import sys
 from revvy.firmware_updater import update_firmware_if_needed
 
+from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.robot.configurations import Sensors
 from revvy.robot_manager import RevvyStatusCode
 from revvy.utils.thread_wrapper import periodic
@@ -62,12 +63,14 @@ if __name__ == "__main__":
     sensor_data_changed = False
     sensor_data = [0, None, None, None, None, None, None, None, None]
 
+    interface = RevvyTransportI2C(bus=1)
+
     ### Before we enter the main loop, let's load up
-    if not update_firmware_if_needed():
+    if not update_firmware_if_needed(interface):
         # exiting with integrity error forces the loader to try a previous package
         sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
 
-    robot = Robot()
+    robot = Robot(interface)
 
     def update() -> None:
         global sensor_data_changed

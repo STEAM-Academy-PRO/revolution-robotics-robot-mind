@@ -229,7 +229,7 @@ class TestSensorOnPortResult:
     def __init__(self, result_code):
         self.__result_code = result_code
 
-    def __stringify(self):
+    def __str__(self) -> str:
         if self.__result_code == 0:
             return "NOT_CONNECTED"
         if self.__result_code == 1:
@@ -240,11 +240,8 @@ class TestSensorOnPortResult:
             return "ERROR"
         return "INVALID"
 
-    def __str__(self):
-        return self.__stringify()
-
-    def __repr__(self):
-        return self.__stringify()
+    def __repr__(self) -> str:
+        return self.__str__()
 
     def is_not_connected(self):
         return self.__result_code == 0

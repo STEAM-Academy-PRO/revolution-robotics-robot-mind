@@ -1,4 +1,3 @@
-import time
 from revvy.utils.logger import get_logger, LogLevel
 
 # ignore reason: raspberry-specific import
@@ -49,11 +48,11 @@ class RevvyTransportI2C(RevvyTransportBase):
     BOOTLOADER_I2C_ADDRESS = 0x2B
     ROBOT_I2C_ADDRESS = 0x2D
 
-    def __init__(self, bus):
+    def __init__(self, bus: int):
         log(f"Opening I2C bus: {bus}", LogLevel.DEBUG)
         self._bus = SMBus(bus)
 
-    def _bind(self, address):
+    def _bind(self, address: int) -> RevvyTransport:
         return RevvyTransport(RevvyTransportI2CDevice(address, self))
 
     def create_bootloader_control(self) -> BootloaderControl:
@@ -62,6 +61,6 @@ class RevvyTransportI2C(RevvyTransportBase):
     def create_application_control(self) -> RevvyControl:
         return RevvyControl(self._bind(self.ROBOT_I2C_ADDRESS))
 
-    def __del__(self):
+    def __del__(self) -> None:
         log("Closing I2C bus", LogLevel.DEBUG)
         self._bus.close()

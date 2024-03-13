@@ -9,9 +9,9 @@ import os
 import signal
 import traceback
 import time
-from functools import partial
 from threading import Event
 
+from revvy.mcu.rrrc_control import RevvyTransportBase
 from revvy.robot.robot import Robot
 from revvy.robot.remote_controller import (
     AutonomousModeRequest,
@@ -54,12 +54,12 @@ class RevvyStatusCode(enum.IntEnum):
 class RobotManager:
     """High level class to manage robot state and configuration"""
 
-    def __init__(self) -> None:
+    def __init__(self, interface: RevvyTransportBase) -> None:
         self._log = get_logger("RobotManager")
         self.needs_interrupting = True
 
         self._configuring = False
-        self._robot = Robot()
+        self._robot = Robot(interface)
 
         rc = RemoteController()
         rcs = RemoteControllerScheduler(rc)

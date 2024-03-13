@@ -7,6 +7,7 @@ import sys
 import traceback
 from revvy.firmware_updater import update_firmware_if_needed
 
+from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.robot_manager import RobotManager, RevvyStatusCode
 from revvy.bluetooth.ble_revvy import RevvyBLE
 
@@ -36,14 +37,16 @@ if __name__ == "__main__":
         log("Revvy not started because manifest is invalid")
         sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
 
+    interface = RevvyTransportI2C(bus=1)
+
     ### Before we enter the main loop, let's load up
-    if not update_firmware_if_needed():
+    if not update_firmware_if_needed(interface):
         log("Revvy not started because the robot has no functional firmware")
         # exiting with integrity error forces the loader to try a previous package
         sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
 
     # Handles robot state
-    robot_manager = RobotManager()
+    robot_manager = RobotManager(interface)
 
     # Receives commands from the control interface, acts on the robot_manager.
     bluetooth_controller = RevvyBLE(robot_manager)
