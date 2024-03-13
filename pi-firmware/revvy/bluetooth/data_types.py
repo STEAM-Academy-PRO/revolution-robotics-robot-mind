@@ -7,20 +7,19 @@ from typing import Any
 from revvy.utils.bit_packer import pack_2_bit_number_array_32
 from revvy.utils.logger import get_logger
 from revvy.utils.math.floor0 import floor0
-from revvy.utils.serialize import Serialize
 
 
-class MotorData(Serialize):
+class MotorData:
     def __init__(self, speed, position, power):
         self.position = position
         self.speed = speed
         self.power = power
 
-    def serialize(self) -> bytes:
+    def __bytes__(self) -> bytes:
         return struct.pack(">flb", self.speed, self.position, self.power)
 
 
-class GyroData(Serialize):
+class GyroData:
     """A 3D vector"""
 
     def __init__(self, a, b, c):
@@ -38,11 +37,11 @@ class GyroData(Serialize):
     def __json__(self):
         return {"a": self.a, "b": self.b, "c": self.c}
 
-    def serialize(self) -> bytes:
+    def __bytes__(self) -> bytes:
         return struct.pack("fff", self.a, self.b, self.c)
 
 
-class ProgramStatusCollection(Serialize):
+class ProgramStatusCollection:
     def __init__(self):
         self._states = [0] * 32
         self._log = get_logger("ProgramStatusCollection")
@@ -51,11 +50,11 @@ class ProgramStatusCollection(Serialize):
         self._log(f"button state array id:{button_id} => stat: {status}")
         self._states[button_id] = status
 
-    def serialize(self) -> bytes:
+    def __bytes__(self) -> bytes:
         return pack_2_bit_number_array_32(self._states)
 
 
-class ScriptVariables(Serialize):
+class ScriptVariables:
     def __init__(self, variables: list):
         self.script_variables = variables
 
@@ -64,7 +63,7 @@ class ScriptVariables(Serialize):
             return __value.script_variables == self.script_variables
         return False
 
-    def serialize(self) -> bytes:
+    def __bytes__(self) -> bytes:
         # I believe this should be a constant that's coming from one centralized place, rather
         # be wired in here. If this script sends more variables, we'll never know.
         MAX_VARIABLE_SLOTS = 4
@@ -102,36 +101,15 @@ class ScriptVariables(Serialize):
         return msg
 
 
-class TimerData(Serialize):
+class TimerData:
     def __init__(self, value):
         self.value = value
 
-    def serialize(self) -> bytes:
+    def __bytes__(self) -> bytes:
         return struct.pack(">bf", 4, round(self.value, 0))
 
 
-class ABCEnumMeta(abc.ABCMeta, enum.EnumMeta):
-    # We need this metaclass to allow Serialize and Enum on the same type
-    # https://stackoverflow.com/a/56135108
-    def __new__(mcls, *args, **kw):
-        abstract_enum_cls = super().__new__(mcls, *args, **kw)
-        # Only check abstractions if members were defined.
-        if abstract_enum_cls._member_map_:
-            try:  # Handle existence of undefined abstract methods.
-                absmethods = list(abstract_enum_cls.__abstractmethods__)
-                if absmethods:
-                    missing = ", ".join(f"{method!r}" for method in absmethods)
-                    plural = "s" if len(absmethods) > 1 else ""
-                    raise TypeError(
-                        f"cannot instantiate abstract class {abstract_enum_cls.__name__!r}"
-                        f" with abstract method{plural} {missing}"
-                    )
-            except AttributeError:
-                pass
-        return abstract_enum_cls
-
-
-class BackgroundControlState(Serialize, Enum, metaclass=ABCEnumMeta):
+class BackgroundControlState(Enum):
     STOPPED = 1
     RUNNING = 2
     PAUSED = 3
@@ -151,13 +129,13 @@ class BackgroundControlState(Serialize, Enum, metaclass=ABCEnumMeta):
     def __repr__(self) -> str:
         return self.__state_to_str()
 
-    def serialize(self) -> bytes:
+    def __bytes__(self) -> bytes:
         # TODO: what's 4, and why do we specify big endian here?
         return struct.pack(">bl", 4, self.value)
 
 
 # TODO: make this a base class for sensors to implement
-class SensorData(Serialize):
+class SensorData:
     def __init__(self, port_id: int, value: Any):
         self.port_id = port_id
         self.value = value
@@ -165,22 +143,22 @@ class SensorData(Serialize):
     def __json__(self):
         return {"port_id": self.port_id, "value": self.value}
 
-    def serialize(self) -> bytes:
+    def __bytes__(self) -> bytes:
         return self.value
 
 
 class UltrasonicSensorData(SensorData):
-    def serialize(self) -> bytes:
+    def __bytes__(self) -> bytes:
         return round(self.value).to_bytes(2, "little") + b"\x00\x00"
 
 
 class BumperSensorData(SensorData):
-    def serialize(self) -> bytes:
+    def __bytes__(self) -> bytes:
         return b"\x01" if self.value else b"\x00"
 
 
 class ColorSensorData(SensorData):
-    def serialize(self) -> bytes:
+    def __bytes__(self) -> bytes:
         # TODO: this does not belong here. But I do know where it does.
         # Where should complex type serialization go?
-        return self.value.serialize()
+        return self.value.__bytes__()

@@ -73,7 +73,7 @@ class ColorSensorReading:
         self.left = Color.from_bytes(byte_array[6:9])
         self.middle = Color.from_bytes(byte_array[9:12])
 
-    def serialize(self) -> bytearray:
+    def __bytes__(self) -> bytearray:
         byte_array = bytearray()
         for color in [self.top, self.right, self.left, self.middle]:
             byte_array.append(color.r)
