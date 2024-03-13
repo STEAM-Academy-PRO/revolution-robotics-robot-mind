@@ -127,13 +127,17 @@ class ReadFirmwareVersionCommand(ReadVersionCommand):
 
 
 class SetMasterStatusCommand(ReturnlessCommand, Command):
+    def __init__(self, transport: RevvyTransport):
+        super().__init__(transport)
+        self._format = struct.Struct("B")
+
     @property
     def command_id(self) -> int:
         return 0x04
 
     def __call__(self, status: int) -> None:
         # TODO: make this accept something meaningful
-        return self._send(struct.pack("B", status))
+        return self._send(bytes([status]))
 
 
 class SetBluetoothStatusCommand(ReturnlessCommand, Command):
@@ -143,7 +147,7 @@ class SetBluetoothStatusCommand(ReturnlessCommand, Command):
 
     def __call__(self, status: int) -> None:
         # TODO: make this accept something meaningful
-        return self._send(struct.pack("B", status))
+        return self._send(bytes([status]))
 
 
 class McuOperationMode(Enum):
@@ -213,7 +217,7 @@ class ReadSensorPortAmountCommand(ReadPortAmountCommand):
 
 class SetPortTypeCommand(Command[bool], ABC):
     def __call__(self, port: int, port_type_idx: int) -> bool:
-        return self._send(struct.pack("BB", port, port_type_idx))
+        return self._send(bytes([port, port_type_idx]))
 
     def parse_response(self, payload: bytes) -> bool:
         return payload[0] == 1
@@ -237,9 +241,8 @@ class TestSensorOnPortCommand(Command[TestSensorOnPortResult], ABC):
     def command_id(self) -> int:
         return 0x25
 
-    def __call__(self, port, port_type) -> TestSensorOnPortResult:
-        payload = struct.pack("BB", port, port_type)
-        return self._send(payload)
+    def __call__(self, port: int, port_type: int) -> TestSensorOnPortResult:
+        return self._send(bytes([port, port_type]))
 
     def parse_response(self, payload: bytes) -> TestSensorOnPortResult:
         raw_response = payload[0]
@@ -254,7 +257,7 @@ class TestMotorOnPortCommand(Command[bool], ABC):
         return 0x15
 
     def __call__(self, port, test_intensity, threshold) -> bool:
-        payload = struct.pack("BBB", port, test_intensity, threshold)
+        payload = bytes([port, test_intensity, threshold])
         return self._send(payload)
 
     def parse_response(self, payload: bytes) -> bool:
@@ -273,7 +276,7 @@ class SetRingLedScenarioCommand(ReturnlessCommand):
         return 0x31
 
     def __call__(self, scenario_idx: int) -> None:
-        return self._send(struct.pack("B", scenario_idx))
+        return self._send(bytes([scenario_idx]))
 
 
 class GetRingLedAmountCommand(ParameterlessCommand[int]):
@@ -291,16 +294,16 @@ class SendRingLedUserFrameCommand(ReturnlessCommand):
     def command_id(self) -> int:
         return 0x33
 
-    def __call__(self, colors) -> None:
+    def __call__(self, colors: list[int]) -> None:
         rgb565_values = map(rgb_to_rgb565_bytes, colors)
         led_bytes = struct.pack(f"<{len(colors)}H", *rgb565_values)
         return self._send(led_bytes)
 
 
 class SetPortConfigCommand(ReturnlessCommand, ABC):
-    def __call__(self, port_idx, config) -> None:
+    def __call__(self, port_idx: int, config: bytes) -> None:
         # TODO: can we do something nicer? I.e. specify the config type in this module, serialize here?
-        return self._send(struct.pack("B%sB" % len(config), port_idx, *config))
+        return self._send(bytes([port_idx, *config]))
 
 
 class SetMotorPortConfigCommand(SetPortConfigCommand):
@@ -321,7 +324,7 @@ class ReadSensorPortInfoCommand(Command[bytes]):
         return 0x24
 
     def __call__(self, port_idx: int, page: int = 0) -> bytes:
-        return self._send(struct.pack("BB", port_idx, page))
+        return self._send(bytes([port_idx, page]))
 
     def parse_response(self, payload: bytes):
         return payload
@@ -348,8 +351,8 @@ class SetMotorPortControlCommand(Command[bytes]):
 
 
 class ReadPortStatusCommand(Command, ABC):
-    def __call__(self, port_idx) -> bytes:
-        return self._send(struct.pack("B", port_idx))
+    def __call__(self, port_idx: int) -> bytes:
+        return self._send(bytes([port_idx]))
 
     def parse_response(self, payload: bytes) -> bytes:
         """Return the raw response"""
@@ -367,8 +370,8 @@ class McuStatusUpdater_ControlCommand(ReturnlessCommand):
     def command_id(self) -> int:
         return 0x3B
 
-    def __call__(self, slot, is_enabled: bool) -> None:
-        return self._send(struct.pack("bb", slot, is_enabled))
+    def __call__(self, slot: int, is_enabled: bool) -> None:
+        return self._send(bytes([slot, is_enabled]))
 
 
 class McuStatusUpdater_ReadCommand(ParameterlessCommand[bytes]):
@@ -426,12 +429,16 @@ class ReadFirmwareCrcCommand(ParameterlessCommand[int]):
 
 
 class InitializeUpdateCommand(ReturnlessCommand):
+    def __init__(self, transport: RevvyTransport):
+        super().__init__(transport)
+        self._format = struct.Struct("<LL")
+
     @property
     def command_id(self) -> int:
         return 0x08
 
     def __call__(self, crc, length) -> None:
-        return self._send(struct.pack("<LL", crc, length))
+        return self._send(self._format.pack(crc, length))
 
 
 class SendFirmwareCommand(ReturnlessCommand):
