@@ -48,7 +48,7 @@ class PortConfig:
 
 
 class RemoteControlConfig:
-    def __init__(self):
+    def __init__(self) -> None:
         self.analog = []
         self.buttons = [None] * 32
         self.variable_slots = []
@@ -58,16 +58,16 @@ class ConfigError(Exception):
     pass
 
 
-def make_script_name_common(script_idx, assignment_type, detail):
-    return "script_{}_{}_{}".format(script_idx, assignment_type, detail)
+def make_script_name_common(script_idx, assignment_type, detail) -> str:
+    return f"script_{script_idx}_{assignment_type}_{detail}"
 
 
-def make_analog_script_name(analog, script_idx):
+def make_analog_script_name(analog, script_idx) -> str:
     detail = "channels_" + "_".join(map(str, analog["channels"]))
     return make_script_name_common(script_idx, "analog", detail)
 
 
-def make_button_script_name(script_idx, button_idx):
+def make_button_script_name(script_idx, button_idx) -> str:
     return make_script_name_common(script_idx, "button", f"{button_idx}")
 
 

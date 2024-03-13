@@ -16,7 +16,7 @@ class MotorData(Serialize):
         self.speed = speed
         self.power = power
 
-    def serialize(self):
+    def serialize(self) -> bytes:
         return struct.pack(">flb", self.speed, self.position, self.power)
 
 
@@ -24,23 +24,21 @@ class GyroData(Serialize):
     """A 3D vector"""
 
     def __init__(self, a, b, c):
-        self.a = a
-        self.b = b
-        self.c = c
+        self.a = floor0(a, 1)
+        self.b = floor0(b, 1)
+        self.c = floor0(c, 1)
 
-    def __eq__(self, __value: object) -> bool:
-        if isinstance(__value, GyroData):
-            return (
-                floor0(__value.a) == floor0(self.a)
-                and floor0(__value.b) == floor0(self.b)
-                and floor0(__value.c) == floor0(self.c)
-            )
-        return False
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, GyroData):
+            return False
+
+        # These values are rounded to the first decimal so we can compare them directly
+        return other.a == self.a and other.b == self.b and other.c == self.c
 
     def __json__(self):
         return {"a": self.a, "b": self.b, "c": self.c}
 
-    def serialize(self):
+    def serialize(self) -> bytes:
         return struct.pack("fff", self.a, self.b, self.c)
 
 
@@ -53,7 +51,7 @@ class ProgramStatusCollection(Serialize):
         self._log(f"button state array id:{button_id} => stat: {status}")
         self._states[button_id] = status
 
-    def serialize(self):
+    def serialize(self) -> bytes:
         return pack_2_bit_number_array_32(self._states)
 
 
@@ -66,7 +64,7 @@ class ScriptVariables(Serialize):
             return __value.script_variables == self.script_variables
         return False
 
-    def serialize(self):
+    def serialize(self) -> bytes:
         # I believe this should be a constant that's coming from one centralized place, rather
         # be wired in here. If this script sends more variables, we'll never know.
         MAX_VARIABLE_SLOTS = 4
@@ -108,7 +106,7 @@ class TimerData(Serialize):
     def __init__(self, value):
         self.value = value
 
-    def serialize(self):
+    def serialize(self) -> bytes:
         return struct.pack(">bf", 4, round(self.value, 0))
 
 
@@ -153,7 +151,7 @@ class BackgroundControlState(Serialize, Enum, metaclass=ABCEnumMeta):
     def __repr__(self) -> str:
         return self.__state_to_str()
 
-    def serialize(self):
+    def serialize(self) -> bytes:
         # TODO: what's 4, and why do we specify big endian here?
         return struct.pack(">bl", 4, self.value)
 
@@ -167,22 +165,22 @@ class SensorData(Serialize):
     def __json__(self):
         return {"port_id": self.port_id, "value": self.value}
 
-    def serialize(self):
+    def serialize(self) -> bytes:
         return self.value
 
 
 class UltrasonicSensorData(SensorData):
-    def serialize(self):
+    def serialize(self) -> bytes:
         return round(self.value).to_bytes(2, "little") + b"\x00\x00"
 
 
 class BumperSensorData(SensorData):
-    def serialize(self):
+    def serialize(self) -> bytes:
         return b"\x01" if self.value else b"\x00"
 
 
 class ColorSensorData(SensorData):
-    def serialize(self):
+    def serialize(self) -> bytes:
         # TODO: this does not belong here. But I do know where it does.
         # Where should complex type serialization go?
         return self.value.serialize()

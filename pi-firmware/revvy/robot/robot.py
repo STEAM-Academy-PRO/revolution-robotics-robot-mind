@@ -132,7 +132,7 @@ class Robot:
         return self._resources
 
     @property
-    def script_variables(self):
+    def script_variables(self) -> VariableSlot:
         return self._script_variables
 
     @property
