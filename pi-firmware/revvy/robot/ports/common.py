@@ -96,7 +96,7 @@ class PortHandler(Generic[DriverType]):
             for i in range(1, amount + 1)
         ]
 
-    def __getitem__(self, port_idx: int) -> "PortInstance":
+    def __getitem__(self, port_idx: int) -> "PortInstance[DriverType]":
         """
         Returns the port with the given index. We index ports from 1 so they correspond
         to port numbers on the Robot's enclosure.

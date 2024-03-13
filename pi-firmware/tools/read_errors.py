@@ -135,12 +135,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    i2c_bus = 1
-    transport = RevvyTransportI2C(i2c_bus)
+    transport = RevvyTransportI2C(bus=1)
 
     robot_control = transport.create_application_control()
 
     fw_version = robot_control.get_firmware_version()
+    assert fw_version is not None
 
     # Error logs don't store the branch. Assume 'stable' so they compare equal if the
     # version numbers are the same.

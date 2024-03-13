@@ -62,7 +62,7 @@ class ValidateConfigCharacteristic(Characteristic):
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def update(self, state: ValidateState, motors_bitmask, sensors) -> None:
+    def updateValue(self, state: ValidateState, motors_bitmask, sensors) -> None:
         self.state = state
         self._value = struct.pack(
             "BBBBBB", state.value, motors_bitmask, sensors[0], sensors[1], sensors[2], sensors[3]
@@ -91,7 +91,7 @@ class BackgroundProgramControlCharacteristic(Characteristic):
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def update(self, value) -> None:
+    def updateValue(self, value) -> None:
         self._value = value
 
         update_notified_value = self.updateValueCallback
@@ -132,7 +132,7 @@ class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def update(self, value: DataType) -> None:
+    def updateValue(self, value: DataType) -> None:
         if isinstance(value, Serialize):
             value = value.serialize()
         self._value = value
@@ -147,10 +147,10 @@ class StateControlCharacteristic(BackgroundProgramControlCharacteristic):
 
 
 class SensorCharacteristic(BrainToMobileCharacteristic):
-    def update(self, value) -> None:
+    def updateValue(self, value) -> None:
         # FIXME: prefix with data length is probably unnecessary
         value = value.serialize()
-        super().update([len(value), *value])
+        super().updateValue([len(value), *value])
 
 
 class MotorCharacteristic(BrainToMobileCharacteristic[MotorData]):
@@ -176,9 +176,9 @@ class ProgramStatusCharacteristic(BrainToMobileCharacteristic[ProgramStatusColle
         super().__init__(uuid, description)
         self._data = ProgramStatusCollection()
 
-    def update_button_value(self, button_id: int, status: int) -> None:
+    def updateButtonStatus(self, button_id: int, status: int) -> None:
         self._data.update_button_value(button_id, status)
-        self.update(self._data)
+        self.updateValue(self._data)
 
 
 # Device Information Service
@@ -217,7 +217,7 @@ class VersionCharacteristic(Characteristic):
         else:
             callback(Characteristic.RESULT_SUCCESS, self._version)
 
-    def update(self, version) -> None:
+    def updateValue(self, version) -> None:
         if len(version) > self.version_max_length:
             version = version[: self.version_max_length]
         self._version = version.encode("utf-8")
@@ -280,7 +280,7 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def update(self, value) -> None:
+    def updateValue(self, value) -> None:
         self._value = value
 
         update_notified_value = self.updateValueCallback
@@ -354,7 +354,7 @@ class UnifiedBatteryInfoCharacteristic(Characteristic):
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def update_value(self, battery_status: BatteryStatus) -> None:
+    def updateValue(self, battery_status: BatteryStatus) -> None:
         new_value = [
             round(battery_status.main),
             battery_status.chargerStatus,

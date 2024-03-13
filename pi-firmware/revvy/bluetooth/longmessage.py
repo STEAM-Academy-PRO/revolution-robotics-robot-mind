@@ -116,13 +116,13 @@ class ReceivedLongMessage:
         self._md5calc = hashlib.md5()
         self._size_known = size != 0
 
-    def append_data(self, data):
+    def append_data(self, data: bytes):
         self.received_chunks += 1
         self.data += data
         self._md5calc.update(data)
 
     @property
-    def is_valid(self):
+    def is_valid(self) -> bool:
         """Returns true if the uploaded data matches the predefined md5 checksum."""
         if self._size_known:
             if self.received_chunks != self.total_chunks:

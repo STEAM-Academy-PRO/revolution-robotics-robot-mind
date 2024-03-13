@@ -136,7 +136,7 @@ class LiveMessageService(BlenoPrimaryService):
 
         def validation_callback(success, motors, sensors) -> None:
             self.set_validation_result(success, motors, sensors)
-            self._validate_config_characteristic.update(
+            self._validate_config_characteristic.updateValue(
                 ValidateState.IN_PROGRESS, motor_bitmask, sensors
             )
 
@@ -167,14 +167,10 @@ class LiveMessageService(BlenoPrimaryService):
                 motor_bit = motors[i]
             motor_bitmask |= motor_bit << i
 
-        if len(sensors) == NUM_SENSOR_PORTS:
-            s0, s1, s2, s3 = sensors
-        else:
-            s0 = s1 = s2 = s3 = False
+        if len(sensors) != NUM_SENSOR_PORTS:
+            sensors = [False] * NUM_SENSOR_PORTS
 
-        self._validate_config_characteristic.update(
-            valitation_state, motor_bitmask, [s0, s1, s2, s3]
-        )
+        self._validate_config_characteristic.updateValue(valitation_state, motor_bitmask, sensors)
 
     def control_message_handler(self, data: bytearray) -> bool:
         """
@@ -237,51 +233,51 @@ class LiveMessageService(BlenoPrimaryService):
     def update_sensor(self, sensor_data: SensorData):
         """Send back sensor value to mobile."""
         if 0 < sensor_data.port_id <= len(self._sensor_characteristics):
-            self._sensor_characteristics[sensor_data.port_id - 1].update(sensor_data)
+            self._sensor_characteristics[sensor_data.port_id - 1].updateValue(sensor_data)
 
     def update_program_status(self, button_id: int, status: ScriptEvent):
         """Update the status of a button-triggered script"""
 
-        self._program_status_characteristic.update_button_value(button_id, status.value)
+        self._program_status_characteristic.updateButtonStatus(button_id, status.value)
 
     def update_motor(self, motor, data: MotorData):
         """Send back motor angle value to mobile."""
         # TODO: unused?
         if 0 <= motor < len(self._motor_characteristics):
-            self._motor_characteristics[motor].update(data)
+            self._motor_characteristics[motor].updateValue(data)
 
     def update_session_id(self, value):
         """Send back session_id to mobile."""
         data = list(struct.pack("<I", value))
         # Maybe this was supposed to be used for detecting MCU reset in the mobile, but
         # currently it's not used.
-        self._mobile_to_brain.update(data)
+        self._mobile_to_brain.updateValue(data)
 
     def update_gyro(self, data: GyroData):
         """Send back gyro sensor value to mobile."""
         # TODO: unused?
-        self._gyro_characteristic.update(data)
+        self._gyro_characteristic.updateValue(data)
 
     def update_orientation(self, data: GyroData):
         """Send back orientation to mobile. Used to display the yaw of the robot"""
-        self._orientation_characteristic.update(data)
+        self._orientation_characteristic.updateValue(data)
 
     def update_timer(self, data: TimerData):
         """Send back timer tick to mobile."""
-        self._timer_characteristic.update(data)
+        self._timer_characteristic.updateValue(data)
 
     def report_error(self, data):
         log(f"Sending Error: {data}")
-        self._error_reporting_characteristic.update(data)
+        self._error_reporting_characteristic.updateValue(data)
 
     def update_script_variables(self, script_variables: ScriptVariables):
         """
         In the mobile app, this data shows up when we track variables.
         By characteristic protocol - maximum slots in BLE message is 4.
         """
-        self._read_variable_characteristic.update(script_variables)
+        self._read_variable_characteristic.updateValue(script_variables)
 
     def update_state_control(self, state: BackgroundControlState):
         """Send back the background programs' state."""
         log(f"state control update, {state}")
-        self._background_program_control_characteristic.update(state)
+        self._background_program_control_characteristic.updateValue(state)

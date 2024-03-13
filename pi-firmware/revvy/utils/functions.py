@@ -150,18 +150,18 @@ def bits_to_bool_list(byte_list) -> List[bool]:
     return [is_bit_set(b, bit) for b in byte_list for bit in range(8)]
 
 
-def bytestr_hash(byte_str) -> str:
+def bytestr_hash(byte_str: bytes) -> str:
     hash_fn = hashlib.md5()
     hash_fn.update(byte_str)
     return hash_fn.hexdigest()
 
 
-def file_hash(file):
+def file_hash(file: str) -> str:
     with open(file, "rb") as f:
         return bytestr_hash(f.read())
 
 
-def read_json(filename):
+def read_json(filename: str):
     with open(filename, "r") as f:
         return json.load(f)
 
