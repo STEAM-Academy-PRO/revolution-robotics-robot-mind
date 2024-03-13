@@ -99,8 +99,7 @@ class Logger:
             message = f"[{START_TIME.elapsed:.2f}][{LEVELS[level]}][{thread_name}]{self.colored_tag} {message}\n"
             print(message, end="")
 
-    def __call__(self, message: str, level=None):
-        self.log(message, level)
+    __call__ = log
 
 
 log_config = None
