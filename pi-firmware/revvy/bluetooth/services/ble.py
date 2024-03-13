@@ -10,6 +10,6 @@ class BleService(BlenoPrimaryService):
 
         super().__init__({"uuid": uuid, "characteristics": list(characteristics.values())})
 
-    def characteristic(self, item):
+    def characteristic(self, item: str):
         """Returns the requested characteristic"""
         return self._named_characteristics[item]

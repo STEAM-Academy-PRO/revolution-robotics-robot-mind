@@ -155,38 +155,10 @@ jobs:
           # check formatting
           black --check .
 
-          timeout 5m nose2 -B
-
-  lint-pi-firmware:
-    permissions:
-      contents: read # checkout
-      pull-requests: read # paths-filter
-
-    runs-on: ubuntu-latest
-    needs: [check-pi-firmware]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dorny/paths-filter@v2
-        id: filter
-        with:
-          filters: |
-            pi-firmware:
-              - pi-firmware/**
-              - .github/workflows/pr.yml
-
-      - name: Running checks
-        if: steps.filter.outputs.pi-firmware == 'true'
-        run: |
-          cd pi-firmware
-
-          # install dependencies
-          pip install -r install/requirements.txt
-          pip install -r install/requirements_test.txt
-
           # run linter
           pyright
+
+          timeout 5m nose2 -B
 
   archive-pi-firmware:
     permissions:

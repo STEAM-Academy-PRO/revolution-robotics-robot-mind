@@ -100,13 +100,13 @@ class RevvyBLE:
 
         self._robot_manager.on(
             RobotEvent.BATTERY_CHANGE,
-            lambda ref, val: self._bas.characteristic("unified_battery_status").update_value(val),
+            lambda ref, val: self._bas.characteristic("unified_battery_status").updateValue(val),
         )
 
         # Initialize value - this could be prettier, not sure how yet.
         initial_battery_state = self._robot_manager._robot_state._battery.get()
         log(f"initial battery state {initial_battery_state}")
-        self._bas.characteristic("unified_battery_status").update_value(initial_battery_state)
+        self._bas.characteristic("unified_battery_status").updateValue(initial_battery_state)
 
         self._robot_manager.on(
             RobotEvent.SENSOR_VALUE_CHANGE,
