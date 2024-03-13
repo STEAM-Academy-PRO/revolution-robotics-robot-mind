@@ -50,7 +50,7 @@ class TestDriver(MotorPortDriver):
     def update_status(self, data):
         pass
 
-    def stop(self, _=MotorConstants.ACTION_RELEASE):
+    def stop(self, action=MotorConstants.ACTION_RELEASE):
         pass
 
 
@@ -154,23 +154,23 @@ class TestDcMotorDriver(unittest.TestCase):
         driver.set_position(10)
 
         self.assertEqual(
-            call((42, 2, 10, 0, 0, 0)),  # move to 10
+            call(bytes([42, 2, 10, 0, 0, 0])),  # move to 10
             port.interface.set_motor_port_control_value.call_args_list[0],
         )
         # cancellation of movement
         self.assertEqual(
-            call((18, 0, 0)), port.interface.set_motor_port_control_value.call_args_list[1]
+            call(bytes([18, 0, 0])), port.interface.set_motor_port_control_value.call_args_list[1]
         )
         self.assertEqual(
-            call((42, 2, 5, 0, 0, 0)),  # move to 5
+            call(bytes([42, 2, 5, 0, 0, 0])),  # move to 5
             port.interface.set_motor_port_control_value.call_args_list[2],
         )
         # cancellation of movement
         self.assertEqual(
-            call((18, 0, 0)),  # cancel
+            call(bytes([18, 0, 0])),  # cancel
             port.interface.set_motor_port_control_value.call_args_list[3],
         )
         self.assertEqual(
-            call((42, 2, 251, 255, 255, 255)),  # move to -5
+            call(bytes([42, 2, 251, 255, 255, 255])),  # move to -5
             port.interface.set_motor_port_control_value.call_args_list[4],
         )

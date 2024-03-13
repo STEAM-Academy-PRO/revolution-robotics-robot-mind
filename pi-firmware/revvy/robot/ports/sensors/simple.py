@@ -1,4 +1,3 @@
-import struct
 from typing import NamedTuple, Optional
 
 from revvy.robot.ports.common import PortInstance
@@ -23,7 +22,7 @@ class Hcsr04(SensorPortDriver):
 
     def convert_sensor_value(self, raw: bytes):
         assert len(raw) == 4
-        (dst,) = struct.unpack("<l", raw)
+        dst = int.from_bytes(raw, "little")
         if dst == 0:
             return None
         return dst

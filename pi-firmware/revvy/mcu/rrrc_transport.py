@@ -303,7 +303,7 @@ class Command:
     # OpCancel removed
 
     @staticmethod
-    def create(op, command: int, payload: bytes = b""):
+    def create(op, command: int, payload: bytes = b"") -> bytearray:
         if command > 255:
             raise ValueError(f"Command id must be a single byte")
         payload_length = len(payload)
@@ -362,6 +362,9 @@ class ResponseStatus(Enum):
     Error_Timeout = 11
 
 
+response_header = struct.Struct("<BBH")
+
+
 class ResponseHeader(NamedTuple):
     status: ResponseStatus
     payload_length: int
@@ -377,7 +380,7 @@ class ResponseHeader(NamedTuple):
             raise ValueError(f"Header checksum error. Data = {list(data)}")
 
         header_bytes = data[0:4]
-        status, payload_length, payload_checksum = struct.unpack("<BBH", header_bytes)
+        status, payload_length, payload_checksum = response_header.unpack(header_bytes)
         return ResponseHeader(
             status=ResponseStatus(status),
             payload_length=payload_length,
@@ -499,9 +502,7 @@ class RevvyTransport:
         if header.payload_length == 0:
             return b""
 
-        def _read_payload_once() -> Union[bool, bytes]:
-            # Returns False on error, because retry() treats None as success.
-
+        def _read_payload_once() -> bytes:
             # read header and payload
             response_bytes = self._transport.read(5 + header.payload_length)
             response_header, response_payload = (
@@ -510,12 +511,12 @@ class RevvyTransport:
             )  # skip checksum byte
 
             # make sure we read the same response data we expect
-            if header.raw != response_header:
-                return False
+            if header != response_header:
+                return bytes()
 
             # make sure data is intact
             if not header.validate_payload(response_payload):
-                return False
+                return bytes()
 
             return response_payload
 

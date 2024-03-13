@@ -127,7 +127,7 @@ class LiveMessageService(BlenoPrimaryService):
     def validate_config_callback(self, data: bytes) -> bool:
         # FIXME: Currently unused
         motor_bitmask, sensor0, sensor1, sensor2, sensor3, motor_load_power, threshold = (
-            struct.unpack("BBBBBBB", data)
+            struct.unpack("7B", data)
         )
 
         current_state = self._validate_config_characteristic.state
@@ -160,7 +160,7 @@ class LiveMessageService(BlenoPrimaryService):
             valitation_state = ValidateState.DONE
 
         if len(motors) != NUM_MOTOR_PORTS:
-            log("set_validation_result::invalid motors response: ", motors)
+            log(f"set_validation_result::invalid motors response: {motors}")
 
         motor_bitmask = 0
         for i in range(max(NUM_MOTOR_PORTS, len(motors))):
