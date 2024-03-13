@@ -1,5 +1,6 @@
 """ Define Bluetooth communication protocols """
 
+from enum import Enum
 import struct
 import traceback
 from typing import Generic, TypeVar
@@ -12,33 +13,38 @@ from revvy.bluetooth.data_types import (
     ScriptVariables,
     TimerData,
 )
-from revvy.bluetooth.validate_config_statuses import VALIDATE_CONFIG_STATE_UNKNOWN
 from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
 from revvy.robot.robot import BatteryStatus
 
+from revvy.utils.device_name import get_device_name, set_device_name
 from revvy.utils.logger import get_logger
 from revvy.utils.serialize import Serialize
 
 log = get_logger("BLE Characteristics")
 
 
+class ValidateState(Enum):
+    UNKNOWN = 0
+    IN_PROGRESS = 1
+    DONE = 2
+
+
 class ValidateConfigCharacteristic(Characteristic):
-    def __init__(self, uuid, description, callback):
+    def __init__(self, uuid, description: bytes, callback) -> None:
         self._on_write_callback = callback
         self._value = struct.pack("<I", 0)
-        self._state = VALIDATE_CONFIG_STATE_UNKNOWN
+        self.state = ValidateState.UNKNOWN
         super().__init__(
             {
                 "uuid": uuid,
                 "properties": ["write", "read"],
-                "value": None,
                 "descriptors": [
                     Descriptor({"uuid": "2901", "value": description}),
                 ],
             }
         )
 
-    def onWriteRequest(self, data, offset, withoutResponse, callback):
+    def onWriteRequest(self, data, offset, withoutResponse, callback) -> None:
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
         elif len(data) != 7:
@@ -49,34 +55,30 @@ class ValidateConfigCharacteristic(Characteristic):
         else:
             callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
-    def onReadRequest(self, offset, callback):
+    def onReadRequest(self, offset, callback) -> None:
         log("validate_config::onReadRequest")
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def get_state(self):
-        return self._state
-
-    def update_validate_config_result(self, state, motors_bitmask, sensors):
-        self._state = state
+    def update(self, state: ValidateState, motors_bitmask, sensors) -> None:
+        self.state = state
         self._value = struct.pack(
-            "BBBBBB", state, motors_bitmask, sensors[0], sensors[1], sensors[2], sensors[3]
+            "BBBBBB", state.value, motors_bitmask, sensors[0], sensors[1], sensors[2], sensors[3]
         )
 
-        log("validate_config::update:", self._value)
+        log(f"validate_config::update: {self._value}")
 
 
 class BackgroundProgramControlCharacteristic(Characteristic):
-    def __init__(self, uuid, description, callback):
+    def __init__(self, uuid, description: bytes, callback) -> None:
         self._value = []
         self._callbackFn = callback
         super().__init__(
             {
                 "uuid": uuid,
                 "properties": ["read", "notify", "write"],
-                "value": None,
                 "descriptors": [
                     Descriptor({"uuid": "2901", "value": description}),
                 ],
@@ -89,14 +91,14 @@ class BackgroundProgramControlCharacteristic(Characteristic):
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def update(self, value):
+    def update(self, value) -> None:
         self._value = value
 
         update_notified_value = self.updateValueCallback
         if update_notified_value:
             update_notified_value(self._value)
 
-    def onWriteRequest(self, data, offset, withoutResponse, callback):
+    def onWriteRequest(self, data, offset, withoutResponse, callback) -> None:
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
         # elif not (self._minLength <= len(data) <= self._maxLength):
@@ -112,26 +114,25 @@ DataType = TypeVar("DataType", bound=Serialize)
 
 
 class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
-    def __init__(self, uuid, description):
+    def __init__(self, uuid, description: bytes) -> None:
         self._value = []
         super().__init__(
             {
                 "uuid": uuid,
                 "properties": ["read", "notify"],
-                "value": None,
                 "descriptors": [
                     Descriptor({"uuid": "2901", "value": description}),
                 ],
             }
         )
 
-    def onReadRequest(self, offset, callback):
+    def onReadRequest(self, offset, callback) -> None:
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def update(self, value: DataType):
+    def update(self, value: DataType) -> None:
         if isinstance(value, Serialize):
             value = value.serialize()
         self._value = value
@@ -146,7 +147,7 @@ class StateControlCharacteristic(BackgroundProgramControlCharacteristic):
 
 
 class SensorCharacteristic(BrainToMobileCharacteristic):
-    def update(self, value):
+    def update(self, value) -> None:
         # FIXME: prefix with data length is probably unnecessary
         value = value.serialize()
         super().update([len(value), *value])
@@ -171,74 +172,75 @@ class ReadVariableCharacteristic(BrainToMobileCharacteristic[ScriptVariables]):
 class ProgramStatusCharacteristic(BrainToMobileCharacteristic[ProgramStatusCollection]):
     """Store/send button script states to mobile."""
 
-    def __init__(self, uuid, description):
+    def __init__(self, uuid, description: bytes) -> None:
         super().__init__(uuid, description)
         self._data = ProgramStatusCollection()
 
-    def update_button_value(self, button_id: int, status: int):
+    def update_button_value(self, button_id: int, status: int) -> None:
         self._data.update_button_value(button_id, status)
         self.update(self._data)
 
 
 # Device Information Service
 class ReadOnlyCharacteristic(Characteristic):
-    def __init__(self, uuid, value):
+    def __init__(self, uuid, value) -> None:
         super().__init__({"uuid": uuid, "properties": ["read"], "value": value})
 
 
+# These are standard BLE characteristics, so we don't set a custom descriptor string for them
 class SerialNumberCharacteristic(ReadOnlyCharacteristic):
-    def __init__(self, serial: str):
+    def __init__(self, serial: str) -> None:
         super().__init__("2A25", serial.encode())
 
 
 class ManufacturerNameCharacteristic(ReadOnlyCharacteristic):
-    def __init__(self, name: bytes):
+    def __init__(self, name: bytes) -> None:
         super().__init__("2A29", name)
 
 
 class ModelNumberCharacteristic(ReadOnlyCharacteristic):
-    def __init__(self, model_no: bytes):
+    def __init__(self, model_no: bytes) -> None:
         super().__init__("2A24", model_no)
 
 
 class VersionCharacteristic(Characteristic):
     version_max_length = 20
 
-    def __init__(self, uuid, version_info):
+    # FIXME
+    def __init__(self, uuid, version_info) -> None:
         super().__init__({"uuid": uuid, "properties": ["read"], "value": version_info.encode()})
         self._version = []
 
-    def onReadRequest(self, offset, callback):
+    def onReadRequest(self, offset, callback) -> None:
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
             callback(Characteristic.RESULT_SUCCESS, self._version)
 
-    def update(self, version):
+    def update(self, version) -> None:
         if len(version) > self.version_max_length:
             version = version[: self.version_max_length]
         self._version = version.encode("utf-8")
 
 
 class SystemIdCharacteristic(Characteristic):
-    def __init__(self, system_id):
-        super().__init__({"uuid": "2A23", "properties": ["read", "write"], "value": None})
-        self._system_id = system_id
+    def __init__(self) -> None:
+        super().__init__({"uuid": "2A23", "properties": ["read", "write"]})
 
-    def onReadRequest(self, offset, callback):
+    def onReadRequest(self, offset, callback) -> None:
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
-            callback(Characteristic.RESULT_SUCCESS, self._system_id.encode("utf-8"))
+            callback(Characteristic.RESULT_SUCCESS, get_device_name().encode("utf-8"))
 
-    def onWriteRequest(self, data, offset, withoutResponse, callback):
+    def onWriteRequest(self, data: bytes, offset, withoutResponse, callback) -> None:
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
         else:
             try:
                 name = data.decode("ascii")
                 if 0 < len(name) <= 15:
-                    self._system_id.update(name)
+                    set_device_name(name)
                     callback(Characteristic.RESULT_SUCCESS)
                 else:
                     callback(Characteristic.RESULT_UNLIKELY_ERROR)
@@ -247,7 +249,7 @@ class SystemIdCharacteristic(Characteristic):
 
 
 class MobileToBrainFunctionCharacteristic(Characteristic):
-    def __init__(self, uuid, min_length, max_length, description, callback):
+    def __init__(self, uuid, min_length, max_length, description: bytes, callback) -> None:
         self._callbackFn = callback
         self._minLength = min_length
         self._maxLength = max_length
@@ -256,14 +258,13 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
             {
                 "uuid": uuid,
                 "properties": ["write", "read", "notify"],
-                "value": None,
                 "descriptors": [
                     Descriptor({"uuid": "2901", "value": description}),
                 ],
             }
         )
 
-    def onWriteRequest(self, data, offset, withoutResponse, callback):
+    def onWriteRequest(self, data, offset, withoutResponse, callback) -> None:
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
         elif not (self._minLength <= len(data) <= self._maxLength):
@@ -273,13 +274,13 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
         else:
             callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
-    def onReadRequest(self, offset, callback):
+    def onReadRequest(self, offset, callback) -> None:
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def update(self, value):
+    def update(self, value) -> None:
         self._value = value
 
         update_notified_value = self.updateValueCallback
@@ -288,17 +289,16 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
 
 
 class LongMessageCharacteristic(Characteristic):
-    def __init__(self, handler):
+    def __init__(self, handler) -> None:
         super().__init__(
             {
                 "uuid": "d59bb321-7218-4fb9-abac-2f6814f31a4d",
                 "properties": ["read", "write"],
-                "value": None,
             }
         )
         self._handler = LongMessageProtocol(handler)
 
-    def onReadRequest(self, offset, callback):
+    def onReadRequest(self, offset, callback) -> None:
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG)
         else:
@@ -310,7 +310,7 @@ class LongMessageCharacteristic(Characteristic):
                 callback(Characteristic.RESULT_UNLIKELY_ERROR, None)
 
     @staticmethod
-    def _translate_result(result):
+    def _translate_result(result) -> int:
         if result == LongMessageProtocol.RESULT_SUCCESS:
             return Characteristic.RESULT_SUCCESS
         elif result == LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH:
@@ -318,7 +318,7 @@ class LongMessageCharacteristic(Characteristic):
         else:
             return Characteristic.RESULT_UNLIKELY_ERROR
 
-    def onWriteRequest(self, data, offset, withoutResponse, callback):
+    def onWriteRequest(self, data, offset, withoutResponse, callback) -> None:
         result = Characteristic.RESULT_UNLIKELY_ERROR
         try:
             if offset:
@@ -337,25 +337,24 @@ class LongMessageCharacteristic(Characteristic):
 
 
 class UnifiedBatteryInfoCharacteristic(Characteristic):
-    def __init__(self, uuid, description):
+    def __init__(self, uuid, description) -> None:
         super().__init__(
             {
                 "uuid": uuid,
                 "properties": ["read", "notify"],
-                "value": None,  # needs to be None because characteristic is not constant value
                 "descriptors": [Descriptor({"uuid": "2901", "value": description})],
             }
         )
 
-        self._value = [0, 0, 0, 0]  # initial value only
+        self._value = [0, 0, 0, 0]
 
-    def onReadRequest(self, offset, callback):
+    def onReadRequest(self, offset, callback) -> None:
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
             callback(Characteristic.RESULT_SUCCESS, self._value)
 
-    def update_value(self, battery_status: BatteryStatus):
+    def update_value(self, battery_status: BatteryStatus) -> None:
         new_value = [
             round(battery_status.main),
             battery_status.chargerStatus,

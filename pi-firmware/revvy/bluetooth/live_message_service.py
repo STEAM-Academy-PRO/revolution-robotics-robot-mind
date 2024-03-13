@@ -13,6 +13,7 @@ from revvy.bluetooth.ble_characteristics import (
     SensorCharacteristic,
     TimerCharacteristic,
     ValidateConfigCharacteristic,
+    ValidateState,
 )
 from revvy.bluetooth.queue_characteristic import QueueCharacteristic
 from revvy.bluetooth.data_types import (
@@ -23,18 +24,13 @@ from revvy.bluetooth.data_types import (
     SensorData,
     TimerData,
 )
-from revvy.bluetooth.validate_config_statuses import (
-    VALIDATE_CONFIG_STATE_DONE,
-    VALIDATE_CONFIG_STATE_IN_PROGRESS,
-    VALIDATE_CONFIG_STATE_UNKNOWN,
-)
 from revvy.robot.rc_message_parser import parse_control_message
 from revvy.robot_manager import RobotManager
 from revvy.scripting.runtime import ScriptEvent
 
 from revvy.utils.logger import get_logger
 
-from revvy.robot.remote_controller import RemoteControllerCommand
+from revvy.robot.remote_controller import BleAutonomousCmd, RemoteControllerCommand
 
 NUM_MOTOR_PORTS = 6
 NUM_SENSOR_PORTS = 4
@@ -126,22 +122,22 @@ class LiveMessageService(BlenoPrimaryService):
             }
         )
 
-    def validate_config_callback(self, data):
+    def validate_config_callback(self, data: bytes) -> bool:
         # FIXME: Currently unused
         motor_bitmask, sensor0, sensor1, sensor2, sensor3, motor_load_power, threshold = (
             struct.unpack("BBBBBBB", data)
         )
 
-        current_state = self._validate_config_characteristic.get_state()
-        if current_state == VALIDATE_CONFIG_STATE_IN_PROGRESS:
+        current_state = self._validate_config_characteristic.state
+        if current_state == ValidateState.IN_PROGRESS:
             return False
 
         motors = [(motor_bitmask >> i) & 1 for i in range(NUM_MOTOR_PORTS)]
 
-        def validation_callback(success, motors, sensors):
+        def validation_callback(success, motors, sensors) -> None:
             self.set_validation_result(success, motors, sensors)
-            self._validate_config_characteristic.update_validate_config_result(
-                VALIDATE_CONFIG_STATE_IN_PROGRESS, motor_bitmask, sensors
+            self._validate_config_characteristic.update(
+                ValidateState.IN_PROGRESS, motor_bitmask, sensors
             )
 
         self._robot_manager.validate_config_async(
@@ -157,9 +153,9 @@ class LiveMessageService(BlenoPrimaryService):
     def set_validation_result(self, success: bool, motors: list, sensors: list):
         # FIXME: Currently unused
 
-        valitation_state = VALIDATE_CONFIG_STATE_UNKNOWN
+        valitation_state = ValidateState.UNKNOWN
         if success:
-            valitation_state = VALIDATE_CONFIG_STATE_DONE
+            valitation_state = ValidateState.DONE
 
         if len(motors) != NUM_MOTOR_PORTS:
             log("set_validation_result::invalid motors response: ", motors)
@@ -176,11 +172,11 @@ class LiveMessageService(BlenoPrimaryService):
         else:
             s0 = s1 = s2 = s3 = False
 
-        self._validate_config_characteristic.update_validate_config_result(
+        self._validate_config_characteristic.update(
             valitation_state, motor_bitmask, [s0, s1, s2, s3]
         )
 
-    def control_message_handler(self, data: bytearray):
+    def control_message_handler(self, data: bytearray) -> bool:
         """
         Simple control callback is run each time new controller data
         representing full state of joystick is sent over a BLE characteristic
@@ -188,14 +184,14 @@ class LiveMessageService(BlenoPrimaryService):
         is the middle value representing joystick axis in neutral state.
         """
 
-        def joystick_axis_is_neutral(value):
+        def joystick_axis_is_neutral(value) -> bool:
             """
             Value is in 1 byte range 0-255, with 127 being the middle position
             of a joystick along that axis
             """
             return value == 127
 
-        def joystick_xy_is_moved(analog_values):
+        def joystick_xy_is_moved(analog_values) -> bool:
             if len(analog_values) < 2:
                 return False
 
@@ -225,7 +221,7 @@ class LiveMessageService(BlenoPrimaryService):
         self._robot_manager.handle_periodic_control_message(command)
         return True
 
-    def state_control_callback(self, data):
+    def state_control_callback(self, data: bytes):
         """Autonomous mode play/pause/stop/reset button from mobile to brain"""
 
         log(f"state_control_callback, coming from the mobile. {data}")
@@ -233,7 +229,7 @@ class LiveMessageService(BlenoPrimaryService):
             RemoteControllerCommand(
                 analog=bytearray(b"\x7f\x7f\x00\x00\x00\x00\x00\x00\x00\x00"),
                 buttons=[False] * 32,
-                background_command=int.from_bytes(data[2:], byteorder="big"),
+                background_command=BleAutonomousCmd(int.from_bytes(data[2:], byteorder="big")),
                 next_deadline=None,
             )
         )

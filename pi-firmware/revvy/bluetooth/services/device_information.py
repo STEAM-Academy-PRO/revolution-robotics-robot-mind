@@ -6,7 +6,6 @@ from revvy.bluetooth.ble_characteristics import SerialNumberCharacteristic
 from revvy.bluetooth.ble_characteristics import SystemIdCharacteristic, VersionCharacteristic
 
 from revvy.bluetooth.services.ble import BleService
-from revvy.utils.device_name import get_device_name
 from revvy.utils.functions import get_serial
 from revvy.utils.version import VERSION
 
@@ -21,7 +20,7 @@ class DeviceInformationService(BleService):
         serial = SerialNumberCharacteristic(get_serial())
         manufacturer_name = ManufacturerNameCharacteristic(b"RevolutionRobotics")
         model_number = ModelNumberCharacteristic(b"RevvyAlpha")
-        system_id = SystemIdCharacteristic(get_device_name())
+        system_id = SystemIdCharacteristic()
 
         super().__init__(
             "180A",
