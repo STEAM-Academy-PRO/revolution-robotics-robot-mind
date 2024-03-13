@@ -2,7 +2,7 @@
 
 import os
 from typing import List
-from pybleno import Bleno
+from pybleno import Bleno, BlenoPrimaryService
 
 from revvy.bluetooth.services.battery import CustomBatteryService
 from revvy.bluetooth.services.device_information import DeviceInformationService
@@ -23,8 +23,6 @@ from revvy.bluetooth.longmessage import extract_asset_longmessage, LongMessageIm
 from revvy.bluetooth.live_message_service import LiveMessageService, MotorData
 
 from revvy.utils.error_reporter import revvy_error_handler
-
-log = get_logger("BLE")
 
 
 class RevvyBLE:
@@ -105,7 +103,7 @@ class RevvyBLE:
 
         # Initialize value - this could be prettier, not sure how yet.
         initial_battery_state = self._robot_manager._robot_state._battery.get()
-        log(f"initial battery state {initial_battery_state}")
+        self._log(f"initial battery state {initial_battery_state}")
         self._bas.characteristic("unified_battery_status").updateValue(initial_battery_state)
 
         self._robot_manager.on(
@@ -156,27 +154,27 @@ class RevvyBLE:
         # log(f'program status update: {button_id} {status}')
         self._live.update_program_status(button_id, status)
 
-    def update_motor(self, ref, motor_angles: List[int]):
+    def update_motor(self, ref, motor_angles: List[int]) -> None:
         """Currently unused, as we are not doing anything with it in the app."""
         for angle, index in enumerate(motor_angles):
             self._live.update_motor(index, MotorData(0, 0, angle))
 
-    def _on_connected(self, c):
+    def _on_connected(self, c) -> None:
         """On new INCOMING connection, update the callback interfaces."""
-        log(f"BLE interface connected! {c}")
+        self._log(f"BLE interface connected! {c}")
         self._robot_manager.on_connected(c)
         self.report_errors_in_queue()
 
-    def _on_disconnect(self, *args):
+    def _on_disconnect(self, *args) -> None:
         """When ble drops connection, call the robot manager's disconnect handler"""
-        log("BLE interface disconnected!")
+        self._log("BLE interface disconnected!")
         self._robot_manager.on_disconnected()
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         """When robot wants to disconnect."""
         self._bleno.disconnect()
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> BlenoPrimaryService:
         return self._named_services[item]
 
     ### We do not support this yet!
@@ -184,7 +182,7 @@ class RevvyBLE:
     #     os.environ["BLENO_DEVICE_NAME"] = name
     #     self._bleno.stopAdvertising(self._start_advertising)
 
-    def _on_state_change(self, state):
+    def _on_state_change(self, state: str):
         """When Bluetooth comes online, we get state changes."""
         self._log(f"on -> stateChange: {state}")
 
@@ -202,7 +200,7 @@ class RevvyBLE:
         """Callback of self._bleno.startAdvertising"""
 
         def _result(result) -> str:
-            return "error " + str(result) if result else "success"
+            return f"error {result}" if result else "success"
 
         self._log(f"on -> advertisingStart: {_result(error)}")
 

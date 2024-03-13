@@ -14,6 +14,7 @@ the MCU reads new data from a particular port.
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Set
 from typing import Generic, Iterator, NamedTuple, TypeVar
 
 from revvy.mcu.rrrc_control import RevvyControl
@@ -75,7 +76,7 @@ class PortHandler(Generic[DriverType]):
         interface: RevvyControl,
         default_driver: DriverConfig,
         amount: int,
-        supported: dict,
+        supported: dict[str, int],
         set_port_type,
     ):
         """
@@ -111,15 +112,15 @@ class PortHandler(Generic[DriverType]):
         return self._ports.__iter__()
 
     @property
-    def available_types(self):
+    def available_types(self) -> Set[str]:
         """Lists the names of the supported drivers"""
         return self._types.keys()
 
     @property
-    def port_count(self):
+    def port_count(self) -> int:
         return self._port_count
 
-    def reset(self):
+    def reset(self) -> None:
         for port in self:
             port.uninitialize()
 
@@ -133,8 +134,8 @@ class PortInstance(Generic[DriverType]):
 
     def __init__(
         self,
-        port_idx,
-        name,
+        port_idx: int,
+        name: str,
         interface: RevvyControl,
         default_driver: DriverConfig,
         supported,
@@ -158,7 +159,7 @@ class PortInstance(Generic[DriverType]):
         self._driver = default_driver.create(self)
 
     @property
-    def id(self):
+    def id(self) -> int:
         return self._port_idx
 
     @property
