@@ -1,6 +1,7 @@
 """ Handles the short messages from the device. """
 
 import struct
+from typing import Callable, Optional
 
 from pybleno import BlenoPrimaryService
 from revvy.bluetooth.ble_characteristics import (
@@ -28,6 +29,7 @@ from revvy.robot.rc_message_parser import parse_control_message
 from revvy.robot_manager import RobotManager
 from revvy.scripting.runtime import ScriptEvent
 
+from revvy.utils.error_reporter import RobotError
 from revvy.utils.logger import get_logger
 
 from revvy.robot.remote_controller import BleAutonomousCmd, RemoteControllerCommand
@@ -240,13 +242,13 @@ class LiveMessageService(BlenoPrimaryService):
 
         self._program_status_characteristic.updateButtonStatus(button_id, status.value)
 
-    def update_motor(self, motor, data: MotorData):
+    def update_motor(self, motor: int, data: MotorData):
         """Send back motor angle value to mobile."""
         # TODO: unused?
         if 0 <= motor < len(self._motor_characteristics):
             self._motor_characteristics[motor].updateValue(data)
 
-    def update_session_id(self, value):
+    def update_session_id(self, value: int):
         """Send back session_id to mobile."""
         data = list(struct.pack("<I", value))
         # Maybe this was supposed to be used for detecting MCU reset in the mobile, but
@@ -266,9 +268,9 @@ class LiveMessageService(BlenoPrimaryService):
         """Send back timer tick to mobile."""
         self._timer_characteristic.updateValue(data)
 
-    def report_error(self, data):
+    def report_error(self, data: RobotError, on_ready: Optional[Callable[[], None]] = None):
         log(f"Sending Error: {data}")
-        self._error_reporting_characteristic.updateValue(data)
+        self._error_reporting_characteristic.sendQueued(data.__bytes__(), on_ready)
 
     def update_script_variables(self, script_variables: ScriptVariables):
         """

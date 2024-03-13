@@ -495,11 +495,11 @@ class LongMessageImplementation:
 
             handle = self._robot_manager._scripts.add_script(script_descriptor, empty_robot_config)
 
-            def on_stopped(*args):
+            def on_stopped(*args) -> None:
                 self._log("test script ended")
                 self._robot_manager.reset_configuration()
 
-            def on_error(*args):
+            def on_error(*args) -> None:
                 revvy_error_handler.report_error(RobotErrorType.SYSTEM, traceback.format_exc())
 
             handle.on(ScriptEvent.STOP, on_stopped)

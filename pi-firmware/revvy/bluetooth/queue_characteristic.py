@@ -31,7 +31,6 @@ class QueueCharacteristic(Characteristic):
             {
                 "uuid": uuid,
                 "properties": ["read", "write", "notify"],
-                "value": None,
                 "descriptors": [
                     Descriptor({"uuid": "2901", "value": description}),
                 ],
@@ -79,15 +78,17 @@ class QueueCharacteristic(Characteristic):
             on_ready_callback()
         self._process_queue()
 
-    def _process_queue(self):
+    def _process_queue(self) -> None:
         if len(self._queue) > 0:
             if not self.is_sending:
-                (next_value, on_ready_callback) = self._queue.pop(0)
+                (next_value, on_ready_callback) = self._queue.pop()
                 self._send(next_value, partial(self._on_one_ready, on_ready_callback))
         else:
             self._send(END_TOKEN)
 
-    def send_queued(self, value, on_ready_callback=None):
+    def sendQueued(
+        self, value: bytes, on_ready_callback: Optional[Callable[[], None]] = None
+    ) -> None:
         """Send packet to the mobile."""
-        self._queue.insert(0, (value, on_ready_callback))
+        self._queue.append((value, on_ready_callback))
         self._process_queue()

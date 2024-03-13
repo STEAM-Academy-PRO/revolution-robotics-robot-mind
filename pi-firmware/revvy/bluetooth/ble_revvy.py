@@ -22,7 +22,7 @@ from revvy.bluetooth.longmessage import extract_asset_longmessage, LongMessageIm
 
 from revvy.bluetooth.live_message_service import LiveMessageService, MotorData
 
-from revvy.utils.error_reporter import compress_error, revvy_error_handler
+from revvy.utils.error_reporter import revvy_error_handler
 
 log = get_logger("BLE")
 
@@ -193,39 +193,36 @@ class RevvyBLE:
         else:
             self._bleno.stopAdvertising()
 
-    def _start_advertising(self):
+    def _start_advertising(self) -> None:
         """This is what makes the app find the robot"""
-        self._log("Start advertising as {}".format(get_device_name()))
+        self._log(f"Start advertising as {get_device_name()}")
         self._bleno.startAdvertising(get_device_name(), self._advertised_uuid_list)
 
-    def _on_advertising_start(self, error):
+    def _on_advertising_start(self, error) -> None:
         """Callback of self._bleno.startAdvertising"""
 
-        def _result(result):
+        def _result(result) -> str:
             return "error " + str(result) if result else "success"
 
         self._log(f"on -> advertisingStart: {_result(error)}")
 
         if not error:
 
-            def on_set_service_error(error):
+            def on_set_service_error(error) -> None:
                 self._log(f"setServices: {_result(error)}")
 
             self._bleno.setServices(list(self._named_services.values()), on_set_service_error)
 
-    def start(self):
+    def start(self) -> None:
         """Switch interface on, start the robot."""
         self._bleno.start()
         self._robot_manager.robot_start()
 
-    def stop(self):
+    def stop(self) -> None:
         """Quit the program"""
         self._bleno.stopAdvertising()
         self._bleno.disconnect()
 
-    def report_errors_in_queue(self, *args):
-        """In case of an error, send it slow!"""
+    def report_errors_in_queue(self, *args) -> None:
         while revvy_error_handler.has_error():
-            self._live._error_reporting_characteristic.send_queued(
-                compress_error(revvy_error_handler.pop_error())
-            )
+            self._live.report_error(revvy_error_handler.pop_error())

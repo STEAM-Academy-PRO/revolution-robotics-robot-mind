@@ -7,6 +7,7 @@ from typing import Any
 from revvy.utils.bit_packer import pack_2_bit_number_array_32
 from revvy.utils.logger import get_logger
 from revvy.utils.math.floor0 import floor0
+from revvy.utils.serialize import Serialize
 
 
 class MotorData:
@@ -135,7 +136,7 @@ class BackgroundControlState(Enum):
 
 
 # TODO: make this a base class for sensors to implement
-class SensorData:
+class SensorData(Serialize):
     def __init__(self, port_id: int, value: Any):
         self.port_id = port_id
         self.value = value
