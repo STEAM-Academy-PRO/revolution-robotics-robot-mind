@@ -1,8 +1,9 @@
 from functools import partial
-from typing import Callable, NamedTuple
+from typing import NamedTuple
 import time
 
 from revvy.hardware_dependent.sound import SoundControlV1, SoundControlV2
+from revvy.mcu.commands import TestSensorOnPortResult
 from revvy.mcu.rrrc_control import RevvyTransportBase
 from revvy.robot.drivetrain import DifferentialDrivetrain
 from revvy.robot.imu import IMU
@@ -168,20 +169,20 @@ class Robot:
     def time(self) -> float:
         return self._stopwatch.elapsed
 
-    def __validate_one_sensor_port(self, sensor_idx, expected_type):
+    def __validate_one_sensor_port(self, sensor_idx, expected_type) -> int:
         port_type = to_sensor_type_index(expected_type)
         if port_type is None:
             return SENSOR_ON_PORT_UNKNOWN
 
         result = self._robot_control.test_sensor_on_port(sensor_idx + 1, port_type)
 
-        if result.is_connected():
+        if result == TestSensorOnPortResult.CONNECTED:
             return expected_type
 
-        if result.is_not_connected():
+        if result == TestSensorOnPortResult.NOT_CONNECTED:
             return SENSOR_ON_PORT_NOT_PRESENT
 
-        if result.is_error():
+        if result == TestSensorOnPortResult.ERROR:
             return SENSOR_ON_PORT_INVALID
 
         return SENSOR_ON_PORT_UNKNOWN
