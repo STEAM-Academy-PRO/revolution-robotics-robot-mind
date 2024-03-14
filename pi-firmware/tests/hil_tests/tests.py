@@ -42,6 +42,7 @@ def can_stop_script_with_long_sleep(log: Logger, controller: ProgrammedRobotCont
         controller.robot_manager.exit(RevvyStatusCode.ERROR)
 
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
+    controller.with_timeout(2.0)
 
     config = RobotConfig()
     config.process_script(
@@ -141,6 +142,7 @@ def motors_dont_cause_errors(log: Logger, controller: ProgrammedRobotController)
         controller.robot_manager.exit(RevvyStatusCode.ERROR)
 
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
+    controller.with_timeout(2.0)
 
     config = RobotConfig()
     config.add_motor({"type": 2, "name": "motor1", "side": 0, "reversed": 0})
@@ -273,6 +275,7 @@ def trying_to_drive_without_drivetrain_motors_is_no_op(
         controller.robot_manager.exit(RevvyStatusCode.ERROR)
 
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
+    controller.with_timeout(2.0)
 
     config = RobotConfig()
     config.add_motor(None)

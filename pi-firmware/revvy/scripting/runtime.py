@@ -196,7 +196,7 @@ class ScriptManager:
     def __getitem__(self, name):
         return self._scripts[name]
 
-    def stop_all_scripts(self, wait=True):
+    def stop_all_scripts(self, wait: bool = True):
         events = []
         for script in self._scripts.values():
             events.append(script.stop())
