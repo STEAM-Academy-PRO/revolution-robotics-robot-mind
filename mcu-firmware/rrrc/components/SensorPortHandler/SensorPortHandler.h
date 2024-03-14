@@ -53,8 +53,6 @@ typedef enum {
     SetPortTypeState_None,
     SetPortTypeState_Busy,
     SetPortTypeState_Done,
-    SetPortTypeState_DeinitDone,
-    SetPortTypeState_Error
 } SetPortTypeState_t;
 
 typedef struct _SensorPort_t

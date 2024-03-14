@@ -89,15 +89,9 @@ void SensorPortHandler_Run_OnInit(SensorPort_t* ports, size_t portCount)
 
 static void OnPortDeinitCompleted(SensorPort_t* port, bool success)
 {
+    /* We assume deinit is infallible and `success` is just a debugging flag */
     SEGGER_RTT_printf(0, "SensorPort %d: OnPortDeinitCompleted: %d\n", port->port_idx, success);
-    if (success)
-    {
-        port->set_port_type_state = SetPortTypeState_DeinitDone;
-    }
-    else
-    {
-        port->set_port_type_state = SetPortTypeState_Error;
-    }
+    port->set_port_type_state = SetPortTypeState_Done;
 }
 
 /* End User Code Section: Declarations */
@@ -226,24 +220,19 @@ AsyncResult_t SensorPortHandler_AsyncRunnable_SetPortType(AsyncCommand_t asyncCo
             port->library->DeInit(port, OnPortDeinitCompleted);
             return AsyncResult_Pending;
 
-        case SetPortTypeState_DeinitDone:
+        case SetPortTypeState_Done:
             /* reset status slot */
             SensorPortHandler_Call_UpdatePortStatus(port->port_idx, (ByteArray_t) { NULL, 0u });
             /* set up new driver */
             port->library = libraries[port_type];
             port->library->Init(port);
-            /* fall through */
 
-        case SetPortTypeState_Done:
             SEGGER_RTT_printf(0, "SensorPort %d: SetPortType(%d) Done\n", port_idx, port_type);
             port->set_port_type_state = SetPortTypeState_None;
-            *result = true;
-            return AsyncResult_Ok;
 
-        case SetPortTypeState_Error:
-            SEGGER_RTT_printf(0, "SensorPort %d: SetPortType(%d) Failed\n", port_idx, port_type);
-            port->set_port_type_state = SetPortTypeState_None;
-            *result = false;
+            /* Driver initialization is done in Update and Configure */
+
+            *result = true;
             return AsyncResult_Ok;
 
         default:

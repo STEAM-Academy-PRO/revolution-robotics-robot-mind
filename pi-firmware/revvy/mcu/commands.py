@@ -211,9 +211,12 @@ class ReadSensorPortAmountCommand(ReadPortAmountCommand):
         return 0x20
 
 
-class SetPortTypeCommand(ReturnlessCommand, ABC):
+class SetPortTypeCommand(Command[bool], ABC):
     def __call__(self, port, port_type_idx):
         return self._send((port, port_type_idx))
+
+    def parse_response(self, payload: bytes) -> bool:
+        return payload[0] == 1
 
 
 class SetMotorPortTypeCommand(SetPortTypeCommand):
