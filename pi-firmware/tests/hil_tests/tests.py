@@ -95,7 +95,7 @@ def sensors_can_be_read(log: Logger, controller: ProgrammedRobotController):
 
     config.add_sensor({"type": 1, "name": "distance_sensor"})
     config.add_sensor(None)
-    config.add_sensor({"type": 3, "name": "button"})
+    config.add_sensor({"type": 2, "name": "button"})
     config.add_sensor({"type": 4, "name": "color_sensor"})
 
     config.process_script(
@@ -143,8 +143,8 @@ def motors_dont_cause_errors(log: Logger, controller: ProgrammedRobotController)
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
 
     config = RobotConfig()
-    config.add_motor({"type": 2, "name": "motor1"})
-    config.add_motor({"type": 2, "name": "motor2"})
+    config.add_motor({"type": 2, "name": "motor1", "side": 0, "reversed": 0})
+    config.add_motor({"type": 2, "name": "motor2", "side": 1, "reversed": 0})
     config.add_motor(None)
     config.add_motor({"type": 1, "name": "motor4"})
     config.add_motor(None)

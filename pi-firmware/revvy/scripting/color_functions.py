@@ -39,7 +39,7 @@ def color_name_to_rgb(color_name: str):
         return None
 
 
-def hsv_to_color_name(hue, saturation, value):
+def hsv_to_color_name(hue, saturation, value) -> str:
     # hue - color component, in range 0-360 (deg)
     # saturation - from gray to colored, in range 0-100 (%)
     # value - from black to full color, in range 0-100 (%)
@@ -76,7 +76,7 @@ def hsv_to_color_name(hue, saturation, value):
     return names[0]
 
 
-def rgb_to_hsv_gray(red, green, blue):
+def rgb_to_hsv_gray(red, green, blue) -> ColorData:
     r, g, b = red / 255.0, green / 255.0, blue / 255.0
     gray = 0.299 * red + 0.587 * green + 0.114 * blue
     mx = max(r, g, b)

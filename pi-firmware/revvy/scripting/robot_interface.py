@@ -21,6 +21,8 @@ from enum import Enum
 
 from typing import TYPE_CHECKING, Callable, Generic, List, Optional, TypeVar, Union
 
+from revvy.robot.ports.sensors.simple import ColorSensorReading
+
 # # To have types, use this to avoid circular dependencies.
 if TYPE_CHECKING:
     from revvy.scripting.runtime import ScriptHandle
@@ -35,6 +37,7 @@ from revvy.robot.ports.sensors.base import SensorPortDriver
 from revvy.robot.sound import Sound
 from revvy.scripting.resource import Resource
 from revvy.scripting.color_functions import (
+    ColorData,
     rgb_to_hsv_gray,
     detect_line_background_colors,
     ColorDataUndefined,
@@ -884,7 +887,7 @@ class RobotWrapper(RobotInterface):
             time.sleep(delta_seconds)
         line_driver.stop()
 
-    def debug_print_colors(self, colors):
+    def debug_print_colors(self, colors: List[ColorData]):
         for i, color in enumerate(colors):
             name = "noname"
             for channel in RGBChannelSensor:
@@ -895,15 +898,15 @@ class RobotWrapper(RobotInterface):
             v = int(color.value)
             log(f"{color.red},{color.green},{color.blue}->{h},{s},{v}:{name}")
 
-    def read_rgb_sensor_data(self):
-        res = self._sensors["color_sensor"].read()
-        n = len(res)
-        if n % 3:
-            padding = 3 - n % 3
-            res += b"\0" * padding
-        result = [rgb_to_hsv_gray(*_) for _ in struct.iter_unpack("<BBB", res)]
-        # self.debug_print_colors(result)
-        return result
+    def read_rgb_sensor_data(self) -> List[ColorData]:
+        sensor_data: ColorSensorReading = self._sensors["color_sensor"].read()
+
+        return [
+            rgb_to_hsv_gray(sensor_data.top.r, sensor_data.top.g, sensor_data.top.b),
+            rgb_to_hsv_gray(sensor_data.left.r, sensor_data.left.g, sensor_data.left.b),
+            rgb_to_hsv_gray(sensor_data.right.r, sensor_data.right.g, sensor_data.right.b),
+            rgb_to_hsv_gray(sensor_data.middle.r, sensor_data.middle.g, sensor_data.middle.b),
+        ]
 
     def get_color_by_user_channel(self, user_channel):
         sensor_channel = user_to_sensor_channel(user_channel)

@@ -171,6 +171,9 @@ class RobotConfig:
             self.background_scripts.append(script_desc)
 
     def add_motor(self, motor) -> None:
+        if not motor:
+            motor = {"type": 0}
+
         i = len(self.motors._ports) + 1
 
         if motor["type"] == 2:
@@ -187,6 +190,9 @@ class RobotConfig:
         self.motors[i] = motor_type
 
     def add_sensor(self, sensor) -> None:
+        if not sensor:
+            sensor = {"type": 0}
+
         i = len(self.sensors._ports) + 1
 
         sensor_type = SENSOR_TYPES[sensor["type"]]
@@ -233,13 +239,13 @@ class RobotConfig:
 
         try:
             for motor in robot_config.get("motors", []):
-                config.add_motor(motor or {"type": 0})
+                config.add_motor(motor)
         except (TypeError, IndexError, KeyError, ValueError) as e:
             raise ConfigError("Failed to decode received motor configuration") from e
 
         try:
             for sensor in robot_config.get("sensors", []):
-                config.add_sensor(sensor or {"type": 0})
+                config.add_sensor(sensor)
         except (TypeError, IndexError, KeyError, ValueError) as e:
             raise ConfigError("Failed to decode received sensor configuration") from e
 
