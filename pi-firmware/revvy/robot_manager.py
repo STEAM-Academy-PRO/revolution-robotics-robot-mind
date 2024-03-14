@@ -306,10 +306,10 @@ class RobotManager:
                 lambda p: self._robot_state.set_motor_angle(p.id - 1, p.driver.pos)
             )
 
-        for motor_id in config.drivetrain["left"]:
+        for motor_id in config.drivetrain.left:
             self._robot.drivetrain.add_left_motor(self._robot.motors[motor_id])
 
-        for motor_id in config.drivetrain["right"]:
+        for motor_id in config.drivetrain.right:
             self._robot.drivetrain.add_right_motor(self._robot.motors[motor_id])
 
         # Dispose sensor reading subscriptions.

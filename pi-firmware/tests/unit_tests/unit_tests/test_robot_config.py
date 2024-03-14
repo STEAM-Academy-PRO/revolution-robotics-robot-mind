@@ -331,8 +331,8 @@ class TestRobotConfig(unittest.TestCase):
 
         self.assertEqual(Motors.RevvyMotor, config.motors[4])  # motor, no 'side', no 'reversed'
 
-        self.assertListEqual([2, 3], config.drivetrain["left"])
-        self.assertListEqual([5, 6], config.drivetrain["right"])
+        self.assertListEqual([2, 3], config.drivetrain.left)
+        self.assertListEqual([5, 6], config.drivetrain.right)
 
         self.assertNotIn("M1", config.motors.names)  # not configured port does not have name
         self.assertEqual(2, config.motors.names["M2"])

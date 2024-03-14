@@ -126,6 +126,18 @@ def json_get_field_optional(obj, keys, value_type: type[JsonValue]) -> Optional[
     )
 
 
+class DrivetrainConfig:
+    def __init__(self) -> None:
+        self.left = []
+        self.right = []
+
+    def add(self, side: int, motor: int):
+        if side == 0:
+            self.left.append(motor)
+        else:
+            self.right.append(motor)
+
+
 class RobotConfig:
     @staticmethod
     def create_runnable(script: str, script_num: int):
@@ -204,7 +216,7 @@ class RobotConfig:
         if motor["type"] == 2:
             # drivetrain
             motor_type = MOTOR_TYPES[2][motor["side"]][motor["reversed"]]
-            self.drivetrain[MOTOR_SIDES[motor["side"]]].append(i)
+            self.drivetrain.add(motor["side"], i)
 
         else:
             motor_type = MOTOR_TYPES[motor["type"]]
@@ -278,7 +290,7 @@ class RobotConfig:
     def __init__(self) -> None:
         self.motors = PortConfig()
         self.sensors = PortConfig()
-        self.drivetrain = {"left": [], "right": []}
+        self.drivetrain = DrivetrainConfig()
         self.controller = RemoteControlConfig()
         self.background_scripts = []
         self.background_initial_state = None
