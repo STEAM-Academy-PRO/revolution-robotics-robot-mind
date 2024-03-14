@@ -287,7 +287,7 @@ class DifferentialDrivetrain:
         return self._controller.awaiter
 
     def turn(self, direction, rotation, unit_rotation, speed, unit_speed):
-        self._log("turn: {direction} {rotation} {unit_rotation} {speed} {unit_speed}")
+        self._log(f"turn: {direction} {rotation} {unit_rotation} {speed} {unit_speed}")
         self._abort_controller()
 
         multipliers = {
