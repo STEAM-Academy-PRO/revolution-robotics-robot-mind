@@ -10,8 +10,6 @@ from revvy.utils.functions import retry
 from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.stopwatch import Stopwatch
 
-log = get_logger("rrrc_transport")
-
 crc7_table = (
     0x00,
     0x09,
@@ -414,6 +412,7 @@ class RevvyTransport:
     def __init__(self, transport: RevvyTransportInterface):
         self._transport = transport
         self._stopwatch = Stopwatch()
+        self.log = get_logger("rrrc_transport")
 
     def send_command(
         self, command: int, payload: bytes = b"", exec_timeout: float = 5.0
@@ -484,7 +483,7 @@ class RevvyTransport:
         header = retry(_read_response_header_once, self.retry, lambda e: None)
 
         if not header:
-            log("Error reading response header: retry limit reached!", LogLevel.ERROR)
+            self.log("Error reading response header: retry limit reached!", LogLevel.ERROR)
             raise BrokenPipeError("Read response header error")
 
         return header
@@ -511,7 +510,7 @@ class RevvyTransport:
             )  # skip checksum byte
 
             # make sure we read the same response data we expect
-            if header != response_header:
+            if header.raw != response_header:
                 return bytes()
 
             # make sure data is intact
@@ -523,7 +522,7 @@ class RevvyTransport:
         payload = retry(_read_payload_once, self.retry)
 
         if not payload:
-            log("Error reading response payload: retry limit reached!", LogLevel.ERROR)
+            self.log("Error reading response payload: retry limit reached!", LogLevel.ERROR)
             raise BrokenPipeError("Read payload: Retry limit reached")
 
         return payload
@@ -559,6 +558,6 @@ class RevvyTransport:
                 else:
                     # we got a response to a command, so we can exit
                     if response.status != ResponseStatus.Ok:
-                        log(f"response.status: {response.status}")
+                        self.log(f"response.status: {response.status}")
                     return response
         raise TimeoutError

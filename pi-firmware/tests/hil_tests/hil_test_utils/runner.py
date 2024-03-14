@@ -1,6 +1,4 @@
 import traceback
-from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-from revvy.mcu.rrrc_control import RevvyTransportBase
 from revvy.utils.logger import LogLevel, get_logger, Logger
 from tests.hil_tests.hil_test_utils.log import (
     install_memory_logger,
@@ -16,6 +14,9 @@ install_memory_logger()
 
 import sys
 from typing import Callable, List
+
+from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
+from revvy.mcu.rrrc_control import RevvyTransportBase
 from revvy.api.programmed import ProgrammedRobotController
 from revvy.firmware_updater import update_firmware_if_needed
 
