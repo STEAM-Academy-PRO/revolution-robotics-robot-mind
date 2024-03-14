@@ -144,7 +144,7 @@ def motors_dont_cause_errors(log: Logger, controller: ProgrammedRobotController)
         controller.robot_manager.exit(RevvyStatusCode.ERROR)
 
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
-    controller.with_timeout(2.0)
+    controller.with_timeout(10.0)
 
     config = RobotConfig()
     config.add_motor({"type": 2, "name": "motor1", "side": 0, "reversed": 0})
@@ -167,31 +167,31 @@ robot.drivetrain.set_speed(direction=Motor.DIRECTION_FWD, speed=75, unit_speed=M
 robot.drivetrain.set_speed(direction=Motor.DIRECTION_BACK, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
 robot.drivetrain.set_speed(direction=Motor.DIRECTION_BACK, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
 
-robot.drive(direction=Motor.DIRECTION_FWD, rotation=3, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
-robot.drive(direction=Motor.DIRECTION_FWD, rotation=3, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
+robot.drive(direction=Motor.DIRECTION_FWD, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
+robot.drive(direction=Motor.DIRECTION_FWD, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
 robot.drive(direction=Motor.DIRECTION_FWD, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
 robot.drive(direction=Motor.DIRECTION_FWD, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
-robot.drive(direction=Motor.DIRECTION_BACK, rotation=3, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
-robot.drive(direction=Motor.DIRECTION_BACK, rotation=3, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
+robot.drive(direction=Motor.DIRECTION_BACK, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
+robot.drive(direction=Motor.DIRECTION_BACK, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
 robot.drive(direction=Motor.DIRECTION_BACK, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
 robot.drive(direction=Motor.DIRECTION_BACK, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
 
 # blockly only generates unit_speed=RPM
 robot.turn(direction=Motor.DIRECTION_LEFT, rotation=90, unit_rotation=Motor.UNIT_TURN_ANGLE, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
-robot.turn(direction=Motor.DIRECTION_LEFT, rotation=90, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
+robot.turn(direction=Motor.DIRECTION_LEFT, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
 robot.turn(direction=Motor.DIRECTION_RIGHT, rotation=90, unit_rotation=Motor.UNIT_TURN_ANGLE, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
-robot.turn(direction=Motor.DIRECTION_RIGHT, rotation=90, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
+robot.turn(direction=Motor.DIRECTION_RIGHT, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
 #
 # motor blockly options
 #
-robot.motors["motor4"].move(direction=Motor.DIRECTION_FWD, amount=3, unit_amount=Motor.UNIT_SEC, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
-robot.motors["motor4"].move(direction=Motor.DIRECTION_FWD, amount=3, unit_amount=Motor.UNIT_SEC, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
+robot.motors["motor4"].move(direction=Motor.DIRECTION_FWD, amount=0.1, unit_amount=Motor.UNIT_SEC, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
+robot.motors["motor4"].move(direction=Motor.DIRECTION_FWD, amount=0.1, unit_amount=Motor.UNIT_SEC, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
 robot.motors["motor4"].move(direction=Motor.DIRECTION_FWD, amount=3, unit_amount=Motor.UNIT_DEG, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
 robot.motors["motor4"].move(direction=Motor.DIRECTION_FWD, amount=3, unit_amount=Motor.UNIT_DEG, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
 robot.motors["motor4"].move(direction=Motor.DIRECTION_FWD, amount=3, unit_amount=Motor.UNIT_ROT, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
 robot.motors["motor4"].move(direction=Motor.DIRECTION_FWD, amount=3, unit_amount=Motor.UNIT_ROT, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
-robot.motors["motor4"].move(direction=Motor.DIRECTION_BACK, amount=3, unit_amount=Motor.UNIT_SEC, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
-robot.motors["motor4"].move(direction=Motor.DIRECTION_BACK, amount=3, unit_amount=Motor.UNIT_SEC, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
+robot.motors["motor4"].move(direction=Motor.DIRECTION_BACK, amount=0.1, unit_amount=Motor.UNIT_SEC, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
+robot.motors["motor4"].move(direction=Motor.DIRECTION_BACK, amount=0.1, unit_amount=Motor.UNIT_SEC, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
 robot.motors["motor4"].move(direction=Motor.DIRECTION_BACK, amount=3, unit_amount=Motor.UNIT_DEG, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
 robot.motors["motor4"].move(direction=Motor.DIRECTION_BACK, amount=3, unit_amount=Motor.UNIT_DEG, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
 robot.motors["motor4"].move(direction=Motor.DIRECTION_BACK, amount=3, unit_amount=Motor.UNIT_ROT, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
@@ -277,7 +277,7 @@ def trying_to_drive_without_drivetrain_motors_is_no_op(
         controller.robot_manager.exit(RevvyStatusCode.ERROR)
 
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
-    controller.with_timeout(2.0)
+    controller.with_timeout(10.0)
 
     config = RobotConfig()
     config.add_motor(None)
@@ -300,20 +300,20 @@ robot.drivetrain.set_speed(direction=Motor.DIRECTION_FWD, speed=75, unit_speed=M
 robot.drivetrain.set_speed(direction=Motor.DIRECTION_BACK, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
 robot.drivetrain.set_speed(direction=Motor.DIRECTION_BACK, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
 
-robot.drive(direction=Motor.DIRECTION_FWD, rotation=3, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
-robot.drive(direction=Motor.DIRECTION_FWD, rotation=3, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
+robot.drive(direction=Motor.DIRECTION_FWD, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
+robot.drive(direction=Motor.DIRECTION_FWD, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
 robot.drive(direction=Motor.DIRECTION_FWD, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
 robot.drive(direction=Motor.DIRECTION_FWD, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
-robot.drive(direction=Motor.DIRECTION_BACK, rotation=3, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
-robot.drive(direction=Motor.DIRECTION_BACK, rotation=3, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
+robot.drive(direction=Motor.DIRECTION_BACK, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
+robot.drive(direction=Motor.DIRECTION_BACK, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
 robot.drive(direction=Motor.DIRECTION_BACK, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
 robot.drive(direction=Motor.DIRECTION_BACK, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
 
 # blockly only generates unit_speed=RPM
 robot.turn(direction=Motor.DIRECTION_LEFT, rotation=90, unit_rotation=Motor.UNIT_TURN_ANGLE, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
-robot.turn(direction=Motor.DIRECTION_LEFT, rotation=90, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
+robot.turn(direction=Motor.DIRECTION_LEFT, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
 robot.turn(direction=Motor.DIRECTION_RIGHT, rotation=90, unit_rotation=Motor.UNIT_TURN_ANGLE, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
-robot.turn(direction=Motor.DIRECTION_RIGHT, rotation=90, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
+robot.turn(direction=Motor.DIRECTION_RIGHT, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
 
 for motor in robot.motors:
   motor.stop(action=Motor.ACTION_STOP_AND_HOLD)

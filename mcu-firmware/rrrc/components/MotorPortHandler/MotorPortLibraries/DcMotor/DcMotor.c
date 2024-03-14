@@ -600,12 +600,14 @@ static MotorLibraryStatus_t _create_pwm_request(const MotorLibrary_Dc_Data_t* li
     (void) libdata;
     if (size != 2u)
     {
+        SEGGER_RTT_printf(0, "_create_pwm_request: got %d bytes, expected 2\n", size);
         return MotorLibraryStatus_InputError;
     }
 
     int8_t pwm = data[1];
     if (pwm < -100 || pwm > 100)
     {
+        SEGGER_RTT_printf(0, "_create_pwm_request: invalid pwm %d\n", pwm);
         return MotorLibraryStatus_InputError;
     }
 
@@ -634,6 +636,7 @@ static MotorLibraryStatus_t _create_speed_request(const MotorLibrary_Dc_Data_t* 
     }
     else
     {
+        SEGGER_RTT_printf(0, "_create_speed_request input error: got %d bytes\n", size);
         return MotorLibraryStatus_InputError;
     }
 
@@ -667,6 +670,7 @@ static MotorLibraryStatus_t _create_position_request(const MotorLibrary_Dc_Data_
                 break;
 
             default:
+                SEGGER_RTT_printf(0, "_create_position_request input error: unknown limit type %d\n", data[5]);
                 return MotorLibraryStatus_InputError;
         }
     }
@@ -677,6 +681,7 @@ static MotorLibraryStatus_t _create_position_request(const MotorLibrary_Dc_Data_
     }
     else
     {
+        SEGGER_RTT_printf(0, "_create_position_request input error: got %d bytes\n", size);
         return MotorLibraryStatus_InputError;
     }
 
@@ -710,6 +715,7 @@ MotorLibraryStatus_t DcMotor_CreateDriveRequest(const MotorPort_t* motorPort, co
 {
     if (size == 0u)
     {
+        SEGGER_RTT_printf(0, "DcMotor_CreateDriveRequest: empty request\n");
         return MotorLibraryStatus_InputError;
     }
 
@@ -731,6 +737,7 @@ MotorLibraryStatus_t DcMotor_CreateDriveRequest(const MotorPort_t* motorPort, co
             return _create_position_request(libdata, data, size, driveRequest);
 
         default:
+            SEGGER_RTT_printf(0, "DcMotor_CreateDriveRequest: unknown control mode %d\n", data[0]);
             return MotorLibraryStatus_InputError;
     }
 }

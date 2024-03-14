@@ -21,6 +21,14 @@ class DrivetrainController(ABC):
         self._awaiter.on_cancelled(self._drivetrain._apply_release)
         self._awaiter.on_finished(self._drivetrain._apply_release)
 
+        # If there are no motors configured to the drive train, avoid trying to control them
+        # Otherwise we might wait forever for a status update to arrive
+        if len(self._drivetrain.motors) == 0:
+            self._awaiter.finish()
+            return
+
+        self.update()
+
     @property
     def awaiter(self) -> Awaiter:
         return self._awaiter
@@ -49,8 +57,6 @@ class TurnController(DrivetrainController):
     def __init__(
         self, drivetrain: "DifferentialDrivetrain", turn_angle, wheel_speed=None, power_limit=None
     ):
-        super().__init__(drivetrain)
-
         self._max_turn_wheel_speed = wheel_speed
         self._max_turn_power = power_limit
 
@@ -58,6 +64,8 @@ class TurnController(DrivetrainController):
         self._start_angle = drivetrain.yaw
         self._last_yaw_change_time = Stopwatch()
         self._last_yaw_angle = None
+
+        super().__init__(drivetrain)
 
     def update(self) -> None:
         yaw = self._drivetrain.yaw
@@ -96,9 +104,9 @@ class MoveController(DrivetrainController):
         right_speed=None,
         power_limit=None,
     ):
-        super().__init__(drivetrain)
-
         drivetrain._apply_positions(left, right, left_speed, right_speed, power_limit)
+
+        super().__init__(drivetrain)
 
     def update(self) -> None:
         if all(m.driver.status == MotorStatus.GOAL_REACHED for m in self._drivetrain.motors):
