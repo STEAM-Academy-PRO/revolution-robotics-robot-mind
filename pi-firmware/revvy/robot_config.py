@@ -1,6 +1,6 @@
 import json
 from json import JSONDecodeError
-from typing import Optional
+from typing import Optional, TypeVar
 
 from revvy.robot.configurations import Motors, Sensors
 from revvy.scripting.runtime import ScriptDescriptor
@@ -71,7 +71,10 @@ def make_button_script_name(script_idx, button_idx) -> str:
     return make_script_name_common(script_idx, "button", f"{button_idx}")
 
 
-def json_get_field(obj, keys, optional, value_type=None):
+JsonValue = TypeVar("JsonValue")
+
+
+def json_get_field(obj, keys, value_type: type[JsonValue]) -> JsonValue:
     is_found = False
     value = None
 
@@ -82,12 +85,32 @@ def json_get_field(obj, keys, optional, value_type=None):
             break
 
     if not is_found:
-        if optional:
-            return None
-
         raise ConfigError(
             "Mandatory config field missing: key(s):{}, type:{}".format(keys, value_type)
         )
+
+    if isinstance(value, value_type):
+        return value
+
+    raise ConfigError(
+        "Wrong config field type: key(s):{}, type:{}, required:{}".format(
+            keys, type(value), value_type
+        )
+    )
+
+
+def json_get_field_optional(obj, keys, value_type: type[JsonValue]) -> Optional[JsonValue]:
+    is_found = False
+    value = None
+
+    for key in keys:
+        if key in obj:
+            is_found = True
+            value = obj[key]
+            break
+
+    if not is_found:
+        return None
 
     # value_type omitted, check not required
     if value_type is None:
@@ -106,8 +129,8 @@ def json_get_field(obj, keys, optional, value_type=None):
 class RobotConfig:
     @staticmethod
     def create_runnable(script: str, script_num: int):
-        script_name = json_get_field(
-            script, ["builtinScriptName", "builtinscriptname"], optional=True
+        script_name = json_get_field_optional(
+            script, ["builtinScriptName", "builtinscriptname"], value_type=str
         )
 
         if script_name:
@@ -117,7 +140,7 @@ class RobotConfig:
             log(f"Use builtin script: {script_name}")
             return builtin_scripts[script_name], "built in script: " + script_name
 
-        source_b64 = json_get_field(script, ["pythonCode", "pythoncode"], optional=True)
+        source_b64 = json_get_field_optional(script, ["pythonCode", "pythoncode"], value_type=str)
 
         if not source_b64:
             raise KeyError("Neither builtinScriptName, nor pythonCode is present for a script")
@@ -214,16 +237,14 @@ class RobotConfig:
         log("\n" + json.dumps(json_config, indent=2))
 
         config = RobotConfig()
-        robot_config = json_get_field(
-            json_config, ["robotConfig", "robotconfig"], optional=False, value_type=dict
+        robot_config = json_get_field(json_config, ["robotConfig", "robotconfig"], value_type=dict)
+
+        blockly_list = json_get_field_optional(
+            json_config, ["blocklyList", "blocklylist"], value_type=list
         )
 
-        blockly_list: Optional[list] = json_get_field(
-            json_config, ["blocklyList", "blocklylist"], optional=True, value_type=list
-        )
-
-        initial_state = json_get_field(
-            json_config, ["initialState", "initialstate"], optional=True, value_type=str
+        initial_state = json_get_field_optional(
+            json_config, ["initialState", "initialstate"], value_type=str
         )
 
         if initial_state:
