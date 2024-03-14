@@ -55,7 +55,7 @@ static bool DummySensor_TestSensorOnPort(SensorPort_t *port, SensorOnPortStatus_
   return true;
 }
 
-const SensorLibrary_t sensor_library_dummy = 
+const SensorLibrary_t sensor_library_dummy =
 {
     .name                = "NotConfigured",
     .Init                = &DummySensor_Init,

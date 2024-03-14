@@ -53,6 +53,7 @@ typedef enum {
     SetPortTypeState_None,
     SetPortTypeState_Busy,
     SetPortTypeState_Done,
+    SetPortTypeState_DeinitDone,
     SetPortTypeState_Error
 } SetPortTypeState_t;
 
@@ -76,7 +77,6 @@ typedef struct _SensorPort_t
 
     void* comm_hw;
     SetPortTypeState_t set_port_type_state;
-    int set_port_type_state_new_port_type;
 
     SensorPort_CommInterface_t interfaceType;
     union {

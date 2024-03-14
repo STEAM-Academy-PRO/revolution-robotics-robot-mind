@@ -136,6 +136,7 @@ static void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
     uint32_t dfsr = SCB->DFSR;
     uint32_t hfsr = SCB->HFSR;
 
+    SEGGER_RTT_printf(0, "HardFault (%x) at %x\n", psr, pc);
     /* log the most important registers */
     ErrorInfo_t data = {
         .error_id = ERROR_ID_HARD_FAULT

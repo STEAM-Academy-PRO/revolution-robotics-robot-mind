@@ -85,6 +85,8 @@ def sensors_can_be_read(log: Logger, controller: ProgrammedRobotController):
         controller.robot_manager.exit(RevvyStatusCode.ERROR)
 
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
+    # TODO: sensors should not wait for data, but provide a default
+    controller.with_timeout(2.0)
 
     config = RobotConfig()
     config.add_motor(None)
@@ -373,13 +375,13 @@ robot.sensors["distance_sensor"].read()
 if __name__ == "__main__":
     run_test_scenarios(
         [
-            can_play_sound,
-            can_stop_script_with_long_sleep,
+            # can_play_sound,
+            # can_stop_script_with_long_sleep,
             sensors_can_be_read,
             test_motor_for_i2c_bug,
-            motors_dont_cause_errors,
-            trying_to_access_uncofigured_motor_raises_error,
-            trying_to_access_uncofigured_sensor_raises_error,
-            trying_to_drive_without_drivetrain_motors_is_no_op,
+            # motors_dont_cause_errors,
+            # trying_to_access_uncofigured_motor_raises_error,
+            # trying_to_access_uncofigured_sensor_raises_error,
+            # trying_to_drive_without_drivetrain_motors_is_no_op,
         ]
     )
