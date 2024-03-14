@@ -109,7 +109,8 @@ class MoveController(DrivetrainController):
         super().__init__(drivetrain)
 
     def update(self) -> None:
-        if all(m.driver.status == MotorStatus.GOAL_REACHED for m in self._drivetrain.motors):
+        # stop if all is blocked or done
+        if all(m.driver.status != MotorStatus.NORMAL for m in self._drivetrain.motors):
             self._awaiter.finish()
 
 
@@ -267,7 +268,7 @@ class DifferentialDrivetrain:
         left_speed = right_speed = multipliers[direction] * speed
         self._apply_speeds(left_speed, right_speed, power)
 
-    def drive(self, direction, rotation, unit_rotation, speed, unit_speed):
+    def drive(self, direction, rotation, unit_rotation, speed, unit_speed) -> Awaiter:
         self._log(f"drive: {direction} {rotation} {unit_rotation} {speed} {unit_speed}")
         self._abort_controller()
 

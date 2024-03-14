@@ -63,6 +63,8 @@ class MotorCommand(ABC, Serialize):
 
 
 class SetPowerCommand(MotorCommand):
+    power_format = struct.Struct("b")
+
     def __init__(self, power: int):
         REQUEST_POWER = 0
         super().__init__(REQUEST_POWER)
@@ -70,7 +72,7 @@ class SetPowerCommand(MotorCommand):
         self.power = clip(power, -100, 100)
 
     def __bytes__(self) -> bytes:
-        return bytes([self.power])
+        return self.power_format.pack(self.power)
 
 
 class SetSpeedCommand(MotorCommand):
