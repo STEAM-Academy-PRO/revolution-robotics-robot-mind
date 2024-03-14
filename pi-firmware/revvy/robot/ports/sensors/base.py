@@ -6,12 +6,10 @@ from revvy.robot.ports.common import PortHandler
 
 class SensorPortDriver(PortDriver):
     def __init__(self, port: PortInstance["SensorPortDriver"], driver_name: str):
-        super().__init__(port, driver_name)
+        super().__init__(port, driver_name, "Sensor")
         self._port = port
         self._value = None
         self._raw_value = None
-
-        self.log(f"SensorPortDriver[{port.id}] {driver_name}")
 
         sensor_port_type = port._supported[driver_name]
 
