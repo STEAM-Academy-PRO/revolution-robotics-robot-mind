@@ -144,7 +144,7 @@ class Robot(RobotInterface):
         return self._battery
 
     @property
-    def imu(self):
+    def imu(self) -> IMU:
         return self._imu
 
     @property
@@ -196,7 +196,7 @@ class Robot(RobotInterface):
 
         return SENSOR_ON_PORT_UNKNOWN
 
-    def reset(self):
+    def reset(self) -> None:
         self._log("reset()")
         self._ring_led.start_animation(RingLed.BreathingGreen)
         self._status_updater.reset()
@@ -216,7 +216,6 @@ class Robot(RobotInterface):
         self._status_updater.enable_slot("axl", self._imu.update_axl_data)
         self._status_updater.enable_slot("gyro", self._imu.update_gyro_data)
         self._status_updater.enable_slot("orientation", self._imu.update_orientation_data)
-        self._status_updater.enable_slot("yaw", self._imu.update_yaw_angles)
 
         # TODO: do something useful with the reset signal
         self._status_updater.enable_slot("reset", lambda _: self._log("MCU reset detected"))

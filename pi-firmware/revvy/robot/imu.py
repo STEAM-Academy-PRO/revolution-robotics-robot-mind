@@ -30,20 +30,22 @@ class Orientation3D(NamedTuple):
 
 
 class IMU:
-    def __init__(self):
+    def __init__(self) -> None:
+        # raw sensor data
         self._acceleration = Vector3D(0, 0, 0)
         self._rotation = Vector3D(0, 0, 0)
+
+        # processed data
         self._orientation = Orientation3D(0, 0, 0)
-        self._yaw_angle = 0
-        self._relative_yaw_angle = 0
 
     @property
     def yaw_angle(self) -> float:
-        return self._yaw_angle
+        return self.orientation.yaw
 
     @property
     def relative_yaw_angle(self) -> float:
-        return self._relative_yaw_angle  # TODO pinning is not yet implemented
+        # TODO pinning (resetting the origin angle) is not yet implemented
+        return self.orientation.yaw
 
     @property
     def acceleration(self) -> Vector3D:
@@ -57,20 +59,16 @@ class IMU:
     def orientation(self) -> Orientation3D:
         return self._orientation
 
-    def update_yaw_angles(self, data):
-        (self._yaw_angle, self._relative_yaw_angle) = struct.unpack("<ll", data)
-        # print('update_yaw_angles', data)
-
-    def update_axl_data(self, data):
+    def update_axl_data(self, data: bytes):
         # LSM6DS3H sensor configuration constants
         self._acceleration = 0.061 * Vector3D.deserialize(data)
         # print('update_axl_data', data, self._acceleration)
 
-    def update_gyro_data(self, data):
+    def update_gyro_data(self, data: bytes):
         # LSM6DS3H sensor configuration constants
         self._rotation = 0.035 * 1.03 * Vector3D.deserialize(data)
         # print('update_gyro_data', data, self._rotation)
 
-    def update_orientation_data(self, data):
+    def update_orientation_data(self, data: bytes):
         self._orientation = Orientation3D.deserialize(data)
         # print('update_orientation_data', values)

@@ -119,7 +119,7 @@ class DifferentialDrivetrain:
         self._controller: Optional[DrivetrainController] = None
 
     @property
-    def yaw(self):
+    def yaw(self) -> float:
         return self._imu.yaw_angle
 
     @property

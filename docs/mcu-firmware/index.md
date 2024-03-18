@@ -14,6 +14,7 @@ This repository contains the application code running on the ATSAMD51P19A microc
 - [Development guide](development.md)
 - [Working with error logs](error-logs.md)
 - [Clock tree configuration](clock-tree.md)
+- [Determining 3D orientation](gyro.md)
 
 Project folders
 ---------------
