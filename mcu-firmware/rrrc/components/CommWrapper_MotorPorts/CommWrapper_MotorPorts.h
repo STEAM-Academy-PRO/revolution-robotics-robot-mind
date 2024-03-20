@@ -36,12 +36,11 @@ typedef struct {
 } ConstByteArray_t;
 typedef Comm_Status_t (*Comm_CommandHandler_Start_t)(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 typedef Comm_Status_t (*Comm_CommandHandler_GetResult_t)(ByteArray_t response, uint8_t* responseCount);
-typedef void (*Comm_CommandHandler_Cancel_t)(void);
 
 typedef struct {
     Comm_CommandHandler_Start_t Start;
     Comm_CommandHandler_GetResult_t GetResult;
-    Comm_CommandHandler_Cancel_t Cancel;
+    bool ExecutionInProgress;
 } Comm_CommandHandler_t;
 
 typedef struct {

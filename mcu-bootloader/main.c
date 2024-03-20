@@ -99,7 +99,7 @@ int main(void)
     // If we are below this line then there was either a bootloader request,
     // or the target firmware is missing or corrupted
 
-    MasterCommunication_Run_OnInit(&communicationHandlers[0], COMM_HANDLER_COUNT);
+    MasterCommunication_Run_OnInit();
 
     MasterCommunication_Run_GetDefaultResponse(&communicationConfig.defaultResponseBuffer, &communicationConfig.defaultResponseLength);
     MasterCommunication_Run_GetLongRxErrorResponse(&communicationConfig.longRxErrorResponseBuffer, &communicationConfig.longRxErrorResponseLength);

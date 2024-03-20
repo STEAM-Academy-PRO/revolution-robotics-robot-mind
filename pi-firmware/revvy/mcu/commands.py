@@ -26,7 +26,7 @@ class Command(ABC, Generic[ReturnType]):
         self._transport = transport
         self._command_byte = self.command_id
 
-        self._log = get_logger(f"{type(self).__name__} [id={self._command_byte}]")
+        self._log = get_logger(f"{type(self).__name__} [id={hex(self._command_byte)}]")
 
     @property
     @abstractmethod
@@ -37,25 +37,25 @@ class Command(ABC, Generic[ReturnType]):
         if response.status == ResponseStatus.Ok:
             return self.parse_response(response.payload)
         elif response.status == ResponseStatus.Error_UnknownCommand:
-            raise UnknownCommandError(f"Command not implemented: {self._command_byte}")
+            raise UnknownCommandError(f"Command not implemented on MCU: {hex(self._command_byte)}")
         else:
             raise ValueError(
                 f'Command status: "{response.status}" with payload: {repr(response.payload)}'
             )
 
-    def _send(self, payload: bytes = b"", get_result_delay=None) -> ReturnType:
+    def _send(self, payload: bytes = b"") -> ReturnType:
         """
         Send the command with the given payload and process the response
 
-        @type payload: iterable
+        @type payload: bytes
         """
-        response = self._transport.send_command(self._command_byte, payload, get_result_delay)
+        response = self._transport.send_command(self._command_byte, payload)
 
         try:
             return self._process(response)
         except (UnknownCommandError, ValueError) as e:
-            self._log(f"Payload for error: {payload} (length {len(payload)})", LogLevel.ERROR)
             self._log(traceback.format_exc(), LogLevel.ERROR)
+            self._log(f"Command payload for error: {list(payload)}", LogLevel.ERROR)
             raise e
 
     @abstractmethod
@@ -84,6 +84,14 @@ class ReturnlessCommand(Command[None]):
             # TODO: this is a ValueError maybe, but we can also be tolerant?
             raise NotImplementedError
         return None
+
+
+# The following classes implement the python counterpart of MCU commands.
+# MCU commands are defined in:
+# - mcu-bootloader/rrrc/runtime/comm_handlers.c
+# - mcu-firmware/rrrc/runtime/comm_handlers.c
+# The commands are collected in the RevvyControl and BootloaderControl classes in the rrrc_control.py
+# file, providing a function call-like interface to the commands.
 
 
 class PingCommand(ReturnlessCommand, ParameterlessCommand[None]):
@@ -270,13 +278,8 @@ class TestMotorOnPortCommand(Command[bool], ABC):
         return 0x15
 
     def __call__(self, port, test_intensity, threshold) -> bool:
-        # For test motor on port GetResult transfer phase should start
-        # after a small delay (I2C BUG workaround), other commands should
-        # behave as before
-        # FIXME this shouldn't be necessary
-        get_result_delay = 0.2
         payload = struct.pack("BBB", port, test_intensity, threshold)
-        return self._send(payload, get_result_delay)
+        return self._send(payload)
 
     def parse_response(self, payload: bytes) -> bool:
         motor_is_present = struct.unpack("b", payload)[0] != 0

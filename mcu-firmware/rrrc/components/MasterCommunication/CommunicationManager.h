@@ -6,10 +6,10 @@
 
 typedef enum
 {
-    Comm_Operation_Start,
-    Comm_Operation_Restart,
-    Comm_Operation_GetResult,
-    Comm_Operation_Cancel
+    Comm_Operation_Start = 0,
+    // Comm_Operation_Restart, // Removed
+    Comm_Operation_GetResult = 2,
+    // Comm_Operation_Cancel // Removed
 } Comm_Operation_t;
 
 typedef struct
@@ -44,14 +44,6 @@ typedef struct
     uint8_t payload[];
 }
 __attribute__((packed)) Comm_Response_t;
-
-/**
- * Initialize the communication handler
- *
- * Sets up command handler to accept and handle commands by calling their respective handlers.
- * Command handlers are defined in the commandTable variable.
- */
-void Comm_Init(const Comm_CommandHandler_t* commandTable, size_t commandTableSize);
 
 /**
  * Handle a request and prepare a response

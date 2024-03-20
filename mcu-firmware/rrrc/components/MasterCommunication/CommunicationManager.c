@@ -2,9 +2,9 @@
 #include "utils_assert.h"
 
 #include <stdbool.h>
+#include "SEGGER_RTT.h"
 
-static const Comm_CommandHandler_t* comm_commandTable = NULL;
-static size_t comm_commandTableSize = 0u;
+#include "comm_handlers.h"
 
 static bool _commandValid(const Comm_Command_t* command)
 {
@@ -22,42 +22,33 @@ static bool _payloadValid(const Comm_Command_t* command)
     return command->header.payloadChecksum == payloadChecksum;
 }
 
-void Comm_Init(const Comm_CommandHandler_t* commandTable, size_t commandTableSize)
-{
-    ASSERT(commandTable);
-
-    if (comm_commandTable != NULL)
-    {
-        for (size_t i = 0u; i < comm_commandTableSize; i++)
-        {
-            comm_commandTable[i].Cancel();
-        }
-    }
-
-    comm_commandTable     = commandTable;
-    comm_commandTableSize = commandTableSize;
-}
-
-static Comm_Status_t _handleOperation_Cancel(const Comm_Command_t* command)
-{
-    if (comm_commandTable[command->header.command].Cancel != NULL)
-    {
-        comm_commandTable[command->header.command].Cancel();
-    }
-
-    return Comm_Status_Ok;
-}
-
 static Comm_Status_t _handleOperation_GetResult(const Comm_Command_t* command, ByteArray_t response, uint8_t* responseLength)
 {
-    if (comm_commandTable[command->header.command].GetResult == NULL)
+    Comm_Status_t resultStatus;
+    if (communicationHandlers[command->header.command].GetResult == NULL)
     {
-        return Comm_Status_Error_InternalError;
+        SEGGER_RTT_printf(0, "GetResult not implemented for command 0x%X\n", command->header.command);
+        resultStatus = Comm_Status_Error_InvalidOperation;
     }
     else
     {
-        return comm_commandTable[command->header.command].GetResult(response, responseLength);
+        if (!communicationHandlers[command->header.command].ExecutionInProgress)
+        {
+            SEGGER_RTT_printf(0, "GetResult called for command 0x%X that is not in progress\n", command->header.command);
+            resultStatus = Comm_Status_Error_InvalidOperation;
+        }
+        else
+        {
+            resultStatus = communicationHandlers[command->header.command].GetResult(response, responseLength);
+            if (resultStatus != Comm_Status_Pending)
+            {
+                /* Record that the command execution is in progress */
+                communicationHandlers[command->header.command].ExecutionInProgress = false;
+            }
+        }
     }
+
+    return resultStatus;
 }
 
 static Comm_Status_t _handleOperation_Start(const Comm_Command_t* command, ByteArray_t response, uint8_t* responseLength)
@@ -66,15 +57,27 @@ static Comm_Status_t _handleOperation_Start(const Comm_Command_t* command, ByteA
         .bytes = command->payload,
         .count = command->header.payloadLength
     };
-    Comm_Status_t resultStatus = comm_commandTable[command->header.command].Start(commandArray, response, responseLength);
-    if (resultStatus == Comm_Status_Pending)
+
+    Comm_Status_t resultStatus;
+    if (communicationHandlers[command->header.command].ExecutionInProgress)
     {
-        return _handleOperation_GetResult(command, response, responseLength);
+        SEGGER_RTT_printf(0, "Start called for command 0x%X that is already in progress\n", command->header.command);
+        resultStatus = Comm_Status_Error_InvalidOperation;
     }
     else
     {
-        return resultStatus;
+        resultStatus = communicationHandlers[command->header.command].Start(commandArray, response, responseLength);
+        if (resultStatus == Comm_Status_Pending)
+        {
+            /* Record that the command execution is in progress */
+            communicationHandlers[command->header.command].ExecutionInProgress = true;
+
+            /* The command is implemented as an async command, but its result may be ready immediately */
+            resultStatus = _handleOperation_GetResult(command, response, responseLength);
+        }
     }
+
+    return resultStatus;
 }
 
 /**
@@ -94,15 +97,30 @@ size_t Comm_Handle(const Comm_Command_t* command, Comm_Response_t* response, siz
 
     if (!_commandValid(command))
     {
+        SEGGER_RTT_printf(
+            0,
+            "Header CRC error. Command header = [0x%X 0x%X 0x%X]\n",
+            command->header.operation,
+            command->header.command,
+            command->header.payloadLength
+        );
         resultStatus = Comm_Status_Error_CommandIntegrityError;
     }
     else if (!_payloadValid(command))
     {
+        SEGGER_RTT_printf(
+            0,
+            "Payload CRC error. Command header = [0x%X 0x%X 0x%X]\n",
+            command->header.operation,
+            command->header.command,
+            command->header.payloadLength
+        );
         resultStatus = Comm_Status_Error_PayloadIntegrityError;
     }
-    else if (command->header.command >= comm_commandTableSize || comm_commandTable[command->header.command].Start == NULL)
+    else if (command->header.command >= COMM_HANDLER_COUNT || communicationHandlers[command->header.command].Start == NULL)
     {
         /* unimplemented command */
+        SEGGER_RTT_printf(0, "Unknown command 0x%X\n", command->header.command);
         resultStatus = Comm_Status_Error_UnknownCommand;
     }
     else
@@ -115,23 +133,23 @@ size_t Comm_Handle(const Comm_Command_t* command, Comm_Response_t* response, siz
         {
             case Comm_Operation_Start:
                 resultStatus = _handleOperation_Start(command, responseArray, &payloadSize);
+                // SEGGER_RTT_printf(0, "Start 0x%X: %d\n", command->header.command, resultStatus);
                 break;
 
             case Comm_Operation_GetResult:
                 resultStatus = _handleOperation_GetResult(command, responseArray, &payloadSize);
-                break;
-
-            case Comm_Operation_Cancel:
-                resultStatus = _handleOperation_Cancel(command);
-                break;
-
-            case Comm_Operation_Restart:
-                (void) _handleOperation_Cancel(command);
-                resultStatus = _handleOperation_Start(command, responseArray, &payloadSize);
+                // SEGGER_RTT_printf(0, "GetResult 0x%X: %d\n", command->header.command, resultStatus);
                 break;
 
             default:
                 resultStatus = Comm_Status_Error_UnknownOperation;
+                SEGGER_RTT_printf(
+                    0,
+                    "Unknown operation. Command header = [0x%X 0x%X 0x%X]\n",
+                    command->header.operation,
+                    command->header.command,
+                    command->header.payloadLength
+                );
                 break;
         }
     }

@@ -3,6 +3,7 @@
 
 /* Begin User Code Section: Declarations */
 #include "rrrc_hal.h"
+#include "SEGGER_RTT.h"
 
 static const void * s_rtc_module = (const void *) RTC;
 /* End User Code Section: Declarations */
@@ -10,6 +11,7 @@ static const void * s_rtc_module = (const void *) RTC;
 void RestartManager_Run_Reset(void)
 {
     /* Begin User Code Section: Reset:run Start */
+    SEGGER_RTT_WriteString(0, "Restarting MCU\r\n");
     NVIC_SystemReset();
     /* End User Code Section: Reset:run Start */
     /* Begin User Code Section: Reset:run End */
@@ -20,6 +22,7 @@ void RestartManager_Run_Reset(void)
 void RestartManager_Run_RebootToBootloader(void)
 {
     /* Begin User Code Section: RebootToBootloader:run Start */
+    SEGGER_RTT_WriteString(0, "Rebooting to bootloader...\r\n");
     hri_rtcmode0_set_CTRLB_GP0EN_bit(s_rtc_module);
     hri_rtcmode0_set_CTRLB_GP2EN_bit(s_rtc_module);
 

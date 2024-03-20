@@ -21,6 +21,7 @@ from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.math.floor0 import floor0
 from revvy.utils.observable import Observable
 from revvy.utils.thread_wrapper import ThreadWrapper, periodic
+from revvy.utils import error_reporter
 
 from typing import TYPE_CHECKING
 
@@ -125,5 +126,10 @@ class RobotState(Emitter[RobotEvent]):
             log("Status Update Error from MCU", LogLevel.WARNING)
         except OSError as e:
             log(f"{str(e)}", LogLevel.WARNING)
+        except ValueError:
+            # already logged to terminal
+            error_reporter.revvy_error_handler.report_error(
+                error_reporter.RobotErrorType.SYSTEM, traceback.format_exc()
+            )
         except Exception:
             log(traceback.format_exc())

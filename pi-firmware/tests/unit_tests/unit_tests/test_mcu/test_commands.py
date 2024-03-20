@@ -10,7 +10,7 @@ class MockTransport:
         self._command_count = 0
         self._commands = []
 
-    def send_command(self, command, payload=None, get_result_delay=None) -> Response:
+    def send_command(self, command, payload=None) -> Response:
         response = self._responses[self._command_count]
         self._command_count += 1
         self._commands.append((command, payload))

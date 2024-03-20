@@ -71,6 +71,7 @@
     "includes": [
         ".",
         "rrrc",
+        "rrrc/runtime",
         "Config",
         "../mcu-common/Atmel/hal/include",
         "../mcu-common/Atmel/hal/utils/include",

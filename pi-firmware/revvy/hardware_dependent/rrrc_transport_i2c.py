@@ -25,7 +25,10 @@ class RevvyTransportI2CDevice(RevvyTransportInterface):
         except TypeError as e:
             raise TransportException(f"Error reading I2C 0x{self._address:X}") from e
         except OSError as ex:
-            log(f"OSError reading I2C 0x{self._address:X}: {ex.strerror}", LogLevel.DEBUG)
+            log(
+                f"OSError({ex.errno}) reading I2C 0x{self._address:X}: {ex.strerror}",
+                LogLevel.DEBUG,
+            )
             raise ex
 
     def write(self, data: bytes) -> None:
@@ -35,7 +38,10 @@ class RevvyTransportI2CDevice(RevvyTransportInterface):
         except TypeError as e:
             raise TransportException(f"Error writing I2C 0x{self._address:X}") from e
         except OSError as ex:
-            log(f"OSError writing I2C 0x{self._address:X}: {ex.strerror}", LogLevel.DEBUG)
+            log(
+                f"OSError({ex.errno}) writing I2C 0x{self._address:X}: {ex.strerror}",
+                LogLevel.DEBUG,
+            )
             raise ex
 
 

@@ -21,9 +21,6 @@ class TestCommand(unittest.TestCase):
         ch = Command.get_result(5)
         self.assertEqual(2, ch[0])
 
-        ch = Command.cancel(5)
-        self.assertEqual(3, ch[0])
-
     def test_max_payload_length_is_255(self):
         ch = Command.start(5, b"\x00" * 25)
         self.assertEqual(6 + 25, len(ch))
@@ -134,7 +131,7 @@ class TestRevvyTransport(unittest.TestCase):
             ]
         )
         rt = RevvyTransport(mock_interface)
-        rt.retry_reads = 5
+        rt.retry = 5
         self.assertRaises(BrokenPipeError, lambda: rt.send_command(10))
         self.assertEqual(1, len(mock_interface._writes))
         self.assertEqual(6, len(mock_interface._reads))
@@ -341,7 +338,7 @@ class TestRevvyTransport(unittest.TestCase):
         rt = RevvyTransport(mock_interface)
         self.assertRaises(BrokenPipeError, lambda: rt.send_command(10))
 
-    @mock.patch("time.time", mock.MagicMock(side_effect=[0, 1, 2, 3, 4, 5, 6]))
+    @mock.patch("time.time", mock.MagicMock(side_effect=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]))
     def test_busy_response_can_timeout(self):
         mock_interface = MockInterface([[ResponseStatus.Busy.value, 0, 0xFF, 0xFF, 118]] * 10)
         rt = RevvyTransport(mock_interface)

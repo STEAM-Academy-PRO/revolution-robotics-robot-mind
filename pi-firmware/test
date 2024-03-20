@@ -49,6 +49,7 @@ ssh $USER@$HOST "sudo systemctl stop revvy"
 if [ "$#" -ge 1 ] && [ "$1" -eq 1 ]; then
 
     DEBUG_RUNNER="cd $TARGET && python3 -u -m debugpy --listen 0.0.0.0:$DEBUG_PORT --wait-for-client -m tests.hil_tests.tests >/dev/null 2>&1 & "
+    # DEBUG_RUNNER="cd $TARGET && python3 -u -m debugpy --listen 0.0.0.0:$DEBUG_PORT -m tests.hil_tests.tests"
 
     # As netstat -tnlp requires sudo permissions, it'll show a warning
     # as we are not running it with sudo on the stderr stream.
