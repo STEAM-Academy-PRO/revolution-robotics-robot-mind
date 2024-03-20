@@ -338,7 +338,7 @@ class TestRevvyTransport(unittest.TestCase):
         rt = RevvyTransport(mock_interface)
         self.assertRaises(BrokenPipeError, lambda: rt.send_command(10))
 
-    @mock.patch("time.time", mock.MagicMock(side_effect=[0, 1, 2, 3, 4, 5, 6]))
+    @mock.patch("time.time", mock.MagicMock(side_effect=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]))
     def test_busy_response_can_timeout(self):
         mock_interface = MockInterface([[ResponseStatus.Busy.value, 0, 0xFF, 0xFF, 118]] * 10)
         rt = RevvyTransport(mock_interface)
