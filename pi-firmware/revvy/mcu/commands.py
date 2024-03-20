@@ -37,7 +37,7 @@ class Command(ABC, Generic[ReturnType]):
         if response.status == ResponseStatus.Ok:
             return self.parse_response(response.payload)
         elif response.status == ResponseStatus.Error_UnknownCommand:
-            raise UnknownCommandError(f"Command not implemented: {self._command_byte}")
+            raise UnknownCommandError(f"Command not implemented on MCU: {hex(self._command_byte)}")
         else:
             raise ValueError(
                 f'Command status: "{response.status}" with payload: {repr(response.payload)}'
@@ -47,7 +47,7 @@ class Command(ABC, Generic[ReturnType]):
         """
         Send the command with the given payload and process the response
 
-        @type payload: iterable
+        @type payload: bytes
         """
         response = self._transport.send_command(self._command_byte, payload)
 

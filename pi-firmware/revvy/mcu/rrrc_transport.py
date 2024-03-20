@@ -426,7 +426,6 @@ class RevvyTransport:
         with self._mutex:
             # create commands in advance, they can be reused in case of an error
             command_start = Command.start(command, payload)
-            command_get_result = None
 
             try:
                 # once a command gets through and a valid response is read, this loop will exit
@@ -437,9 +436,7 @@ class RevvyTransport:
 
                     # wait for command execution to finish
                     if header.status == ResponseStatus.Pending:
-                        # lazily create GetResult command
-                        if not command_get_result:
-                            command_get_result = Command.get_result(command)
+                        command_get_result = Command.get_result(command)
 
                         while True:
                             header = self._send_command(command_get_result)
