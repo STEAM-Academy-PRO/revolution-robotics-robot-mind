@@ -11,6 +11,7 @@ import { ColorSensor, ColorSensorReading } from '../utils/ColorSensor';
 import { conn } from '../settings';
 
 import styles from './Play.module.css'
+import { WebcameraPreview } from './WebcameraPreview';
 
 const BUTTON_MAP_XBOX: { [id: number]: number } = {
   2: 0,
@@ -281,6 +282,7 @@ export default function PlayView({
         </div>
         <div class={styles.placeholder}>
           <CameraView />
+          <WebcameraPreview />
         </div>
         <div class={styles.controllerButtons}>
           <Buttons list={buttons} />
