@@ -74,6 +74,7 @@ Config \
 ../mcu-common/CMSIS/Include \
 ../mcu-common/SEGGER/RTT \
 rrrc \
+rrrc/runtime \
 rrrc/components/MasterCommunication \
 rrrc/components/MasterCommunicationInterface \
 rrrc/components/LEDController \

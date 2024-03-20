@@ -47,7 +47,7 @@ typedef struct {
 
 /* End User Code Section: Declarations */
 
-void MasterCommunication_Run_OnInit(Comm_CommandHandler_t* commandTable, size_t commandTableSize);
+void MasterCommunication_Run_OnInit(void);
 void MasterCommunication_Run_HandleCommand(ConstByteArray_t message);
 ConstByteArray_t MasterCommunication_Constant_DefaultResponse(void);
 ConstByteArray_t MasterCommunication_Constant_LongRxErrorResponse(void);

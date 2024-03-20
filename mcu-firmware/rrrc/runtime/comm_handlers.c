@@ -1,4 +1,5 @@
 #include "../rrrc_worklogic.h"
+#include "comm_handlers.h"
 
 static Comm_Status_t PingMessageHandler_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 

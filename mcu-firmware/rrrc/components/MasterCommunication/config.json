@@ -69,13 +69,7 @@
     },
     "runnables": {
         "OnInit": {
-            "arguments": {
-                "commandTable": {
-                    "data_type": "Comm_CommandHandler_t",
-                    "direction": "inout"
-                },
-                "commandTableSize": "size_t"
-            }
+            "arguments": {}
         },
         "HandleCommand": {
             "arguments": {

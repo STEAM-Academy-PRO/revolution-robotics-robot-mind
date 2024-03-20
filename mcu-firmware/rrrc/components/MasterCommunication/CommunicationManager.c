@@ -4,8 +4,7 @@
 #include <stdbool.h>
 #include "SEGGER_RTT.h"
 
-static Comm_CommandHandler_t* comm_commandTable = NULL;
-static size_t comm_commandTableSize = 0u;
+#include "comm_handlers.h"
 
 static bool _commandValid(const Comm_Command_t* command)
 {
@@ -23,36 +22,28 @@ static bool _payloadValid(const Comm_Command_t* command)
     return command->header.payloadChecksum == payloadChecksum;
 }
 
-void Comm_Init(Comm_CommandHandler_t* commandTable, size_t commandTableSize)
-{
-    ASSERT(commandTable);
-
-    comm_commandTable     = commandTable;
-    comm_commandTableSize = commandTableSize;
-}
-
 static Comm_Status_t _handleOperation_GetResult(const Comm_Command_t* command, ByteArray_t response, uint8_t* responseLength)
 {
     Comm_Status_t resultStatus;
-    if (comm_commandTable[command->header.command].GetResult == NULL)
+    if (communicationHandlers[command->header.command].GetResult == NULL)
     {
         SEGGER_RTT_printf(0, "GetResult not implemented for command 0x%X\n", command->header.command);
         resultStatus = Comm_Status_Error_InvalidOperation;
     }
     else
     {
-        if (!comm_commandTable[command->header.command].ExecutionInProgress)
+        if (!communicationHandlers[command->header.command].ExecutionInProgress)
         {
             SEGGER_RTT_printf(0, "GetResult called for command 0x%X that is not in progress\n", command->header.command);
             resultStatus = Comm_Status_Error_InvalidOperation;
         }
         else
         {
-            resultStatus = comm_commandTable[command->header.command].GetResult(response, responseLength);
+            resultStatus = communicationHandlers[command->header.command].GetResult(response, responseLength);
             if (resultStatus != Comm_Status_Pending)
             {
                 /* Record that the command execution is in progress */
-                comm_commandTable[command->header.command].ExecutionInProgress = false;
+                communicationHandlers[command->header.command].ExecutionInProgress = false;
             }
         }
     }
@@ -68,18 +59,18 @@ static Comm_Status_t _handleOperation_Start(const Comm_Command_t* command, ByteA
     };
 
     Comm_Status_t resultStatus;
-    if (comm_commandTable[command->header.command].ExecutionInProgress)
+    if (communicationHandlers[command->header.command].ExecutionInProgress)
     {
         SEGGER_RTT_printf(0, "Start called for command 0x%X that is already in progress\n", command->header.command);
         resultStatus = Comm_Status_Error_InvalidOperation;
     }
     else
     {
-        resultStatus = comm_commandTable[command->header.command].Start(commandArray, response, responseLength);
+        resultStatus = communicationHandlers[command->header.command].Start(commandArray, response, responseLength);
         if (resultStatus == Comm_Status_Pending)
         {
             /* Record that the command execution is in progress */
-            comm_commandTable[command->header.command].ExecutionInProgress = true;
+            communicationHandlers[command->header.command].ExecutionInProgress = true;
 
             /* The command is implemented as an async command, but its result may be ready immediately */
             resultStatus = _handleOperation_GetResult(command, response, responseLength);
@@ -126,7 +117,7 @@ size_t Comm_Handle(const Comm_Command_t* command, Comm_Response_t* response, siz
         );
         resultStatus = Comm_Status_Error_PayloadIntegrityError;
     }
-    else if (command->header.command >= comm_commandTableSize || comm_commandTable[command->header.command].Start == NULL)
+    else if (command->header.command >= COMM_HANDLER_COUNT || communicationHandlers[command->header.command].Start == NULL)
     {
         /* unimplemented command */
         SEGGER_RTT_printf(0, "Unknown command 0x%X\n", command->header.command);

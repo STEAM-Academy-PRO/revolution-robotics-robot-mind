@@ -1,11 +1,11 @@
 #include "CommunicationManager.h"
 #include "utils_assert.h"
-#include "SEGGER_RTT.h"
-#include "utils/crc.h"
-#include <stdbool.h>
 
-static const Comm_CommandHandler_t* comm_commandTable = NULL;
-static size_t comm_commandTableSize = 0u;
+#include <stdbool.h>
+#include "SEGGER_RTT.h"
+
+#include "utils/crc.h"
+#include "comm_handlers.h"
 
 static bool _commandValid(const Comm_Command_t* command)
 {
@@ -21,29 +21,21 @@ static bool _payloadValid(const Comm_Command_t* command)
     return command->header.payloadChecksum == payloadChecksum;
 }
 
-void Comm_Init(const Comm_CommandHandler_t* commandTable, size_t commandTableSize)
-{
-    ASSERT(commandTable);
-
-    comm_commandTable     = commandTable;
-    comm_commandTableSize = commandTableSize;
-}
-
 static Comm_Status_t _handleOperation_GetResult(const Comm_Command_t* command, uint8_t* responseBuffer, uint8_t payloadBufferSize, uint8_t* responseLength)
 {
-    if (comm_commandTable[command->header.command].GetResult == NULL)
+    if (communicationHandlers[command->header.command].GetResult == NULL)
     {
         return Comm_Status_Error_InternalError;
     }
     else
     {
-        return comm_commandTable[command->header.command].GetResult(responseBuffer, payloadBufferSize, responseLength);
+        return communicationHandlers[command->header.command].GetResult(responseBuffer, payloadBufferSize, responseLength);
     }
 }
 
 static Comm_Status_t _handleOperation_Start(const Comm_Command_t* command, uint8_t* responseBuffer, uint8_t payloadBufferSize, uint8_t* responseLength)
 {
-    Comm_Status_t resultStatus = comm_commandTable[command->header.command].Start((const uint8_t*) command->payload, command->header.payloadLength, responseBuffer, payloadBufferSize, responseLength);
+    Comm_Status_t resultStatus = communicationHandlers[command->header.command].Start((const uint8_t*) command->payload, command->header.payloadLength, responseBuffer, payloadBufferSize, responseLength);
     if (resultStatus == Comm_Status_Pending)
     {
         return _handleOperation_GetResult(command, responseBuffer, payloadBufferSize, responseLength);
@@ -79,7 +71,7 @@ size_t Comm_Handle(const Comm_Command_t* command, Comm_Response_t* response, siz
         SEGGER_RTT_printf(0, "Payload integrity error\n");
         resultStatus = Comm_Status_Error_PayloadIntegrityError;
     }
-    else if (command->header.command >= comm_commandTableSize || comm_commandTable[command->header.command].Start == NULL)
+    else if (command->header.command >= COMM_HANDLER_COUNT || communicationHandlers[command->header.command].Start == NULL)
     {
         SEGGER_RTT_printf(0, "Unknown/unimplemented command\n");
         resultStatus = Comm_Status_Error_UnknownCommand;

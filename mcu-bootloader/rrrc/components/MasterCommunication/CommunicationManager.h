@@ -76,14 +76,6 @@ typedef struct
 } Comm_CommandHandler_t;
 
 /**
- * Initialize the communication handler
- *
- * Sets up command handler to accept and handle commands by calling their respective handlers.
- * Command handlers are defined in the commandTable variable.
- */
-void Comm_Init(const Comm_CommandHandler_t* commandTable, size_t commandTableSize);
-
-/**
  * Handle a request and prepare a response
  *
  * @return the response length in bytes

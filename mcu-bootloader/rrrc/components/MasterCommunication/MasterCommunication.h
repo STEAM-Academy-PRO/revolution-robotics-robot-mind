@@ -3,7 +3,7 @@
 
 #include "CommunicationManager.h"
 
-void MasterCommunication_Run_OnInit(const Comm_CommandHandler_t* commandTable, size_t commandTableSize);
+void MasterCommunication_Run_OnInit();
 void MasterCommunication_Run_HandleCommand(const uint8_t* buffer, size_t bufferSize);
 
 void MasterCommunication_Run_GetDefaultResponse(uint8_t** defaultResponseBuffer, size_t* defaultResponseLength);
