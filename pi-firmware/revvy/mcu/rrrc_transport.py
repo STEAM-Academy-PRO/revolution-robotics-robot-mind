@@ -412,25 +412,35 @@ class RevvyTransport:
         self._transport = transport
         self._stopwatch = Stopwatch()
 
-    def send_command(self, command: int, payload: bytes = b"") -> Response:
+    def send_command(
+        self, command: int, payload: bytes = b"", exec_timeout: float = 5.0
+    ) -> Response:
         """
         Send a command and get the result.
 
         This function waits for commands to finish processing, so execution time depends on the MCU.
         The function detects integrity errors and retries incorrect writes and reads.
 
-        @param command:
-        @param payload:
-        @return:
+        @param command: the command id
+        @param payload: command-specific payload
+        @param exec_timeout: deadline for the command to finish processing, in seconds
+
+        @return: The response
         """
+
+        timeout = Stopwatch()
+
+        # We only allow a single command to be sent at a time. TODO: this restriction can be
+        # lifted by adding a per-Command mutex instead. The MCU is capable of processing multiple
+        # (different) commands in parallel.
         with self._mutex:
-            # create commands in advance, they can be reused in case of an error
             command_start = Command.start(command, payload)
 
             try:
+                # retry on bit errors
+                # assume that integrity error is random and not caused by implementation differences
                 # once a command gets through and a valid response is read, this loop will exit
                 while True:
-                    # assume that integrity error is random and not caused by implementation differences
                     # send command and read back status
                     header = self._send_command(command_start)
 
@@ -441,14 +451,16 @@ class RevvyTransport:
                         while True:
                             header = self._send_command(command_get_result)
                             if header.status != ResponseStatus.Pending:
+                                # execution done, stop polling
                                 break
+                            if timeout.elapsed > exec_timeout:
+                                return Response(ResponseStatus.Error_Timeout, b"")
 
-                    # check result
-                    # return a result even in case of an error, except when we know we have to resend
-                    if header.status != ResponseStatus.Error_CommandIntegrityError:
-                        response_payload = self._read_payload(header)
-                        # print("command: ", command, "response_payload:", response_payload)
-                        return Response(header.status, response_payload)
+                    # At this point we have read the response header and we know the command has
+                    # finished processing. We can now read the payload and return the result.
+                    response_payload = self._read_payload(header)
+
+                    return Response(header.status, response_payload)
             except TimeoutError:
                 return Response(ResponseStatus.Error_Timeout, b"")
 
@@ -517,21 +529,35 @@ class RevvyTransport:
 
     def _send_command(self, command: bytes) -> ResponseHeader:
         """
-        Send a command and return the response header
+        Writes command (as in, Start or GetResult) bytes and return the response header. If the
+        response contains a payload, the firmware can re-read it using `_read_payload`.
 
-        This function waits for the slave MCU to finish processing the command and returns if it is
+        This function waits for the MCU to finish processing the command and returns if it is
         done or the timeout defined in the class header elapses.
 
         @param command: The command bytes to send
         @return: The response header
         """
-        self._transport.write(command)
         self._stopwatch.reset()
-        while self._stopwatch.elapsed < self.timeout:
-            response = self._read_response_header()
-            # Busy means the MCU is not ready for this command yet and we should retry later.
-            if response.status != ResponseStatus.Busy:
-                if response.status != ResponseStatus.Ok:
-                    log(f"response.status: {response.status}")
-                return response
+        resend_command = True
+        while resend_command and self._stopwatch.elapsed < self.timeout:
+            self._transport.write(command)
+            resend_command = False
+
+            while self._stopwatch.elapsed < self.timeout:
+                response = self._read_response_header()
+                # Busy means the MCU is not ready for this command yet and we should retry later.
+                if response.status == ResponseStatus.Busy:
+                    continue  # retry reading the header
+                elif (
+                    response.status == ResponseStatus.Error_CommandIntegrityError
+                    or response.status == ResponseStatus.Error_PayloadIntegrityError
+                ):
+                    resend_command = True
+                    break  # exit reading loop to retry sending the command
+                else:
+                    # we got a response to a command, so we can exit
+                    if response.status != ResponseStatus.Ok:
+                        log(f"response.status: {response.status}")
+                    return response
         raise TimeoutError
