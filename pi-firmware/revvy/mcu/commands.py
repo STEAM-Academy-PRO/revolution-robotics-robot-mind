@@ -86,6 +86,14 @@ class ReturnlessCommand(Command[None]):
         return None
 
 
+# The following classes implement the python counterpart of MCU commands.
+# MCU commands are defined in:
+# - mcu-bootloader/rrrc/runtime/comm_handlers.c
+# - mcu-firmware/rrrc/runtime/comm_handlers.c
+# The commands are collected in the RevvyControl and BootloaderControl classes in the rrrc_control.py
+# file, providing a function call-like interface to the commands.
+
+
 class PingCommand(ReturnlessCommand, ParameterlessCommand[None]):
     @property
     def command_id(self) -> int:

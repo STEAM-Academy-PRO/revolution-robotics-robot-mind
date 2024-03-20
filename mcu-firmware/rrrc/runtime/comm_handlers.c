@@ -17,6 +17,7 @@ static Comm_Status_t CommWrapper_IMUOrientationEstimator_Reset_Start(ConstByteAr
     return Comm_Status_Ok;
 }
 
+/* These commands relate to RevvyControl in pi-firmware/revvy/mcu/rrrc_control.py */
 Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT] =
 {
     /* other commands */

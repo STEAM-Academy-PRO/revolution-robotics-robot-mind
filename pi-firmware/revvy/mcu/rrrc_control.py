@@ -14,6 +14,7 @@ class RevvyTransportBase(ABC):
 
 class BootloaderControl:
     def __init__(self, transport: RevvyTransport):
+        # These commands map to mcu-bootloader/rrrc/runtime/comm_handlers.c
         self.get_hardware_version = ReadHardwareVersionCommand(transport)
         self.read_operation_mode = ReadOperationModeCommand(transport)
         self.send_init_update = InitializeUpdateCommand(transport)
@@ -24,6 +25,7 @@ class BootloaderControl:
 
 class RevvyControl:
     def __init__(self, transport: RevvyTransport):
+        # These commands map to mcu-firmware/rrrc/runtime/comm_handlers.c
         self.ping = PingCommand(transport)
 
         self.set_master_status = SetMasterStatusCommand(transport)
