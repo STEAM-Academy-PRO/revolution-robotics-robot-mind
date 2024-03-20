@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite';
 import solidPlugin from 'vite-plugin-solid';
+import fs from 'fs';
+import path from 'path';
 // import devtools from 'solid-devtools/vite'
 
 export default defineConfig({
@@ -19,6 +21,10 @@ export default defineConfig({
     cors: {
       origin: "*",
       allowedHeaders: ["Access-Control-Allow-Origin", "Access-Control-Allow-Methods"]
+    },
+    https: {
+      key: fs.readFileSync(path.resolve(__dirname, './server.key')),
+      cert: fs.readFileSync(path.resolve(__dirname, './server.crt')),
     }
   },
   build: {

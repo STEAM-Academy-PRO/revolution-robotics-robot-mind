@@ -1,6 +1,7 @@
 import { connectToRobot, disconnect } from '../utils/Communicator';
 import { blocklyUrlBase, conn, endpoint, setBlocklyUrlBase, setEndpoint } from '../settings';
 import styles from './Config.module.css'
+import { BLESelector } from '../utils/ble-selector';
 
 export default function SettingsView() {
 
@@ -20,6 +21,13 @@ export default function SettingsView() {
         <br />
         Blockly Endpoint:<br />
         <input type="text" value={blocklyUrlBase()} onInput={(e) => setBlocklyUrlBase(e.target.value)} />
+      </div>
+
+      <div>
+        <h3>Bluetooth</h3>
+        <div>
+          <BLESelector />
+        </div>
       </div>
 
     </div >
