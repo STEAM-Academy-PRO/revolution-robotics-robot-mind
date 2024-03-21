@@ -3,14 +3,14 @@
 
 static uint8_t responseBuffer[256];
 
-static Comm_ResponseHeader_t defaultResponse = 
+static Comm_ResponseHeader_t defaultResponse =
 {
     .status = Comm_Status_Busy,
     .payloadLength = 0u,
     .payloadChecksum = 0xFFFFu
 };
 
-static Comm_ResponseHeader_t longRxErrorResponse = 
+static Comm_ResponseHeader_t longRxErrorResponse =
 {
     .status = Comm_Status_Error_PayloadLengthError,
     .payloadLength = 0u,
@@ -29,12 +29,10 @@ void MasterCommunication_Run_GetLongRxErrorResponse(uint8_t** longRxErrorRespons
     *longRxErrorResponseLength = sizeof(longRxErrorResponse);
 }
 
-void MasterCommunication_Run_OnInit(const Comm_CommandHandler_t* commandTable, size_t commandTableSize)
+void MasterCommunication_Run_OnInit()
 {
     Comm_ProtectMessageHeader(&defaultResponse);
     Comm_ProtectMessageHeader(&longRxErrorResponse);
-
-    Comm_Init(commandTable, commandTableSize);
 }
 
 void MasterCommunication_Run_HandleCommand(const uint8_t* buffer, size_t bufferSize)

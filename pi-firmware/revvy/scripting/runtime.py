@@ -3,8 +3,9 @@
 from enum import Enum
 import time
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Optional
 from revvy.utils.emitter import Emitter
+from revvy.utils.functions import str_to_func
 
 # To have types, use this to avoid circular dependencies.
 if TYPE_CHECKING:
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
     from revvy.robot_config import RobotConfig
 
 from revvy.utils.logger import get_logger
-from revvy.utils.thread_wrapper import ThreadContext, ThreadWrapper
+from revvy.utils.thread_wrapper import ThreadContext, ThreadWrapper, ThreadWrapperState
 from revvy.scripting.robot_interface import RobotWrapper
 
 
@@ -24,17 +25,36 @@ class ScriptEvent(Enum):
 
 class ScriptDescriptor:
     name: str
-    runnable: callable
+    runnable: Callable
     priority: int
     source: str
-    ref_id: str
+    ref_id: Optional[int]
 
-    def __init__(self, name, runnable, priority, source="", ref_id=None):
+    def __init__(
+        self,
+        name: str,
+        runnable: Callable,
+        priority: int,
+        source: str,
+        ref_id: Optional[int] = None,
+    ):
         self.name = name
         self.runnable = runnable
         self.priority = priority
         self.source = source
         self.ref_id = ref_id
+
+    @staticmethod
+    def from_string(
+        name: str, source: str, priority: int, ref_id: Optional[int] = None
+    ) -> "ScriptDescriptor":
+        return ScriptDescriptor(
+            name,
+            str_to_func(source),
+            priority,
+            source,
+            ref_id,
+        )
 
 
 class TimeWrapper:
@@ -46,11 +66,14 @@ class TimeWrapper:
 class ScriptHandle(Emitter[ScriptEvent]):
     """Creates a controller from a script descirptor"""
 
-    def _default_sleep(self, _):
+    def _prevent_incorrect_sleep(self, _: float):
+        # The script is not running, so calling its sleep() is an error.
         self.log("Error: default sleep called")
         raise Exception("Script not running")
 
-    def __init__(self, owner: "ScriptManager", descriptor, name, global_variables: dict):
+    def __init__(
+        self, owner: "ScriptManager", descriptor: ScriptDescriptor, name, global_variables: dict
+    ):
         super().__init__()
         self._owner = owner
         self._globals = global_variables.copy()
@@ -58,7 +81,7 @@ class ScriptHandle(Emitter[ScriptEvent]):
         self.name = name
         self._runnable = descriptor.runnable
         self.descriptor = descriptor
-        self.sleep = self._default_sleep
+        self.sleep = self._prevent_incorrect_sleep
         self._thread = ThreadWrapper(self._run, name)
         self.log = get_logger(["Script", name])
         self.stop = self._thread.stop
@@ -73,6 +96,7 @@ class ScriptHandle(Emitter[ScriptEvent]):
 
         self._thread.on_error(self._on_error)
 
+        # TODO: this isn't needed if everything is typed right, we can remove it later
         assert callable(self._runnable)
 
         self.log("Created")
@@ -82,25 +106,33 @@ class ScriptHandle(Emitter[ScriptEvent]):
 
     @property
     def is_stop_requested(self):
-        return self._thread.state in [ThreadWrapper.STOPPING, ThreadWrapper.STOPPED]
+        return self._thread.state in [ThreadWrapperState.STOPPING, ThreadWrapperState.STOPPED]
 
     @property
-    def is_running(self):
+    def is_running(self) -> bool:
         return self._thread.is_running
+
+    @property
+    def priority(self) -> int:
+        return self.descriptor.priority
 
     def assign(self, name, value):
         self._globals[name] = value
 
-    def _run(self, ctx):
+    def _run(self, ctx: ThreadContext):
         try:
             # script control interface
             def _terminate():
                 self.stop()
                 raise InterruptedError
 
-            ctx.terminate = _terminate
-            ctx.terminate_all = lambda: self._owner.stop_all_scripts(False)
+            # adding new methods to the context, that we may use from blockly-generated code
+            ctx.terminate = _terminate  # pyright: ignore
+            ctx.terminate_all = lambda: self._owner.stop_all_scripts(False)  # pyright: ignore
 
+            # We provide a custom sleep implementation to the scripts, so they can be interrupted
+            # Using the default `time.sleep` would make it impossible to stop the script in a timely
+            # manner
             self.sleep = ctx.sleep
             self.log("Starting script")
             self.trigger(ScriptEvent.START)
@@ -111,9 +143,9 @@ class ScriptHandle(Emitter[ScriptEvent]):
         finally:
             # restore to release reference on context
             self.log("Script finished")
-            self.sleep = self._default_sleep
+            self.sleep = self._prevent_incorrect_sleep
 
-    def reset_variables(self, *args):
+    def reset_variables(self, *args) -> None:
         if "list_slots" in self._globals:
             for var in self._globals["list_slots"]:
                 self.log(f"resetting_variable: {var}")
@@ -152,7 +184,8 @@ class ScriptManager:
     def add_script(
         self,
         script: ScriptDescriptor,
-        config: "RobotConfig" = None,
+        # tests don't pass a config, which is weird and probably wrong
+        config: Optional["RobotConfig"] = None,
         robot_wrapper_class=RobotWrapper,
     ):
         # TODO: This is a not a good place here: we should not need to check if a script
@@ -166,8 +199,9 @@ class ScriptManager:
         script_handle = ScriptHandle(self, script, script.name, self._globals)
         try:
             # Note: Due to dependency injection, this is wrapped out.
+            # FIXME the lint ignore shouldn't be there. Fix tests.
             interface = robot_wrapper_class(
-                script_handle, self._robot, config, self._robot.resources, script.priority
+                script_handle, self._robot, config, self._robot.resources  # type: ignore tests pass a None and a mock wrapper
             )
             script_handle.on_stopping(interface.release_resources)
             script_handle.on_stopped(interface.release_resources)
@@ -182,7 +216,7 @@ class ScriptManager:
     def __getitem__(self, name):
         return self._scripts[name]
 
-    def stop_all_scripts(self, wait=True):
+    def stop_all_scripts(self, wait: bool = True):
         events = []
         for script in self._scripts.values():
             events.append(script.stop())

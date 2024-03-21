@@ -15,6 +15,7 @@
 
 #include <hal_gpio.h>
 #include <hal_ext_irq.h>
+#include "SEGGER_RTT.h"
 
 /*
  * In 'DETECT MOTOR' mode how many calls to TestMotorOnPort is possible to run
@@ -290,6 +291,8 @@ AsyncResult_t MotorPortHandler_AsyncRunnable_TestMotorOnPort(AsyncCommand_t asyn
             return AsyncResult_Ok;
         }
 
+
+        SEGGER_RTT_printf(0, "TestMotorOnPort: start testing port_idx=%d\n", port_idx);
         MotorDriver_8833_TestLoadStart(motor_driver_index, motor_driver_channel,
             test_power);
 
@@ -331,6 +334,7 @@ AsyncResult_t MotorPortHandler_AsyncRunnable_TestMotorOnPort(AsyncCommand_t asyn
         }
     }
 
+    SEGGER_RTT_printf(0, "TestMotorOnPort: testing done port_idx=%d detected=%d\n", port_idx, motor_detected);
     MotorDriver_8833_TestLoadStop(motor_driver_index, motor_driver_channel);
     test_motor_on_port_state = TEST_MOTOR_ON_PORT_STATE_IDLING;
 
@@ -428,13 +432,14 @@ void MotorPortHandler_Read_DriveRequest(uint32_t index, DriveRequest_t* value)
 
     /* End User Code Section: DriveRequest:read Start */
     *value = (DriveRequest_t) {
-        .version      = 0u,
-        .power_limit  = 0.0f,
-        .speed_limit  = 0.0f,
-        .request_type = DriveRequest_RequestType_Power,
-        .request      = {
+        .version            = 0u,
+        .power_limit        = 0.0f,
+        .speed_limit        = 0.0f,
+        .request_type       = DriveRequest_RequestType_Power,
+        .request            = {
             .power = 0
-        }
+        },
+        .positionBreakpoint = 0.0f
     };
     /* Begin User Code Section: DriveRequest:read End */
 

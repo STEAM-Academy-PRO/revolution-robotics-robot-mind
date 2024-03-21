@@ -1,5 +1,59 @@
+.codeEditor{
+    display: flex; flex-direction: row;
+}
+
 .editor{
     text-align: left;
     background-color: var(--editor-background);
-    width: 100%
+    width: 80vw;
+    min-height: 300px;
+    display: flex;
+    flex-direction: row;
 }
+
+.editorWrapper{
+    text-align: left;
+    padding: 20px;
+}
+
+.column { flex-direction: column; height: 80vh}
+
+.tabs{
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    width: 100%;
+    background-color: var(--editor-background);
+    border-bottom: 1px solid var(--editor-border);
+}
+
+.header{
+    display: flex;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    justify-content: space-between;
+}
+.header > a {
+    display: block; padding: 10px;
+}
+
+.content{
+    background: black;
+}
+
+.flex{ display: flex }
+
+.clickable{ cursor: pointer; }
+.clickable:hover{ background-color: #777; }
+
+.assignments{
+    margin-left:auto;
+}
+
+.pre{
+    white-space: pre-wrap;
+    background: black
+}
+.active{ background: #afa }
+.active.clickable{ background: #7f7 }

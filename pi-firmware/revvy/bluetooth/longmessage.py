@@ -2,6 +2,7 @@
 
 
 import io
+from math import ceil
 import os
 import tarfile
 import shutil
@@ -12,13 +13,12 @@ import struct
 
 from contextlib import suppress
 from json import JSONDecodeError
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 from revvy.utils.file_storage import StorageInterface, StorageError
 from revvy.utils.functions import split
 from revvy.utils.logger import get_logger
 from revvy.utils.progress_indicator import ProgressIndicator
-from revvy.utils.functions import str_to_func
 
 from revvy.robot.led_ring import RingLed
 from revvy.robot.status import RobotStatus
@@ -116,13 +116,13 @@ class ReceivedLongMessage:
         self._md5calc = hashlib.md5()
         self._size_known = size != 0
 
-    def append_data(self, data):
+    def append_data(self, data: bytes):
         self.received_chunks += 1
         self.data += data
         self._md5calc.update(data)
 
     @property
-    def is_valid(self):
+    def is_valid(self) -> bool:
         """Returns true if the uploaded data matches the predefined md5 checksum."""
         if self._size_known:
             if self.received_chunks != self.total_chunks:
@@ -186,7 +186,7 @@ class LongMessageHandler:
         self._long_message_storage = long_message_storage
         self._long_message_type = None
         self._status = LongMessageHandler.STATUS_IDLE
-        self._current_message = None
+        self._current_message: Optional[ReceivedLongMessage] = None
         self._message_updated_callback = None
         self._upload_started_callback = None
         self._upload_progress_callback = None
@@ -219,6 +219,7 @@ class LongMessageHandler:
             return ValidationErrorLongMessageStatusInfo
 
         assert self._status == LongMessageHandler.STATUS_WRITE
+        assert self._current_message is not None
         return LongMessageStatusInfo(
             LongMessageStatus.UPLOAD,
             hexdigest2bytes(self._current_message.md5),
@@ -413,7 +414,7 @@ class LongMessageImplementation:
     def __init__(self, robot_manager: RobotManager, storage: LongMessageStorage, asset_dir):
         self._robot_manager = robot_manager
         self._asset_dir = asset_dir
-        self._progress = None
+        self._progress: Optional[ProgressIndicator] = None
         self._storage = storage
 
         self._log = get_logger("LongMessageImplementation")
@@ -441,7 +442,7 @@ class LongMessageImplementation:
                 # calculate approximate chunk count
                 expected_size = 250000
                 chunk_size = len(message.data) / message.received_chunks
-                message.total_chunks = expected_size / chunk_size
+                message.total_chunks = ceil(expected_size / chunk_size)
                 self._progress.end = message.total_chunks
 
             if message.total_chunks != 0:
@@ -486,9 +487,7 @@ class LongMessageImplementation:
             test_script_source = message.data.decode()
             self._log(f"Running test script: \n{test_script_source}")
 
-            script_descriptor = ScriptDescriptor(
-                "test_kit", str_to_func(test_script_source), 0, source=test_script_source
-            )
+            script_descriptor = ScriptDescriptor.from_string("test_kit", test_script_source, 0)
 
             self._robot_manager.robot_configure(empty_robot_config)
 
@@ -496,11 +495,11 @@ class LongMessageImplementation:
 
             handle = self._robot_manager._scripts.add_script(script_descriptor, empty_robot_config)
 
-            def on_stopped(*args):
+            def on_stopped(*args) -> None:
                 self._log("test script ended")
                 self._robot_manager.reset_configuration()
 
-            def on_error(*args):
+            def on_error(*args) -> None:
                 revvy_error_handler.report_error(RobotErrorType.SYSTEM, traceback.format_exc())
 
             handle.on(ScriptEvent.STOP, on_stopped)
@@ -524,7 +523,8 @@ class LongMessageImplementation:
         elif message_type == LongMessageType.FRAMEWORK_DATA:
             # TODO: Eliminate calling robot status updates from the outside like this!
             self._robot_manager.robot.status.robot_status = RobotStatus.Updating
-            self._progress.show_indeterminate_loading_on_led_ring()
+            if self._progress is not None:
+                self._progress.show_indeterminate_loading_on_led_ring()
 
             # We wait for the bluetooth to respond with the final message.
             # We need to open a new thread for that so it lets this thread finish.

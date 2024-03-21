@@ -5,8 +5,10 @@ from enum import Enum
 import json
 import struct
 import threading
+from time import time
 import traceback
 from revvy.api.camera import Camera
+from revvy.utils.error_reporter import RobotErrorType
 from revvy.utils.version import VERSION
 
 import websockets
@@ -18,7 +20,6 @@ from revvy.robot_manager import RobotManager
 from revvy.robot.rc_message_parser import parse_control_message
 from revvy.robot_config import RobotConfig
 
-from revvy.robot.remote_controller import RemoteControllerCommand
 from revvy.utils.logger import LogLevel, get_logger
 
 log = get_logger("WebSocket")
@@ -39,6 +40,7 @@ send_control_events = [
     RobotEvent.CAMERA_STOPPED,
     RobotEvent.CAMERA_ERROR,
     RobotEvent.CONTROLLER_LOST,
+    RobotEvent.ERROR,
 ]
 
 ignore_log_events = [
@@ -58,14 +60,16 @@ def is_namedtuple(obj):
 
 
 class NamedTupleEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if is_namedtuple(obj):
-            return obj._asdict()  # Convert the named tuple to a dictionary
-        if isinstance(obj, Enum):
-            return obj.value
-        if isinstance(obj, bytes):
-            return str(obj)
-        return super().default(obj)
+    def default(self, o):
+        if is_namedtuple(o):
+            return o._asdict()  # Convert the named tuple to a dictionary
+        if isinstance(o, Enum):
+            return o.value
+        if isinstance(o, bytes):
+            return str(o)
+        if callable(getattr(o, "__json__", None)):
+            return o.__json__()
+        return super().default(o)
 
 
 # Function to encode data dynamically
@@ -85,7 +89,7 @@ class RobotWebSocketApi:
         # Sends events through robot state!
         self._camera = Camera(robot_manager._robot_state.trigger)
 
-        robot_manager.on("all", self.all_event_capture)
+        robot_manager.on_all(self.all_event_capture)
 
     def all_event_capture(self, object_ref, evt, data=None):
         if evt not in ignore_log_events:
@@ -122,8 +126,10 @@ class RobotWebSocketApi:
                 {"event": RobotEvent.BATTERY_CHANGE, "data": self._robot_manager.robot.battery}
             )
 
-            self.send({"event": "version_info", "data": VERSION.get()})
+            self._robot_manager.robot.play_tune("s_connect")
 
+            self.send({"event": "version_info", "data": VERSION.get()})
+            last_control_message = time()
             # Listen for incoming messages
             async for message_raw in websocket:
                 # log(f"Received message: {message_raw}")
@@ -143,7 +149,11 @@ class RobotWebSocketApi:
                         log(f"Incoming Configuration Message: [{message_type}]")
 
                         parsed_config = RobotConfig.from_string(message["body"])
+                        configure_start_time = time()
                         self._robot_manager.robot_configure(parsed_config)
+                        self.send(
+                            {"event": "confirm_success", "data": time() - configure_start_time}
+                        )
 
                     if message_type == "control":
                         json_data = message["body"]
@@ -155,18 +165,30 @@ class RobotWebSocketApi:
                         )
 
                         command = parse_control_message(data)
+                        # log(
+                        #     f"Control message: {command.analog} - {round(time() - last_control_message, 4)*1000}ms"
+                        # )
+                        last_control_message = time()
                         self._robot_manager.handle_periodic_control_message(command)
+                        # Send back the packet ID to see LAG.
+                        self.send({"event": "control_confirm", "data": json_data["0"]})
                 except Exception as e:
-                    log(f"Control message failed: {message_type}: {e}")
-                    log(traceback.format_exc())
+                    log(f"Loop failed: {message_type}: {e}")
+                    stack = traceback.format_exc()
                     self.send(
-                        {"event": "ERROR", "data": f"Control message failed: {message_type}: {e}"}
+                        {
+                            "event": "error",
+                            "data": {
+                                "stack": f"{stack}\n{message_type}: {e}",
+                                "type": RobotErrorType.SYSTEM,
+                                "ref": 0,
+                            },
+                        }
                     )
-                # Send the received message back to the client
-                # await websocket.send(f"Received: {message_raw}")
 
         except websockets.exceptions.ConnectionClosedError:
             pass  # Connection closed, ignore the error
+            self._robot_manager.robot.play_tune("s_disconnect")
         finally:
             # Print a message when a connection is closed
             log(f"Client disconnected: {websocket.remote_address}")
@@ -174,6 +196,7 @@ class RobotWebSocketApi:
     def send(self, message):
         for ws in self._connections:
             try:
+                # log(f'msg: {message["event"]}')
                 asyncio.run_coroutine_threadsafe(ws.send(encode_data(message)), self._event_loop)
             except Exception as e:
                 log(f"send error {str(e)}", LogLevel.ERROR)

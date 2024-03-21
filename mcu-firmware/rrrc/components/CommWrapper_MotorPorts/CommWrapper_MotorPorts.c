@@ -3,9 +3,10 @@
 #include "utils_assert.h"
 
 /* Begin User Code Section: Declarations */
+#include "SEGGER_RTT.h"
 #include <string.h>
 
-static uint8_t config_buffer[128];
+static uint8_t config_buffer[256];
 
 #define MOTOR_PORT_IDX(x) ((x) - 1u)
 /* End User Code Section: Declarations */
@@ -88,22 +89,13 @@ Comm_Status_t CommWrapper_MotorPorts_Run_Command_SetPortType_Start(ConstByteArra
 Comm_Status_t CommWrapper_MotorPorts_Run_Command_SetPortType_GetResult(ByteArray_t response, uint8_t* responseCount)
 {
     /* Begin User Code Section: Command_SetPortType_GetResult:run Start */
-    (void) response;
-    (void) responseCount;
-
-    bool result;
+    bool result = false;
     switch (CommWrapper_MotorPorts_Async_SetPortType_GetResult(&result))
     {
         case AsyncOperationState_Done:
-            if (result)
-            {
-                return Comm_Status_Ok;
-            }
-            else
-            {
-                return Comm_Status_Error_CommandError;
-            }
-            break;
+            response.bytes[0] = (uint8_t)result;
+            *responseCount = 1u;
+            return Comm_Status_Ok;
 
         case AsyncOperationState_Busy:
             return Comm_Status_Pending;
@@ -125,6 +117,7 @@ Comm_Status_t CommWrapper_MotorPorts_Run_Command_SetPortConfig_Start(ConstByteAr
 
     if (commandPayload.count == 0u || commandPayload.count > ARRAY_SIZE(config_buffer) + 1u)
     {
+        SEGGER_RTT_printf(0, "Payload length error (%u)\n", commandPayload.count);
         return Comm_Status_Error_PayloadLengthError;
     }
 
@@ -185,6 +178,7 @@ Comm_Status_t CommWrapper_MotorPorts_Run_Command_SetControlValue_Start(ConstByte
 {
     /* Begin User Code Section: Command_SetControlValue_Start:run Start */
     uint8_t processedBytes = 0u;
+    size_t command_index = 0;
     while (processedBytes < commandPayload.count)
     {
         uint8_t segmentHeader = commandPayload.bytes[processedBytes];
@@ -193,8 +187,13 @@ Comm_Status_t CommWrapper_MotorPorts_Run_Command_SetControlValue_Start(ConstByte
 
         if (portIdx >= CommWrapper_MotorPorts_Read_PortCount())
         {
-            response.bytes[0] = 0u;
-            *responseCount = 1u;
+            *responseCount = 0u;
+            return Comm_Status_Error_CommandError;
+        }
+
+        if (portIdx > response.count)
+        {
+            *responseCount = 0u;
             return Comm_Status_Error_CommandError;
         }
 
@@ -222,7 +221,11 @@ Comm_Status_t CommWrapper_MotorPorts_Run_Command_SetControlValue_Start(ConstByte
         __disable_irq();
         CommWrapper_MotorPorts_Write_DriveRequest(portIdx, &request);
         __set_PRIMASK(primask);
+
+        response.bytes[command_index] = request.version;
+        command_index++;
     }
+    *responseCount = command_index;
 
     return Comm_Status_Ok;
     /* End User Code Section: Command_SetControlValue_Start:run Start */
@@ -298,6 +301,7 @@ Comm_Status_t CommWrapper_MotorPorts_Run_Command_TestMotorOnPort_GetResult(ByteA
     /* End User Code Section: Command_TestMotorOnPort_GetResult:run Start */
     /* Begin User Code Section: Command_TestMotorOnPort_GetResult:run End */
 
+    SEGGER_RTT_WriteString(0, "Should never reach this\n");
     /* End User Code Section: Command_TestMotorOnPort_GetResult:run End */
 }
 

@@ -8,10 +8,13 @@ Outside code can subscribe to these events and react to them.
 import copy
 import threading
 from time import time
+import traceback
 
-from typing import Generic, TypeVar, Callable, List
+from typing import Generic, Optional, TypeVar, Callable, List
 
 from revvy.utils.emitter import SimpleEventEmitter
+
+from revvy.utils.error_reporter import RobotErrorType, revvy_error_handler
 
 
 VariableType = TypeVar("VariableType")
@@ -20,9 +23,12 @@ VariableType = TypeVar("VariableType")
 class Observable(Generic[VariableType]):
     """Simple Observable Implementation"""
 
-    def __init__(self, value=None, throttle_interval=0):
+    def __init__(
+        self, value: VariableType, throttle_interval: Optional[float] = None, needs_deep_copy=False
+    ):
         self._on_value_changed = SimpleEventEmitter()
         self._data: VariableType = value
+        self._needs_deep_copy = needs_deep_copy
 
         # Throttling
         self._throttle_interval = throttle_interval
@@ -35,9 +41,9 @@ class Observable(Generic[VariableType]):
     def unsubscribe(self, observer: Callable):
         self._on_value_changed.remove(observer)
 
-    def notify(self):
+    def notify(self) -> None:
         """If not throttling, observers are notified instantly. If throttling is enabled, events are emitted at most once per period."""
-        if self._throttle_interval == 0:
+        if self._throttle_interval is None:
             self._on_value_changed.trigger(self._data)
         else:
             current_time = time()
@@ -56,24 +62,35 @@ class Observable(Generic[VariableType]):
                     timer_thread.name = "ObservableThrottleTimer"
                     timer_thread.start()
 
-    def _check_pending_update(self):
+    def _check_pending_update(self) -> None:
         if self._update_pending:
-            self.notify()
+            try:
+                self.notify()
+            except Exception:
+                # As this is running in the timer's thread, we need to manually catch it.
+                revvy_error_handler.report_error(RobotErrorType.SYSTEM, traceback.format_exc())
 
     def set(self, new_data: VariableType):
         if new_data != self._data:
-            # For lists or complex objects, make a deep copy
-            if isinstance(new_data, list):
-                self._data = copy.deepcopy(new_data)
-            else:
-                self._data = new_data
+            # For lists or complex objects, we may need to make a deep copy
+            self._data = copy.deepcopy(new_data) if self._needs_deep_copy else new_data
             self.notify()
 
-    def get(self):
+    def get(self) -> VariableType:
         return self._data
 
 
-class SmoothingObservable(Observable):
+def simple_average(data_history: List[int]) -> int:
+    new_value = sum(data_history) / len(data_history)
+    return round(new_value)
+
+
+def rounded_average(precision: float, data_history: List[float]) -> float:
+    new_value = sum(data_history) / len(data_history)
+    return round(new_value * precision) / precision
+
+
+class SmoothingObservable(Observable[VariableType]):
     """
     When dealing with noisy data, we want to smooth it out.
     e.g. when measuring something like a battery voltage, we want to
@@ -87,15 +104,13 @@ class SmoothingObservable(Observable):
     def __init__(
         self,
         value,
-        throttle_interval=0,
+        smoothening_function: Callable[[List[VariableType]], VariableType],
+        throttle_interval: Optional[float] = None,
         window_size=10,
-        precision=1,
-        smoothening_function: Callable = None,
     ):
         super().__init__(value, throttle_interval)
         self._data_history = [] if not value else [value]
         self._window_size = window_size
-        self._precision = precision
         self._data = value
         self._last_data = value
         self._smoothening_function = smoothening_function
@@ -107,11 +122,6 @@ class SmoothingObservable(Observable):
         if len(self._data_history) > self._window_size:
             self._data_history.pop(0)
 
-        if self._smoothening_function:
-            new_value = self._smoothening_function(self._data_history)
-        else:
-            # simple average func
-            new_value = sum(self._data_history) / len(self._data_history)
-            new_value = round(new_value * self._precision) / self._precision
+        new_value = self._smoothening_function(self._data_history)
 
         super().set(new_value)

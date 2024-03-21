@@ -1,6 +1,7 @@
 """ Handles the short messages from the device. """
 
 import struct
+from typing import Callable, Optional
 
 from pybleno import BlenoPrimaryService
 from revvy.bluetooth.ble_characteristics import (
@@ -13,19 +14,25 @@ from revvy.bluetooth.ble_characteristics import (
     SensorCharacteristic,
     TimerCharacteristic,
     ValidateConfigCharacteristic,
+    ValidateState,
 )
 from revvy.bluetooth.queue_characteristic import QueueCharacteristic
-from revvy.bluetooth.validate_config_statuses import (
-    VALIDATE_CONFIG_STATE_DONE,
-    VALIDATE_CONFIG_STATE_IN_PROGRESS,
-    VALIDATE_CONFIG_STATE_UNKNOWN,
+from revvy.bluetooth.data_types import (
+    MotorData,
+    BackgroundControlState,
+    GyroData,
+    ScriptVariables,
+    SensorData,
+    TimerData,
 )
 from revvy.robot.rc_message_parser import parse_control_message
 from revvy.robot_manager import RobotManager
+from revvy.scripting.runtime import ScriptEvent
 
+from revvy.utils.error_reporter import RobotError
 from revvy.utils.logger import get_logger
 
-from revvy.robot.remote_controller import RemoteControllerCommand
+from revvy.robot.remote_controller import BleAutonomousCmd, RemoteControllerCommand
 
 NUM_MOTOR_PORTS = 6
 NUM_SENSOR_PORTS = 4
@@ -98,10 +105,6 @@ class LiveMessageService(BlenoPrimaryService):
             self.validate_config_callback,
         )
 
-        self._buf_gyro = b"\xff"
-        self._buf_orientation = b"\xff"
-        self._buf_script_variables = b"\xff"
-
         super().__init__(
             {
                 "uuid": "d2d5558c-5b9d-11e9-8647-d663bd873d93",
@@ -121,22 +124,22 @@ class LiveMessageService(BlenoPrimaryService):
             }
         )
 
-    def validate_config_callback(self, data):
+    def validate_config_callback(self, data: bytes) -> bool:
         # FIXME: Currently unused
         motor_bitmask, sensor0, sensor1, sensor2, sensor3, motor_load_power, threshold = (
-            struct.unpack("BBBBBBB", data)
+            struct.unpack("7B", data)
         )
 
-        current_state = self._validate_config_characteristic.get_state()
-        if current_state == VALIDATE_CONFIG_STATE_IN_PROGRESS:
+        current_state = self._validate_config_characteristic.state
+        if current_state == ValidateState.IN_PROGRESS:
             return False
 
         motors = [(motor_bitmask >> i) & 1 for i in range(NUM_MOTOR_PORTS)]
 
-        def validation_callback(success, motors, sensors):
+        def validation_callback(success, motors, sensors) -> None:
             self.set_validation_result(success, motors, sensors)
-            self._validate_config_characteristic.update_validate_config_result(
-                VALIDATE_CONFIG_STATE_IN_PROGRESS, motor_bitmask, sensors
+            self._validate_config_characteristic.updateValue(
+                ValidateState.IN_PROGRESS, motor_bitmask, sensors
             )
 
         self._robot_manager.validate_config_async(
@@ -152,12 +155,12 @@ class LiveMessageService(BlenoPrimaryService):
     def set_validation_result(self, success: bool, motors: list, sensors: list):
         # FIXME: Currently unused
 
-        valitation_state = VALIDATE_CONFIG_STATE_UNKNOWN
+        valitation_state = ValidateState.UNKNOWN
         if success:
-            valitation_state = VALIDATE_CONFIG_STATE_DONE
+            valitation_state = ValidateState.DONE
 
         if len(motors) != NUM_MOTOR_PORTS:
-            log("set_validation_result::invalid motors response: ", motors)
+            log(f"set_validation_result::invalid motors response: {motors}")
 
         motor_bitmask = 0
         for i in range(max(NUM_MOTOR_PORTS, len(motors))):
@@ -166,16 +169,12 @@ class LiveMessageService(BlenoPrimaryService):
                 motor_bit = motors[i]
             motor_bitmask |= motor_bit << i
 
-        if len(sensors) == NUM_SENSOR_PORTS:
-            s0, s1, s2, s3 = sensors
-        else:
-            s0 = s1 = s2 = s3 = False
+        if len(sensors) != NUM_SENSOR_PORTS:
+            sensors = [False] * NUM_SENSOR_PORTS
 
-        self._validate_config_characteristic.update_validate_config_result(
-            valitation_state, motor_bitmask, [s0, s1, s2, s3]
-        )
+        self._validate_config_characteristic.updateValue(valitation_state, motor_bitmask, sensors)
 
-    def control_message_handler(self, data: bytearray):
+    def control_message_handler(self, data: bytearray) -> bool:
         """
         Simple control callback is run each time new controller data
         representing full state of joystick is sent over a BLE characteristic
@@ -183,14 +182,14 @@ class LiveMessageService(BlenoPrimaryService):
         is the middle value representing joystick axis in neutral state.
         """
 
-        def joystick_axis_is_neutral(value):
+        def joystick_axis_is_neutral(value) -> bool:
             """
             Value is in 1 byte range 0-255, with 127 being the middle position
             of a joystick along that axis
             """
             return value == 127
 
-        def joystick_xy_is_moved(analog_values):
+        def joystick_xy_is_moved(analog_values) -> bool:
             if len(analog_values) < 2:
                 return False
 
@@ -220,7 +219,7 @@ class LiveMessageService(BlenoPrimaryService):
         self._robot_manager.handle_periodic_control_message(command)
         return True
 
-    def state_control_callback(self, data):
+    def state_control_callback(self, data: bytes):
         """Autonomous mode play/pause/stop/reset button from mobile to brain"""
 
         log(f"state_control_callback, coming from the mobile. {data}")
@@ -228,109 +227,59 @@ class LiveMessageService(BlenoPrimaryService):
             RemoteControllerCommand(
                 analog=bytearray(b"\x7f\x7f\x00\x00\x00\x00\x00\x00\x00\x00"),
                 buttons=[False] * 32,
-                background_command=int.from_bytes(data[2:], byteorder="big"),
+                background_command=BleAutonomousCmd(int.from_bytes(data[2:], byteorder="big")),
                 next_deadline=None,
             )
         )
 
-    def update_sensor(self, sensor, value):
+    def update_sensor(self, sensor_data: SensorData):
         """Send back sensor value to mobile."""
-        if 0 < sensor <= len(self._sensor_characteristics):
-            self._sensor_characteristics[sensor - 1].update(value)
+        if 0 < sensor_data.port_id <= len(self._sensor_characteristics):
+            self._sensor_characteristics[sensor_data.port_id - 1].updateValue(sensor_data)
 
-    def update_program_status(self, button_id: int, status: int):
-        """
-        It might be possible that BLE misses a packet. If that's the case,
-        we still want to encode all the program statuses in the message,
-        so we keep the struct up-to-date.
-        """
+    def update_program_status(self, button_id: int, status: ScriptEvent):
+        """Update the status of a button-triggered script"""
 
-        self._program_status_characteristic.update_button_value(button_id, status)
+        self._program_status_characteristic.updateButtonStatus(button_id, status.value)
 
-    def update_motor(self, motor, power, speed, position):
+    def update_motor(self, motor: int, data: MotorData):
         """Send back motor angle value to mobile."""
         # TODO: unused?
         if 0 <= motor < len(self._motor_characteristics):
-            data = list(struct.pack(">flb", speed, position, power))
-            self._motor_characteristics[motor].update(data)
+            self._motor_characteristics[motor].updateValue(data)
 
-    def update_session_id(self, value):
+    def update_session_id(self, value: int):
         """Send back session_id to mobile."""
         data = list(struct.pack("<I", value))
         # Maybe this was supposed to be used for detecting MCU reset in the mobile, but
         # currently it's not used.
-        self._mobile_to_brain.update(data)
+        self._mobile_to_brain.updateValue(data)
 
-    def update_gyro(self, vector_list):
+    def update_gyro(self, data: GyroData):
         """Send back gyro sensor value to mobile."""
         # TODO: unused?
-        if type(vector_list) is list:
-            buf = struct.pack("%sf" % len(vector_list), *vector_list)
-            if self._buf_gyro is not buf:
-                self._buf_gyro = buf
-                self._gyro_characteristic.update(self._buf_gyro)
+        self._gyro_characteristic.updateValue(data)
 
-    def update_orientation(self, vector_list):
+    def update_orientation(self, data: GyroData):
         """Send back orientation to mobile. Used to display the yaw of the robot"""
-        if type(vector_list) is list:
-            buf = struct.pack("%sf" % len(vector_list), *vector_list)
-            if self._buf_orientation is not buf:
-                self._buf_orientation = buf
-                self._orientation_characteristic.update(self._buf_orientation)
+        self._orientation_characteristic.updateValue(data)
 
-    def update_timer(self, data):
-        """Send back timer tick every second to mobile."""
-        buf = list(struct.pack(">bf", 4, round(data, 0)))
-        self._timer_characteristic.update(buf)
+    def update_timer(self, data: TimerData):
+        """Send back timer tick to mobile."""
+        self._timer_characteristic.updateValue(data)
 
-    def report_error(self, data):
+    def report_error(self, data: RobotError, on_ready: Optional[Callable[[], None]] = None):
         log(f"Sending Error: {data}")
-        self._error_reporting_characteristic.update(data)
+        self._error_reporting_characteristic.sendQueued(data.__bytes__(), on_ready)
 
-    def update_script_variables(self, script_variables):
+    def update_script_variables(self, script_variables: ScriptVariables):
         """
         In the mobile app, this data shows up when we track variables.
         By characteristic protocol - maximum slots in BLE message is 4.
         """
+        self._read_variable_characteristic.updateValue(script_variables)
 
-        # I believe this should be a constant that's coming from one centralized place, rather
-        # be wired in here. If this script sends more variables, we'll never know.
-        MAX_VARIABLE_SLOTS = 4
-
-        # Message format:
-        # offset:  0    1  2  3  4    5  6  7  8    9  10 11 12   13 14 15 16
-        # values:  0A | BB BB BB BB | CC CC CC CC | DD DD DD DD | EE EE EE EE
-        # A - bitmask consists of 4 bits. if bit is set - value has been set
-        #     by scripts. If bit is not set - value has never been changed yet,
-        #     due to script not run at all, or script has not yet set the value
-        #     and ReportVariableChanged has not been called for this slot
-
-        # BB - float value for Slot 1
-        # CC - float value for Slot 2
-        # DD - float value for Slot 3
-        # EE - float value for Slot 4
-
-        # In the end the user of this packet receives info about 4 slots, current
-        # value of each slot, has the value in this slot been set at least once
-
-        mask = 0
-        valuebuf = b""
-
-        for slot_idx in range(MAX_VARIABLE_SLOTS):
-            value = script_variables[slot_idx]
-            if value:
-                mask = mask | (1 << slot_idx)
-            else:
-                value = 0.0
-            valuebuf += struct.pack("f", value)
-
-        maskbuf = struct.pack("B", mask)
-        msg = maskbuf + valuebuf
-
-        self._read_variable_characteristic.update(msg)
-
-    def update_state_control(self, state):
+    def update_state_control(self, state: BackgroundControlState):
         """Send back the background programs' state."""
         log(f"state control update, {state}")
-        data = list(struct.pack(">bl", 4, state))
-        self._background_program_control_characteristic.update(data)
+        self._background_program_control_characteristic.updateValue(state)

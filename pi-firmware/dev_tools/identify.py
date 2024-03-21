@@ -7,29 +7,33 @@
 
 import time
 
+from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.robot.configurations import Motors
 from revvy.utils.thread_wrapper import periodic
 from revvy.robot.robot import Robot
 
 if __name__ == "__main__":
-    with Robot() as robot:
-        robot.reset()
-        status_update_thread = periodic(robot.update_status, 0.02, "RobotStatusUpdaterThread")
-        status_update_thread.start()
+    interface = RevvyTransportI2C(bus=1)
 
-        motor = robot.motors[4]
-        motor.configure(Motors.RevvyMotor)
+    robot = Robot(interface)
 
-        training = False
-        if training:
-            pwms = [1, 6, 7, 8, 9, 10, 30, 50, 70, 100]
-        else:
-            pwms = range(0, 101, 5)
+    robot.reset()
+    status_update_thread = periodic(robot.update_status, 0.02, "RobotStatusUpdaterThread")
+    status_update_thread.start()
 
-        for pwm in pwms:
-            motor.set_power(pwm)
-            time.sleep(2)
-            motor.set_power(0)
-            time.sleep(1)
+    motor = robot.motors[4]
+    motor.configure(Motors.RevvyMotor)
 
-        status_update_thread.exit()
+    training = False
+    if training:
+        pwms = [1, 6, 7, 8, 9, 10, 30, 50, 70, 100]
+    else:
+        pwms = range(0, 101, 5)
+
+    for pwm in pwms:
+        motor.driver.set_power(pwm)
+        time.sleep(2)
+        motor.driver.set_power(0)
+        time.sleep(1)
+
+    status_update_thread.exit()

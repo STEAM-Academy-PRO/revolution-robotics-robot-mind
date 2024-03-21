@@ -22,7 +22,8 @@ typedef struct
 typedef enum {
     StartupReason_PowerUp,
     StartupReason_BootloaderRequest,
-    StartupReason_WatchdogReset
+    StartupReason_WatchdogReset,
+    StartupReason_BrownOutReset,
 } StartupReason_t;
 
 StartupReason_t FMP_CheckBootloaderModeRequest (void);

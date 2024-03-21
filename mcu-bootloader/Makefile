@@ -74,6 +74,7 @@ Config \
 ../mcu-common/CMSIS/Include \
 ../mcu-common/SEGGER/RTT \
 rrrc \
+rrrc/runtime \
 rrrc/components/MasterCommunication \
 rrrc/components/MasterCommunicationInterface \
 rrrc/components/LEDController \
@@ -158,16 +159,17 @@ OBJS := $(C_SRCS:%.c=$(OUTPUT_DIR)/%.o)
 C_DEPS := $(OBJS:%.o=%.d)
 
 ifneq ($(MAKECMDGOALS),clean)
-ifneq ($(strip $(C_DEPS)),)
 -include $(C_DEPS)
 endif
-endif
 
-# Make sure files from the outer mcu-common directory don't escape Build
+$(OUTPUT_DIR)/%.d: %.c
+	@echo Collecting dependencies: $<
+	@$(MKDIR) "$(@D)" 2>$(NULL) || $(TRUE)
+	@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) $(addprefix -I,$(INCLUDE_PATHS)) $(COMPILE_FLAGS) -MF $@ -MT$@ -M $<
+
 $(OUTPUT_DIR)/%.o: %.c
 	@echo Building file: $<
-	@$(MKDIR) "$(@D)" 2>$(NULL) || $(TRUE)
-	@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) $(addprefix -I,$(INCLUDE_PATHS)) $(COMPILE_FLAGS) -MF $(@:%.o=%.d) -MT$(@:%.o=%.d) -o $@ $<
+	@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) $(addprefix -I,$(INCLUDE_PATHS)) $(COMPILE_FLAGS) -o $@ $<
 	@echo Finished building: $<
 
 $(OUTPUT_FILE).elf: $(OBJS)
@@ -175,10 +177,6 @@ $(OUTPUT_FILE).elf: $(OBJS)
 	@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) -o$(OUTPUT_FILE).elf $(OBJS) $(LINKER_FLAGS) -Wl,-Map=$(OUTPUT_FILE).map -Wl,--start-group -lm  -Wl,--end-group -Wl,--gc-sections
 	@echo Finished building target: $@
 	@$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -O binary $(OUTPUT_FILE).elf $(OUTPUT_FILE).bin
-	@$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -O ihex -R .eeprom -R .fuse -R .lock -R .signature  $(OUTPUT_FILE).elf $(OUTPUT_FILE).hex
-	@$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -j .eeprom --set-section-flags=.eeprom=alloc,load --change-section-lma .eeprom=0 --no-change-warnings -O binary $(OUTPUT_FILE).elf $(OUTPUT_FILE).eep
-	@$(GCC_BINARY_PREFIX)objdump$(GCC_BINARY_SUFFIX) -h -S $(OUTPUT_FILE).elf > $(OUTPUT_FILE).lss
-	@$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -O srec -R .eeprom -R .fuse -R .lock -R .signature  $(OUTPUT_FILE).elf $(OUTPUT_FILE).srec
 	$(GCC_BINARY_PREFIX)size$(GCC_BINARY_SUFFIX) $(OUTPUT_FILE).elf
 
 clean:

@@ -40,12 +40,21 @@ StartupReason_t FMP_CheckBootloaderModeRequest(void) {
 
     uint32_t gp0, gp1, gp2, gp3 = 0u;
     StartupReason_t startupReason = StartupReason_PowerUp;
-    
+
+    // unresponsive application?
     bool wdt_reset = hri_rstc_get_RCAUSE_WDT_bit(RSTC);
+
+    // Brown-out detection?
+    bool bod12_reset = hri_rstc_get_RCAUSE_BODCORE_bit(RSTC);
+    bool bod33_reset = hri_rstc_get_RCAUSE_BODVDD_bit(RSTC);
 
     if (wdt_reset)
     {
         startupReason = StartupReason_WatchdogReset;
+    }
+    else if (bod12_reset || bod33_reset)
+    {
+        startupReason = StartupReason_BrownOutReset;
     }
     // GP functionality should be ON (there are only GP0 and GP2 enable flags)
     else if (hri_rtcmode0_get_CTRLB_GP0EN_bit(s_rtc_module) && hri_rtcmode0_get_CTRLB_GP2EN_bit(s_rtc_module))

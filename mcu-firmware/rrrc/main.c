@@ -73,6 +73,7 @@ void assert_failed(const char *file, uint32_t line)
 
     if (!in_assert)
     {
+        SEGGER_RTT_printf(0, "Assertion failed: %s:%d\r\n", file, line);
         in_assert = true;
         ErrorInfo_t data = {
             .error_id = ERROR_ID_ASSERTION_FAILURE
@@ -135,6 +136,7 @@ static void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
     uint32_t dfsr = SCB->DFSR;
     uint32_t hfsr = SCB->HFSR;
 
+    SEGGER_RTT_printf(0, "HardFault (%x) at %x\n", psr, pc);
     /* log the most important registers */
     ErrorInfo_t data = {
         .error_id = ERROR_ID_HARD_FAULT

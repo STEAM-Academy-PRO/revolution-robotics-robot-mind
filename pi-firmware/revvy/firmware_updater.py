@@ -175,7 +175,7 @@ class McuUpdater:
         VERSION.set(self.sw_version, self.hw_version, self.fw_version)
 
 
-def read_firmware_bin_from_fs(fw_data):
+def read_firmware_bin_from_fs(fw_data: dict[str, str]) -> bytes:
     """Finds the bin file from the package and reads them out, and checks MD5"""
     with open(fw_data["file"], "rb") as f:
         firmware_binary = f.read()
@@ -192,7 +192,7 @@ def read_firmware_bin_from_fs(fw_data):
     return firmware_binary
 
 
-def get_firmware_for_hw_version(fw_dir, hw_version):
+def get_firmware_for_hw_version(fw_dir: str, hw_version: str) -> tuple[Version, bytes]:
     """MCU firmware version existing in the current package"""
     try:
         fw_metadata = read_json(os.path.join(fw_dir, "catalog.json"))
@@ -210,7 +210,7 @@ def get_firmware_for_hw_version(fw_dir, hw_version):
         raise KeyError from e
 
 
-def update_firmware_if_needed() -> bool:
+def update_firmware_if_needed(interface: RevvyTransportBase) -> bool:
     """
     Checks HW version, determines if we can/need to do a firmware update
 
@@ -224,11 +224,13 @@ def update_firmware_if_needed() -> bool:
 
     ### Determine if we are in application mode.
 
-    i2c_bus = 1
-    updater = McuUpdater(RevvyTransportI2C(i2c_bus))
+    updater = McuUpdater(interface)
 
     # If an exception occurs, we'll save it for later when we may rethrow it.
     exception = None
+    fw_bin_version = None
+    fw_binary = None
+
     try:
         fw_bin_version, fw_binary = get_firmware_for_hw_version(firmware_path, updater.hw_version)
     except KeyError as e:
@@ -241,7 +243,7 @@ def update_firmware_if_needed() -> bool:
         exception = e
         log("Firmware file corrupted")
 
-    if exception:
+    if exception is not None:
         if updater.is_bootloader_mode:
             # We have no valid firmware in the package, and no firmware on the brain. Let's throw an
             # exception, and let the loader try again. Maybe an earier installation will restore
@@ -253,6 +255,12 @@ def update_firmware_if_needed() -> bool:
             # and hope that the package is compatible.
             log("No firmware in the package. The brain will use the last installation.")
             return True
+
+    # pyright doesn't understand that if we get here, the try: block was successful.
+    # It therefore thinks that fw_binary and fw_bin_version can be unbound, unless we
+    # set then to None then check here.
+    if fw_binary is None or fw_bin_version is None:
+        return False
 
     checksum = binascii.crc32(fw_binary)
 

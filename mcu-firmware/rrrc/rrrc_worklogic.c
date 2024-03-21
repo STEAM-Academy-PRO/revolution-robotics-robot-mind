@@ -271,7 +271,7 @@ void RRRC_ProcessLogic_Init(void)
 {
     system_init();
 
-    MasterCommunication_Run_OnInit(&communicationHandlers[0], COMM_HANDLER_COUNT);
+    MasterCommunication_Run_OnInit();
     Runtime_RaiseEvent_OnInit();
 
     MotorPortHandler_Run_OnInit(&motorPorts[0], ARRAY_SIZE(motorPorts));

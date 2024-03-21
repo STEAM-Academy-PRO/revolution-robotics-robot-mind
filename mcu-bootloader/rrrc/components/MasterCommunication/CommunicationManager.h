@@ -4,12 +4,12 @@
 #include <stdio.h>
 #include <stdint.h>
 
-typedef enum 
+typedef enum
 {
     Comm_Status_Ok,      /* operation executed successfully, response may contain payload */
     Comm_Status_Busy,    /* command handler is not ready with a response yet */
     Comm_Status_Pending, /* command execution is in progress, no data supplied */
-    
+
     Comm_Status_Error_UnknownOperation,
     Comm_Status_Error_InvalidOperation, /* in case GetResult is used but no command is pending */
     Comm_Status_Error_CommandIntegrityError,
@@ -22,13 +22,13 @@ typedef enum
 
 typedef enum
 {
-    Comm_Operation_Start,
-    Comm_Operation_Restart,
-    Comm_Operation_GetResult,
-    Comm_Operation_Cancel
+    Comm_Operation_Start = 0,
+    // Comm_Operation_Restart, // Removed
+    Comm_Operation_GetResult = 2,
+    // Comm_Operation_Cancel_Removed // Removed
 } Comm_Operation_t;
 
-typedef struct  
+typedef struct
 {
     Comm_Operation_t operation;
     uint8_t command;
@@ -38,7 +38,7 @@ typedef struct
 }
 __attribute__((packed)) Comm_CommandHeader_t;
 
-typedef struct 
+typedef struct
 {
     Comm_CommandHeader_t header;
     uint8_t payload[];
@@ -68,22 +68,12 @@ __attribute__((packed)) Comm_Response_t;
  */
 typedef Comm_Status_t (*Comm_CommandHandler_Start_t)(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount);
 typedef Comm_Status_t (*Comm_CommandHandler_GetResult_t)(uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount);
-typedef void (*Comm_CommandHandler_Cancel_t)(void);
 
-typedef struct 
+typedef struct
 {
     Comm_CommandHandler_Start_t Start;         /* may be NULL in case of an unimplemented command */
     Comm_CommandHandler_GetResult_t GetResult; /* may be NULL when command processing is short */
-    Comm_CommandHandler_Cancel_t Cancel;       /* may be NULL */
 } Comm_CommandHandler_t;
-
-/**
- * Initialize the communication handler
- *
- * Sets up command handler to accept and handle commands by calling their respective handlers.
- * Command handlers are defined in the commandTable variable.
- */
-void Comm_Init(const Comm_CommandHandler_t* commandTable, size_t commandTableSize);
 
 /**
  * Handle a request and prepare a response

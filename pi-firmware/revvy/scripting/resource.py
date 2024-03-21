@@ -1,4 +1,5 @@
 from threading import Lock
+from typing import Callable, List, Optional, Union
 
 from revvy.utils.emitter import SimpleEventEmitter
 from revvy.utils.logger import get_logger, LogLevel
@@ -24,6 +25,8 @@ class NullHandle:
         pass
 
 
+# We return this if the resource is not available, but... why? we should return None if we can't
+# get the resource, and then the user can check if the handle is null.
 null_handle = NullHandle()
 
 
@@ -70,9 +73,15 @@ class ResourceHandle:
 
 
 class Resource:
-    def __init__(self, name="Resource"):
+    """
+    A global token that symbolizes some shared hardware element, implementing priority-based access.
+
+    Resources need to be bound to scripts before they can be accessed.
+    """
+
+    def __init__(self, name: Union[str, List[str]] = "Resource"):
         self._lock = Lock()
-        self._log = get_logger(["Resource", name], LogLevel.DEBUG)
+        self._log = get_logger(name, LogLevel.DEBUG)
         self._current_priority = -1
         self._active_handle = null_handle
 
@@ -82,7 +91,7 @@ class Resource:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._lock.__exit__(exc_type, exc_val, exc_tb)
 
-    def reset(self):
+    def reset(self) -> None:
         # self._log('Reset')
         with self._lock:
             handle, self._active_handle = self._active_handle, null_handle
@@ -93,7 +102,7 @@ class Resource:
 
             self._current_priority = -1
 
-    def request(self, with_priority=0, on_taken_away=None):
+    def request(self, with_priority=0, on_taken_away: Optional[Callable[[], None]] = None):
         with self._lock:
             if not self._active_handle:
                 self._log(f"create handle for priority {with_priority}")
@@ -114,13 +123,13 @@ class Resource:
                 )
                 return null_handle
 
-    def _create_new_handle(self, with_priority, on_taken_away):
+    def _create_new_handle(self, with_priority, on_taken_away) -> None:
         self._current_priority = with_priority
         self._active_handle = ResourceHandle(self)
         if on_taken_away:
             self._active_handle.on_interrupted.add(on_taken_away)
 
-    def release(self, resource_handle):
+    def release(self, resource_handle) -> None:
         with self._lock:
             if self._active_handle == resource_handle:
                 self._active_handle = null_handle

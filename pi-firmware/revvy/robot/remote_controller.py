@@ -1,133 +1,78 @@
-from numbers import Number
+from dataclasses import dataclass
+from enum import Enum
 import time
-import copy
 
 from threading import Event
 import traceback
-from typing import Callable, NamedTuple
+from typing import Callable, NamedTuple, Optional, List, Tuple, Type
+from revvy.bluetooth.data_types import BackgroundControlState, TimerData
 from revvy.scripting.runtime import ScriptHandle
+from revvy.utils import error_reporter
 
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.thread_wrapper import ThreadWrapper, ThreadContext
 from revvy.utils.logger import LogLevel, get_logger
 
 
-class RemoteControllerCommand(NamedTuple):
-    """Raw message coming through the ble interface"""
-
-    analog: bytearray
-    buttons: bytearray
-    background_command: bytearray
-    next_deadline: bytearray
-
-
 log = get_logger("RemoteController")
 
 
-class BleAutonomousCmd:
+class BleAutonomousCmd(Enum):
+    NONE = 0
     START = 10
     PAUSE = 11
     RESUME = 12
     RESET = 13
 
 
-class AutonomousModeRequest:
+class RemoteControllerCommand(NamedTuple):
+    """Raw message coming through the ble interface"""
+
+    analog: bytearray
+    buttons: List[bool]
+    background_command: BleAutonomousCmd
+    next_deadline: Optional[int]
+
+
+EMPTY_REMOTE_CONTROLLER_COMMAND = RemoteControllerCommand(
+    analog=bytearray(),
+    buttons=[False] * 32,
+    background_command=BleAutonomousCmd.NONE,
+    next_deadline=None,
+)
+
+
+class AutonomousModeRequest(Enum):
     NONE = 0
     STOP = 1
     START = 2
     PAUSE = 3
     RESUME = 4
 
-    def __init__(self):
-        self.__state = AutonomousModeRequest.NONE
 
-    def set_start_request(self):
-        self.__state = AutonomousModeRequest.START
-
-    def set_stop_request(self):
-        self.__state = AutonomousModeRequest.STOP
-
-    def set_pause_request(self):
-        self.__state = AutonomousModeRequest.PAUSE
-
-    def set_resume_request(self):
-        self.__state = AutonomousModeRequest.RESUME
-
-    def is_start_pending(self):
-        return self.__state == AutonomousModeRequest.START
-
-    def is_stop_pending(self):
-        return self.__state == AutonomousModeRequest.STOP
-
-    def is_pause_pending(self):
-        return self.__state == AutonomousModeRequest.PAUSE
-
-    def is_resume_pending(self):
-        return self.__state == AutonomousModeRequest.RESUME
-
-    def clear_pending(self):
-        self.__state = AutonomousModeRequest.NONE
-
-
-class BackgroundControlState:
-    STOPPED = 1
-    RUNNING = 2
-    PAUSED = 3
-
-    def __init__(self):
-        self.__state = BackgroundControlState.STOPPED
-
-    def __state_to_str(self):
-        if self.__state == BackgroundControlState.STOPPED:
-            return "bg_state:stopped"
-        if self.__state == BackgroundControlState.RUNNING:
-            return "bg_state:running"
-        if self.__state == BackgroundControlState.PAUSED:
-            return "bg_state:paused"
-        return "bg_state:undefined"
-
-    def __str__(self):
-        return self.__state_to_str()
-
-    def __repr__(self):
-        return self.__state_to_str()
-
-    def set_stopped(self):
-        self.__state = BackgroundControlState.STOPPED
-
-    def set_paused(self):
-        self.__state = BackgroundControlState.PAUSED
-
-    def set_running(self):
-        self.__state = BackgroundControlState.RUNNING
-
-    def get_numeric(self):
-        return self.__state
-
-
+@dataclass
 class ButtonHandler:
-    id: Number
+    id: int
     script: ScriptHandle
     last_button_value: bool
+    last_press_stopped_it: bool
 
-    def __init__(self, id, script, last_button_value):
-        self.id = id
-        self.script = script
-        self.last_button_value = last_button_value
+
+AnalogAction = Tuple[List[int], ScriptHandle]
+""" ([channel], callback) pairs"""
 
 
 class RemoteController:
 
-    def __init__(self):
-        self._background_control_state = BackgroundControlState()
-        self._control_button_pressed = AutonomousModeRequest()
+    def __init__(self) -> None:
+        self._background_control_state = BackgroundControlState.STOPPED
+        self._control_button_pressed = AutonomousModeRequest.NONE
 
-        self._analogActions = []  # ([channel], callback) pairs
-        self._analogStates = (
-            bytearray()
-        )  # the last analog values, used to compare if a callback needs to be fired
+        self._analogActions: List[AnalogAction] = []
+        # the last analog values, used to compare if a callback needs to be fired
+        self._analogStates = bytearray()
 
-        self._button_handlers = []
+        self._button_handlers: List[ButtonHandler] = []
 
         self._processing = False
         self._processing_time = 0.0
@@ -139,10 +84,11 @@ class RemoteController:
         # the user presses something on a joystick, therefore we have to
         # know the difference in code
         self._joystick_mode = False
-        self.__next_deadline = MESSAGE_MAX_PERIOD
 
-    def get_next_deadline(self):
-        return self.__next_deadline
+        # Wait time is in the middle of integration, we have to have default
+        # behavior for mobile versions that will have zeroes in deadline field
+        # Previous expectation was 200ms
+        self.next_message_deadline = DEFAULT_MESSAGE_DEADLINE
 
     def on_joystick_action(self):
         # This is a one shot action to detect first joystick input
@@ -155,7 +101,7 @@ class RemoteController:
         self._previous_time = time.time()
 
     def reset_background_control_state(self):
-        self._background_control_state.set_stopped()
+        self._background_control_state = BackgroundControlState.STOPPED
 
     def reset(self):
         self._analogActions.clear()
@@ -164,20 +110,40 @@ class RemoteController:
 
         self._processing = False
         self._processing_time = 0.0
-        self._background_control_state.set_stopped()
+        self._background_control_state = BackgroundControlState.STOPPED
         self._previous_time = None
         self._joystick_mode = False
 
-    def process_background_command(self, cmd):
+    def process_background_command(self, cmd: BleAutonomousCmd):
+        # TODO: (╯°□°）╯︵ ┻━┻
+        # Processes the autonomous command, sets up a bunch of state and flags
+        # The actual autonomous command is then handled by the MCU_TICK event, which is nonsense.
+        # Additionally, the state should not be equal to the last command immediately.
         if cmd == BleAutonomousCmd.START:
             log(f"start background program: {cmd}")
-            self.start_background_functions()
+            self._background_control_state = BackgroundControlState.RUNNING
+            self._control_button_pressed = AutonomousModeRequest.START
+            if not self._joystick_mode:
+                self._processing = True
+                self._processing_time = 0.0
+                self._previous_time = time.time()
         elif cmd == BleAutonomousCmd.PAUSE:
-            self.pause_background_functions()
+            self._background_control_state = BackgroundControlState.PAUSED
+            self._control_button_pressed = AutonomousModeRequest.PAUSE
+            self.timer_increment()
+            self._processing = False
+            self._previous_time = None
         elif cmd == BleAutonomousCmd.RESUME:
-            self.resume_background_functions()
+            self._background_control_state = BackgroundControlState.RUNNING
+            self._control_button_pressed = AutonomousModeRequest.RESUME
+            self._processing = True
+            self._previous_time = time.time()
         elif cmd == BleAutonomousCmd.RESET:
-            self.reset_background_functions()
+            self._background_control_state = BackgroundControlState.STOPPED
+            self._control_button_pressed = AutonomousModeRequest.STOP
+            self._processing = False
+            self._processing_time = 0.0
+            self._previous_time = None
 
     def process_analog_command(self, analog_cmd: bytearray):
         """
@@ -197,12 +163,12 @@ class RemoteController:
                     changed = True
 
                 if changed:
-                    action([analog_cmd[x] for x in channels])
+                    action.start(channels=[analog_cmd[x] for x in channels])
             except IndexError:
                 # looks like an action was registered for an analog channel that we didn't receive
                 log(f'Skip analog handler for channels {", ".join(map(str, channels))}')
 
-    def run_button_script(self, button_pressed_list):
+    def run_button_script(self, button_pressed_list: List[bool]):
         """
         On the controller user binds blockly programs to the buttons.
         Here we iterate over the handlers and the button states, and if the button is pressed
@@ -229,17 +195,21 @@ class RemoteController:
 
                     if is_button_pressed_change:
                         # Pushed the second time, STOP it!
-                        # log(f'stopping: {button.script.name}')
+                        log(f"stopping: {button.script.name}")
                         button.script.stop()
                         button.last_press_stopped_it = True
                     else:
                         # Just keeps on pushing.
                         pass
                 else:
+                    # If the user is holding the button, restart the program
                     if not button.last_press_stopped_it:
                         # it's not running, we need to start it!
-                        # log(f'starting program: {button.script.name}')
+                        log(f"starting program: {button.script.name}")
                         button.script.start()
+                    else:
+                        # The user is holding the button but that button press stopped the last run.
+                        pass
 
     def process_control_message(self, msg: RemoteControllerCommand):
         """
@@ -251,90 +221,89 @@ class RemoteController:
         self.process_background_command(msg.background_command)
         self.process_analog_command(msg.analog)
         self.run_button_script(msg.buttons)
-        if msg.next_deadline is not None:
-            self.__next_deadline = msg.next_deadline
+        if msg.next_deadline is None or msg.next_deadline < DEFAULT_MESSAGE_DEADLINE:
+            self.next_message_deadline = DEFAULT_MESSAGE_DEADLINE
+        else:
+            self.next_message_deadline = msg.next_deadline
 
     def link_button_to_runner(self, button_id, script_handle: ScriptHandle):
-        log(f"registering callbacks for {button_id} {script_handle} {self._button_handlers}")
-        self._button_handlers.append(ButtonHandler(button_id, script_handle, False))
+        log(f"registering callbacks for Button: {button_id}")
+        log(script_handle.descriptor.source, LogLevel.DEBUG)
+        self._button_handlers.append(
+            ButtonHandler(
+                id=button_id,
+                script=script_handle,
+                last_button_value=False,
+                last_press_stopped_it=False,
+            )
+        )
 
-    def on_analog_values(self, channels, action):
+    def on_analog_values(self, channels, action: ScriptHandle) -> None:
         self._analogActions.append((channels, action))
 
-    def start_background_functions(self):
-        self._background_control_state.set_running()
-        self._control_button_pressed.set_start_request()
-        if not self._joystick_mode:
-            self._processing = True
-            self._processing_time = 0.0
-            self._previous_time = time.time()
-
-    def reset_background_functions(self):
-        self._background_control_state.set_stopped()
-        self._control_button_pressed.set_stop_request()
-        self._processing = False
-        self._processing_time = 0.0
-        self._previous_time = None
-
-    def pause_background_functions(self):
-        self._background_control_state.set_paused()
-        self._control_button_pressed.set_pause_request()
-        self.timer_increment()
-        self._processing = False
-        self._previous_time = None
-
-    def resume_background_functions(self):
-        self._background_control_state.set_running()
-        self._control_button_pressed.set_resume_request()
-        self._processing = True
-        self._previous_time = time.time()
-
-    def timer_increment(self):
+    def timer_increment(self) -> None:
         if self._processing:
             current_time = time.time()
             self._processing_time += current_time - self._previous_time
             self._previous_time = current_time
 
     @property
-    def processing_time(self):
-        return self._processing_time
+    def processing_time(self) -> TimerData:
+        return TimerData(self._processing_time)
 
     @property
-    def background_control_state(self):
-        return self._background_control_state.get_numeric()
+    def background_control_state(self) -> BackgroundControlState:
+        return self._background_control_state
 
-    def fetch_autonomous_requests(self):
-        result = copy.copy(self._control_button_pressed)
-        self._control_button_pressed.clear_pending()
+    def take_autonomous_requests(self) -> AutonomousModeRequest:
+        result = self._control_button_pressed
+        self._control_button_pressed = AutonomousModeRequest.NONE
         return result
 
 
 FIRST_MESSAGE_TIMEOUT = 5
-MESSAGE_MAX_PERIOD = 1
+DEFAULT_MESSAGE_DEADLINE = 1
 
 
 class RemoteControllerScheduler:
+    """Receive remote controller control messages, and pass them to the controller.
+
+    This class is responsible for handling message timeouts and controller detection/loss."""
+
     def __init__(self, rc: RemoteController):
         self._controller = rc
         self._data_ready_event = Event()
         self._controller_detected_callback = None
         self._controller_lost_callback = None
-        self._message = None
+        self._message = EMPTY_REMOTE_CONTROLLER_COMMAND
 
     def periodic_control_message_handler(self, message: RemoteControllerCommand):
+        """This function is called by the ble interface to pass the received control message."""
         self._message = message
         self._data_ready_event.set()
 
-    def _wait_for_message(self, ctx, wait_time):
-        # Wait time is in the middle of integration, we have to have default
-        # behavior for mobile versions that will have zeroes in deadline field
-        # Previous expectation was 200ms
-        wait_time_default = 0.2
-        timeout_sec = wait_time if wait_time else wait_time_default
+    def _wait_for_message(
+        self, ctx: ThreadContext, timeout_sec: float
+    ) -> Optional[RemoteControllerCommand]:
+        """Wait for the next message from the controller, or a stop request.
+
+        If this function returns None, the remote controller thread will stop. This can happen
+        in two ways:
+        - a stop request was received, which is mostly interesting during development and testing
+        - the timeout was reached, and we assume that the remote controller disconnected
+        """
         timeout = not self._data_ready_event.wait(timeout_sec)
         self._data_ready_event.clear()
 
-        return not (timeout or ctx.stop_requested)
+        if timeout or ctx.stop_requested:
+            return None
+
+        # swap out the message with an empty one
+        # if we wanted to be 100% correct here, we should use a 1-element queue. However,
+        # the swap is atomic, so in the worst case we just miss messages for a short time.
+        message, self._message = self._message, EMPTY_REMOTE_CONTROLLER_COMMAND
+
+        return message
 
     def handle_controller(self, ctx: ThreadContext):
         try:
@@ -346,16 +315,16 @@ class RemoteControllerScheduler:
 
             # wait for first message
             stopwatch = Stopwatch()
-            if self._wait_for_message(ctx, FIRST_MESSAGE_TIMEOUT):
+            message = self._wait_for_message(ctx, FIRST_MESSAGE_TIMEOUT)
+            if message is not None:
                 log(f"Time to first message: {stopwatch.elapsed}s")
                 if self._controller_detected_callback:
                     self._controller_detected_callback()
 
-                self._controller.process_control_message(self._message)
-
-                # wait for the other messages
-                while self._wait_for_message(ctx, self._controller.get_next_deadline()):
-                    self._controller.process_control_message(self._message)
+                # process message and wait for the next one
+                while message is not None:
+                    self._controller.process_control_message(message)
+                    message = self._wait_for_message(ctx, self._controller.next_message_deadline)
 
             if not ctx.stop_requested:
                 log("Controller lost due to timeout!", LogLevel.WARNING)
@@ -366,6 +335,9 @@ class RemoteControllerScheduler:
             self._controller.reset()
             log("exited")
         except Exception as e:
+            error_reporter.revvy_error_handler.report_error(
+                error_reporter.RobotErrorType.SYSTEM, traceback.format_exc()
+            )
             log(str(e), LogLevel.ERROR)
             log(traceback.format_exc(), LogLevel.ERROR)
 

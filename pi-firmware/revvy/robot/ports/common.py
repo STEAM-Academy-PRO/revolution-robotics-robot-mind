@@ -14,7 +14,8 @@ the MCU reads new data from a particular port.
 """
 
 from abc import ABC, abstractmethod
-from typing import Generic, NamedTuple, TypeVar
+from collections.abc import Set
+from typing import Generic, Iterator, NamedTuple, TypeVar
 
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.emitter import SimpleEventEmitter
@@ -24,25 +25,27 @@ from revvy.utils.logger import get_logger
 class PortDriver(ABC):
     """A base class for motor and sensor drivers."""
 
-    def __init__(self, port: "PortInstance", driver_name: str):
+    def __init__(self, port: "PortInstance", driver_name: str, port_kind: str):
         self._driver_name = driver_name
         self._port = port
         self._on_status_changed = SimpleEventEmitter()
-        self.log = get_logger(driver_name, base=port.log)
+        self.log = get_logger([f"PortDriver[{port.id}]", port_kind, driver_name])
+
+        self.log(f"Driver created")
 
     @property
-    def driver_name(self):
+    def driver_name(self) -> str:
         return self._driver_name
 
     @property
     def on_status_changed(self) -> SimpleEventEmitter:
         return self._on_status_changed
 
-    def uninitialize(self):
+    def uninitialize(self) -> None:
         self._on_status_changed.clear()
 
     @abstractmethod
-    def update_status(self, data):
+    def update_status(self, data: bytes):
         """Processes port-specific data coming from the MCU."""
         pass
 
@@ -73,7 +76,7 @@ class PortHandler(Generic[DriverType]):
         interface: RevvyControl,
         default_driver: DriverConfig,
         amount: int,
-        supported: dict,
+        supported: dict[str, int],
         set_port_type,
     ):
         """
@@ -90,11 +93,11 @@ class PortHandler(Generic[DriverType]):
         self._types = supported
         self._port_count = amount
         self._ports = [
-            PortInstance(i, f"{name}Port", interface, default_driver, supported, set_port_type)
+            PortInstance(i, name, interface, default_driver, supported, set_port_type)
             for i in range(1, amount + 1)
         ]
 
-    def __getitem__(self, port_idx: int) -> "PortInstance":
+    def __getitem__(self, port_idx: int) -> "PortInstance[DriverType]":
         """
         Returns the port with the given index. We index ports from 1 so they correspond
         to port numbers on the Robot's enclosure.
@@ -105,19 +108,19 @@ class PortHandler(Generic[DriverType]):
 
         return self._ports[port_idx - 1]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator["PortInstance[DriverType]"]:
         return self._ports.__iter__()
 
     @property
-    def available_types(self):
+    def available_types(self) -> Set[str]:
         """Lists the names of the supported drivers"""
         return self._types.keys()
 
     @property
-    def port_count(self):
+    def port_count(self) -> int:
         return self._port_count
 
-    def reset(self):
+    def reset(self) -> None:
         for port in self:
             port.uninitialize()
 
@@ -131,8 +134,8 @@ class PortInstance(Generic[DriverType]):
 
     def __init__(
         self,
-        port_idx,
-        name,
+        port_idx: int,
+        name: str,
         interface: RevvyControl,
         default_driver: DriverConfig,
         supported,
@@ -146,7 +149,7 @@ class PortInstance(Generic[DriverType]):
         :param supported: A dictionary of supported drivers
         :param set_port_type: A function that sets the port type on the MCU
         """
-        self.log = get_logger(f"{name} {port_idx}")
+        self.log = get_logger(["Port", name, str(port_idx)])
         self._port_idx = port_idx
         self._interface = interface
         self._config_changed_callbacks = SimpleEventEmitter()
@@ -156,15 +159,15 @@ class PortInstance(Generic[DriverType]):
         self._driver = default_driver.create(self)
 
     @property
-    def id(self):
+    def id(self) -> int:
         return self._port_idx
 
     @property
-    def interface(self):
+    def interface(self) -> RevvyControl:
         return self._interface
 
     @property
-    def on_config_changed(self):
+    def on_config_changed(self) -> SimpleEventEmitter:
         """Port configuration change event emitter"""
         return self._config_changed_callbacks
 

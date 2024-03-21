@@ -5,19 +5,21 @@ from revvy.robot.ports.common import PortHandler
 
 
 class SensorPortDriver(PortDriver):
-    def __init__(self, port: PortInstance, driver_name: str):
-        super().__init__(port, driver_name)
+    def __init__(self, port: PortInstance["SensorPortDriver"], driver_name: str):
+        super().__init__(port, driver_name, "Sensor")
         self._port = port
         self._value = None
-        self._raw_value = None
+        self._raw_value = bytes()
 
-        port.interface.set_sensor_port_type(port.id, port._supported[driver_name])
+        sensor_port_type = port._supported[driver_name]
+
+        port.interface.set_sensor_port_type(port.id, sensor_port_type)
 
     @property
-    def has_data(self):
+    def has_data(self) -> bool:
         return self._value is not None
 
-    def update_status(self, data):
+    def update_status(self, data: bytes):
         if len(data) == 0:
             self._value = None
             return
@@ -39,11 +41,11 @@ class SensorPortDriver(PortDriver):
         return self._value
 
     @property
-    def raw_value(self):
+    def raw_value(self) -> bytes:
         return self._raw_value
 
     @abstractmethod
-    def convert_sensor_value(self, raw):
+    def convert_sensor_value(self, raw: bytes):
         raise NotImplementedError
 
 
@@ -66,10 +68,10 @@ class NullSensor(SensorPortDriver):
     def __init__(self, port: PortInstance, config):
         super().__init__(port, "NotConfigured")
 
-    def update_status(self, data):
+    def update_status(self, data: bytes):
         pass
 
-    def convert_sensor_value(self, raw):
+    def convert_sensor_value(self, raw: bytes):
         pass
 
     @property

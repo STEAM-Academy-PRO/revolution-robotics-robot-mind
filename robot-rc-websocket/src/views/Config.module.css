@@ -1,30 +1,79 @@
-textarea{
-    width: 90%; height: auto;
+textarea {
+    width: 90%;
+    height: auto;
     margin: 20px;
     display: block;
 }
 
-.controller{ display: flex; flex-direction: row;}
-.column { flex-direction: column; height: 80vh}
-.editor { display: flex }
+.controller {
+    display: flex;
+    flex-direction: row;
+}
 
-.active { background: #ddd}
+.column {
+    flex-direction: column;
+    height: 80vh
+}
 
-pre{ text-align: left; overflow-x: auto }
+.editor {
+    display: flex
+}
 
-.clickable{ cursor: pointer; }
-.clickable:hover{ background-color: #ccc; }
+.active {
+    background: #ddd
+}
 
-.config{ width: 33% }
+pre {
+    text-align: left;
+    overflow-x: auto
+}
 
-.config table td { border: 1px solid black; width: 110px}
-.config table td:first-child { width: 50px}
-.config table td:nth-child(1) { width: 50px}
-.config table td:last-child { width: 200px}
+.clickable {
+    cursor: pointer;
+}
 
-.configurationTable{
+.clickable:hover {
+    background-color: #aaa;
+}
+
+.config {
+    width: 33%
+}
+
+.config table td {
+    border: 1px solid black;
+    width: 110px
+}
+
+.config table td:first-child {
+    width: 50px
+}
+
+.config table td:nth-child(1) {
+    width: 50px
+}
+
+.config table td:last-child {
+    width: 200px
+}
+
+.configurationTable {
     height: 200px;
 }
-.configurationTable tr { height: 100px }
 
-.bold{ font-weight: 700; }
+.configurationTable tr {
+    height: 100px
+}
+
+.bold {
+    font-weight: 700;
+}
+
+.btn {
+    padding: 10px;
+    margin: 10px
+}
+
+.connect {
+    background-color: #4CAF50;
+}

@@ -16,16 +16,17 @@ static Comm_Status_t ProgramApplication_Start(const uint8_t* commandPayload, uin
 static Comm_Status_t FinalizeUpdate_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount);
 static Comm_Status_t ReadApplicationCrc_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount);
 
-const Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT] = 
+/* These commands relate to BootloaderControl in pi-firmware/revvy/mcu/rrrc_control.py */
+const Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT] =
 {
-    [0x01u] = { .Start = &VersionProvider_GetHardwareVersion_Start, .GetResult = NULL, .Cancel = NULL },
+    [0x01u] = { .Start = &VersionProvider_GetHardwareVersion_Start, .GetResult = NULL },
 
     /* [0x06 - 0x0A]: reserved for bootloader */
-    [0x06] = { .Start = &GetOperationMode_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x07] = { .Start = &ReadApplicationCrc_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x08] = { .Start = &InitializeUpdate_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x09] = { .Start = &ProgramApplication_Start, .GetResult = NULL, .Cancel = NULL },
-    [0x0A] = { .Start = &FinalizeUpdate_Start, .GetResult = NULL, .Cancel = NULL },
+    [0x06u] = { .Start = &GetOperationMode_Start, .GetResult = NULL },
+    [0x07u] = { .Start = &ReadApplicationCrc_Start, .GetResult = NULL },
+    [0x08u] = { .Start = &InitializeUpdate_Start, .GetResult = NULL },
+    [0x09u] = { .Start = &ProgramApplication_Start, .GetResult = NULL },
+    [0x0Au] = { .Start = &FinalizeUpdate_Start, .GetResult = NULL },
 };
 
 static Comm_Status_t GetOperationMode_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount)
@@ -68,7 +69,7 @@ static Comm_Status_t InitializeUpdate_Start(const uint8_t* commandPayload, uint8
     /* check whether the image fits in flash memory */
     size_t firmware_size = get_uint32(&commandPayload[0]);
     uint32_t checksum = get_uint32(&commandPayload[4]);
-    
+
     if (!UpdateManager_Run_CheckImageFitsInFlash(firmware_size))
     {
         return Comm_Status_Error_CommandError;

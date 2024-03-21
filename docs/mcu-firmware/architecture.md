@@ -21,3 +21,17 @@ Developing with CGlue
 * Generate runtime based on the project.json configuration: `cglue --generate --cglue-output=rrrc/generated_runtime [--cleanup]`
   The generated files are: `rrrc/generated_runtime.h` and `rrrc/generated_runtime.c`
 * Generate makefile for compilation: `python -m tools.generate_makefile [--cleanup]`
+
+General concepts
+----------------
+
+### Ports, port drivers
+
+Due to hardware design details, ports are grouped by functionality into **motor ports** and **sensor ports**.
+The C implementation has three distinct parts:
+- A `CommWrapper` component, which is responsible for processing commands from the python firmware
+- A `PortHandler` component, which implements the actual port drivers, reacts to commands coming
+  from the associated `CommWrapper` and exposes status information via a status slot
+- The `McuStatusSlots` component which takes the exposed status information and makes it available
+  for the python firmware to read back. This status information is read by the python firmware
+  periodically. Once read, the associated status slot is cleared to avoid wasting bandwidth.

@@ -2,19 +2,19 @@ from revvy.mcu.commands import *
 from revvy.mcu.rrrc_transport import RevvyTransport
 
 
-class RevvyTransportBase:
+class RevvyTransportBase(ABC):
+    @abstractmethod
     def create_bootloader_control(self) -> "BootloaderControl":
-        raise NotImplementedError()
+        pass
 
+    @abstractmethod
     def create_application_control(self) -> "RevvyControl":
-        raise NotImplementedError()
-
-    def close(self):
-        raise NotImplementedError()
+        pass
 
 
 class BootloaderControl:
     def __init__(self, transport: RevvyTransport):
+        # These commands map to mcu-bootloader/rrrc/runtime/comm_handlers.c
         self.get_hardware_version = ReadHardwareVersionCommand(transport)
         self.read_operation_mode = ReadOperationModeCommand(transport)
         self.send_init_update = InitializeUpdateCommand(transport)
@@ -25,6 +25,7 @@ class BootloaderControl:
 
 class RevvyControl:
     def __init__(self, transport: RevvyTransport):
+        # These commands map to mcu-firmware/rrrc/runtime/comm_handlers.c
         self.ping = PingCommand(transport)
 
         self.set_master_status = SetMasterStatusCommand(transport)

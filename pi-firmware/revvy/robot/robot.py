@@ -1,7 +1,9 @@
 from functools import partial
 from typing import NamedTuple
+import time
 
 from revvy.hardware_dependent.sound import SoundControlV1, SoundControlV2
+from revvy.mcu.commands import TestSensorOnPortResult
 from revvy.mcu.rrrc_control import RevvyTransportBase
 from revvy.robot.drivetrain import DifferentialDrivetrain
 from revvy.robot.imu import IMU
@@ -13,7 +15,6 @@ from revvy.robot.sound import Sound
 from revvy.robot.status import RobotStatusIndicator, RobotStatus
 from revvy.robot.status_updater import McuStatusUpdater
 from revvy.scripting.resource import Resource
-from revvy.scripting.robot_interface import RobotInterface
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.version import VERSION, Version
@@ -44,26 +45,17 @@ class BatteryStatus(NamedTuple):
     motor: int
 
 
-class Robot(RobotInterface):
-    @staticmethod
-    def _default_bus_factory() -> RevvyTransportBase:
-        from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-
-        return RevvyTransportI2C(1)
-
-    def __init__(self, bus_factory=None):
-        if bus_factory is None:
-            bus_factory = self._default_bus_factory
-
-        self._bus_factory = bus_factory
-
-        self._comm_interface = self._bus_factory()
+class Robot:
+    def __init__(self, interface: RevvyTransportBase):
+        self._comm_interface = interface
 
         self._log = get_logger("Robot")
 
         self._script_variables = VariableSlot(4)
 
         self._robot_control = self._comm_interface.create_application_control()
+
+        self.wait_for_mcu()
 
         self._stopwatch = Stopwatch()
 
@@ -74,6 +66,7 @@ class Robot(RobotInterface):
         }
 
         self._ring_led = RingLed(self._robot_control)
+        assert VERSION.hw is not None
         self._sound = Sound(setup[VERSION.hw]())
 
         self._status = RobotStatusIndicator(self._robot_control)
@@ -102,23 +95,36 @@ class Robot(RobotInterface):
         self.update_status = self._status_updater.read
         self.ping = self._robot_control.ping
 
+        # We implement priority-based interruption and access of these resources:
         self._resources = {
             "led_ring": Resource("RingLed"),
             "drivetrain": Resource("DriveTrain"),
             "sound": Resource("Sound"),
-            **{f"motor_{port.id}": Resource(f"Motor {port.id}") for port in self.motors},
-            **{f"sensor_{port.id}": Resource(f"Sensor {port.id}") for port in self.sensors},
+            **{f"motor_{port.id}": Resource(["Motor", str(port.id)]) for port in self._motor_ports},
+            **{
+                f"sensor_{port.id}": Resource(["Sensor", str(port.id)])
+                for port in self._sensor_ports
+            },
         }
+
+    def wait_for_mcu(self) -> None:
+        """Waits for the MCU interface to become available."""
+        stopwatch = Stopwatch()
+        while stopwatch.elapsed < 10:
+            try:
+                self._robot_control.read_operation_mode()
+                return
+            except OSError:
+                time.sleep(0.5)
+
+        raise TimeoutError("Could not connect to Board! Bailing.")
 
     @property
     def resources(self):
         return self._resources
 
-    def __del__(self):
-        self._comm_interface.close()
-
     @property
-    def script_variables(self):
+    def script_variables(self) -> VariableSlot:
         return self._script_variables
 
     @property
@@ -130,11 +136,11 @@ class Robot(RobotInterface):
         return self._battery
 
     @property
-    def imu(self):
+    def imu(self) -> IMU:
         return self._imu
 
     @property
-    def status(self):
+    def status(self) -> RobotStatusIndicator:
         return self._status
 
     @property
@@ -146,47 +152,47 @@ class Robot(RobotInterface):
         return self._sensor_ports
 
     @property
-    def drivetrain(self):
+    def drivetrain(self) -> DifferentialDrivetrain:
         return self._drivetrain
 
     @property
-    def led(self):
+    def led(self) -> RingLed:
         return self._ring_led
 
     @property
-    def sound(self):
+    def sound(self) -> Sound:
         return self._sound
 
-    def play_tune(self, name):
-        self._sound.play_tune(name)
+    def play_tune(self, name: str) -> bool:
+        return self._sound.play_tune(name)
 
-    def time(self):
+    def time(self) -> float:
         return self._stopwatch.elapsed
 
-    def __validate_one_sensor_port(self, sensor_idx, expected_type):
+    def __validate_one_sensor_port(self, sensor_idx, expected_type) -> int:
         port_type = to_sensor_type_index(expected_type)
         if port_type is None:
             return SENSOR_ON_PORT_UNKNOWN
 
         result = self._robot_control.test_sensor_on_port(sensor_idx + 1, port_type)
 
-        if result.is_connected():
+        if result == TestSensorOnPortResult.CONNECTED:
             return expected_type
 
-        if result.is_not_connected():
+        if result == TestSensorOnPortResult.NOT_CONNECTED:
             return SENSOR_ON_PORT_NOT_PRESENT
 
-        if result.is_error():
+        if result == TestSensorOnPortResult.ERROR:
             return SENSOR_ON_PORT_INVALID
 
         return SENSOR_ON_PORT_UNKNOWN
 
-    def reset(self):
+    def reset(self) -> None:
         self._log("reset()")
         self._ring_led.start_animation(RingLed.BreathingGreen)
         self._status_updater.reset()
 
-        def _process_battery_slot(data):
+        def _process_battery_slot(data) -> None:
             assert len(data) == 4
             main_status, main_percentage, motor_bat_present, motor_percentage = data
 
@@ -201,7 +207,6 @@ class Robot(RobotInterface):
         self._status_updater.enable_slot("axl", self._imu.update_axl_data)
         self._status_updater.enable_slot("gyro", self._imu.update_gyro_data)
         self._status_updater.enable_slot("orientation", self._imu.update_orientation_data)
-        self._status_updater.enable_slot("yaw", self._imu.update_yaw_angles)
 
         # TODO: do something useful with the reset signal
         self._status_updater.enable_slot("reset", lambda _: self._log("MCU reset detected"))
@@ -215,5 +220,5 @@ class Robot(RobotInterface):
         self._status.robot_status = RobotStatus.NotConfigured
         self._status.update()
 
-    def stop(self):
+    def stop(self) -> None:
         self._sound.wait()

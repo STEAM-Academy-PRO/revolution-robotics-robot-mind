@@ -34,7 +34,7 @@ class MotorStatus(Enum):
 
 class MotorPortDriver(PortDriver):
     def __init__(self, port: PortInstance, driver_name: str):
-        super().__init__(port, driver_name)
+        super().__init__(port, driver_name, "Motor")
 
         port.interface.set_motor_port_type(port.id, port._supported[driver_name])
 
@@ -73,11 +73,7 @@ class MotorPortDriver(PortDriver):
         pass
 
     @abstractmethod
-    def update_status(self, data):
-        pass
-
-    @abstractmethod
-    def stop(self, _=MotorConstants.ACTION_RELEASE):
+    def stop(self, action: int = MotorConstants.ACTION_RELEASE):
         pass
 
 
@@ -127,8 +123,8 @@ class NullMotor(MotorPortDriver):
     def set_power(self, power):
         pass
 
-    def update_status(self, data):
+    def update_status(self, data: bytes):
         pass
 
-    def stop(self, _=MotorConstants.ACTION_RELEASE):
+    def stop(self, action: int = MotorConstants.ACTION_RELEASE):
         pass

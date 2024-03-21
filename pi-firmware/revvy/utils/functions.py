@@ -2,9 +2,7 @@ import hashlib
 import json
 import traceback
 from binascii import b2a_base64, a2b_base64
-
-import math
-from contextlib import suppress
+from typing import List
 
 
 def clip(x, min_x, max_x):
@@ -30,7 +28,7 @@ def map_values(x, min_x, max_x, min_y, max_y):
 
     >>> map_values(0.5, 0, 1, 0, 900)
     450.0
-    >>> map_values(math.pi/2, 0, math.pi, 0, 180)
+    >>> map_values(1.57, 0, 3.14, 0, 180)
     90.0
     >>> map_values(8, 0, 10, 5, 0)
     1.0
@@ -58,7 +56,7 @@ def get_serial():
     return cpu_serial
 
 
-def retry(fn, retries=5, error_handler=None):
+def retry(fn, retries: int = 5, error_handler=None):
     """Retry the given function a number of times, or until it returns True or None"""
     retry_num = 0
     while retry_num < retries:
@@ -127,7 +125,7 @@ def b64_decode_str(to_decode):
     return a2b_base64(to_decode.encode("utf-8")).decode("utf-8")
 
 
-def is_bit_set(reg, bit):
+def is_bit_set(reg, bit) -> bool:
     """
     >>> is_bit_set(1, 0)
     True
@@ -139,7 +137,7 @@ def is_bit_set(reg, bit):
     return reg & (1 << bit) != 0
 
 
-def bits_to_bool_list(byte_list):
+def bits_to_bool_list(byte_list) -> List[bool]:
     """
     >>> bits_to_bool_list([0xFF])
     [True, True, True, True, True, True, True, True]
@@ -152,18 +150,18 @@ def bits_to_bool_list(byte_list):
     return [is_bit_set(b, bit) for b in byte_list for bit in range(8)]
 
 
-def bytestr_hash(byte_str) -> str:
+def bytestr_hash(byte_str: bytes) -> str:
     hash_fn = hashlib.md5()
     hash_fn.update(byte_str)
     return hash_fn.hexdigest()
 
 
-def file_hash(file):
+def file_hash(file: str) -> str:
     with open(file, "rb") as f:
         return bytestr_hash(f.read())
 
 
-def read_json(filename):
+def read_json(filename: str):
     with open(filename, "r") as f:
         return json.load(f)
 

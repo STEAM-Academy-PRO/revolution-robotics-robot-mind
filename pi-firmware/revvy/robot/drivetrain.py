@@ -1,6 +1,8 @@
+from abc import ABC, abstractmethod
 import itertools
 from contextlib import suppress
 from threading import Timer
+from typing import Optional
 
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.imu import IMU
@@ -12,19 +14,28 @@ from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
 
 
-class DrivetrainController:
+class DrivetrainController(ABC):
     def __init__(self, drivetrain: "DifferentialDrivetrain"):
         self._drivetrain = drivetrain
         self._awaiter = Awaiter()
         self._awaiter.on_cancelled(self._drivetrain._apply_release)
         self._awaiter.on_finished(self._drivetrain._apply_release)
 
+        # If there are no motors configured to the drive train, avoid trying to control them
+        # Otherwise we might wait forever for a status update to arrive
+        if len(self._drivetrain.motors) == 0:
+            self._awaiter.finish()
+            return
+
+        self.update()
+
     @property
     def awaiter(self) -> Awaiter:
         return self._awaiter
 
-    def update(self):
-        raise NotImplementedError
+    @abstractmethod
+    def update(self) -> None:
+        pass
 
 
 class TimeController(DrivetrainController):
@@ -36,7 +47,7 @@ class TimeController(DrivetrainController):
         self._awaiter.on_cancelled(t.cancel)
         t.start()
 
-    def update(self):
+    def update(self) -> None:
         pass
 
 
@@ -46,8 +57,6 @@ class TurnController(DrivetrainController):
     def __init__(
         self, drivetrain: "DifferentialDrivetrain", turn_angle, wheel_speed=None, power_limit=None
     ):
-        super().__init__(drivetrain)
-
         self._max_turn_wheel_speed = wheel_speed
         self._max_turn_power = power_limit
 
@@ -56,7 +65,9 @@ class TurnController(DrivetrainController):
         self._last_yaw_change_time = Stopwatch()
         self._last_yaw_angle = None
 
-    def update(self):
+        super().__init__(drivetrain)
+
+    def update(self) -> None:
         yaw = self._drivetrain.yaw
         error = abs(self._turn_angle) - abs(self._start_angle - yaw)
         abs_error = abs(error)
@@ -93,12 +104,13 @@ class MoveController(DrivetrainController):
         right_speed=None,
         power_limit=None,
     ):
-        super().__init__(drivetrain)
-
         drivetrain._apply_positions(left, right, left_speed, right_speed, power_limit)
 
-    def update(self):
-        if all(m.driver.status == MotorStatus.GOAL_REACHED for m in self._drivetrain.motors):
+        super().__init__(drivetrain)
+
+    def update(self) -> None:
+        # stop if all is blocked or done
+        if all(m.driver.status != MotorStatus.NORMAL for m in self._drivetrain.motors):
             self._awaiter.finish()
 
 
@@ -113,10 +125,10 @@ class DifferentialDrivetrain:
 
         self._log = get_logger("Drivetrain")
         self._imu = imu
-        self._controller = None
+        self._controller: Optional[DrivetrainController] = None
 
     @property
-    def yaw(self):
+    def yaw(self) -> float:
         return self._imu.yaw_angle
 
     @property
@@ -131,12 +143,12 @@ class DifferentialDrivetrain:
     def right_motors(self) -> list[PortInstance[MotorPortDriver]]:
         return self._right_motors
 
-    def _abort_controller(self):
+    def _abort_controller(self) -> None:
         controller, self._controller = self._controller, None
         if controller:
             controller.awaiter.cancel()
 
-    def reset(self):
+    def reset(self) -> None:
         self._log("reset")
         self._abort_controller()
 
@@ -174,7 +186,7 @@ class DifferentialDrivetrain:
         with suppress(ValueError):
             self._right_motors.remove(motor)
 
-    def _on_motor_status_changed(self, _):
+    def _on_motor_status_changed(self, _) -> None:
         if all(m.driver.status == MotorStatus.BLOCKED for m in self._motors):
             self._log("All motors blocked, releasing")
             self._abort_controller()
@@ -256,7 +268,7 @@ class DifferentialDrivetrain:
         left_speed = right_speed = multipliers[direction] * speed
         self._apply_speeds(left_speed, right_speed, power)
 
-    def drive(self, direction, rotation, unit_rotation, speed, unit_speed):
+    def drive(self, direction, rotation, unit_rotation, speed, unit_speed) -> Awaiter:
         self._log(f"drive: {direction} {rotation} {unit_rotation} {speed} {unit_speed}")
         self._abort_controller()
 
@@ -284,7 +296,7 @@ class DifferentialDrivetrain:
         return self._controller.awaiter
 
     def turn(self, direction, rotation, unit_rotation, speed, unit_speed):
-        self._log("turn: {direction} {rotation} {unit_rotation} {speed} {unit_speed}")
+        self._log(f"turn: {direction} {rotation} {unit_rotation} {speed} {unit_speed}")
         self._abort_controller()
 
         multipliers = {

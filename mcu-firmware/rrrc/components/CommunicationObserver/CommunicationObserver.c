@@ -3,6 +3,7 @@
 
 /* Begin User Code Section: Declarations */
 #include <stdint.h>
+#include "SEGGER_RTT.h"
 
 #define ERROR_COUNTER_MAX              ((uint8_t) 4u)
 #define ERROR_COUNTER_INCREMENT        ((uint8_t) 2u)
@@ -50,13 +51,17 @@ void CommunicationObserver_Run_OnMessageMissed(void)
         wasEnabled = isEnabled;
     }
 
-    if (errorCounter > 0u)
+    if (isEnabled)
     {
-        --errorCounter;
-    }
-    if (errorCounter == 0u && isEnabled)
-    {
-        CommunicationObserver_RaiseEvent_ErrorLimitReached();
+        if (errorCounter > 0u)
+        {
+            --errorCounter;
+        }
+        SEGGER_RTT_printf(0, "Rx missed. Counter: %d\n", errorCounter);
+        if (errorCounter == 0u)
+        {
+            CommunicationObserver_RaiseEvent_ErrorLimitReached();
+        }
     }
     /* End User Code Section: OnMessageMissed:run Start */
     /* Begin User Code Section: OnMessageMissed:run End */
@@ -71,6 +76,7 @@ void CommunicationObserver_Run_OnMessageReceived(void)
 
     if (wasEnabled != isEnabled)
     {
+        SEGGER_RTT_printf(0, "Rx watchdog enabled changed to: %d\n", isEnabled);
         if (!wasEnabled)
         {
             errorCounter = ERROR_COUNTER_MAX;
@@ -88,6 +94,7 @@ void CommunicationObserver_Run_OnMessageReceived(void)
         {
             CommunicationObserver_RaiseEvent_FirstMessageReceived();
             firstMessageIndicated = true;
+            SEGGER_RTT_WriteString(0, "Rx watchdog received first message\n");
         }
     }
     /* End User Code Section: OnMessageReceived:run Start */

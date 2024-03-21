@@ -4,6 +4,7 @@
 
 /* Begin User Code Section: Declarations */
 #include <math.h>
+// #include "SEGGER_RTT.h"
 
 static Quaternion_t orientation;
 
@@ -25,63 +26,40 @@ static bool is_vector_empty(const Vector3D_t *v)
     return v->x == 0.0f && v->y == 0.0f && v->z == 0.0f;
 }
 
-/**
- * Constrains an angle given in the interval of [-2pi; 2pi] between [-pi; pi].
- */
-static float constrain_angle(const float angle)
-{
-    if (angle < (float) -M_PI)
-    {
-        return 2.0f * (float) M_PI + angle;
-    }
-    else if (angle > (float) M_PI)
-    {
-        return -2.0f * (float) M_PI + angle;
-    }
-    else
-    {
-        return angle;
-    }
-}
-
 static Orientation3D_t to_euler_angles(const Quaternion_t orientation)
 {
     Orientation3D_t angles;
 
-    float w = orientation.q0;
-    float x = orientation.q1;
-    float y = orientation.q2;
-    float z = orientation.q3;
+    float x = orientation.q0;
+    float y = orientation.q1;
+    float z = orientation.q2;
+    float w = orientation.q3;
+
+    float sqx = x * x;
+    float sqy = y * y;
+    float sqz = z * z;
+    float sqw = w * w;
 
     // Algorithm adapted from: http://euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/index.htm
-    // conventions:
-    // * z is the vertical axis
-    // * heading is about z
-    // * roll is about x
-    // * pitch is about y
-    float test = z * x - w * y; // this is basically attitude
-    const float vertical_threshold = 0.49f;
-    if (test > vertical_threshold)
+    // * out input is normalised
+    float test = x * y + z * w; // this is basically attitude
+    if (test > 0.499f)
     {
-        angles.yaw = constrain_angle(-2.0f * atan2f(-z, w));
+        angles.yaw = 2.0f * atan2f(x, w);
         angles.pitch = M_PI_2;
         angles.roll = 0.0f;
     }
-    else if (test < -vertical_threshold)
+    else if (test < -0.499f)
     {
-        angles.yaw = constrain_angle(2.0f * atan2f(-z, w));
+        angles.yaw = -2.0f * atan2f(x, w);
         angles.pitch = -M_PI_2;
         angles.roll = 0.0f;
     }
     else
     {
-        float sqx = x * x;
-        float sqy = y * y;
-        float sqz = z * z;
-
         // roll (x-axis rotation)
-        float sinr_cosp = 2.0f * (w * x + y * z);
-        float cosr_cosp = 1.0f - 2.0f * (sqx + sqy);
+        float sinr_cosp = 2.0f * (y * w - x * z);
+        float cosr_cosp = sqx - sqy - sqz + sqw;
         angles.roll = atan2f(sinr_cosp, cosr_cosp);
 
         // pitch (y-axis rotation)
@@ -89,72 +67,214 @@ static Orientation3D_t to_euler_angles(const Quaternion_t orientation)
         angles.pitch = asinf(sinp);
 
         // yaw (z-axis rotation)
-        float siny_cosp = 2.0f * (w * z + x * y);
-        float cosy_cosp = 1.0f - 2.0f * (sqy + sqz);
+        float siny_cosp = 2.0f * (x * w - y * z);
+        float cosy_cosp = -sqx + sqy - sqz + sqw;
         angles.yaw = atan2f(siny_cosp, cosy_cosp);
     }
 
     return angles;
 }
 
+static inline Vector3D_t vec3d_mult_scalar(const Vector3D_t v, const float scalar)
+{
+    return (Vector3D_t) {
+        .x = v.x * scalar,
+        .y = v.y * scalar,
+        .z = v.z * scalar,
+    };
+}
+
+static inline Vector3D_t vec3d_norm(const Vector3D_t v)
+{
+    float norm = 1.0f / sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
+    return vec3d_mult_scalar(v, norm);
+}
+
+static inline Quaternion_t q_add(const Quaternion_t q, const Quaternion_t r)
+{
+    return (Quaternion_t) {
+        .q0 = q.q0 + r.q0,
+        .q1 = q.q1 + r.q1,
+        .q2 = q.q2 + r.q2,
+        .q3 = q.q3 + r.q3,
+    };
+}
+
+static inline Quaternion_t q_sub(const Quaternion_t q, const Quaternion_t r)
+{
+    return (Quaternion_t) {
+        .q0 = q.q0 - r.q0,
+        .q1 = q.q1 - r.q1,
+        .q2 = q.q2 - r.q2,
+        .q3 = q.q3 - r.q3,
+    };
+}
+
+static inline Quaternion_t q_mult_scalar(const Quaternion_t q, const float scalar)
+{
+    return (Quaternion_t) {
+        .q0 = q.q0 * scalar,
+        .q1 = q.q1 * scalar,
+        .q2 = q.q2 * scalar,
+        .q3 = q.q3 * scalar,
+    };
+}
+
+static inline Quaternion_t q_norm(const Quaternion_t q)
+{
+    float norm = 1.0f / sqrtf(q.q0 * q.q0 + q.q1 * q.q1 + q.q2 * q.q2 + q.q3 * q.q3);
+
+    return q_mult_scalar(q, norm);
+}
+
+/**
+ * Multiplies two quaternions using the Hamilton product.
+ */
+static inline Quaternion_t q_mult(const Quaternion_t q, const Quaternion_t r)
+{
+    return (Quaternion_t) {
+        .q0 = q.q0 * r.q0 - q.q1 * r.q1 - q.q2 * r.q2 - q.q3 * r.q3,
+        .q1 = q.q0 * r.q1 + q.q1 * r.q0 + q.q2 * r.q3 - q.q3 * r.q2,
+        .q2 = q.q0 * r.q2 - q.q1 * r.q3 + q.q2 * r.q0 + q.q3 * r.q1,
+        .q3 = q.q0 * r.q3 + q.q1 * r.q2 - q.q2 * r.q1 + q.q3 * r.q0,
+    };
+}
+
+/**
+ * A straight implementation of https://ahrs.readthedocs.io/en/latest/filters/madgwick.html#ahrs.filters.madgwick.Madgwick.updateIMU
+ *
+ * @param sampleTime the time between two consecutive measurements in seconds
+ * @param acceleration the acceleration vector in m/s^2
+ * @param angularSpeed the angular speed vector in rad/s
+ * @param previous the previous orientation quaternion
+ * @return the updated orientation quaternion
+ */
 static Quaternion_t madgwick_imu(const float sampleTime, const Vector3D_t acceleration, const Vector3D_t angularSpeed, const Quaternion_t previous)
 {
-    float q0 = previous.q0;
-    float q1 = previous.q1;
-    float q2 = previous.q2;
-    float q3 = previous.q3;
+    const float beta = 1.0f; // < gyroscipe gain TODO: tune if necessary
+
+    // Rename to shorten expressions
+    Quaternion_t q = previous;
+    Vector3D_t g = angularSpeed;
 
     // Normalise accelerometer measurement
-    float invLength = 1.0f / sqrtf(acceleration.x * acceleration.x + acceleration.y * acceleration.y + acceleration.z * acceleration.z);
-    float x = acceleration.x * invLength;
-    float y = acceleration.y * invLength;
-    float z = acceleration.z * invLength;
+    Vector3D_t a = vec3d_norm(acceleration);
 
     // Gradient descent algorithm corrective step
-    float s0 = 2.0f * (2.0f * q0 * q2 * q2 + q2 * x + 2.0f * q0 * q1 * q1 - q1 * y);
-    float s1 = 2.0f * (2.0f * q1 * q3 * q3 - q3 * x + 2.0f * q1 * q0 * q0 - q0 * y - 2.0f * q1 + 4.0f * q1 * q1 * q1 + 4.0f * q1 * q2 * q2 + 2.0f * q1 * z);
-    float s2 = 2.0f * (2.0f * q0 * q0 * q2 + q0 * x + 2.0f * q2 * q3 * q3 - q3 * y - 2.0f * q2 + 4.0f * q2 * q1 * q1 + 4.0f * q2 * q2 * q2 + 2.0f * q2 * z);
-    float s3 = 2.0f * (2.0f * q1 * q1 * q3 - q1 * x + 2.0f * q2 * q2 * q3 - q2 * y);
-
-    // Apply feedback step
-    const float beta = 1.0f; // < TODO: tune if necessary
-    float scaling = beta / sqrtf(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3);
+    // fg(q, sa)
+    float fg[3] = {
+        2.0f * (q.q1 * q.q3 - q.q0 * q.q2) - a.x,
+        2.0f * (q.q0 * q.q1 + q.q2 * q.q3) - a.y,
+        2.0f * (0.5f - q.q1 * q.q1 - q.q2 * q.q2) - a.z
+    };
+    // Jg(q)
+    float jg[3][4] = {
+        { -2.0f * q.q2, 2.0f * q.q3, -2.0f * q.q0, 2.0f * q.q1 },
+        {  2.0f * q.q1, 2.0f * q.q0,  2.0f * q.q3, 2.0f * q.q2 },
+        {  0.0f,       -4.0f * q.q1, -4.0f * q.q2, 0.0f }
+    };
+    // step = Jg(q)^T * fg(q, sa)
+    Quaternion_t step = (Quaternion_t) {
+        .q0 = 0.0,
+        .q1 = 0.0,
+        .q2 = 0.0,
+        .q3 = 0.0,
+    };
+    for (int i = 0; i < 3; i++)
+    {
+        step.q0 += jg[i][0] * fg[i];
+        step.q1 += jg[i][1] * fg[i];
+        step.q2 += jg[i][2] * fg[i];
+        step.q3 += jg[i][3] * fg[i];
+    }
 
     // Rate of change of quaternion from gyroscope
-    float qDot1 = 0.5f * (-q1 * angularSpeed.x - q2 * angularSpeed.y - q3 * angularSpeed.z) - s0 * scaling;
-    float qDot2 = 0.5f * (q0 * angularSpeed.x + q2 * angularSpeed.z - q3 * angularSpeed.y) - s1 * scaling;
-    float qDot3 = 0.5f * (q0 * angularSpeed.y - q1 * angularSpeed.z + q3 * angularSpeed.x) - s2 * scaling;
-    float qDot4 = 0.5f * (q0 * angularSpeed.z + q1 * angularSpeed.y - q2 * angularSpeed.x) - s3 * scaling;
+    // qwDot(t) = 0.5 * q(t) * (0, gx, gy, gz)
+    Quaternion_t qwDot = q_mult_scalar(
+        q_mult(
+            q,
+            (Quaternion_t) {
+                .q0 = 0.0f,
+                .q1 = g.x,
+                .q2 = g.y,
+                .q3 = g.z,
+            }
+        ),
+        0.5f
+    );
 
-    // Integrate rate of change of quaternion to yield quaternion
-    q0 += qDot1 * sampleTime;
-    q1 += qDot2 * sampleTime;
-    q2 += qDot3 * sampleTime;
-    q3 += qDot4 * sampleTime;
+    // qDot(t) = qwDot(t) - beta * step(t) / ||step(t)||
+    Quaternion_t qDot = q_sub(qwDot, q_mult_scalar(q_norm(step), beta));
 
-    // Normalise quaternion
-    float norm = 1.0f / sqrtf(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-    return (Quaternion_t){
-        q0 * norm,
-        q1 * norm,
-        q2 * norm,
-        q3 * norm,
+    // Integrate rate of change of quaternion
+    // q(t) = q(t-1) + qDot(t) * dt
+    Quaternion_t qOut = q_add(
+        previous,
+        q_mult_scalar(
+            qDot,
+            sampleTime
+        )
+    );
+
+    return q_norm(qOut);
+}
+
+static void UpdateOrientationResult(const Quaternion_t result)
+{
+    orientation = result;
+    IMUOrientationEstimator_Write_Orientation(&orientation);
+
+    Orientation3D_t euler = to_euler_angles(orientation);
+    IMUOrientationEstimator_Write_OrientationEuler(&euler);
+
+    /*
+     * Track yaw angle past the 360° mark
+     *
+     * yaw is the current rotation around the vertical (Z) axis
+     *
+     * positive yaw, dYaw, nTurns: clockwise rotation
+     *
+     * orientation estimation returns values between [-360, 360]
+     * the difference between angles is only expected to jump a half turn if it overflows
+     * sign of dYaw indicates direction of rotation
+     */
+
+    float yaw = rad_to_deg(euler.yaw) - 180.0f;
+
+    /* Track turns by detecting under/overflows */
+    float dYaw = yaw - lastYaw;
+    lastYaw = yaw;
+    if (dYaw > 180.0f)
+    {
+        nTurns -= 1;
+    }
+    else if (dYaw < -180.0f)
+    {
+        nTurns += 1;
+    }
+
+    const Orientation3D_t eulerDegrees = {
+        .pitch = rad_to_deg(euler.pitch),
+        .roll = rad_to_deg(euler.roll),
+        .yaw = yaw + nTurns * 360.0f,
     };
+    // SEGGER_RTT_printf(0, "%d %d %d\n", (int32_t) eulerDegrees.yaw, (int32_t) eulerDegrees.pitch, (int32_t) eulerDegrees.roll);
+    IMUOrientationEstimator_Write_OrientationEulerDegrees(&eulerDegrees);
 }
 
 void IMUOrientationEstimator_Reset(void)
 {
-    orientation = (Quaternion_t) {1.0f, 0.0f, 0.0f, 0.0f };
+    nTurns = 0;
+    lastYaw = 0.0f;
+
+    UpdateOrientationResult((Quaternion_t) { 1.0f, 0.0f, 0.0f, 0.0f });
 }
 /* End User Code Section: Declarations */
 
 void IMUOrientationEstimator_Run_OnInit(void)
 {
     /* Begin User Code Section: OnInit:run Start */
-    orientation = (Quaternion_t){1.0f, 0.0f, 0.0f, 0.0f};
-
-    Orientation3D_t euler = to_euler_angles(orientation);
-    IMUOrientationEstimator_Write_OrientationEuler(&euler);
+    IMUOrientationEstimator_Reset();
 
     Vector3D_t vector;
     while (IMUOrientationEstimator_Read_Acceleration(&vector) != QueueStatus_Empty)
@@ -162,9 +282,6 @@ void IMUOrientationEstimator_Run_OnInit(void)
 
     while (IMUOrientationEstimator_Read_AngularSpeeds(&vector) != QueueStatus_Empty)
         ;
-
-    nTurns = 0;
-    lastYaw = 0.0f;
     /* End User Code Section: OnInit:run Start */
     /* Begin User Code Section: OnInit:run End */
 
@@ -190,42 +307,8 @@ void IMUOrientationEstimator_Run_OnUpdate(void)
                 .y = deg_to_rad(angularSpeed.y),
                 .z = deg_to_rad(angularSpeed.z),
             };
-            orientation = madgwick_imu(sampleTime, acceleration, angularSpeedRad, orientation);
-
-            IMUOrientationEstimator_Write_Orientation(&orientation);
-
-            const Orientation3D_t euler = to_euler_angles(orientation);
-            IMUOrientationEstimator_Write_OrientationEuler(&euler);
-
-            /* track yaw angle past the 360° mark */
-            float yaw = rad_to_deg(euler.yaw);
-
-            /*
-             * yaw is the current rotation around the vertical (Z) axis
-             * positive yaw, dYaw, nTurns: counterclockwise rotation
-             * orientation estimation returns values between [-180, 180] (inclusive?)
-             * the difference between angles is only expected to jump a half turn if it overflows
-             * sign of dYaw indicates direction of rotation (current > last => positive => CCW)
-             * dYaw > 180 -> assume current value underflowed while rotating CW (!) -> -1 turns
-             */
-            float dYaw = yaw - lastYaw;
-            if (dYaw > 180.0f)
-            {
-                nTurns -= 1;
-            }
-            else if (dYaw < -180.0f)
-            {
-                nTurns += 1;
-            }
-
-            lastYaw = yaw;
-
-            const Orientation3D_t eulerDegrees = {
-                .pitch = rad_to_deg(euler.pitch),
-                .roll = rad_to_deg(euler.roll),
-                .yaw = yaw + nTurns * 360.0f,
-            };
-            IMUOrientationEstimator_Write_OrientationEulerDegrees(&eulerDegrees);
+            Quaternion_t result = madgwick_imu(sampleTime, acceleration, angularSpeedRad, orientation);
+            UpdateOrientationResult(result);
         }
     }
     /* End User Code Section: OnUpdate:run Start */

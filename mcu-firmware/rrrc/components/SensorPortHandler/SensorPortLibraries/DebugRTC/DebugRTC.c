@@ -103,10 +103,8 @@ void DebugRTC_ReadSensorInfo(SensorPort_t* sensorPort, uint8_t page, uint8_t* bu
 
 static bool DebugRTC_TestSensorOnPort(SensorPort_t *port, SensorOnPortStatus_t *result)
 {
-    (void) port;
-
-    *result = SensorOnPortStatus_Unknown;
-    return true;
+  *result = SensorOnPortStatus_Unknown;
+  return true;
 }
 
 const SensorLibrary_t sensor_library_debug_rtc =

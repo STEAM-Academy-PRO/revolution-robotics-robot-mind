@@ -6,19 +6,25 @@
 #include <math.h>
 #include <string.h>
 
-#define MAX_MOTOR_STATUS_SIZE   10
+// TODO: This component should now need to know about the status sizes. Allow port drivers to
+// configure a buffer size. The buffers should be owned by this component, which should be
+// responsible for keeping track of the size of the buffer and whether the buffer
+// needs to be reallocated if the size changes.
+#define MAX_MOTOR_STATUS_SIZE   11
 #define MAX_SENSOR_STATUS_SIZE  32
 
 #define STATUS_SLOT_BATTERY ((uint8_t) 10u)
 #define STATUS_SLOT_AXL     ((uint8_t) 11u)
 #define STATUS_SLOT_GYRO    ((uint8_t) 12u)
-#define STATUS_SLOT_YAW     ((uint8_t) 13u)
-#define STATUS_SLOT_RESET   ((uint8_t) 14u)
-#define STATUS_SLOT_ORIENTATION ((uint8_t) 15u)
+#define STATUS_SLOT_RESET   ((uint8_t) 13u)
+#define STATUS_SLOT_ORIENTATION ((uint8_t) 14u)
 
 typedef struct {
+    /** The buffer that hold the data. */
     ByteArray_t array;
+    /** The actual number of bytes in the buffer. */
     const uint8_t size;
+    /** An ID that is used to detect if the value has changed. Incremented on write. */
     uint8_t version;
 } slot_t;
 
@@ -48,7 +54,6 @@ static slot_t slots[16] = {
     { .array = { .bytes = battery_status, .count = 0u }, .size = ARRAY_SIZE(battery_status), .version = 0u },
     { .array = { .bytes = axl_status,     .count = 0u }, .size = ARRAY_SIZE(axl_status),     .version = 0u },
     { .array = { .bytes = gyro_status,    .count = 0u }, .size = ARRAY_SIZE(gyro_status),    .version = 0u },
-    { .array = { .bytes = yaw_status,     .count = 0u }, .size = ARRAY_SIZE(yaw_status),     .version = 0u },
     { .array = { .bytes = reset_status,   .count = 1u }, .size = ARRAY_SIZE(reset_status),   .version = 0u },
     { .array = { .bytes = orientation_status,   .count = 1u }, .size = ARRAY_SIZE(orientation_status),   .version = 0u }
 };
@@ -148,15 +153,6 @@ void McuStatusSlots_Run_Update(void)
         McuStatusSlots_Read_AngularSpeeds(&sample);
 
         update_slot(STATUS_SLOT_GYRO, (const uint8_t*) &sample, sizeof(sample));
-    }
-    /* yaw angle slot */
-    {
-        int32_t yaw[2] = {
-            (int32_t) lroundf(McuStatusSlots_Read_YawAngle()),
-            0 // TODO Remove
-        };
-
-        update_slot(STATUS_SLOT_YAW, (const uint8_t*) &yaw[0], sizeof(yaw));
     }
     {
         Orientation3D_t sample;

@@ -2,7 +2,7 @@
 
 import os
 from typing import List
-from pybleno import Bleno
+from pybleno import Bleno, BlenoPrimaryService
 
 from revvy.bluetooth.services.battery import CustomBatteryService
 from revvy.bluetooth.services.device_information import DeviceInformationService
@@ -20,11 +20,9 @@ from revvy.robot_manager import RobotManager
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage
 from revvy.bluetooth.longmessage import extract_asset_longmessage, LongMessageImplementation
 
-from revvy.bluetooth.live_message_service import LiveMessageService
+from revvy.bluetooth.live_message_service import LiveMessageService, MotorData
 
-from revvy.utils.error_reporter import compress_error, revvy_error_handler
-
-log = get_logger("BLE")
+from revvy.utils.error_reporter import revvy_error_handler
 
 
 class RevvyBLE:
@@ -33,10 +31,6 @@ class RevvyBLE:
 
     Listens to connections from the app and controls the robot.
     """
-
-    def update_program_status(self, button_id, status: ScriptEvent):
-        # log(f'program status update: {button_id} {status}')
-        self._live.update_program_status(button_id, status)
 
     def __init__(self, robot_manager: RobotManager):
         self._robot_manager = robot_manager
@@ -82,14 +76,20 @@ class RevvyBLE:
         self._bleno = Bleno()
 
         # _bleno exposes it's on function runtime, which makes the linter sad.
-        self._bleno.on("stateChange", self._on_state_change)
-        self._bleno.on("advertisingStart", self._on_advertising_start)
-        self._bleno.on("accept", self._on_connected)
-        self._bleno.on("disconnect", self._on_disconnect)
+        self._bleno.on(  # pyright: ignore[reportAttributeAccessIssue]
+            "stateChange", self._on_state_change
+        )
+        self._bleno.on(  # pyright: ignore[reportAttributeAccessIssue]
+            "advertisingStart", self._on_advertising_start
+        )
+        self._bleno.on("accept", self._on_connected)  # pyright: ignore[reportAttributeAccessIssue]
+        self._bleno.on(  # pyright: ignore[reportAttributeAccessIssue]
+            "disconnect", self._on_disconnect
+        )
 
         self.subscribe_to_state_changes()
 
-    def subscribe_to_state_changes(self):
+    def subscribe_to_state_changes(self) -> None:
         """
         Use the event emitter pattern to subscribe to robot status changes
         The robot manager will emit everything we need to communicate back
@@ -98,19 +98,17 @@ class RevvyBLE:
 
         self._robot_manager.on(
             RobotEvent.BATTERY_CHANGE,
-            lambda ref, val: self._bas.characteristic("unified_battery_status").update_value(val),
+            lambda ref, val: self._bas.characteristic("unified_battery_status").updateValue(val),
         )
 
         # Initialize value - this could be prettier, not sure how yet.
         initial_battery_state = self._robot_manager._robot_state._battery.get()
-        log(f"initial battery state {initial_battery_state}")
-        self._bas.characteristic("unified_battery_status").update_value(initial_battery_state)
+        self._log(f"initial battery state {initial_battery_state}")
+        self._bas.characteristic("unified_battery_status").updateValue(initial_battery_state)
 
         self._robot_manager.on(
             RobotEvent.SENSOR_VALUE_CHANGE,
-            lambda ref, sensor_reading: self._live.update_sensor(
-                sensor_reading.id, sensor_reading.raw_value
-            ),
+            lambda ref, sensor_reading: self._live.update_sensor(sensor_reading),
         )
 
         # Only send up ORIENTATION changes, NO GYRO as we are not using that anywhere.
@@ -133,7 +131,7 @@ class RevvyBLE:
         self._robot_manager.on(
             RobotEvent.PROGRAM_STATUS_CHANGE,
             lambda ref, script_status_change: self.update_program_status(
-                script_status_change.id, script_status_change.status.value
+                script_status_change.id, script_status_change.status
             ),
         )
 
@@ -152,27 +150,31 @@ class RevvyBLE:
 
         self._robot_manager.on(RobotEvent.ERROR, self.report_errors_in_queue)
 
-    def update_motor(self, ref, motor_angles: List[int]):
+    def update_program_status(self, button_id, status: ScriptEvent):
+        # log(f'program status update: {button_id} {status}')
+        self._live.update_program_status(button_id, status)
+
+    def update_motor(self, ref, motor_angles: List[int]) -> None:
         """Currently unused, as we are not doing anything with it in the app."""
         for angle, index in enumerate(motor_angles):
-            self._live.update_motor(index, 0, 0, angle)
+            self._live.update_motor(index, MotorData(0, 0, angle))
 
-    def _on_connected(self, c):
+    def _on_connected(self, c) -> None:
         """On new INCOMING connection, update the callback interfaces."""
-        log(f"BLE interface connected! {c}")
+        self._log(f"BLE interface connected! {c}")
         self._robot_manager.on_connected(c)
         self.report_errors_in_queue()
 
-    def _on_disconnect(self, *args):
+    def _on_disconnect(self, *args) -> None:
         """When ble drops connection, call the robot manager's disconnect handler"""
-        log("BLE interface disconnected!")
+        self._log("BLE interface disconnected!")
         self._robot_manager.on_disconnected()
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         """When robot wants to disconnect."""
         self._bleno.disconnect()
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> BlenoPrimaryService:
         return self._named_services[item]
 
     ### We do not support this yet!
@@ -180,7 +182,7 @@ class RevvyBLE:
     #     os.environ["BLENO_DEVICE_NAME"] = name
     #     self._bleno.stopAdvertising(self._start_advertising)
 
-    def _on_state_change(self, state):
+    def _on_state_change(self, state: str):
         """When Bluetooth comes online, we get state changes."""
         self._log(f"on -> stateChange: {state}")
 
@@ -189,39 +191,36 @@ class RevvyBLE:
         else:
             self._bleno.stopAdvertising()
 
-    def _start_advertising(self):
+    def _start_advertising(self) -> None:
         """This is what makes the app find the robot"""
-        self._log("Start advertising as {}".format(get_device_name()))
+        self._log(f"Start advertising as {get_device_name()}")
         self._bleno.startAdvertising(get_device_name(), self._advertised_uuid_list)
 
-    def _on_advertising_start(self, error):
+    def _on_advertising_start(self, error) -> None:
         """Callback of self._bleno.startAdvertising"""
 
-        def _result(result):
-            return "error " + str(result) if result else "success"
+        def _result(result) -> str:
+            return f"error {result}" if result else "success"
 
         self._log(f"on -> advertisingStart: {_result(error)}")
 
         if not error:
 
-            def on_set_service_error(error):
+            def on_set_service_error(error) -> None:
                 self._log(f"setServices: {_result(error)}")
 
             self._bleno.setServices(list(self._named_services.values()), on_set_service_error)
 
-    def start(self):
+    def start(self) -> None:
         """Switch interface on, start the robot."""
         self._bleno.start()
         self._robot_manager.robot_start()
 
-    def stop(self):
+    def stop(self) -> None:
         """Quit the program"""
         self._bleno.stopAdvertising()
         self._bleno.disconnect()
 
-    def report_errors_in_queue(self, *args):
-        """In case of an error, send it slow!"""
+    def report_errors_in_queue(self, *args) -> None:
         while revvy_error_handler.has_error():
-            self._live._error_reporting_characteristic.send_queued(
-                compress_error(revvy_error_handler.pop_error())
-            )
+            self._live.report_error(revvy_error_handler.pop_error())

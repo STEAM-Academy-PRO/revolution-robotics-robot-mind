@@ -4,6 +4,7 @@
 
 /* Begin User Code Section: Declarations */
 #include <math.h>
+#include "SEGGER_RTT.h"
 
 #define IDLE_SENSITIVITY ((float)2.0f)
 #define IDLE_NUM_SAMPLES ((uint32_t)200u)
@@ -54,12 +55,17 @@ void IMUMovementDetector_Run_OnUpdate(void)
                 samplesInCurrentBand++;
                 if (samplesInCurrentBand == IDLE_NUM_SAMPLES)
                 {
+                    SEGGER_RTT_WriteString(0, "Stopped\n");
                     IMUMovementDetector_Write_IsMoving(false);
                 }
             }
         }
         else
         {
+            if (samplesInCurrentBand == IDLE_NUM_SAMPLES)
+            {
+                SEGGER_RTT_WriteString(0, "Moving\n");
+            }
             samplesInCurrentBand = 0u;
             currentMidValue = angularSpeed;
             IMUMovementDetector_Write_IsMoving(true);

@@ -31,15 +31,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.dev:
-        # Generate empty manifest to allow editing files, do not install requirements at every packing.
-        manifest_source = []
-    else:
-        manifest_source = ["data/", "install/requirements.txt", "revvy/", "revvy.py"]
-
-    gen_manifest(manifest_source, "manifest.json")
-    manifest = read_json("manifest.json")
-
     package_sources = [
         "revvy/",
         "install/requirements.txt",
@@ -50,6 +41,16 @@ if __name__ == "__main__":
         "tools/",
         "manifest.json",
     ]
+
+    if args.dev:
+        # Generate empty manifest to allow editing files, do not install requirements at every packing.
+        manifest_source = []
+        package_sources.extend(["tests"])
+    else:
+        manifest_source = ["data/", "install/requirements.txt", "revvy/", "revvy.py"]
+
+    gen_manifest(manifest_source, "manifest.json")
+    manifest = read_json("manifest.json")
 
     version = manifest["version"].replace("/", "-")
     minor_version = version.split(".")[2]

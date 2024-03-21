@@ -6,6 +6,7 @@ on:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  CPU_COUNT: 2
 
 concurrency:
   cancel-in-progress: true
@@ -43,7 +44,7 @@ jobs:
         if: steps.filter.outputs.mcu-bootloader == 'true'
         run: |
           cd mcu-bootloader
-          make config=debug
+          make config=debug -j${{ env.CPU_COUNT }}
 
       - name: Upload artifacts
         if: steps.filter.outputs.mcu-bootloader == 'true' && github.event.pull_request.draft == false
@@ -107,7 +108,7 @@ jobs:
           python -m tools.generate_makefile
           # currently the generated runtime is checked in, so this is not needed
           # cglue --generate --cglue-output=rrrc/generated_runtime
-          make all config=debug
+          make all config=debug -j${{ env.CPU_COUNT }}
           python -m tools.prepare --debug
 
       - name: Visualize architecture
@@ -151,39 +152,13 @@ jobs:
           pip install -r install/requirements.txt
           pip install -r install/requirements_test.txt
 
-          timeout 5m nose2 -B
-
-  lint-pi-firmware:
-    permissions:
-      contents: read # checkout
-      pull-requests: read # paths-filter
-
-    runs-on: ubuntu-latest
-    needs: [check-pi-firmware]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dorny/paths-filter@v2
-        id: filter
-        with:
-          filters: |
-            pi-firmware:
-              - pi-firmware/**
-              - .github/workflows/pr.yml
-
-      - name: Running checks
-        if: steps.filter.outputs.pi-firmware == 'true'
-        run: |
-          cd pi-firmware
-
-          # install dependencies
-          pip install -r install/requirements.txt
-          pip install -r install/requirements_test.txt
-
-          # run checks
+          # check formatting
           black --check .
+
+          # run linter
           pyright
+
+          timeout 5m nose2 -B
 
   archive-pi-firmware:
     permissions:
@@ -234,7 +209,7 @@ jobs:
         if: steps.filter.outputs.pi-firmware == 'true'
         run: |
           cd pi-firmware
-          python -m dev_tools.create_package
+          python -m dev_tools.create_package --dev
 
       - name: Upload artifacts
         if: steps.filter.outputs.pi-firmware == 'true'
@@ -245,3 +220,22 @@ jobs:
             pi-firmware/install/pi-firmware.*
             pi-firmware/install/framework-*.tar.gz
           retention-days: 3
+
+  run-hil-test:
+    permissions:
+      contents: read # checkout
+
+    needs: [archive-pi-firmware]
+    runs-on: self-hosted
+
+    steps:
+      - name: Download python firmware package
+        uses: actions/download-artifact@v4
+        with:
+          name: pi-firmware
+          path: ~/RevvyFramework/user/ble
+
+      - name: Running tests
+        run: |
+          sudo systemctl stop revvy
+          ~/RevvyFramework/launch_revvy.py --setup --test

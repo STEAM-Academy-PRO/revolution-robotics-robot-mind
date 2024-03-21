@@ -1,6 +1,7 @@
 import { Accessor, Show, createMemo, createSignal } from "solid-js"
-import { RobotMessage, SocketWrapper, WSEventType } from "../utils/Communicator"
-import styles from './Controller.module.css'
+import { RobotMessage, WSEventType } from "../utils/Communicator"
+import styles from './Play.module.css'
+import { conn, endpoint } from "../settings"
 
 
 enum CameraState {
@@ -11,7 +12,7 @@ enum CameraState {
 
 let state = CameraState.connected
 
-function CameraController(conn: Accessor<SocketWrapper | null>): {
+function CameraController(): {
     state: Accessor<CameraState>,
     connect: () => void,
     disconnect: () => void
@@ -45,12 +46,8 @@ function CameraController(conn: Accessor<SocketWrapper | null>): {
     }
 }
 
-export function CameraView({
-    conn, endpoint
-}: {
-    conn: Accessor<SocketWrapper | null>, endpoint: Accessor<string>
-}) {
-    const controller = CameraController(conn)
+export function CameraView() {
+    const controller = CameraController()
 
     const cameraAddress = createMemo(() =>
         conn() ? `http://${endpoint()}:8080/?action=stream` : ''
