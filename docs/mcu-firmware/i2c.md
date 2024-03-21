@@ -76,8 +76,6 @@ to define higher level commands.
 Commands are firmware procedures that may run for an arbitrarily long time. Multiple different
 commands may run at the same time.
 
-> Currently, we only start one command at a time in the Pi firmware.
-
 ### Format of a request
 
 Requests control the Command execution. The MCU may implement custom Command-specific handling for

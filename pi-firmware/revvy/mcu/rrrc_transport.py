@@ -3,8 +3,7 @@ import struct
 import binascii
 from enum import Enum
 from threading import Lock
-from typing import NamedTuple, Union
-import time
+from typing import NamedTuple
 
 from revvy.utils.functions import retry
 from revvy.utils.logger import LogLevel, get_logger
@@ -405,7 +404,7 @@ class Response(NamedTuple):
 
 
 class RevvyTransport:
-    _mutex = Lock()  # we only have a single I2C interface
+    _transaction_mutex = Lock()  # Ensures that write-read pairs are not interrupted
     timeout = 5  # [seconds] how long the MCU is allowed to respond with "busy" or no response
     retry = 100  # FIXME: 100 seems like an excessive value
 
@@ -432,61 +431,62 @@ class RevvyTransport:
 
         timeout = Stopwatch()
 
-        # We only allow a single command to be sent at a time. TODO: this restriction can be
-        # lifted by adding a per-Command mutex instead. The MCU is capable of processing multiple
-        # (different) commands in parallel.
-        with self._mutex:
-            command_start = Command.start(command, payload)
+        command_start = Command.start(command, payload)
 
-            try:
-                # retry on bit errors
-                # assume that integrity error is random and not caused by implementation differences
-                # once a command gets through and a valid response is read, this loop will exit
-                while True:
-                    # send command and read back status
-                    header = self._send_command(command_start)
+        try:
+            # retry on bit errors
+            # assume that integrity error is random and not caused by implementation differences
+            # once a command gets through and a valid response is read, this loop will exit
+            while True:
+                # send command and read back status
+                response = self._send_command(command_start)
 
-                    # wait for command execution to finish
-                    if header.status == ResponseStatus.Pending:
-                        command_get_result = Command.get_result(command)
+                # wait for command execution to finish
+                if response.status == ResponseStatus.Pending:
+                    command_get_result = Command.get_result(command)
 
-                        while True:
-                            header = self._send_command(command_get_result)
-                            if header.status != ResponseStatus.Pending:
-                                # execution done, stop polling
-                                break
-                            if timeout.elapsed > exec_timeout:
-                                return Response(ResponseStatus.Error_Timeout, b"")
+                    while True:
+                        response = self._send_command(command_get_result)
+                        if response.status != ResponseStatus.Pending:
+                            # execution done, stop polling
+                            break
+                        if timeout.elapsed > exec_timeout:
+                            return Response(ResponseStatus.Error_Timeout, b"")
 
-                    # At this point we have read the response header and we know the command has
-                    # finished processing. We can now read the payload and return the result.
-                    response_payload = self._read_payload(header)
+                return Response(response.status, response.payload)
+        except TimeoutError:
+            return Response(ResponseStatus.Error_Timeout, b"")
 
-                    return Response(header.status, response_payload)
-            except TimeoutError:
-                return Response(ResponseStatus.Error_Timeout, b"")
-
-    def _read_response_header(self) -> ResponseHeader:
+    def _read_response(self) -> Response:
         """
-        Read header part of response message
+        Read response message
 
-        Header is always 5 bytes long and it contains the length of the variable payload
+        Header is always 5 bytes long and it contains the length of the variable payload.
+        We read this header part first, then re-read the header and payload together to verify
+        that the data is intact.
 
         @param retries: How many times the read can be retried in case an error happens
         @return: The header data
         """
 
-        def _read_response_header_once() -> ResponseHeader:
-            header_bytes = self._transport.read(5)
-            return ResponseHeader.create(header_bytes)
+        response_header = None
+        for _ in range(self.retry):
+            try:
+                header_bytes = self._transport.read(5)
+                response_header = ResponseHeader.create(header_bytes)
+                break
+            except Exception:
+                pass
 
-        header = retry(_read_response_header_once, self.retry, lambda e: None)
-
-        if not header:
+        if not response_header:
             self.log("Error reading response header: retry limit reached!", LogLevel.ERROR)
             raise BrokenPipeError("Read response header error")
 
-        return header
+        # At this point we have read the response header and we know the command has
+        # finished processing. We can now read the payload and return the result.
+        payload = self._read_payload(response_header)
+
+        return Response(response_header.status, payload)
 
     def _read_payload(self, header: ResponseHeader) -> bytes:
         """
@@ -527,7 +527,7 @@ class RevvyTransport:
 
         return payload
 
-    def _send_command(self, command: bytes) -> ResponseHeader:
+    def _send_command(self, command: bytes) -> Response:
         """
         Writes command (as in, Start or GetResult) bytes and return the response header. If the
         response contains a payload, the firmware can re-read it using `_read_payload`.
@@ -538,26 +538,32 @@ class RevvyTransport:
         @param command: The command bytes to send
         @return: The response header
         """
+
         self._stopwatch.reset()
+
         resend_command = True
         while resend_command and self._stopwatch.elapsed < self.timeout:
-            self._transport.write(command)
-            resend_command = False
+            # We need to ensure that we read the response to our written command. This mutex ensures
+            # that we don't send a new command before the response to the previous one is read.
+            with self._transaction_mutex:
+                self._transport.write(command)
+                resend_command = False
 
-            while self._stopwatch.elapsed < self.timeout:
-                response = self._read_response_header()
-                # Busy means the MCU is not ready for this command yet and we should retry later.
-                if response.status == ResponseStatus.Busy:
-                    continue  # retry reading the header
-                elif (
-                    response.status == ResponseStatus.Error_CommandIntegrityError
-                    or response.status == ResponseStatus.Error_PayloadIntegrityError
-                ):
-                    resend_command = True
-                    break  # exit reading loop to retry sending the command
-                else:
-                    # we got a response to a command, so we can exit
-                    if response.status != ResponseStatus.Ok:
-                        self.log(f"response.status: {response.status}", LogLevel.DEBUG)
-                    return response
+                while self._stopwatch.elapsed < self.timeout:
+                    response = self._read_response()
+                    # Busy means the MCU is not ready for this command yet and we should retry later.
+                    if response.status == ResponseStatus.Busy:
+                        continue  # retry reading the header
+                    elif (
+                        response.status == ResponseStatus.Error_CommandIntegrityError
+                        or response.status == ResponseStatus.Error_PayloadIntegrityError
+                    ):
+                        resend_command = True
+                        break  # exit reading loop to retry sending the command
+                    else:
+                        # we got a response to a command, so we can exit
+                        if response.status != ResponseStatus.Ok:
+                            self.log(f"response.status: {response.status}", LogLevel.DEBUG)
+
+                        return response
         raise TimeoutError
