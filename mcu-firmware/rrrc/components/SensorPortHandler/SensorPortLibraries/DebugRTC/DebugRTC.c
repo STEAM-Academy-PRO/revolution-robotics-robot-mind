@@ -36,14 +36,15 @@ SensorLibraryStatus_t DebugRTC_Load(SensorPort_t* sensorPort)
     return SensorLibraryStatus_Ok;
 }
 
-void DebugRTC_Unload(SensorPort_t* sensorPort, OnDeInitCompletedCb cb)
+SensorLibraryUnloadStatus_t DebugRTC_Unload(SensorPort_t* sensorPort)
 {
     SensorPort_SetGreenLed(sensorPort, false);
     SensorPort_SetOrangeLed(sensorPort, false);
     SensorPort_SetVccIo(sensorPort, Sensor_VccIo_3V3);
     SensorPort_I2C_Disable(sensorPort);
     SensorPortHandler_Call_Free(&sensorPort->libraryData);
-    cb(sensorPort, true);
+
+    return SensorLibraryUnloadStatus_Done;
 }
 
 SensorLibraryStatus_t DebugRTC_Update(SensorPort_t* sensorPort)
@@ -103,8 +104,10 @@ void DebugRTC_ReadSensorInfo(SensorPort_t* sensorPort, uint8_t page, uint8_t* bu
 
 static bool DebugRTC_TestSensorOnPort(SensorPort_t *port, SensorOnPortStatus_t *result)
 {
-  *result = SensorOnPortStatus_Unknown;
-  return true;
+    (void) port;
+
+    *result = SensorOnPortStatus_Unknown;
+    return true;
 }
 
 const SensorLibrary_t sensor_library_debug_rtc =

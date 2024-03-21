@@ -607,7 +607,7 @@ static SensorLibraryStatus_t ColorSensor_Load(SensorPort_t *sensorPort)
     return SensorLibraryStatus_Ok;
 }
 
-static void ColorSensor_Unload(SensorPort_t *sensorPort, OnDeInitCompletedCb cb)
+static SensorLibraryUnloadStatus_t ColorSensor_Unload(SensorPort_t *sensorPort)
 {
     SensorLibrary_RGB_Data_t* libdata = sensorPort->libraryData;
 
@@ -615,20 +615,24 @@ static void ColorSensor_Unload(SensorPort_t *sensorPort, OnDeInitCompletedCb cb)
     case SENS_DEINIT_STATE_NONE:
         ProcessDeinitRequested(sensorPort);
         break;
+
     case SENS_DEINIT_STATE_IN_PROGRESS:
         break;
+
     case SENS_DEINIT_STATE_COMPLETED:
         ProcessDeinitCompleted(sensorPort);
-        cb(sensorPort, true);
-        break;
+        return SensorLibraryUnloadStatus_Done;
+
     case SENS_DEINIT_STATE_ERROR:
         ProcessDeinitCompleted(sensorPort);
-        cb(sensorPort, false);
-        break;
+        return SensorLibraryUnloadStatus_Done;
+
     default:
         ASSERT(0);
         break;
     }
+
+    return SensorLibraryUnloadStatus_Pending;
 }
 
 static SensorLibraryStatus_t ColorSensor_Update(SensorPort_t *sensorPort)

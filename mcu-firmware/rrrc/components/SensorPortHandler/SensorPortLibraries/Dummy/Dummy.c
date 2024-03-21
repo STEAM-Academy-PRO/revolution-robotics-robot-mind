@@ -6,9 +6,10 @@ SensorLibraryStatus_t DummySensor_Load(SensorPort_t* sensorPort)
     return SensorLibraryStatus_Ok;
 }
 
-void DummySensor_Unload(SensorPort_t* sensorPort, OnDeInitCompletedCb cb)
+SensorLibraryUnloadStatus_t DummySensor_Unload(SensorPort_t* sensorPort)
 {
-    cb(sensorPort, true);
+    (void) sensorPort;
+    return SensorLibraryUnloadStatus_Done;
 }
 
 SensorLibraryStatus_t DummySensor_Update(SensorPort_t* sensorPort)

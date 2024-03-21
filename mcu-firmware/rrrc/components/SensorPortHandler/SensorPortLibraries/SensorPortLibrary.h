@@ -19,13 +19,16 @@ typedef enum {
     SensorOnPortStatus_Error,
 } SensorOnPortStatus_t;
 
-typedef void (*OnDeInitCompletedCb)(struct _SensorPort_t *sensorPort, bool success);
+typedef enum {
+    SensorLibraryUnloadStatus_Pending,
+    SensorLibraryUnloadStatus_Done,
+} SensorLibraryUnloadStatus_t;
 
 typedef struct _SensorLibrary_t
 {
     const char* Name;
     SensorLibraryStatus_t (*Load)(struct _SensorPort_t* sensorPort);
-    void (*Unload)(struct _SensorPort_t* sensorPort, OnDeInitCompletedCb cb);
+    SensorLibraryUnloadStatus_t (*Unload)(struct _SensorPort_t* sensorPort);
     SensorLibraryStatus_t (*Update)(struct _SensorPort_t* sensorPort);
 
     SensorLibraryStatus_t (*UpdateConfiguration)(struct _SensorPort_t* sensorPort, const uint8_t* data, uint8_t size);

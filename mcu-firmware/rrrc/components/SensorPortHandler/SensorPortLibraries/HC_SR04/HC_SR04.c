@@ -91,7 +91,7 @@ SensorLibraryStatus_t HC_SR04_Load(SensorPort_t *sensorPort)
     return SensorLibraryStatus_Ok;
 }
 
-void HC_SR04_Unload(SensorPort_t* sensorPort, OnDeInitCompletedCb cb)
+SensorLibraryUnloadStatus_t HC_SR04_Unload(SensorPort_t* sensorPort)
 {
     SensorPort_SetVccIo(sensorPort, Sensor_VccIo_3V3);
     SensorPort_ConfigureGpio0_Input(sensorPort);
@@ -100,7 +100,8 @@ void HC_SR04_Unload(SensorPort_t* sensorPort, OnDeInitCompletedCb cb)
     SensorPort_SetOrangeLed(sensorPort, false);
     SensorPort_SetGreenLed(sensorPort, false);
     SensorPortHandler_Call_Free(&sensorPort->libraryData);
-    cb(sensorPort, true);
+
+    return SensorLibraryUnloadStatus_Done;
 }
 
 SensorLibraryStatus_t HC_SR04_Update(SensorPort_t *sensorPort)

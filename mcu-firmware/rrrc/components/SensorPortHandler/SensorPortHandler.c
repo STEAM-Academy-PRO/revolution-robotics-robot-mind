@@ -87,13 +87,6 @@ void SensorPortHandler_Run_OnInit(SensorPort_t* ports, size_t portCount)
     }
 }
 
-static void OnPortDeinitCompleted(SensorPort_t* port, bool success)
-{
-    /* We assume deinit is infallible and `success` is just a debugging flag */
-    SEGGER_RTT_printf(0, "SensorPort %d: OnPortDeinitCompleted: %d\n", port->port_idx, success);
-    port->set_port_type_state = SetPortTypeState_Done;
-}
-
 /* End User Code Section: Declarations */
 
 void SensorPortHandler_Run_PortUpdate(uint8_t port_idx)
@@ -203,21 +196,26 @@ AsyncResult_t SensorPortHandler_AsyncRunnable_SetPortType(AsyncCommand_t asyncCo
     }
 
     SensorPort_t *port = &sensorPorts[port_idx];
+
     if (asyncCommand == AsyncCommand_Start)
     {
         SEGGER_RTT_printf(0, "SensorPort %d: SetPortType(%d) Start\n", port_idx, port_type);
+        port->set_port_type_state = SetPortTypeState_Busy;
     }
 
     switch (port->set_port_type_state)
     {
-        case SetPortTypeState_None:
-            port->set_port_type_state = SetPortTypeState_Busy;
-
-            port->library->Unload(port, OnPortDeinitCompleted);
-            return AsyncResult_Pending;
-
         case SetPortTypeState_Busy:
-            port->library->Unload(port, OnPortDeinitCompleted);
+            switch (port->library->Unload(port))
+            {
+                case SensorLibraryUnloadStatus_Pending:
+                    break;
+
+                case SensorLibraryUnloadStatus_Done:
+                    SEGGER_RTT_printf(0, "SensorPort %d: Unloaded", port->port_idx);
+                    port->set_port_type_state = SetPortTypeState_Done;
+                    break;
+            }
             return AsyncResult_Pending;
 
         case SetPortTypeState_Done:
