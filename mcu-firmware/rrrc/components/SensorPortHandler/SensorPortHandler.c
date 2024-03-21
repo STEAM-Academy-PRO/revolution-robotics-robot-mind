@@ -125,7 +125,7 @@ void SensorPortHandler_Run_ReadPortTypes(ByteArray_t* buffer)
     for (uint32_t i = 0u; i < ARRAY_SIZE(libraries); i++)
     {
         const SensorLibrary_t* lib = libraries[i];
-        size_t name_length = strlen(lib->name);
+        size_t name_length = strlen(lib->Name);
         if (len + name_length + 2u > size)
         {
             buffer->count = 0u;
@@ -133,7 +133,7 @@ void SensorPortHandler_Run_ReadPortTypes(ByteArray_t* buffer)
         }
         buffer->bytes[len] = i;
         buffer->bytes[len + 1] = name_length;
-        memcpy(&buffer->bytes[len + 2], lib->name, name_length);
+        memcpy(&buffer->bytes[len + 2], lib->Name, name_length);
         len = len + 2 + name_length;
     }
     buffer->count = len;
@@ -213,19 +213,20 @@ AsyncResult_t SensorPortHandler_AsyncRunnable_SetPortType(AsyncCommand_t asyncCo
         case SetPortTypeState_None:
             port->set_port_type_state = SetPortTypeState_Busy;
 
-            port->library->DeInit(port, OnPortDeinitCompleted);
+            port->library->Unload(port, OnPortDeinitCompleted);
             return AsyncResult_Pending;
 
         case SetPortTypeState_Busy:
-            port->library->DeInit(port, OnPortDeinitCompleted);
+            port->library->Unload(port, OnPortDeinitCompleted);
             return AsyncResult_Pending;
 
         case SetPortTypeState_Done:
             /* reset status slot */
             SensorPortHandler_Call_UpdatePortStatus(port->port_idx, (ByteArray_t) { NULL, 0u });
+
             /* set up new driver */
             port->library = libraries[port_type];
-            port->library->Init(port);
+            port->library->Load(port);
 
             SEGGER_RTT_printf(0, "SensorPort %d: SetPortType(%d) Done\n", port_idx, port_type);
             port->set_port_type_state = SetPortTypeState_None;

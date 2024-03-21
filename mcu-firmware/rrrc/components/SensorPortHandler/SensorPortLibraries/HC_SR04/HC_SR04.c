@@ -71,7 +71,7 @@ static uint32_t update_filtered_distance(SensorLibrary_HC_SR04_Data_t *sens_data
     return ordered[HCSR05_MEDIAN_FITLER_SIZE / 2];
 }
 
-SensorLibraryStatus_t HC_SR04_Init(SensorPort_t *sensorPort)
+SensorLibraryStatus_t HC_SR04_Load(SensorPort_t *sensorPort)
 {
     SensorLibrary_HC_SR04_Data_t *libdata = SensorPortHandler_Call_Allocate(sizeof(SensorLibrary_HC_SR04_Data_t));
 
@@ -91,7 +91,7 @@ SensorLibraryStatus_t HC_SR04_Init(SensorPort_t *sensorPort)
     return SensorLibraryStatus_Ok;
 }
 
-void HC_SR04_DeInit(SensorPort_t* sensorPort, OnDeInitCompletedCb cb)
+void HC_SR04_Unload(SensorPort_t* sensorPort, OnDeInitCompletedCb cb)
 {
     SensorPort_SetVccIo(sensorPort, Sensor_VccIo_3V3);
     SensorPort_ConfigureGpio0_Input(sensorPort);
@@ -275,13 +275,13 @@ test_completed:
 }
 
 const SensorLibrary_t sensor_library_hc_sr04 = {
-    .name = "HC_SR04",
-    .Init = &HC_SR04_Init,
-    .DeInit = &HC_SR04_DeInit,
-    .Update = &HC_SR04_Update,
+    .Name                = "HC_SR04",
+    .Load                = &HC_SR04_Load,
+    .Unload              = &HC_SR04_Unload,
+    .Update              = &HC_SR04_Update,
     .UpdateConfiguration = &HC_SR04_UpdateConfiguration,
-    .UpdateAnalogData = &HC_SR04_UpdateAnalogData,
-    .InterruptHandler = &HC_SR04_InterruptCallback,
-    .ReadSensorInfo = &HC_SR04_ReadSensorInfo,
-    .TestSensorOnPort = &HC_SR04_TestSensorOnPort
+    .UpdateAnalogData    = &HC_SR04_UpdateAnalogData,
+    .InterruptHandler    = &HC_SR04_InterruptCallback,
+    .ReadSensorInfo      = &HC_SR04_ReadSensorInfo,
+    .TestSensorOnPort    = &HC_SR04_TestSensorOnPort
 };

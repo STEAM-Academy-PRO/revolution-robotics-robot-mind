@@ -58,7 +58,10 @@ typedef enum {
 typedef struct _SensorPort_t
 {
     uint8_t port_idx;
+
+    /* Driver implementation VTable */
     const struct _SensorLibrary_t* library;
+    /* Driver implementation private data */
     void* libraryData;
 
     uint8_t led0;

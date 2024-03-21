@@ -163,7 +163,7 @@ void MotorPortHandler_Run_ReadPortTypes(ByteArray_t* buffer)
     for (uint32_t i = 0u; i < ARRAY_SIZE(libraries); i++)
     {
         const MotorLibrary_t* lib = libraries[i];
-        size_t name_length = strlen(lib->name);
+        size_t name_length = strlen(lib->Name);
         if (len + name_length + 2u > size)
         {
             buffer->count = 0u;
@@ -171,7 +171,7 @@ void MotorPortHandler_Run_ReadPortTypes(ByteArray_t* buffer)
         }
         buffer->bytes[len] = i;
         buffer->bytes[len + 1] = name_length;
-        memcpy(&buffer->bytes[len + 2], lib->name, name_length);
+        memcpy(&buffer->bytes[len + 2], lib->Name, name_length);
         len = len + 2 + name_length;
     }
     buffer->count = len;
@@ -198,14 +198,14 @@ void MotorPortHandler_Run_SetPortType(uint8_t port_idx, uint8_t port_type, bool*
     MotorPort_t* configuredPort = &motorPorts[port_idx];
     const MotorLibrary_t* library = (const MotorLibrary_t*) configuredPort->library;
 
-    library->DeInit(configuredPort);
+    library->Unload(configuredPort);
     library = libraries[port_type];
     configuredPort->library = library;
 
     /* reset status slot */
     MotorPortHandler_Call_UpdatePortStatus(configuredPort->port_idx, (ByteArray_t){NULL, 0u});
 
-    library->Init(configuredPort);
+    library->Load(configuredPort);
     *result = true;
     /* End User Code Section: SetPortType:run Start */
     /* Begin User Code Section: SetPortType:run End */
