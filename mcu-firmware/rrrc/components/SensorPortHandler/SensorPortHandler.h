@@ -50,10 +50,10 @@ typedef enum {
 } SensorPort_CommInterface_t;
 
 typedef enum {
-    SetPortTypeState_None,
-    SetPortTypeState_Busy,
-    SetPortTypeState_Done,
-} SetPortTypeState_t;
+    PortDriverState_Loaded,
+    PortDriverState_Unloading,
+    PortDriverState_Unloaded,
+} PortDriverState_t;
 
 typedef struct _SensorPort_t
 {
@@ -63,6 +63,7 @@ typedef struct _SensorPort_t
     const struct _SensorLibrary_t* library;
     /* Driver implementation private data */
     void* libraryData;
+    PortDriverState_t portDriverState;
 
     uint8_t led0;
     uint8_t led1;
@@ -77,7 +78,6 @@ typedef struct _SensorPort_t
     } comm_pin0, comm_pin1;
 
     void* comm_hw;
-    SetPortTypeState_t set_port_type_state;
 
     SensorPort_CommInterface_t interfaceType;
     union {

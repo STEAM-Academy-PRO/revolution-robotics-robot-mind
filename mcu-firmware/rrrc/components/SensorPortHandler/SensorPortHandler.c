@@ -71,7 +71,7 @@ static void _init_port(SensorPort_t* port)
     /* set dummy library */
     port->interfaceType = SensorPortComm_None;
     port->library = &sensor_library_dummy;
-    port->set_port_type_state = SetPortTypeState_None;
+    port->portDriverState = PortDriverState_Loaded;
 }
 
 /* TODO also generate this one */
@@ -97,7 +97,7 @@ void SensorPortHandler_Run_PortUpdate(uint8_t port_idx)
     SensorPort_t* port = &sensorPorts[port_idx];
 
     /* Do not call update if the port driver is not in a consistent state */
-    if (port->set_port_type_state == SetPortTypeState_None)
+    if (port->portDriverState == PortDriverState_Loaded)
     {
         port->library->UpdateAnalogData(port, SensorPortHandler_Read_AdcData(port->port_idx));
         port->library->Update(port);
@@ -199,13 +199,14 @@ AsyncResult_t SensorPortHandler_AsyncRunnable_SetPortType(AsyncCommand_t asyncCo
 
     if (asyncCommand == AsyncCommand_Start)
     {
+        ASSERT(port->portDriverState == PortDriverState_Loaded);
         SEGGER_RTT_printf(0, "SensorPort %d: SetPortType(%d) Start\n", port_idx, port_type);
-        port->set_port_type_state = SetPortTypeState_Busy;
+        port->portDriverState = PortDriverState_Unloading;
     }
 
-    switch (port->set_port_type_state)
+    switch (port->portDriverState)
     {
-        case SetPortTypeState_Busy:
+        case PortDriverState_Unloading:
             switch (port->library->Unload(port))
             {
                 case SensorLibraryUnloadStatus_Pending:
@@ -213,12 +214,12 @@ AsyncResult_t SensorPortHandler_AsyncRunnable_SetPortType(AsyncCommand_t asyncCo
 
                 case SensorLibraryUnloadStatus_Done:
                     SEGGER_RTT_printf(0, "SensorPort %d: Unloaded", port->port_idx);
-                    port->set_port_type_state = SetPortTypeState_Done;
+                    port->portDriverState = PortDriverState_Unloaded;
                     break;
             }
             return AsyncResult_Pending;
 
-        case SetPortTypeState_Done:
+        case PortDriverState_Unloaded:
             /* reset status slot */
             SensorPortHandler_Call_UpdatePortStatus(port->port_idx, (ByteArray_t) { NULL, 0u });
 
@@ -227,7 +228,7 @@ AsyncResult_t SensorPortHandler_AsyncRunnable_SetPortType(AsyncCommand_t asyncCo
             port->library->Load(port);
 
             SEGGER_RTT_printf(0, "SensorPort %d: SetPortType(%d) Done\n", port_idx, port_type);
-            port->set_port_type_state = SetPortTypeState_None;
+            port->portDriverState = PortDriverState_Loaded;
 
             /* Driver initialization is done in Update and Configure */
 
