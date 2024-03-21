@@ -4,17 +4,8 @@ How to release a new package
 Release a Pi firmware update
 ----------------------------
 
-![Screenshot of the GitHub GUI](assets/release.png)
-
-- Be absolutely sure everything works
-- Create a new [**pre-release**](https://github.com/STEAM-Academy-PRO/revolution-robotics-robot-mind/releases/new)
-  - Make sure the target branch is `release`!
-  - Click `Choose a tag`, give a name to the tag (usually `v<Version>` where `<Version>` is the number of commits), then click `Create new tag`.
-  - Click `Generate release notes`
-  - Fill in the title, add additional information to the release description.
-  - Check the `Set as a pre-release` box
-  - Press `Publish release`
-- The CI's [release workflow](ci.md#release) will build artifacts, add them to the release and publish the release
+- Create a pull request from `main` to `release`
+- The CI's [release workflow](ci.md#release) will build artifacts
 - Wait for the build to succeed and for the artifacts to appear in the [releases](https://github.com/STEAM-Academy-PRO/revolution-robotics-robot-mind/releases)
 
 ### Anatomy of a release
@@ -26,6 +17,12 @@ A release on GitHub contains the following files:
 - `revvy_firmware-<VERSION>.bin`, `catalog.json`: MCU firmware update that can be added to a Pi firmware package
 - `mcu_firmware.elf`, `bootloader.elf`: MCU firmware and bootloader binaries for manual flashing
 - `bootloader.bin`: Raw MCU bootloader binary for manual flashing - for factory use
+
+### Hot fixes
+
+If you need to urgently fix a bug, open a pull request against the `release` branch. Merging the
+pull request will automatically commit the changes back to `main`, and a new release package will
+also be built.
 
 Create a new Pi OS image
 ------------------------
