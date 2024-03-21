@@ -1,10 +1,11 @@
 import copy
-from threading import Event, Lock, Thread
+from threading import Event, Lock, Thread, Timer
 import time
+from typing import Optional
 from revvy.robot.remote_controller import BleAutonomousCmd, RemoteControllerCommand
 from revvy.robot_config import RobotConfig
 from revvy.robot_manager import RevvyStatusCode, RobotManager
-from revvy.utils.logger import get_logger
+from revvy.utils.logger import LogLevel, get_logger
 
 
 class ProgrammedRobotController:
@@ -19,6 +20,7 @@ class ProgrammedRobotController:
             next_deadline=1,
         )
         self.lock = Lock()
+        self.timeout: Optional[Timer] = None
         # We clear this event when updating controller input. We then wait for this event to
         # become set to know that the controller thread has processed the input.
         self.message_updated = Event()
@@ -41,6 +43,10 @@ class ProgrammedRobotController:
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.log("Stopping programmed robot controller")
+        if self.timeout:
+            self.timeout.cancel()
+            self.timeout = None
+
         self.exit = True
         self.thread.join()
         self.robot_manager._scripts.stop_all_scripts(True)
@@ -53,6 +59,26 @@ class ProgrammedRobotController:
 
     def _wait_for_input_processed(self) -> None:
         self.message_updated.wait()
+
+    def with_timeout(self, timeout: float):
+        def _on_timeout() -> None:
+            self.timeout = None
+            self.log("Test scenario timed out", LogLevel.ERROR)
+            self.robot_manager._scripts.stop_all_scripts(False)
+            self.robot_manager.exit(RevvyStatusCode.ERROR)
+
+        self.timeout = Timer(timeout, _on_timeout)
+        self.timeout.start()
+
+    def wait_for_scripts_to_end(self) -> None:
+        any_running = True
+        while any_running:
+            any_running = False
+            for script in self.robot_manager._scripts._scripts.values():
+                if script.is_running:
+                    any_running = True
+            if any_running:
+                time.sleep(0.1)
 
     # Raw input control
 

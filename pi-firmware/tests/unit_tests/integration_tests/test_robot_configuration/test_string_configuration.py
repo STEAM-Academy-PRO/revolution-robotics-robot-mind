@@ -21,6 +21,18 @@ class TestPortConfiguration(unittest.TestCase):
                         "type": 2,
                         "reversed": 1,
                         "side": 1
+                    },
+                    {
+                        "name": "M3",
+                        "type": 2,
+                        "reversed": 1,
+                        "side": 0
+                    },
+                    {
+                        "name": "M4",
+                        "type": 2,
+                        "reversed": 1,
+                        "side": 0
                     }
                 ],
                 "sensors": [
@@ -54,3 +66,6 @@ class TestPortConfiguration(unittest.TestCase):
 
         self.assertEqual(3, motors["M2"])
         self.assertEqual(9, sensors["S4"])
+
+        self.assertEqual([3, 4], config.drivetrain["left"])
+        self.assertEqual([2], config.drivetrain["right"])

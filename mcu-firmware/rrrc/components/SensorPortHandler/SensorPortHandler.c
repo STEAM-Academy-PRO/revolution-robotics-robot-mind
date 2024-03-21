@@ -15,6 +15,8 @@
 #include "SensorPortLibraries/RGB/RGB.h"
 #include "SensorPortLibraries/DebugRTC/DebugRTC.h"
 
+#include "SEGGER_RTT.h"
+
 static const SensorLibrary_t* libraries[] =
 {
     &sensor_library_dummy,
@@ -31,7 +33,7 @@ void SensorPort_ext1_callback(void* user_data)
 {
     SensorPort_t* port = (SensorPort_t*) user_data;
 
-    if (port != NULL)
+    if (port != NULL && port->library != NULL)
     {
         port->library->InterruptHandler(port, SensorPort_Read_Gpio1(port));
     }
@@ -69,7 +71,6 @@ static void _init_port(SensorPort_t* port)
     /* set dummy library */
     port->interfaceType = SensorPortComm_None;
     port->library = &sensor_library_dummy;
-    port->set_port_type_state_new_port_type = 0;
     port->set_port_type_state = SetPortTypeState_None;
 }
 
@@ -88,20 +89,8 @@ void SensorPortHandler_Run_OnInit(SensorPort_t* ports, size_t portCount)
 
 static void OnPortDeinitCompleted(SensorPort_t* port, bool success)
 {
-    if (!success)
-    {
-      port->set_port_type_state = SetPortTypeState_Error;
-      return;
-    }
-
-    /* reset status slot */
-    SensorPortHandler_Call_UpdatePortStatus(port->port_idx,
-       (ByteArray_t) { NULL, 0u }
-    );
-
-    port->library = libraries[port->set_port_type_state_new_port_type];
-    port->library->Init(port);
-    port->set_port_type_state_new_port_type = 0;
+    /* We assume deinit is infallible and `success` is just a debugging flag */
+    SEGGER_RTT_printf(0, "SensorPort %d: OnPortDeinitCompleted: %d\n", port->port_idx, success);
     port->set_port_type_state = SetPortTypeState_Done;
 }
 
@@ -113,8 +102,13 @@ void SensorPortHandler_Run_PortUpdate(uint8_t port_idx)
     ASSERT(port_idx < sensorPortCount);
 
     SensorPort_t* port = &sensorPorts[port_idx];
-    port->library->UpdateAnalogData(port, SensorPortHandler_Read_AdcData(port->port_idx));
-    port->library->Update(port);
+
+    /* Do not call update if the port driver is not in a consistent state */
+    if (port->set_port_type_state == SetPortTypeState_None)
+    {
+        port->library->UpdateAnalogData(port, SensorPortHandler_Read_AdcData(port->port_idx));
+        port->library->Update(port);
+    }
     /* End User Code Section: PortUpdate:run Start */
     /* Begin User Code Section: PortUpdate:run End */
 
@@ -154,6 +148,7 @@ void SensorPortHandler_Run_Configure(uint8_t port_idx, ByteArray_t configuration
     /* Begin User Code Section: Configure:run Start */
     if (port_idx >= sensorPortCount)
     {
+        SEGGER_RTT_printf(0, "SensorPort %d: Configure Input error\n", port_idx);
         *result = false;
         return;
     }
@@ -200,46 +195,49 @@ AsyncResult_t SensorPortHandler_AsyncRunnable_SetPortType(AsyncCommand_t asyncCo
     (void) port_type;
     (void) result;
     /* Begin User Code Section: SetPortType:async_run Start */
-
-    (void) asyncCommand;
-
     if (port_idx >= sensorPortCount || port_type >= ARRAY_SIZE(libraries))
     {
+        SEGGER_RTT_printf(0, "SensorPort %d: SetPortType(%d) Input error\n", port_idx, port_type);
         *result = false;
         return AsyncResult_Ok;
     }
 
     SensorPort_t *port = &sensorPorts[port_idx];
-    if (port->set_port_type_state == SetPortTypeState_None)
+    if (asyncCommand == AsyncCommand_Start)
     {
-        port->set_port_type_state = SetPortTypeState_Busy;
-        port->set_port_type_state_new_port_type = port_type;
-
-        /*
-         * DeInit might trigger callback immediately, changing state from Busy
-         * to something else
-         */
-        port->library->DeInit(port, OnPortDeinitCompleted);
+        SEGGER_RTT_printf(0, "SensorPort %d: SetPortType(%d) Start\n", port_idx, port_type);
     }
 
     switch (port->set_port_type_state)
     {
-      case SetPortTypeState_Busy:
-        return AsyncResult_Pending;
+        case SetPortTypeState_None:
+            port->set_port_type_state = SetPortTypeState_Busy;
 
-      case SetPortTypeState_Done:
-        port->set_port_type_state = SetPortTypeState_None;
-        *result = true;
-        return AsyncResult_Ok;
+            port->library->DeInit(port, OnPortDeinitCompleted);
+            return AsyncResult_Pending;
 
-      case SetPortTypeState_Error:
-        port->set_port_type_state = SetPortTypeState_None;
-        *result = false;
-        return AsyncResult_Ok;
+        case SetPortTypeState_Busy:
+            port->library->DeInit(port, OnPortDeinitCompleted);
+            return AsyncResult_Pending;
 
-      default:
-        ASSERT(0);
-        return AsyncResult_Pending;
+        case SetPortTypeState_Done:
+            /* reset status slot */
+            SensorPortHandler_Call_UpdatePortStatus(port->port_idx, (ByteArray_t) { NULL, 0u });
+            /* set up new driver */
+            port->library = libraries[port_type];
+            port->library->Init(port);
+
+            SEGGER_RTT_printf(0, "SensorPort %d: SetPortType(%d) Done\n", port_idx, port_type);
+            port->set_port_type_state = SetPortTypeState_None;
+
+            /* Driver initialization is done in Update and Configure */
+
+            *result = true;
+            return AsyncResult_Ok;
+
+        default:
+            ASSERT(0);
+            return AsyncResult_Pending;
     }
 
     /* End User Code Section: SetPortType:async_run Start */
@@ -262,16 +260,26 @@ AsyncResult_t SensorPortHandler_AsyncRunnable_TestSensorOnPort(AsyncCommand_t as
     bool test_completed = lib->TestSensorOnPort(port, &status);
 
     if (!test_completed)
-      return AsyncResult_Pending;
+    {
+        return AsyncResult_Pending;
+    }
 
     if (status == SensorOnPortStatus_NotPresent)
-      *result = TestSensorOnPortResult_NotPresent;
+    {
+        *result = TestSensorOnPortResult_NotPresent;
+    }
     else if (status == SensorOnPortStatus_Present)
-      *result = TestSensorOnPortResult_Present;
+    {
+        *result = TestSensorOnPortResult_Present;
+    }
     else if (status == SensorOnPortStatus_Unknown)
-      *result = TestSensorOnPortResult_Unknown;
+    {
+        *result = TestSensorOnPortResult_Unknown;
+    }
     else
-      *result = TestSensorOnPortResult_Error;
+    {
+        *result = TestSensorOnPortResult_Error;
+    }
 
     return AsyncResult_Ok;
 

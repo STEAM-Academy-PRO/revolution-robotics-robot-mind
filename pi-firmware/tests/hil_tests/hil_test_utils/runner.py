@@ -38,6 +38,11 @@ def run_scenario(scenario: Callable[[Logger, ProgrammedRobotController], None]) 
     try:
         with ProgrammedRobotController(robot_manager) as controller:
             scenario(log, controller)
+    except Exception as e:
+        log(f"Exception: {e}", LogLevel.ERROR)
+        log(traceback.format_exc(), LogLevel.DEBUG)
+        robot_manager.exit(RevvyStatusCode.ERROR)
+        raise e
     finally:
         result = robot_manager.wait_for_exit()
         sys.excepthook = old_exc_hook

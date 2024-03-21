@@ -211,9 +211,12 @@ class ReadSensorPortAmountCommand(ReadPortAmountCommand):
         return 0x20
 
 
-class SetPortTypeCommand(ReturnlessCommand, ABC):
+class SetPortTypeCommand(Command[bool], ABC):
     def __call__(self, port, port_type_idx):
         return self._send((port, port_type_idx))
+
+    def parse_response(self, payload: bytes) -> bool:
+        return payload[0] == 1
 
 
 class SetMotorPortTypeCommand(SetPortTypeCommand):
@@ -359,9 +362,14 @@ class SetMotorPortControlCommand(Command[bytes]):
         return 0x14
 
     def __call__(self, command_bytes: bytes):
+        if len(command_bytes) == 0:
+            # special-case the "no command", because we can't differentiate between an error
+            # and a successful "no command"
+            return bytes()
         return self._send(command_bytes)
 
     def parse_response(self, payload: bytes):
+        # this command returns as many bytes as there were commands batched
         if len(payload) == 0:
             # we don't know the failure, we just get an empty response
             raise ValueError("Failed to send motor control command")

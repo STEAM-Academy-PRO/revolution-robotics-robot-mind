@@ -89,7 +89,7 @@ class ScriptHandle(Emitter[ScriptEvent]):
         return self._thread.state in [ThreadWrapperState.STOPPING, ThreadWrapperState.STOPPED]
 
     @property
-    def is_running(self):
+    def is_running(self) -> bool:
         return self._thread.is_running
 
     @property
@@ -196,7 +196,7 @@ class ScriptManager:
     def __getitem__(self, name):
         return self._scripts[name]
 
-    def stop_all_scripts(self, wait=True):
+    def stop_all_scripts(self, wait: bool = True):
         events = []
         for script in self._scripts.values():
             events.append(script.stop())

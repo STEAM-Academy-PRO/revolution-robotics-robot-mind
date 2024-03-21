@@ -24,11 +24,13 @@ from revvy.utils.logger import get_logger
 class PortDriver(ABC):
     """A base class for motor and sensor drivers."""
 
-    def __init__(self, port: "PortInstance", driver_name: str):
+    def __init__(self, port: "PortInstance", driver_name: str, port_kind: str):
         self._driver_name = driver_name
         self._port = port
         self._on_status_changed = SimpleEventEmitter()
-        self.log = get_logger(driver_name)
+        self.log = get_logger([f"PortDriver[{port.id}]", port_kind, driver_name])
+
+        self.log(f"Driver created")
 
     @property
     def driver_name(self) -> str:

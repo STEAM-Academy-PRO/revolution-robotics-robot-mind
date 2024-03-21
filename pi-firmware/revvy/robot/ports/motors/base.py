@@ -34,7 +34,7 @@ class MotorStatus(Enum):
 
 class MotorPortDriver(PortDriver):
     def __init__(self, port: PortInstance, driver_name: str):
-        super().__init__(port, driver_name)
+        super().__init__(port, driver_name, "Motor")
 
         port.interface.set_motor_port_type(port.id, port._supported[driver_name])
 

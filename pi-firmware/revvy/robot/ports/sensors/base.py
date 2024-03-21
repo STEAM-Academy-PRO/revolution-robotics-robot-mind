@@ -6,19 +6,17 @@ from revvy.robot.ports.common import PortHandler
 
 class SensorPortDriver(PortDriver):
     def __init__(self, port: PortInstance["SensorPortDriver"], driver_name: str):
-        super().__init__(port, driver_name)
+        super().__init__(port, driver_name, "Sensor")
         self._port = port
         self._value = None
-        self._raw_value = None
-
-        self.log(f"SensorPortDriver[{port.id}] {driver_name}")
+        self._raw_value = bytes()
 
         sensor_port_type = port._supported[driver_name]
 
         port.interface.set_sensor_port_type(port.id, sensor_port_type)
 
     @property
-    def has_data(self):
+    def has_data(self) -> bool:
         return self._value is not None
 
     def update_status(self, data: bytes):
@@ -43,7 +41,7 @@ class SensorPortDriver(PortDriver):
         return self._value
 
     @property
-    def raw_value(self):
+    def raw_value(self) -> bytes:
         return self._raw_value
 
     @abstractmethod

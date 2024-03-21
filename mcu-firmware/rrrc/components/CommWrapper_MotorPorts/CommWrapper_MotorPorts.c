@@ -89,22 +89,13 @@ Comm_Status_t CommWrapper_MotorPorts_Run_Command_SetPortType_Start(ConstByteArra
 Comm_Status_t CommWrapper_MotorPorts_Run_Command_SetPortType_GetResult(ByteArray_t response, uint8_t* responseCount)
 {
     /* Begin User Code Section: Command_SetPortType_GetResult:run Start */
-    (void) response;
-    (void) responseCount;
-
-    bool result;
+    bool result = false;
     switch (CommWrapper_MotorPorts_Async_SetPortType_GetResult(&result))
     {
         case AsyncOperationState_Done:
-            if (result)
-            {
-                return Comm_Status_Ok;
-            }
-            else
-            {
-                return Comm_Status_Error_CommandError;
-            }
-            break;
+            response.bytes[0] = (uint8_t)result;
+            *responseCount = 1u;
+            return Comm_Status_Ok;
 
         case AsyncOperationState_Busy:
             return Comm_Status_Pending;
