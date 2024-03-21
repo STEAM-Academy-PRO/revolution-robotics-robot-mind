@@ -2,7 +2,7 @@ from enum import IntEnum
 import sys
 from threading import current_thread
 import traceback
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Optional
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.mcu_error import McuErrorReader
 
@@ -28,14 +28,13 @@ class RobotError:
 
     error_type: RobotErrorType
     stack: str
-    # Blockly errors need a ref, so we can tell
-    # which blockly program caused the error.
     ref: int
+    """Blockly program ID. 255 if not a blockly error."""
 
-    def __init__(self, error_type: RobotErrorType, stack: str, ref: int = 0):
+    def __init__(self, error_type: RobotErrorType, stack: str, ref: Optional[int]):
         self.error_type = error_type
         self.stack = stack
-        self.ref = ref
+        self.ref = 255 if ref is None else ref
 
     def __json__(self):
         return {
@@ -44,7 +43,10 @@ class RobotError:
             "ref": self.ref,
         }
 
-    def hash(self):
+    def __bytes__(self) -> bytes:
+        return compress_error(self)
+
+    def hash(self) -> int:
         """For easy compare if we have to send it up again or not."""
         return hash((self.error_type, self.stack))
 
@@ -90,16 +92,16 @@ class ErrorHandler:
     They also need to be truncated to 500 bytes to go through a single BLE packet.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._error_queue: List[RobotError] = []
         self._error_map: Dict[int, RobotError] = {}
-        self._on_error_callback: Callable = None
+        self._on_error_callback: Optional[Callable] = None
         # self.register_uncaught_exception_handler()
 
     def register_on_error_callback(self, callback: Callable):
         self._on_error_callback = callback
 
-    def handle_uncaught_system_exception(self, exception_type, value, trace):
+    def handle_uncaught_system_exception(self, exception_type, value, trace) -> None:
         """Log uncaught exceptions and put them in a queue for reporting."""
         trace = "\t".join(traceback.format_tb(trace))
         log_message = f"U: {exception_type}\nValue: {value}\nTraceback: \n\t{trace}\n\n"
@@ -112,15 +114,15 @@ class ErrorHandler:
         sys.excepthook = self.handle_uncaught_system_exception
         log("Uncaught exception handler registered")
 
-    def pop_error(self):
+    def pop_error(self) -> RobotError:
         """Remove and return the last element of the array"""
         return self._error_queue.pop()
 
-    def has_error(self):
+    def has_error(self) -> bool:
         """True if error queue not empty"""
-        return self._error_queue
+        return len(self._error_queue) > 0
 
-    def report_error(self, error_type: RobotErrorType, trace: str, ref: int = 0):
+    def report_error(self, error_type: RobotErrorType, trace: str, ref: Optional[int] = None):
         """Send error to the queue up if it hasn't been posted already."""
         new_robot_error = RobotError(error_type, f"{trace} [{current_thread().name}]", ref)
         error_hash = new_robot_error.hash()
@@ -141,7 +143,7 @@ class ErrorHandler:
         error_reader = McuErrorReader(robot_control)
         log("Reading MCU errors...")
         for error_entry in error_reader.read_all():
-            self.report_error(RobotErrorType.MCU, error_entry)
+            self.report_error(RobotErrorType.MCU, error_entry, None)
 
         # This is not super ideal as we are not making sure that the error
         # actually gets sent up, however we do run this function only

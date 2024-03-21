@@ -1,8 +1,9 @@
 from functools import partial
-from typing import Callable, NamedTuple
+from typing import NamedTuple
 import time
 
 from revvy.hardware_dependent.sound import SoundControlV1, SoundControlV2
+from revvy.mcu.commands import TestSensorOnPortResult
 from revvy.mcu.rrrc_control import RevvyTransportBase
 from revvy.robot.drivetrain import DifferentialDrivetrain
 from revvy.robot.imu import IMU
@@ -14,7 +15,6 @@ from revvy.robot.sound import Sound
 from revvy.robot.status import RobotStatusIndicator, RobotStatus
 from revvy.robot.status_updater import McuStatusUpdater
 from revvy.scripting.resource import Resource
-from revvy.scripting.robot_interface import RobotInterface
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.version import VERSION, Version
@@ -45,18 +45,9 @@ class BatteryStatus(NamedTuple):
     motor: int
 
 
-def _default_bus_factory() -> RevvyTransportBase:
-    from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
-
-    return RevvyTransportI2C(1)
-
-
-# FIXME: why is this RobotInterface? The base class causes problems for the linter, and also doesn't seem to be necessary anywhere.
-class Robot(RobotInterface):
-    def __init__(self, bus_factory: Callable[[], RevvyTransportBase] = _default_bus_factory):
-        self._bus_factory = bus_factory
-
-        self._comm_interface = self._bus_factory()
+class Robot:
+    def __init__(self, interface: RevvyTransportBase):
+        self._comm_interface = interface
 
         self._log = get_logger("Robot")
 
@@ -75,6 +66,7 @@ class Robot(RobotInterface):
         }
 
         self._ring_led = RingLed(self._robot_control)
+        assert VERSION.hw is not None
         self._sound = Sound(setup[VERSION.hw]())
 
         self._status = RobotStatusIndicator(self._robot_control)
@@ -132,7 +124,7 @@ class Robot(RobotInterface):
         return self._resources
 
     @property
-    def script_variables(self):
+    def script_variables(self) -> VariableSlot:
         return self._script_variables
 
     @property
@@ -151,7 +143,6 @@ class Robot(RobotInterface):
     def status(self) -> RobotStatusIndicator:
         return self._status
 
-    # TODO: these 2 return the wrong type? What was the intent?
     @property
     def motors(self) -> MotorPortHandler:
         return self._motor_ports
@@ -161,37 +152,37 @@ class Robot(RobotInterface):
         return self._sensor_ports
 
     @property
-    def drivetrain(self):
+    def drivetrain(self) -> DifferentialDrivetrain:
         return self._drivetrain
 
     @property
-    def led(self):
+    def led(self) -> RingLed:
         return self._ring_led
 
     @property
     def sound(self) -> Sound:
         return self._sound
 
-    def play_tune(self, name):
-        self._sound.play_tune(name)
+    def play_tune(self, name: str) -> bool:
+        return self._sound.play_tune(name)
 
-    def time(self):
+    def time(self) -> float:
         return self._stopwatch.elapsed
 
-    def __validate_one_sensor_port(self, sensor_idx, expected_type):
+    def __validate_one_sensor_port(self, sensor_idx, expected_type) -> int:
         port_type = to_sensor_type_index(expected_type)
         if port_type is None:
             return SENSOR_ON_PORT_UNKNOWN
 
         result = self._robot_control.test_sensor_on_port(sensor_idx + 1, port_type)
 
-        if result.is_connected():
+        if result == TestSensorOnPortResult.CONNECTED:
             return expected_type
 
-        if result.is_not_connected():
+        if result == TestSensorOnPortResult.NOT_CONNECTED:
             return SENSOR_ON_PORT_NOT_PRESENT
 
-        if result.is_error():
+        if result == TestSensorOnPortResult.ERROR:
             return SENSOR_ON_PORT_INVALID
 
         return SENSOR_ON_PORT_UNKNOWN
@@ -201,7 +192,7 @@ class Robot(RobotInterface):
         self._ring_led.start_animation(RingLed.BreathingGreen)
         self._status_updater.reset()
 
-        def _process_battery_slot(data):
+        def _process_battery_slot(data) -> None:
             assert len(data) == 4
             main_status, main_percentage, motor_bat_present, motor_percentage = data
 
@@ -229,5 +220,5 @@ class Robot(RobotInterface):
         self._status.robot_status = RobotStatus.NotConfigured
         self._status.update()
 
-    def stop(self):
+    def stop(self) -> None:
         self._sound.wait()

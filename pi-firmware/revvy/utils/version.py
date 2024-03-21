@@ -1,5 +1,6 @@
 import os
 import re
+from typing import Optional
 from revvy.utils.directories import CURRENT_INSTALLATION_PATH
 
 from revvy.utils.functions import read_json
@@ -15,60 +16,10 @@ class FormatError(Exception):
     pass
 
 
-manifest = None
-
-
-def read_manifest():
-    global manifest
-    manifest = read_json(os.path.join(CURRENT_INSTALLATION_PATH, "manifest.json"))
-
-
-def get_branch():
-    """Current manifest's branch"""
-    global manifest
-    if not manifest:
-        read_manifest()
-    return manifest["branch"]
-
-
-def get_sw_version():
-    """Returns Current Software version, uses manifest file to determine that."""
-    global manifest
-    if not manifest:
-        read_manifest()
-    return Version(manifest["version"])
-
-
-class SystemVersions:
-    """HW, SW, FW version store populated by the init updater."""
-
-    def __init__(self):
-        self.sw = None
-        self.hw = None
-        self.fw = None
-
-    def set(self, sw, hw, fw):
-        self.sw = sw
-        self.hw = hw
-        self.fw = fw
-
-        logger.branch = get_branch()
-        logger.sw_version = sw
-
-        log = get_logger("Version info")
-        log(f"hw: {hw} sw: {sw} fw: {fw}")
-
-    def get(self):
-        return {"hw": str(self.hw), "sw": str(self.sw), "fw": str(self.fw)}
-
-
-VERSION = SystemVersions()
-
-
 class Version:
     """Deals with version numbers"""
 
-    def __init__(self, ver_str):
+    def __init__(self, ver_str: str):
         """
         >>> Version('1.0.123')
         Version(1.0.123)
@@ -87,7 +38,7 @@ class Version:
         else:
             self._normalized = f"{self.major}.{self.minor}.{self.rev}-{self.branch}"
 
-    def __le__(self, other):
+    def __le__(self, other) -> bool:
         """
         >>> Version('1.0.0') <= Version('1.0.0')
         True
@@ -106,7 +57,7 @@ class Version:
         """
         return self.compare(other) != 1
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         """
         >>> Version('1.0.0') == Version('1.0.0')
         True
@@ -119,9 +70,13 @@ class Version:
         >>> Version('1.0.0') == Version('1.0.0-dev')
         False
         """
-        return self.compare(other) == 0 and self.branch == other.branch
+        if self.compare(other) == 0:
+            assert isinstance(other, Version)
+            return self.branch == other.branch
+        else:
+            return False
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         """
         >>> Version('1.0.0') != Version('1.0.0')
         False
@@ -136,7 +91,7 @@ class Version:
         """
         return not (self == other)
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         """
         >>> Version('1.0.0') < Version('1.0.0')
         False
@@ -155,7 +110,7 @@ class Version:
         """
         return self.compare(other) == -1
 
-    def __gt__(self, other):
+    def __gt__(self, other) -> bool:
         """
         >>> Version('1.0.0') > Version('1.0.0')
         False
@@ -174,7 +129,7 @@ class Version:
         """
         return self.compare(other) == 1
 
-    def __ge__(self, other):
+    def __ge__(self, other) -> bool:
         """
         >>> Version('1.0.0') >= Version('1.0.0')
         True
@@ -193,8 +148,10 @@ class Version:
         """
         return self.compare(other) != -1
 
-    def compare(self, other: "Version"):
+    def compare(self, other) -> int:
         """
+        Three-way compare two versions
+
         >>> Version('1.0.0').compare(Version('1.0.0'))
         0
         >>> Version('1.0.1').compare(Version('1.0.0'))
@@ -203,7 +160,10 @@ class Version:
         -1
         """
 
-        def cmp(a, b):
+        if not isinstance(other, Version):
+            raise TypeError(f"Expected Version, got {type(other)}")
+
+        def cmp(a: int, b: int):
             return -1 if a < b else 1
 
         if self.major == other.major:
@@ -226,8 +186,59 @@ class Version:
         """
         return self._normalized
 
-    def __repr__(self):
-        return "Version({})".format(self._normalized)
+    def __repr__(self) -> str:
+        return f"Version({self._normalized})"
 
     def __hash__(self) -> int:
         return self._normalized.__hash__()
+
+
+manifest = None
+
+
+def read_manifest():
+    global manifest
+    manifest = read_json(os.path.join(CURRENT_INSTALLATION_PATH, "manifest.json"))
+
+
+def get_branch() -> str:
+    """Current manifest's branch"""
+    global manifest
+    if not manifest:
+        read_manifest()
+
+    # FIXME: use a typed manifest object
+    return manifest["branch"]  # pyright: ignore
+
+
+def get_sw_version() -> Version:
+    """Returns Current Software version, uses manifest file to determine that."""
+    global manifest
+    if not manifest:
+        read_manifest()
+
+    # FIXME: use a typed manifest object
+    return Version(manifest["version"])  # pyright: ignore
+
+
+class SystemVersions:
+    """HW, SW, FW version store populated by the init updater."""
+
+    def __init__(self):
+        self.sw = None
+        self.hw = None
+        self.fw = None
+
+    def set(self, sw: Version, hw: Version, fw: Version):
+        self.sw = sw
+        self.hw = hw
+        self.fw = fw
+
+        log = get_logger("Version info")
+        log(f"hw: {hw} sw: {sw} fw: {fw}")
+
+    def get(self) -> dict:
+        return {"hw": str(self.hw), "sw": str(self.sw), "fw": str(self.fw)}
+
+
+VERSION = SystemVersions()

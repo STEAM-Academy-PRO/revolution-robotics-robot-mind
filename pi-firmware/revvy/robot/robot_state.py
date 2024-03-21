@@ -18,12 +18,11 @@ from revvy.robot.robot_events import RobotEvent
 from revvy.robot.states.battery_state import BatteryState
 from revvy.utils.emitter import Emitter
 from revvy.utils.logger import LogLevel, get_logger
-from revvy.utils.math.floor0 import floor0
 from revvy.utils.observable import Observable
 from revvy.utils.thread_wrapper import ThreadWrapper, periodic
 from revvy.utils import error_reporter
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 # To have types, use this to avoid circular dependencies.
 if TYPE_CHECKING:
@@ -32,28 +31,22 @@ if TYPE_CHECKING:
 log = get_logger("RobotStatePoller")
 
 
-class RobotState(Emitter[RobotEvent]):
-    """Sustain a consistent event driven state of the robot"""
+class RobotStatePoller(Emitter[RobotEvent]):
+    """Maintain a consistent event driven state of the robot"""
 
     def __init__(self, robot: "Robot", remote_controller: RemoteController):
         super().__init__()
         self._robot = robot
         self._remote_controller = remote_controller
-        self._status_update_thread: ThreadWrapper | None = None
+        self._status_update_thread: Optional[ThreadWrapper] = None
 
-        # Battery updates: every 2 seconds is enough, if it's unplugged, it's
-        # soon enough to notify.
         self._battery = BatteryState(throttle_interval=2)
-
         self._orientation = Observable(GyroData(0, 0, 0), throttle_interval=0.2)
-
         self._script_variables = Observable(ScriptVariables([None] * 4), throttle_interval=0.1)
-
         self._background_control_state = Observable(
             BackgroundControlState.STOPPED, throttle_interval=0.1
         )
         self._timer = Observable(TimerData(0), throttle_interval=1)
-
         self._motor_angles = Observable([0] * 6, throttle_interval=0.1)
 
     def start_polling_mcu(self) -> None:
@@ -65,12 +58,10 @@ class RobotState(Emitter[RobotEvent]):
         self._script_variables.subscribe(
             lambda data: self.trigger(RobotEvent.SCRIPT_VARIABLE_CHANGE, data)
         )
-
         self._background_control_state.subscribe(
             lambda data: self.trigger(RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE, data)
         )
         self._timer.subscribe(lambda data: self.trigger(RobotEvent.TIMER_TICK, data))
-
         self._motor_angles.subscribe(lambda data: self.trigger(RobotEvent.MOTOR_CHANGE, data))
 
         self._robot.reset()
@@ -88,7 +79,7 @@ class RobotState(Emitter[RobotEvent]):
         if self._status_update_thread:
             self._status_update_thread.exit()
 
-    def _update(self):
+    def _update(self) -> None:
         """
         This runs every 5ms and reads out the robot's statuses.
         """
@@ -101,16 +92,15 @@ class RobotState(Emitter[RobotEvent]):
             self._remote_controller.timer_increment()
             self._timer.set(self._remote_controller.processing_time)
 
-            # TODO: Debounce this a bit better: this is used for the angle.
             self._orientation.set(
                 GyroData(
-                    floor0(getattr(self._robot.imu.orientation, "pitch"), 1),
-                    floor0(getattr(self._robot.imu.orientation, "roll"), 1),
-                    floor0(getattr(self._robot.imu.orientation, "yaw"), 1),
+                    self._robot.imu.orientation.pitch,
+                    self._robot.imu.orientation.roll,
+                    self._robot.imu.orientation.yaw,
                 )
             )
 
-            self._script_variables.set(self._robot.script_variables.get_variable_values())
+            self._script_variables.set(self._robot.script_variables.values())
             self._background_control_state.set(self._remote_controller.background_control_state)
 
             # This is TEMPORARY and should not be here. Nothing should know about the MCU

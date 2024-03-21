@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-import enum
+from enum import Enum
 import struct
 from threading import Lock
 from typing import List, NamedTuple, Optional
@@ -9,16 +9,22 @@ from revvy.robot.ports.motors.base import MotorConstants, MotorStatus, MotorPort
 from revvy.utils.awaiter import Awaiter
 from revvy.utils.functions import clip
 from revvy.utils.logger import LogLevel
+from revvy.utils.serialize import Serialize
 
 MOTOR_PACKET_SIZE_BYTES = 11
 
 
-class ThresholdKind(enum.IntEnum):
+float_le = struct.Struct("<f")
+float_le2 = struct.Struct("<2f")
+float_le5 = struct.Struct("<5f")
+
+
+class ThresholdKind(Enum):
     DEGREES = 0
     PERCENT = 1
 
-    def serialize(self) -> bytes:
-        return struct.pack("b", self)
+    def __bytes__(self) -> bytes:
+        return bytes([self.value])
 
 
 class PositionThreshold(NamedTuple):
@@ -33,42 +39,40 @@ class PositionThreshold(NamedTuple):
     def percent(percent: float):
         return PositionThreshold(kind=ThresholdKind.PERCENT, value=percent / 100.0)
 
-    def serialize(self) -> bytes:
+    def __bytes__(self) -> bytes:
         """
-        >>> list(PositionThreshold(ThresholdKind.DEGREES, 5).serialize())
+        >>> list(PositionThreshold(ThresholdKind.DEGREES, 5).__bytes__())
         [0, 0, 0, 160, 64]
-        >>> list(PositionThreshold(ThresholdKind.PERCENT, 0.5).serialize())
+        >>> list(PositionThreshold(ThresholdKind.PERCENT, 0.5).__bytes__())
         [1, 0, 0, 0, 63]
         """
 
-        return bytes([*self.kind.serialize(), *struct.pack("<f", self.value)])
+        return bytes([*self.kind.__bytes__(), *float_le.pack(self.value)])
 
 
-class MotorCommand(ABC):
-    def __init__(self, request_type):
+class MotorCommand(ABC, Serialize):
+    def __init__(self, request_type: int):
         self.request_type = request_type
 
-    @abstractmethod
-    def serialize(self) -> bytes:
-        pass
-
-    def command_to_port(self, port_idx):
-        command_data = [self.request_type, *self.serialize()]
+    def command_to_port(self, port_idx) -> bytes:
+        command_data = [self.request_type, *self.__bytes__()]
 
         header = ((len(command_data) << 3) & 0xF8) | port_idx
 
-        return (header, *command_data)
+        return bytes([header, *command_data])
 
 
 class SetPowerCommand(MotorCommand):
-    def __init__(self, power):
+    power_format = struct.Struct("b")
+
+    def __init__(self, power: int):
         REQUEST_POWER = 0
         super().__init__(REQUEST_POWER)
 
         self.power = clip(power, -100, 100)
 
-    def serialize(self) -> bytes:
-        return struct.pack("<b", self.power)
+    def __bytes__(self) -> bytes:
+        return self.power_format.pack(self.power)
 
 
 class SetSpeedCommand(MotorCommand):
@@ -79,39 +83,50 @@ class SetSpeedCommand(MotorCommand):
         self.speed = speed
         self.power_limit = power_limit
 
-    def serialize(self) -> bytes:
+    def __bytes__(self) -> bytes:
         if self.power_limit is None:
-            control = struct.pack("<f", self.speed)
+            control = float_le.pack(self.speed)
         else:
-            control = struct.pack("<ff", self.speed, self.power_limit)
+            control = float_le2.pack(self.speed, self.power_limit)
 
         return control
+
+
+_format_pos = struct.Struct("<l")
+_format_pos_with_limit = struct.Struct("<lbf")
+_format_pos_with_limits = struct.Struct("<lff")
 
 
 class SetPositionCommand(MotorCommand):
     REQUEST_ABSOLUTE = 2
     REQUEST_RELATIVE = 3
 
-    def __init__(self, request_type, position, speed_limit=None, power_limit=None):
+    def __init__(self, request_type: int, position, speed_limit=None, power_limit=None):
         super().__init__(request_type)
         self.position = int(position)
         self.speed_limit = speed_limit
         self.power_limit = power_limit
 
-    def serialize(self) -> bytes:
+    def __bytes__(self) -> bytes:
         LIMIT_KIND_POWER = 0
         LIMIT_KIND_SPEED = 1
 
         if self.speed_limit is None:
             if self.power_limit is None:
-                control = struct.pack("<l", self.position)
+                control = _format_pos.pack(self.position)
             else:
-                control = struct.pack("<lbf", self.position, LIMIT_KIND_POWER, self.power_limit)
+                control = _format_pos_with_limit.pack(
+                    self.position, LIMIT_KIND_POWER, self.power_limit
+                )
         else:
             if self.power_limit is None:
-                control = struct.pack("<lbf", self.position, LIMIT_KIND_SPEED, self.speed_limit)
+                control = _format_pos_with_limit.pack(
+                    self.position, LIMIT_KIND_SPEED, self.speed_limit
+                )
             else:
-                control = struct.pack("<lff", self.position, self.speed_limit, self.power_limit)
+                control = _format_pos_with_limits.pack(
+                    self.position, self.speed_limit, self.power_limit
+                )
 
         return control
 
@@ -123,9 +138,9 @@ class PidConfig(NamedTuple):
     lower_output_limit: float
     upper_output_limit: float
 
-    def serialize(self) -> bytes:
-        return struct.pack(
-            "<5f", self.p, self.i, self.d, self.lower_output_limit, self.upper_output_limit
+    def __bytes__(self) -> bytes:
+        return float_le5.pack(
+            self.p, self.i, self.d, self.lower_output_limit, self.upper_output_limit
         )
 
 
@@ -134,9 +149,9 @@ class TwoValuePidConfig(NamedTuple):
     fast: PidConfig
     fast_threshold: PositionThreshold
 
-    def serialize(self) -> bytes:
+    def __bytes__(self) -> bytes:
         return bytes(
-            [*self.slow.serialize(), *self.fast.serialize(), *self.fast_threshold.serialize()]
+            [*self.slow.__bytes__(), *self.fast.__bytes__(), *self.fast_threshold.__bytes__()]
         )
 
 
@@ -147,18 +162,18 @@ class AccelerationLimitConfig:
         self._deceleration = decMax
         self._acceleration = accMax
 
-    def serialize(self) -> bytes:
-        return struct.pack("<ff", self._deceleration, self._acceleration)
+    def __bytes__(self) -> bytes:
+        return float_le2.pack(self._deceleration, self._acceleration)
 
 
 class LinearityConfig:
     def __init__(self, config: List[tuple[float, int]]):
         self._points = config
 
-    def serialize(self) -> bytes:
+    def __bytes__(self) -> bytes:
         config = []
         for x, y in self._points:
-            config += struct.pack("<ff", x, y)
+            config += float_le2.pack(x, y)
         return bytes(config)
 
 
@@ -175,15 +190,15 @@ class DcMotorDriverConfig:
 
         self._linearity = LinearityConfig(port_config.get("linearity", []))
 
-    def serialize(self) -> bytes:
+    def __bytes__(self) -> bytes:
         return bytes(
             [
-                *struct.pack("<f", self._resolution),
-                *self._position_pid.serialize(),
-                *self._speed_pid.serialize(),
-                *self._acceleration_limits.serialize(),
-                *struct.pack("<f", self._max_current),
-                *self._linearity.serialize(),
+                *float_le.pack(self._resolution),
+                *self._position_pid.__bytes__(),
+                *self._speed_pid.__bytes__(),
+                *self._acceleration_limits.__bytes__(),
+                *float_le.pack(self._max_current),
+                *self._linearity.__bytes__(),
             ]
         )
 
@@ -207,7 +222,9 @@ class DcMotorController(MotorPortDriver):
         self._timeout = 0
         self._current_position_request: Optional[int] = None
         self._lock = Lock()
-        port.interface.set_motor_port_config(port.id, self._port_config.serialize())
+        self._motor_status = struct.Struct("<bblfB")
+
+        port.interface.set_motor_port_config(port.id, self._port_config.__bytes__())
 
     # TODO: explain the arguments' units
     # TODO: remove these in favour of "Command to ports" API? Keep in mind that drivetrain
@@ -355,7 +372,7 @@ class DcMotorController(MotorPortDriver):
 
     def update_status(self, data) -> None:
         if len(data) == MOTOR_PACKET_SIZE_BYTES:
-            raw_status = struct.unpack("<bblfB", data)
+            raw_status = self._motor_status.unpack(data)
             status, self._power, self._pos, self._speed, current_task = raw_status
 
             self._update_motor_status(MotorStatus(status), current_task)

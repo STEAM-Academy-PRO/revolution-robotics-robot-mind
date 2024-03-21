@@ -1,4 +1,3 @@
-import struct
 from typing import NamedTuple, Optional
 
 from revvy.robot.ports.common import PortInstance
@@ -23,7 +22,7 @@ class Hcsr04(SensorPortDriver):
 
     def convert_sensor_value(self, raw: bytes):
         assert len(raw) == 4
-        (dst,) = struct.unpack("<l", raw)
+        dst = int.from_bytes(raw, "little")
         if dst == 0:
             return None
         return dst
@@ -73,7 +72,7 @@ class ColorSensorReading:
         self.left = Color.from_bytes(byte_array[6:9])
         self.middle = Color.from_bytes(byte_array[9:12])
 
-    def serialize(self) -> bytearray:
+    def __bytes__(self) -> bytearray:
         byte_array = bytearray()
         for color in [self.top, self.right, self.left, self.middle]:
             byte_array.append(color.r)

@@ -210,7 +210,7 @@ def get_firmware_for_hw_version(fw_dir: str, hw_version: str) -> tuple[Version, 
         raise KeyError from e
 
 
-def update_firmware_if_needed() -> bool:
+def update_firmware_if_needed(interface: RevvyTransportBase) -> bool:
     """
     Checks HW version, determines if we can/need to do a firmware update
 
@@ -224,8 +224,7 @@ def update_firmware_if_needed() -> bool:
 
     ### Determine if we are in application mode.
 
-    i2c_bus = 1
-    updater = McuUpdater(RevvyTransportI2C(i2c_bus))
+    updater = McuUpdater(interface)
 
     # If an exception occurs, we'll save it for later when we may rethrow it.
     exception = None

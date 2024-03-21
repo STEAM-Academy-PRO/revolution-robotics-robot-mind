@@ -1,3 +1,4 @@
+from typing import List
 from revvy.bluetooth.data_types import ScriptVariables
 
 
@@ -52,26 +53,17 @@ class Variable(object):
 
 
 class VariableSlot(object):
-    def __init__(self, max_num):
-        self.__v = [Variable()] * max_num
+    def __init__(self, max_num: int):
+        self.variables = [Variable()] * max_num
 
-    def __get_string_description(self):
-        return "VariableSlot(" + str(self.__v) + ")"
+    def __repr__(self) -> str:
+        return self.__str__()
 
-    def __repr__(self):
-        return self.__get_string_description()
+    def __str__(self) -> str:
+        return f"VariableSlot({str(self.variables)})"
 
-    def __str__(self):
-        return self.__get_string_description()
+    def values(self) -> ScriptVariables:
+        return ScriptVariables([var.get_value() for var in self.variables])
 
-    def get_variables(self):
-        return self.__v
-
-    def get_variable_values(self) -> ScriptVariables:
-        return ScriptVariables([var.get_value() for var in self.__v])
-
-    def get_variable(self, slot_idx):
-        return self.__v[slot_idx]
-
-    def reset(self):
-        self.__v = [Variable() for _ in range(len(self.__v))]
+    def reset(self) -> None:
+        self.variables = [Variable()] * len(self.variables)

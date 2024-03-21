@@ -24,7 +24,7 @@ class BufferingLogger:
         self.tag = tag
         self.colored_tag = colored_tag
 
-    def log(self, message: str, level=None):
+    def __call__(self, message: str, level=None):
         """Print to log if level is higher than the minimum log level."""
         if level is None:
             level = self._default_log_level
@@ -38,11 +38,8 @@ class BufferingLogger:
             with lock:
                 messages.append(message)
 
-    def __call__(self, message: str, level=None):
-        self.log(message, level)
 
-
-def install_memory_logger():
+def install_memory_logger() -> None:
     module = sys.modules["revvy.utils.logger"]
     original_get_logger = module.get_logger
 
@@ -53,7 +50,7 @@ def install_memory_logger():
     ):
         return original_get_logger(tag, default_log_level, base, BufferingLogger)
 
-    module.get_logger = get_memory_logger
+    module.get_logger = get_memory_logger  # pyright: ignore
 
     sys.modules["revvy.utils.logger"] = module
 

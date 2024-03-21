@@ -14,6 +14,9 @@ install_memory_logger()
 
 import sys
 from typing import Callable, List
+
+from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
+from revvy.mcu.rrrc_control import RevvyTransportBase
 from revvy.api.programmed import ProgrammedRobotController
 from revvy.firmware_updater import update_firmware_if_needed
 
@@ -26,14 +29,16 @@ from revvy.utils.directories import CURRENT_INSTALLATION_PATH
 from revvy.utils.error_reporter import revvy_error_handler
 
 
-def run_scenario(scenario: Callable[[Logger, ProgrammedRobotController], None]) -> bool:
+def run_scenario(
+    scenario: Callable[[Logger, ProgrammedRobotController], None], interface: RevvyTransportBase
+) -> bool:
     """Runs a new test scenario"""
     clear_logs()
     log = get_logger(f"{scenario.__name__}")
 
-    old_exc_hook = old = sys.excepthook
+    old_exc_hook = sys.excepthook
     revvy_error_handler.register_uncaught_exception_handler()
-    robot_manager = RobotManager()
+    robot_manager = RobotManager(interface)
 
     try:
         with ProgrammedRobotController(robot_manager) as controller:
@@ -55,9 +60,11 @@ def run_test_scenarios(scenarios: List[Callable[[Logger, ProgrammedRobotControll
     log(f"pack: {CURRENT_INSTALLATION_PATH}")
     log(f"file: {__file__}")
 
+    interface = RevvyTransportI2C(bus=1)
+
     try:
         # Make sure we run tests with the latest firmware
-        if not update_firmware_if_needed():
+        if not update_firmware_if_needed(interface):
             log("Revvy not started because the robot has no functional firmware")
             # exiting with integrity error forces the loader to try a previous package
             sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
@@ -79,7 +86,7 @@ def run_test_scenarios(scenarios: List[Callable[[Logger, ProgrammedRobotControll
             try:
                 total += 1
                 log(f"Running scenario: {scenario.__name__}")
-                success = run_scenario(scenario)
+                success = run_scenario(scenario, interface)
             except Exception as e:
                 log(red(f"Error running scenario: {scenario.__name__}"), LogLevel.ERROR)
                 log(f"Exception: {e}", LogLevel.ERROR)

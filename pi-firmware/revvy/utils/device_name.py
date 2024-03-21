@@ -17,13 +17,13 @@ except Exception:
     device_name = f"Revvy_{serial}"
 
 
-def get_device_name():
+def get_device_name() -> str:
     """Returns device name observable value."""
     global device_name
     return device_name
 
 
-def set_device_name(new_name):
+def set_device_name(new_name: str):
     """Set and persist device name"""
     global device_name
     device_storage.write("device-name", new_name.encode("utf-8"))

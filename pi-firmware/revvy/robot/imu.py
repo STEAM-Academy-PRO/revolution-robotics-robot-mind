@@ -4,6 +4,10 @@ import struct
 from typing import NamedTuple
 
 
+vec3d_format = struct.Struct("<3h")
+orientation3d_format = struct.Struct("<3f")
+
+
 class Vector3D(NamedTuple):
     x: float
     y: float
@@ -11,7 +15,7 @@ class Vector3D(NamedTuple):
 
     @staticmethod
     def deserialize(data):
-        return Vector3D(*struct.unpack("<hhh", data))
+        return Vector3D(*vec3d_format.unpack(data))
 
     def __mul__(self, value) -> "Vector3D":
         return Vector3D(self.x * value, self.y * value, self.z * value)
@@ -26,7 +30,7 @@ class Orientation3D(NamedTuple):
 
     @staticmethod
     def deserialize(data):
-        return Orientation3D(*struct.unpack("<fff", data))
+        return Orientation3D(*orientation3d_format.unpack(data))
 
 
 class IMU:

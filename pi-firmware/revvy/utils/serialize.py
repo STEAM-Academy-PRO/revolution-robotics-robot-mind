@@ -1,8 +1,6 @@
-from abc import ABC, abstractmethod
+from typing import Protocol, runtime_checkable
 
 
-class Serialize(ABC):
-    @abstractmethod
-    def serialize(self) -> bytes:
-        # TODO can we make this automatic?
-        pass
+@runtime_checkable
+class Serialize(Protocol):
+    def __bytes__(self) -> bytes: ...

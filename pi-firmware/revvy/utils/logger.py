@@ -30,42 +30,32 @@ LEVELS = (
 )
 
 
-def consistent_hash(text: str):
-    """
-    Simple consistent hash function for easy module identification on the debug logs.
-    Returns int 0 < 16
-    """
-    return int(hashlib.sha1(text.encode("utf-8")).hexdigest(), 16)
-
-
-color_mapping = {
-    0: "\033[34m",  # Blue
-    1: "\033[35m",  # Magenta
-    2: "\033[36m",  # Cyan
-    3: "\033[90m",  # Bright Black (Dark Gray)
-    4: "\033[91m",  # Bright Red
-    5: "\033[92m",  # Bright Green
-    6: "\033[93m",  # Bright Yellow
-    7: "\033[94m",  # Bright Blue
-    8: "\033[95m",  # Bright Magenta
-    9: "\033[96m",  # Bright Cyan
-}
+color_mapping = (
+    "\033[34m",  # Blue
+    "\033[35m",  # Magenta
+    "\033[36m",  # Cyan
+    "\033[90m",  # Bright Black (Dark Gray)
+    "\033[91m",  # Bright Red
+    "\033[92m",  # Bright Green
+    "\033[93m",  # Bright Yellow
+    "\033[94m",  # Bright Blue
+    "\033[95m",  # Bright Magenta
+    "\033[96m",  # Bright Cyan
+)
 
 
 def hash_to_color(text: str) -> str:
     """
     Simple text hasher for easy module identification on the debug logs
     """
-    # Get a hash value using the built-in hash function
-    hash_value = consistent_hash(text)
+    # Quickly turn the string into a somewhat random, but deterministic number
+    hash_value = sum(text.encode())
 
     # Map the hash value to a range suitable for ANSI color codes (0-7)
-    color_code = abs(hash_value) % len(color_mapping)
-
-    reset_color = "\033[0m"
+    color_code = hash_value % len(color_mapping)
 
     # Apply the color to the text
-    colored_text = f"{color_mapping[color_code]}{text}{reset_color}"
+    colored_text = f"{color_mapping[color_code]}{text}\033[0m"
 
     return colored_text
 
@@ -99,8 +89,7 @@ class Logger:
             message = f"[{START_TIME.elapsed:.2f}][{LEVELS[level]}][{thread_name}]{self.colored_tag} {message}\n"
             print(message, end="")
 
-    def __call__(self, message: str, level=None):
-        self.log(message, level)
+    __call__ = log
 
 
 log_config = None

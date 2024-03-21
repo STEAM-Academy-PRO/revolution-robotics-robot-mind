@@ -1,7 +1,7 @@
 """ Standardized Robot Events to all """
 
 from enum import Enum
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 from revvy.bluetooth.data_types import SensorData
 
 from revvy.scripting.runtime import ScriptEvent
@@ -43,7 +43,7 @@ class RobotEvent(Enum):
 class ProgramStatusChange(NamedTuple):
     """Which program ID, what's the status of the program?"""
 
-    id: int
+    id: Optional[int]
     status: ScriptEvent
 
 

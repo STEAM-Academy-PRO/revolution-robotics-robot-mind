@@ -10,8 +10,6 @@ from revvy.utils.functions import retry
 from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.stopwatch import Stopwatch
 
-log = get_logger("rrrc_transport")
-
 crc7_table = (
     0x00,
     0x09,
@@ -303,7 +301,7 @@ class Command:
     # OpCancel removed
 
     @staticmethod
-    def create(op, command: int, payload: bytes = b""):
+    def create(op, command: int, payload: bytes = b"") -> bytearray:
         if command > 255:
             raise ValueError(f"Command id must be a single byte")
         payload_length = len(payload)
@@ -362,6 +360,9 @@ class ResponseStatus(Enum):
     Error_Timeout = 11
 
 
+response_header = struct.Struct("<BBH")
+
+
 class ResponseHeader(NamedTuple):
     status: ResponseStatus
     payload_length: int
@@ -377,7 +378,7 @@ class ResponseHeader(NamedTuple):
             raise ValueError(f"Header checksum error. Data = {list(data)}")
 
         header_bytes = data[0:4]
-        status, payload_length, payload_checksum = struct.unpack("<BBH", header_bytes)
+        status, payload_length, payload_checksum = response_header.unpack(header_bytes)
         return ResponseHeader(
             status=ResponseStatus(status),
             payload_length=payload_length,
@@ -411,6 +412,7 @@ class RevvyTransport:
     def __init__(self, transport: RevvyTransportInterface):
         self._transport = transport
         self._stopwatch = Stopwatch()
+        self.log = get_logger("rrrc_transport")
 
     def send_command(
         self, command: int, payload: bytes = b"", exec_timeout: float = 5.0
@@ -481,7 +483,7 @@ class RevvyTransport:
         header = retry(_read_response_header_once, self.retry, lambda e: None)
 
         if not header:
-            log("Error reading response header: retry limit reached!", LogLevel.ERROR)
+            self.log("Error reading response header: retry limit reached!", LogLevel.ERROR)
             raise BrokenPipeError("Read response header error")
 
         return header
@@ -499,9 +501,7 @@ class RevvyTransport:
         if header.payload_length == 0:
             return b""
 
-        def _read_payload_once() -> Union[bool, bytes]:
-            # Returns False on error, because retry() treats None as success.
-
+        def _read_payload_once() -> bytes:
             # read header and payload
             response_bytes = self._transport.read(5 + header.payload_length)
             response_header, response_payload = (
@@ -511,18 +511,18 @@ class RevvyTransport:
 
             # make sure we read the same response data we expect
             if header.raw != response_header:
-                return False
+                return bytes()
 
             # make sure data is intact
             if not header.validate_payload(response_payload):
-                return False
+                return bytes()
 
             return response_payload
 
         payload = retry(_read_payload_once, self.retry)
 
         if not payload:
-            log("Error reading response payload: retry limit reached!", LogLevel.ERROR)
+            self.log("Error reading response payload: retry limit reached!", LogLevel.ERROR)
             raise BrokenPipeError("Read payload: Retry limit reached")
 
         return payload
@@ -558,6 +558,6 @@ class RevvyTransport:
                 else:
                     # we got a response to a command, so we can exit
                     if response.status != ResponseStatus.Ok:
-                        log(f"response.status: {response.status}")
+                        self.log(f"response.status: {response.status}")
                     return response
         raise TimeoutError

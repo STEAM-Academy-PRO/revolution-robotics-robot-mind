@@ -19,7 +19,6 @@ from revvy.utils.file_storage import StorageInterface, StorageError
 from revvy.utils.functions import split
 from revvy.utils.logger import get_logger
 from revvy.utils.progress_indicator import ProgressIndicator
-from revvy.utils.functions import str_to_func
 
 from revvy.robot.led_ring import RingLed
 from revvy.robot.status import RobotStatus
@@ -117,13 +116,13 @@ class ReceivedLongMessage:
         self._md5calc = hashlib.md5()
         self._size_known = size != 0
 
-    def append_data(self, data):
+    def append_data(self, data: bytes):
         self.received_chunks += 1
         self.data += data
         self._md5calc.update(data)
 
     @property
-    def is_valid(self):
+    def is_valid(self) -> bool:
         """Returns true if the uploaded data matches the predefined md5 checksum."""
         if self._size_known:
             if self.received_chunks != self.total_chunks:
@@ -488,9 +487,7 @@ class LongMessageImplementation:
             test_script_source = message.data.decode()
             self._log(f"Running test script: \n{test_script_source}")
 
-            script_descriptor = ScriptDescriptor(
-                "test_kit", str_to_func(test_script_source), 0, source=test_script_source
-            )
+            script_descriptor = ScriptDescriptor.from_string("test_kit", test_script_source, 0)
 
             self._robot_manager.robot_configure(empty_robot_config)
 
@@ -498,11 +495,11 @@ class LongMessageImplementation:
 
             handle = self._robot_manager._scripts.add_script(script_descriptor, empty_robot_config)
 
-            def on_stopped(*args):
+            def on_stopped(*args) -> None:
                 self._log("test script ended")
                 self._robot_manager.reset_configuration()
 
-            def on_error(*args):
+            def on_error(*args) -> None:
                 revvy_error_handler.report_error(RobotErrorType.SYSTEM, traceback.format_exc())
 
             handle.on(ScriptEvent.STOP, on_stopped)
