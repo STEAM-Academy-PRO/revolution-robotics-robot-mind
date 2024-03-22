@@ -10,65 +10,60 @@
 #define OPERATION_MODE_BOOTLOADER   ((uint8_t) 0xBBu)
 #define OPERATION_MODE_APPLICATION  ((uint8_t) 0xAAu)
 
-static Comm_Status_t GetOperationMode_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount);
-static Comm_Status_t InitializeUpdate_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount);
-static Comm_Status_t ProgramApplication_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount);
-static Comm_Status_t FinalizeUpdate_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount);
-static Comm_Status_t ReadApplicationCrc_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount);
+static Comm_Status_t GetOperationMode_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
+static Comm_Status_t InitializeUpdate_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
+static Comm_Status_t ProgramApplication_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
+static Comm_Status_t FinalizeUpdate_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
+static Comm_Status_t ReadApplicationCrc_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 
 /* These commands relate to BootloaderControl in pi-firmware/revvy/mcu/rrrc_control.py */
-const Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT] =
+Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT] =
 {
-    [0x01u] = { .Start = &VersionProvider_GetHardwareVersion_Start, .GetResult = NULL },
+    [0x01u] = { .Start = &VersionProvider_GetHardwareVersion_Start, .GetResult = NULL, .ExecutionInProgress = false  },
 
     /* [0x06 - 0x0A]: reserved for bootloader */
-    [0x06u] = { .Start = &GetOperationMode_Start, .GetResult = NULL },
-    [0x07u] = { .Start = &ReadApplicationCrc_Start, .GetResult = NULL },
-    [0x08u] = { .Start = &InitializeUpdate_Start, .GetResult = NULL },
-    [0x09u] = { .Start = &ProgramApplication_Start, .GetResult = NULL },
-    [0x0Au] = { .Start = &FinalizeUpdate_Start, .GetResult = NULL },
+    [0x06u] = { .Start = &GetOperationMode_Start, .GetResult = NULL, .ExecutionInProgress = false  },
+    [0x07u] = { .Start = &ReadApplicationCrc_Start, .GetResult = NULL, .ExecutionInProgress = false  },
+    [0x08u] = { .Start = &InitializeUpdate_Start, .GetResult = NULL, .ExecutionInProgress = false  },
+    [0x09u] = { .Start = &ProgramApplication_Start, .GetResult = NULL, .ExecutionInProgress = false  },
+    [0x0Au] = { .Start = &FinalizeUpdate_Start, .GetResult = NULL, .ExecutionInProgress = false  },
 };
 
-static Comm_Status_t GetOperationMode_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount)
+static Comm_Status_t GetOperationMode_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount)
 {
     (void) commandPayload;
-    (void) commandSize;
-    (void) responseBufferSize;
 
     SEGGER_RTT_printf(0, "GetOperationMode\n");
-    *response = OPERATION_MODE_BOOTLOADER;
+    response.bytes[0] = OPERATION_MODE_BOOTLOADER;
     *responseCount = 1u;
     return Comm_Status_Ok;
 }
 
-static Comm_Status_t ReadApplicationCrc_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount)
+static Comm_Status_t ReadApplicationCrc_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount)
 {
     (void) commandPayload;
-    (void) commandSize;
-    (void) responseBufferSize;
 
     SEGGER_RTT_printf(0, "ReadApplicationCrc\n");
     uint32_t checksum = FMP_ReadApplicationChecksum();
-    memcpy(response, &checksum, 4u);
+    memcpy(&response.bytes[0], &checksum, 4u);
     *responseCount = 4u;
     return Comm_Status_Ok;
 }
 
-static Comm_Status_t InitializeUpdate_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount)
+static Comm_Status_t InitializeUpdate_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount)
 {
     (void) response;
-    (void) responseBufferSize;
     (void) responseCount;
 
     SEGGER_RTT_printf(0, "InitializeUpdate\n");
-    if (commandSize != 8u)
+    if (commandPayload.count != 8u)
     {
         return Comm_Status_Error_PayloadLengthError;
     }
 
     /* check whether the image fits in flash memory */
-    size_t firmware_size = get_uint32(&commandPayload[0]);
-    uint32_t checksum = get_uint32(&commandPayload[4]);
+    size_t firmware_size = get_uint32(&commandPayload.bytes[0]);
+    uint32_t checksum = get_uint32(&commandPayload.bytes[4]);
 
     if (!UpdateManager_Run_CheckImageFitsInFlash(firmware_size))
     {
@@ -80,14 +75,13 @@ static Comm_Status_t InitializeUpdate_Start(const uint8_t* commandPayload, uint8
     return Comm_Status_Ok;
 }
 
-static Comm_Status_t ProgramApplication_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount)
+static Comm_Status_t ProgramApplication_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount)
 {
-    (void) responseBufferSize;
     (void) response;
     (void) responseCount;
 
     SEGGER_RTT_printf(0, "ProgramApplication\n");
-    switch (UpdateManager_Run_Program(commandPayload, commandSize))
+    switch (UpdateManager_Run_Program(commandPayload.bytes, commandPayload.count))
     {
         case UpdateManager_Ok:
             return Comm_Status_Ok;
@@ -97,12 +91,10 @@ static Comm_Status_t ProgramApplication_Start(const uint8_t* commandPayload, uin
     }
 }
 
-static Comm_Status_t FinalizeUpdate_Start(const uint8_t* commandPayload, uint8_t commandSize, uint8_t* response, uint8_t responseBufferSize, uint8_t* responseCount)
+static Comm_Status_t FinalizeUpdate_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount)
 {
     (void) commandPayload;
-    (void) commandSize;
     (void) response;
-    (void) responseBufferSize;
     (void) responseCount;
 
     SEGGER_RTT_printf(0, "FinalizeUpdate\n");

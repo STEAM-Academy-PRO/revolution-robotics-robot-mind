@@ -1,7 +1,11 @@
 {
     "settings": {
         "name": "RevvyFirmware",
-        "components_folder": "rrrc/components",
+        "components_folder": [
+            "rrrc/components",
+            "../mcu-common/CommonComponents"
+        ],
+        "generated_runtime": "rrrc/generated_runtime",
         "required_plugins": [
             "ProjectConfigCompactor",
             "BuiltinDataTypes",

@@ -136,7 +136,7 @@ if __name__ == "__main__":
     source_files = config["sources"]
 
     for component in config["components"]:
-        component_file = "rrrc/components/{}/{{}}".format(component)
+        component_file = rt.component_dir(component) + "/{}"
         component_config_path = component_file.format("config.json")
         with open(component_config_path, "r") as f:
             component_config = json.load(f)

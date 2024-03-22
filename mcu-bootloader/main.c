@@ -4,6 +4,7 @@
 #include "rrrc/utils/functions.h"
 #include "rrrc/runtime/runtime.h"
 #include "rrrc/include/color.h"
+#include "rrrc/utils/crc.h"
 
 #include <math.h>
 
@@ -101,8 +102,8 @@ int main(void)
 
     MasterCommunication_Run_OnInit();
 
-    MasterCommunication_Run_GetDefaultResponse(&communicationConfig.defaultResponseBuffer, &communicationConfig.defaultResponseLength);
-    MasterCommunication_Run_GetLongRxErrorResponse(&communicationConfig.longRxErrorResponseBuffer, &communicationConfig.longRxErrorResponseLength);
+    communicationConfig.default_response = MasterCommunication_Constant_DefaultResponse();
+    communicationConfig.rx_overflow_response = MasterCommunication_Constant_LongRxErrorResponse();
 
     MasterCommunicationInterface_Run_OnInit(&communicationConfig);
 
@@ -135,14 +136,14 @@ int main(void)
     }
 }
 
-void MasterCommunicationInterface_Call_OnMessageReceived(const uint8_t* buffer, size_t bufferSize)
+void MasterCommunicationInterface_RaiseEvent_OnMessageReceived(ConstByteArray_t message)
 {
-    MasterCommunication_Run_HandleCommand(buffer, bufferSize);
+    MasterCommunication_Run_HandleCommand(message);
 }
 
-void MasterCommunication_Call_SendResponse(const uint8_t* responseBuffer, size_t responseSize)
+void MasterCommunication_Call_SendResponse(ConstByteArray_t response)
 {
-    MasterCommunicationInterface_Run_SetResponse(responseBuffer, responseSize);
+    MasterCommunicationInterface_Run_SetResponse(response);
 }
 
 void Runtime_RequestJumpToApplication(void)
@@ -188,6 +189,16 @@ void UpdateManager_Write_Progress(uint8_t progress)
     {
         ringLeds[i] = (rgb_t) LED_OFF;
     }
+}
+
+uint8_t MasterCommunication_Call_Calculate_CRC7(uint8_t init_value, ConstByteArray_t data)
+{
+    return CRC7_Calculate(init_value, data.bytes, data.count);
+}
+
+uint16_t MasterCommunication_Call_Calculate_CRC16(uint16_t init_value, ConstByteArray_t data)
+{
+    return CRC16_Calculate(init_value, data.bytes, data.count);
 }
 
 void assert_failed(const char *file, uint32_t line)
