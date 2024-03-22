@@ -127,7 +127,7 @@ static void i2c_hal_on_error(void)
     i2c_hal_error_occurred();
 }
 
-void i2c_hal_on_rx_done(const uint8_t data)
+void sercom2_rx_done_cb(uint8_t data)
 {
     if (descriptor.rxBufferCount < sizeof(descriptor.rxBuffer))
     {

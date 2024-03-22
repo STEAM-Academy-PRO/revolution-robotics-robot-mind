@@ -106,11 +106,6 @@ void i2c_hal_tx_complete(void)
     xTaskNotifyFromISR(communicationTaskHandle, TX_DONE, eSetBits, &xHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
-
-void sercom2_rx_done_cb(uint8_t data)
-{
-    i2c_hal_on_rx_done(data);
-}
 /* End User Code Section: Declarations */
 
 void MasterCommunicationInterface_Run_OnInit(void)
