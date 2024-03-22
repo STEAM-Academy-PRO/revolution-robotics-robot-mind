@@ -84,16 +84,21 @@ void i2c_hal_receive(void)
 
 void i2c_hal_set_tx_buffer(const uint8_t* buffer, size_t bufferSize)
 {
+    const uint8_t* bufferEnd;
     if (bufferSize == 0u)
     {
         buffer = empty_tx_buffer;
-        bufferSize = ARRAY_SIZE(empty_tx_buffer);
+        bufferEnd = empty_tx_buffer;
+    }
+    else
+    {
+        bufferEnd = buffer + bufferSize - 1;
     }
 
     uint32_t primask = __get_PRIMASK();
     __disable_irq();
     descriptor.nextTxBuffer = buffer;
-    descriptor.nextTxBufferEnd = buffer + bufferSize - 1;
+    descriptor.nextTxBufferEnd = bufferEnd;
     __set_PRIMASK(primask);
 }
 
