@@ -246,7 +246,7 @@ typedef enum {
 #include "rrrc/components/BatteryCalculator/BatteryCalculator.h"
 #include "rrrc/components/BatteryCharger/BatteryCharger.h"
 #include "rrrc/components/BluetoothStatusObserver/BluetoothStatusObserver.h"
-#include "rrrc/components/MasterCommunication/MasterCommunication.h"
+#include "../mcu-common/CommonComponents/MasterCommunication/MasterCommunication.h"
 #include "rrrc/components/CRC/CRC.h"
 #include "rrrc/components/CommWrapper_Bootloader/CommWrapper_Bootloader.h"
 #include "rrrc/components/CommWrapper_ErrorStorage/CommWrapper_ErrorStorage.h"

@@ -34,8 +34,6 @@ atmel_start.c \
 rrrc/components/LEDController/LEDController.c \
 rrrc/components/MasterCommunicationInterface/i2cHal.c \
 rrrc/components/MasterCommunicationInterface/MasterCommunicationInterface.c \
-rrrc/components/MasterCommunication/CommunicationManager.c \
-rrrc/components/MasterCommunication/MasterCommunication.c \
 rrrc/components/UpdateManager/UpdateManager.c \
 rrrc/components/VersionProvider/VersionProvider.c \
 rrrc/flash_mapping.c \
@@ -44,12 +42,18 @@ rrrc/utils/color.c \
 rrrc/utils/converter.c \
 rrrc/utils/crc.c \
 rrrc/utils/functions.c \
-rrrc/watchdog.c
+rrrc/watchdog.c \
+../mcu-common/CommonComponents/MasterCommunication/CommunicationManager.c \
+../mcu-common/CommonComponents/MasterCommunication/MasterCommunication.c
 
 INCLUDE_PATHS += \
+rrrc \
+rrrc/runtime \
 rrrc/include \
+rrrc/components \
 Config \
 . \
+../mcu-common \
 ../mcu-common/Atmel/hpl/nvmctrl \
 ../mcu-common/Atmel/hpl/ramecc \
 ../mcu-common/Atmel/hal/include \
@@ -73,9 +77,7 @@ Config \
 ../mcu-common/Atmel/samd51a/include \
 ../mcu-common/CMSIS/Include \
 ../mcu-common/SEGGER/RTT \
-rrrc \
-rrrc/runtime \
-rrrc/components/MasterCommunication \
+../mcu-common/CommonComponents/MasterCommunication \
 rrrc/components/MasterCommunicationInterface \
 rrrc/components/LEDController \
 rrrc/components/VersionProvider \

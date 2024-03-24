@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define COMM_HANDLER_COUNT  ((uint8_t) 11u)
-extern const Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT];
+extern Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT];
 
 #endif /* RRRC_COMM_HANDLERS_H_ */
 

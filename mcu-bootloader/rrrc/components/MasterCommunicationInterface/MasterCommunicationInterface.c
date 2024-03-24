@@ -35,8 +35,7 @@ static int32_t I2C_4_init(uint8_t address)
 
 void i2c_hal_rx_started(void)
 {
-    /* setup a default response in case processing is slow */
-    i2c_hal_set_tx_buffer(config->defaultResponseBuffer, config->defaultResponseLength);
+    MasterCommunicationInterface_Run_SetResponse(config->default_response);
 }
 
 void i2c_hal_rx_complete(const uint8_t* buffer, size_t bufferSize, size_t bytesReceived)
@@ -76,11 +75,12 @@ void MasterCommunicationInterface_Run_Update(void)
         messageReceived = false;
         if (messageSize > 0)
         {
-            MasterCommunicationInterface_Call_OnMessageReceived(messageBuffer, messageSize);
+            ConstByteArray_t message = {.bytes = messageBuffer, .count = messageSize};
+            MasterCommunicationInterface_RaiseEvent_OnMessageReceived(message);
         }
         else
         {
-            MasterCommunicationInterface_Run_SetResponse(config->longRxErrorResponseBuffer, config->longRxErrorResponseLength);
+            MasterCommunicationInterface_Run_SetResponse(config->rx_overflow_response);
         }
     }
 
@@ -92,11 +92,10 @@ void MasterCommunicationInterface_Run_Update(void)
 }
 
 __attribute__((weak))
-void MasterCommunicationInterface_Call_OnMessageReceived(const uint8_t* buffer, size_t bufferSize)
+void MasterCommunicationInterface_RaiseEvent_OnMessageReceived(ConstByteArray_t message)
 {
     /* nothing to do */
-    (void) buffer;
-    (void) bufferSize;
+    (void) message;
 }
 
 __attribute__((weak))
@@ -105,8 +104,8 @@ void MasterCommunicationInterface_Call_OnTransmitComplete(void)
     /* nothing to do */
 }
 
-void MasterCommunicationInterface_Run_SetResponse(const uint8_t* buffer, size_t bufferSize)
+void MasterCommunicationInterface_Run_SetResponse(ConstByteArray_t response)
 {
     i2c_hal_receive();
-    i2c_hal_set_tx_buffer(buffer, bufferSize);
+    i2c_hal_set_tx_buffer(response.bytes, response.count);
 }
