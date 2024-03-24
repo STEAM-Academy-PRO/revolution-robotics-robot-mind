@@ -558,6 +558,6 @@ class RevvyTransport:
                 else:
                     # we got a response to a command, so we can exit
                     if response.status != ResponseStatus.Ok:
-                        self.log(f"response.status: {response.status}")
+                        self.log(f"response.status: {response.status}", LogLevel.DEBUG)
                     return response
         raise TimeoutError
