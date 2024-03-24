@@ -117,7 +117,7 @@ Feature: release the firmware to the users
         Given the main branch is considered ready for release
 
     Scenario: Release a package that will appear as a software update
-        When a new pre-release is created for the robot-mind repository
+        When new changes are pushed to the release branch of the robot-mind repository
         Then GitHub Actions triggers the release.yml workflow
         And the worker builds a release mcu-bootloader
         And the worker builds a release mcu-firmware
