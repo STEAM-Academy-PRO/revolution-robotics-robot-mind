@@ -12,9 +12,9 @@ typedef enum {
 
 typedef struct
 {
-    const char* name;
-    MotorLibraryStatus_t (*Init)(MotorPort_t* motorPort);
-    MotorLibraryStatus_t (*DeInit)(MotorPort_t* motorPort);
+    const char* Name;
+    MotorLibraryStatus_t (*Load)(MotorPort_t* motorPort);
+    MotorLibraryStatus_t (*Unload)(MotorPort_t* motorPort);
     MotorLibraryStatus_t (*Update)(MotorPort_t* motorPort);
 
     void (*Gpio0Callback)(void* port);

@@ -123,7 +123,7 @@ static float ticks_to_degrees(const MotorLibrary_Dc_Data_t* libdata, float value
     return map(value, 0.0f, fabsf(libdata->resolution), 0.0f, 360.0f);
 }
 
-MotorLibraryStatus_t DcMotor_Init(MotorPort_t* motorPort)
+MotorLibraryStatus_t DcMotor_Load(MotorPort_t* motorPort)
 {
     MotorLibrary_Dc_Data_t* libdata = MotorPortHandler_Call_Allocate(sizeof(MotorLibrary_Dc_Data_t));
 
@@ -170,7 +170,7 @@ MotorLibraryStatus_t DcMotor_Init(MotorPort_t* motorPort)
     return MotorLibraryStatus_Ok;
 }
 
-MotorLibraryStatus_t DcMotor_DeInit(MotorPort_t* motorPort)
+MotorLibraryStatus_t DcMotor_Unload(MotorPort_t* motorPort)
 {
     MotorPort_SetDriveValue(motorPort, 0);
     MotorPort_SetGreenLed(motorPort, false);
@@ -744,9 +744,9 @@ MotorLibraryStatus_t DcMotor_CreateDriveRequest(const MotorPort_t* motorPort, co
 
 const MotorLibrary_t motor_library_dc =
 {
-    .name                = "DcMotor",
-    .Init                = &DcMotor_Init,
-    .DeInit              = &DcMotor_DeInit,
+    .Name                = "DcMotor",
+    .Load                = &DcMotor_Load,
+    .Unload              = &DcMotor_Unload,
     .Update              = &DcMotor_Update,
     .Gpio0Callback       = &DcMotor_Gpio0Callback,
     .Gpio1Callback       = &DcMotor_Gpio1Callback,

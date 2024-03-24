@@ -1,12 +1,12 @@
 #include "Dummy.h"
 
-MotorLibraryStatus_t Dummy_Init(MotorPort_t* motorPort)
+MotorLibraryStatus_t Dummy_Load(MotorPort_t* motorPort)
 {
     (void) motorPort;
     return MotorLibraryStatus_Ok;
 }
 
-MotorLibraryStatus_t Dummy_DeInit(MotorPort_t* motorPort)
+MotorLibraryStatus_t Dummy_Unload(MotorPort_t* motorPort)
 {
     (void) motorPort;
     return MotorLibraryStatus_Ok;
@@ -55,9 +55,9 @@ MotorLibraryStatus_t Dummy_CreateDriveRequest(const MotorPort_t* motorPort, cons
 
 const MotorLibrary_t motor_library_dummy =
 {
-    .name                = "NotConfigured",
-    .Init                = &Dummy_Init,
-    .DeInit              = &Dummy_DeInit,
+    .Name                = "NotConfigured",
+    .Load                = &Dummy_Load,
+    .Unload              = &Dummy_Unload,
     .Update              = &Dummy_Update,
     .Gpio0Callback       = &Dummy_Gpio0Callback,
     .Gpio1Callback       = &Dummy_Gpio1Callback,
