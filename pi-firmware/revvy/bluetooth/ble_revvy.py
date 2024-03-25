@@ -219,7 +219,7 @@ class RevvyBLE:
 
         def status() -> int:
             bluetooth_status = subprocess.run(
-                ["service", "bluetooth", "status"], capture_output=True
+                ["/usr/sbin/service", "bluetooth", "status"], capture_output=True, check=False
             )
 
             self._log(f"Bluetooth status: {bluetooth_status.returncode}", LogLevel.DEBUG)
