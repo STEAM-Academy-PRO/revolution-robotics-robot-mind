@@ -42,7 +42,6 @@ rrrc/utils/color.c \
 rrrc/utils/converter.c \
 rrrc/utils/crc.c \
 rrrc/utils/functions.c \
-rrrc/watchdog.c \
 rrrc/generated_runtime.c \
 ../mcu-common/CommonComponents/MasterCommunication/CommunicationManager.c \
 ../mcu-common/CommonComponents/MasterCommunication/MasterCommunication.c

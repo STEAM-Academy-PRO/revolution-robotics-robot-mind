@@ -3,6 +3,8 @@
 #include <utils.h>
 #include <hal_init.h>
 #include "utils/crc.h"
+#include "hri_mclk_d51.h"
+#include "hri_wdt_d51.h"
 
 struct flash_descriptor FLASH_0;
 
@@ -24,4 +26,12 @@ void system_init(void)
     flash_lock(&FLASH_0, 0x4000, 32);
     flash_lock(&FLASH_0, 0x8000, 32);
     flash_lock(&FLASH_0, 0xC000, 32);
+}
+
+void watchdog_start(void)
+{
+    hri_mclk_set_APBAMASK_WDT_bit(MCLK);
+    hri_wdt_clear_CTRLA_WEN_bit(WDT);
+    hri_wdt_write_CONFIG_PER_bf(WDT, 0x07u);
+    hri_wdt_set_CTRLA_ENABLE_bit(WDT);
 }

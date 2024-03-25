@@ -1,8 +1,8 @@
 #include "utils/crc.h"
 #include "flash_mapping.h"
-#include "watchdog.h"
 #include "hri_rtc_d51.h"
 #include "hri_rstc_d51.h"
+#include "driver_init.h"
 
 #include "components/UpdateManager/UpdateManager.h"
 

@@ -1,10 +1,3 @@
-/*
- * Code generated from Atmel Start.
- *
- * This file will be overwritten when reconfiguring your Atmel Start project.
- * Please copy examples or other code you want to keep to a separate file
- * to avoid losing it when reconfiguring.
- */
 #ifndef DRIVER_INIT_INCLUDED
 #define DRIVER_INIT_INCLUDED
 
@@ -37,6 +30,8 @@ extern struct flash_descriptor FLASH_0;
  * peripherals
  */
 void system_init(void);
+
+void watchdog_start(void);
 
 #ifdef __cplusplus
 }
