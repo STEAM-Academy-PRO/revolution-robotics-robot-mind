@@ -219,10 +219,12 @@ class RevvyBLE:
 
         def status() -> int:
             bluetooth_status = subprocess.run(
-                ["/usr/sbin/service", "bluetooth", "status"], capture_output=True, check=False
+                ["/usr/bin/systemctl", "status", "bluetooth.target"],
+                capture_output=True,
+                check=False,
             )
 
-            self._log(f"Bluetooth status: {bluetooth_status.returncode}", LogLevel.DEBUG)
+            self._log(f"Bluetooth status: {bluetooth_status.returncode}", LogLevel.INFO)
 
             return bluetooth_status.returncode
 
@@ -233,7 +235,6 @@ class RevvyBLE:
             while stopwatch.elapsed < 10:
                 if status() == 0:
                     timeout = False
-                    time.sleep(0.5)
                     break
             if timeout:
                 raise TimeoutError("Bluetooth service did not start in time, exiting")
