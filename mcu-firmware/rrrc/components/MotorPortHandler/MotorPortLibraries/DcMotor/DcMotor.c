@@ -149,18 +149,6 @@ void _reset_motor_status(MotorPort_t* motorPort)
     _update_status_data(motorPort, 0);
 }
 
-static uint32_t abs_int32(int32_t a)
-{
-    if (a < 0)
-    {
-        return -a;
-    }
-    else
-    {
-        return a;
-    }
-}
-
 /**
  * Take the last drive requests version and set an empty request with that version. This
  * makes the driver ignore the last command that was issued before configuration.
