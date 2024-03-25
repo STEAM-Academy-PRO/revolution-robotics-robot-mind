@@ -1,4 +1,6 @@
 import time
+import json
+from functools import partial
 from revvy.utils.logger import Logger
 from tests.hil_tests.hil_test_utils.runner import run_test_scenarios
 
@@ -372,16 +374,66 @@ robot.sensors["distance_sensor"].read()
         controller.robot_manager.exit(RevvyStatusCode.ERROR)
 
 
+def generate_blockly_tests():
+    """
+    Try running all the blockly blocks and see if they fail if they are just inserted in a block.
+    TODO: create skip list for blocks that are to throw an error (e.g. break on it's own)
+    TODO: create separate manual tests for these, that operated the generated code into examples.
+    """
+
+    def run_blockly_test(block_name, code, log: Logger, controller: ProgrammedRobotController):
+
+        def fail_on_script_error(*e) -> None:
+            # In this test, if we encounter an error, let's just stop and exit
+            log(f"Error in script {block_name}")
+            controller.robot_manager.exit(RevvyStatusCode.ERROR)
+
+        controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
+        controller.with_timeout(2.0)
+
+        config = RobotConfig()
+        config.process_script(
+            {
+                "assignments": {"buttons": [{"id": 1, "priority": 0}]},
+                "pythonCode": b64_encode_str(code),
+            },
+            0,
+        )
+
+        controller.configure(config)
+
+        log("Start script")
+        controller.press_button(1)
+        # If it throws an error, it's not good.
+        time.sleep(0.2)
+
+        controller.wait_for_scripts_to_end()
+
+    test_functions = []
+
+    try:
+        with open("blocks.json", "r") as f:
+            blocks = json.load(f)
+    except FileNotFoundError:
+        print("blocks.json not found! Skipping blockly tests!")
+        return
+    for key, value in blocks.items():
+        # Call the run function with the key and value
+        test_functions.append(partial(run_blockly_test, key, value))
+    return test_functions
+
+
 if __name__ == "__main__":
-    run_test_scenarios(
-        [
-            can_play_sound,
-            can_stop_script_with_long_sleep,
-            sensors_can_be_read,
-            test_motor_for_i2c_bug,
-            motors_dont_cause_errors,
-            trying_to_access_uncofigured_motor_raises_error,
-            trying_to_access_uncofigured_sensor_raises_error,
-            trying_to_drive_without_drivetrain_motors_is_no_op,
-        ]
-    )
+    test_scenarios = [
+        can_play_sound,
+        can_stop_script_with_long_sleep,
+        sensors_can_be_read,
+        test_motor_for_i2c_bug,
+        motors_dont_cause_errors,
+        trying_to_access_uncofigured_motor_raises_error,
+        trying_to_access_uncofigured_sensor_raises_error,
+        trying_to_drive_without_drivetrain_motors_is_no_op,
+    ]
+    test_scenarios.append(generate_blockly_tests())
+
+    run_test_scenarios(test_scenarios)
