@@ -593,6 +593,7 @@ MotorLibraryStatus_t DcMotor_UpdateConfiguration(MotorPort_t* motorPort, const u
     libdata->currentSpeed = 0.0f;
     libdata->motorStatus = MOTOR_STATUS_NORMAL;
     _update_status_data(motorPort->port_idx, libdata, 0);
+    _reset_timeout(&libdata->motorTimeout);
 
     ignore_last_drive_request(motorPort);
 
