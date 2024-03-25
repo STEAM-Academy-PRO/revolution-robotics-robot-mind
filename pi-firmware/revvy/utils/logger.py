@@ -69,7 +69,7 @@ class Logger:
         tag: str,
         colored_tag: str,
         default_log_level=LogLevel.INFO,
-        min_log_level=LogLevel.DEBUG,
+        min_log_level=LogLevel.INFO,
     ):
         self._default_log_level = default_log_level
         self._min_log_level = min_log_level
@@ -120,7 +120,7 @@ def get_log_config() -> dict:
         # Merge missing keys from default
         default_log_config = {
             "modules": {},
-            "min_log_level": LogLevel.DEBUG,
+            "min_log_level": LogLevel.INFO,
             "default_log_level": LogLevel.INFO,
         }
         log_config = {**default_log_config, **log_config}
