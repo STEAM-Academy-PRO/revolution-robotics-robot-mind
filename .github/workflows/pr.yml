@@ -31,6 +31,19 @@ jobs:
               - mcu-bootloader/**
               - .github/workflows/pr.yml
 
+      - name: Install dependencies
+        if: steps.filter.outputs.mcu-bootloader == 'true'
+        run: |
+          eval `ssh-agent -s`
+          ssh-add - <<< '${{ secrets.SSH_PRIVATE_KEY }}'
+          cd mcu-firmware
+          echo 'Upgrade pip' # default pip discards cglue's package
+          python -m pip install --upgrade pip
+          pip --version
+          echo 'Install pip requirements'
+          pip install -r tools/requirements.txt
+          sudo apt-get install graphviz
+
       - name: Install compiler
         if: steps.filter.outputs.mcu-bootloader == 'true'
         run: |
@@ -44,6 +57,7 @@ jobs:
         if: steps.filter.outputs.mcu-bootloader == 'true'
         run: |
           cd mcu-bootloader
+          cglue --generate
           make config=debug -j${{ env.CPU_COUNT }}
 
       - name: Upload artifacts

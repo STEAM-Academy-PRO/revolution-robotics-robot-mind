@@ -15,6 +15,7 @@ Building a debug bootloader
 ---------------------------
 
 ```bash
+cglue --generate
 make all config=debug
 ```
 
@@ -24,6 +25,7 @@ Building a release bootloader
 -----------------------------
 
 ```bash
+cglue --generate
 make all config=release
 ```
 
