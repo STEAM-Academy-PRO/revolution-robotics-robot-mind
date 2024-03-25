@@ -405,8 +405,11 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
     return pwm;
 }
 
-static void _update_status_data(uint8_t portIdx, const MotorLibrary_Dc_Data_t* libdata, int16_t pwm)
+static void _update_status_data(MotorPort_t* motorPort, int16_t pwm)
 {
+    uint8_t portIdx = motorPort->port_idx;
+    MotorLibrary_Dc_Data_t* libdata = (MotorLibrary_Dc_Data_t*) motorPort->libraryData;
+
     int32_t pos_degrees = ticks_to_degrees(libdata, libdata->lastPosition);
 
     // TODO: this really needs to be a (packed) struct
@@ -440,7 +443,7 @@ MotorLibraryStatus_t DcMotor_Update(MotorPort_t* motorPort)
 
     MotorPort_SetDriveValue(motorPort, pwm);
 
-    _update_status_data(motorPort->port_idx, libdata, pwm);
+    _update_status_data(motorPort, pwm);
 
     return MotorLibraryStatus_Ok;
 }
@@ -592,7 +595,7 @@ MotorLibraryStatus_t DcMotor_UpdateConfiguration(MotorPort_t* motorPort, const u
     libdata->position = 0;
     libdata->currentSpeed = 0.0f;
     libdata->motorStatus = MOTOR_STATUS_NORMAL;
-    _update_status_data(motorPort->port_idx, libdata, 0);
+    _update_status_data(motorPort, 0);
     _reset_timeout(&libdata->motorTimeout);
 
     ignore_last_drive_request(motorPort);
