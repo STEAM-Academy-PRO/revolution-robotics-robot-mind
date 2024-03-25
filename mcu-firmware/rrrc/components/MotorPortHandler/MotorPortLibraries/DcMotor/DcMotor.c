@@ -17,7 +17,7 @@
 #define MOTOR_CONTROL_POSITION_RELATIVE ((uint8_t) 3u)
 
 #define MOTOR_STATUS_NORMAL         ((uint8_t) 0u)
-#define MOTOR_STATUS_STUCK          ((uint8_t) 1u)
+#define MOTOR_STATUS_BLOCKED        ((uint8_t) 1u)
 #define MOTOR_STATUS_GOAL_REACHED   ((uint8_t) 2u)
 
 #define DRIVE_CONTSTRAINED_POWER    ((uint8_t) 0u)
@@ -384,7 +384,7 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
             if (_has_timeout_elapsed(&libdata->motorTimeout, MOTOR_TIMEOUT_THRESHOLD))
             {
                 SEGGER_RTT_printf(0, "Motor %u: stuck\n", motorPort->port_idx);
-                libdata->motorStatus = MOTOR_STATUS_STUCK;
+                libdata->motorStatus = MOTOR_STATUS_BLOCKED;
                 ignore_last_drive_request(motorPort);
                 return 0;
             }
