@@ -1,0 +1,115 @@
+{
+    "settings": {
+        "name": "RevvyBootloader",
+        "components_folder": [
+            "rrrc/components",
+            "../mcu-common/CommonComponents"
+        ],
+        "generated_runtime": "rrrc/generated_runtime",
+        "required_plugins": [
+            "ProjectConfigCompactor",
+            "BuiltinDataTypes",
+            "RuntimeEvents"
+        ]
+    },
+    "sources": [],
+    "includes": [],
+    "components": [
+        "MasterCommunicationInterface_Bootloader"
+    ],
+    "types": {
+        "const void*": {
+            "pass_semantic": "value",
+            "defined_in": "<stdio.h>",
+            "default_value": "NULL"
+        },
+        "uint8_t": {
+            "pass_semantic": "value",
+            "defined_in": "<stdint.h>",
+            "default_value": "0u"
+        },
+        "uint8_t*": {
+            "pass_semantic": "value",
+            "defined_in": "<stdint.h>",
+            "default_value": "NULL"
+        },
+        "const uint8_t*": {
+            "pass_semantic": "value",
+            "defined_in": "<stdint.h>",
+            "default_value": "NULL"
+        },
+        "uint16_t": {
+            "pass_semantic": "value",
+            "defined_in": "<stdint.h>",
+            "default_value": "0u"
+        },
+        "uint32_t": {
+            "pass_semantic": "value",
+            "defined_in": "<stdint.h>",
+            "default_value": "0u"
+        },
+        "int8_t": {
+            "pass_semantic": "value",
+            "defined_in": "<stdint.h>",
+            "default_value": "0"
+        },
+        "int16_t": {
+            "pass_semantic": "value",
+            "defined_in": "<stdint.h>",
+            "default_value": "0"
+        },
+        "int32_t": {
+            "pass_semantic": "value",
+            "defined_in": "<stdint.h>",
+            "default_value": "0"
+        },
+        "size_t": {
+            "pass_semantic": "value",
+            "defined_in": "<stdio.h>",
+            "default_value": "0u"
+        },
+        "ssize_t": {
+            "pass_semantic": "value",
+            "defined_in": "<stdio.h>",
+            "default_value": "0"
+        },
+        "bool": {
+            "pass_semantic": "value",
+            "defined_in": "<stdbool.h>",
+            "default_value": "false"
+        },
+        "float": {
+            "pass_semantic": "value",
+            "defined_in": "<float.h>",
+            "default_value": "0.0f"
+        },
+        "ByteArray_t": {
+            "type": "struct",
+            "pass_semantic": "value",
+            "fields": {
+                "bytes": "uint8_t*",
+                "count": "size_t"
+            }
+        },
+        "ConstByteArray_t": {
+            "type": "struct",
+            "pass_semantic": "value",
+            "fields": {
+                "bytes": "const uint8_t*",
+                "count": "size_t"
+            }
+        }
+    },
+    "runtime": {
+        "runnables": {
+            "OnInit": [
+                "MasterCommunicationInterface_Bootloader/OnInit"
+            ],
+            "OnInitDone": [],
+            "Loop": [
+                "MasterCommunicationInterface_Bootloader/Update"
+            ]
+        },
+        "port_connections": []
+    }
+}

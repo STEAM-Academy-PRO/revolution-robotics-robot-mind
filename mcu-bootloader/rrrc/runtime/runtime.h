@@ -6,16 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-typedef struct {
-    const uint8_t* bytes;
-    size_t count;
-} ConstByteArray_t;
-
-typedef struct
-{
-    ConstByteArray_t default_response;
-    ConstByteArray_t rx_overflow_response;
-} MasterCommunicationInterface_Config_t;
+#include "rrrc/generated_runtime.h"
 
 typedef enum {
     Comm_Status_Ok,
@@ -51,7 +42,6 @@ typedef struct {
 
 #include "components/UpdateManager/UpdateManager.h"
 #include "CommonComponents/MasterCommunication/MasterCommunication.h"
-#include "components/MasterCommunicationInterface/MasterCommunicationInterface.h"
 #include "components/LEDController/LEDController.h"
 #include "components/VersionProvider/VersionProvider.h"
 #include "comm_handlers.h"

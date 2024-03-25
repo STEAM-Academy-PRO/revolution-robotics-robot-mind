@@ -5,6 +5,7 @@
 #include "rrrc/runtime/runtime.h"
 #include "rrrc/include/color.h"
 #include "rrrc/utils/crc.h"
+#include "rrrc/generated_runtime.h"
 
 #include <math.h>
 
@@ -15,10 +16,6 @@
 #else
 #define DEBUG_SKIP_FW_INTEGRITY_CHECK 0
 #endif
-
-static MasterCommunicationInterface_Config_t communicationConfig =
-{
-};
 
 static bool jump_to_application = false;
 
@@ -38,6 +35,8 @@ static void clear_rtt(void) {
 int main(void)
 {
     atmel_start_init();
+
+    Runtime_RaiseEvent_OnInit();
 
     StartupReason_t startupReason = FMP_CheckBootloaderModeRequest();
 
@@ -102,11 +101,6 @@ int main(void)
 
     MasterCommunication_Run_OnInit();
 
-    communicationConfig.default_response = MasterCommunication_Constant_DefaultResponse();
-    communicationConfig.rx_overflow_response = MasterCommunication_Constant_LongRxErrorResponse();
-
-    MasterCommunicationInterface_Run_OnInit(&communicationConfig);
-
     LEDController_Run_OnInit();
 
     // Display some indication why we are in bootloader mode
@@ -130,20 +124,28 @@ int main(void)
             break;
     }
 
+    Runtime_RaiseEvent_OnInitDone();
+
     while (1) {
-        MasterCommunicationInterface_Run_Update();
         LEDController_Run_Update();
+        Runtime_RaiseEvent_Loop();
     }
 }
 
-void MasterCommunicationInterface_RaiseEvent_OnMessageReceived(ConstByteArray_t message)
+void MasterCommunicationInterface_Bootloader_Read_Configuration(MasterCommunicationInterface_Config_t* dst)
+{
+    dst->default_response = MasterCommunication_Constant_DefaultResponse();
+    dst->rx_overflow_response = MasterCommunication_Constant_LongRxErrorResponse();
+}
+
+void MasterCommunicationInterface_Bootloader_RaiseEvent_OnMessageReceived(ConstByteArray_t message)
 {
     MasterCommunication_Run_HandleCommand(message);
 }
 
 void MasterCommunication_Call_SendResponse(ConstByteArray_t response)
 {
-    MasterCommunicationInterface_Run_SetResponse(response);
+    MasterCommunicationInterface_Bootloader_Run_SetResponse(response);
 }
 
 void Runtime_RequestJumpToApplication(void)
@@ -151,7 +153,7 @@ void Runtime_RequestJumpToApplication(void)
     jump_to_application = true;
 }
 
-void MasterCommunicationInterface_Call_OnTransmitComplete(void)
+void MasterCommunicationInterface_Bootloader_RaiseEvent_OnTransmissionComplete(void)
 {
     if (jump_to_application)
     {

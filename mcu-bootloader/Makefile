@@ -32,8 +32,8 @@ main.c \
 driver_init.c \
 atmel_start.c \
 rrrc/components/LEDController/LEDController.c \
-rrrc/components/MasterCommunicationInterface/i2cHal.c \
-rrrc/components/MasterCommunicationInterface/MasterCommunicationInterface.c \
+rrrc/components/MasterCommunicationInterface_Bootloader/i2cHal.c \
+rrrc/components/MasterCommunicationInterface_Bootloader/MasterCommunicationInterface_Bootloader.c \
 rrrc/components/UpdateManager/UpdateManager.c \
 rrrc/components/VersionProvider/VersionProvider.c \
 rrrc/flash_mapping.c \
@@ -43,6 +43,7 @@ rrrc/utils/converter.c \
 rrrc/utils/crc.c \
 rrrc/utils/functions.c \
 rrrc/watchdog.c \
+rrrc/generated_runtime.c \
 ../mcu-common/CommonComponents/MasterCommunication/CommunicationManager.c \
 ../mcu-common/CommonComponents/MasterCommunication/MasterCommunication.c
 
@@ -78,7 +79,7 @@ Config \
 ../mcu-common/CMSIS/Include \
 ../mcu-common/SEGGER/RTT \
 ../mcu-common/CommonComponents/MasterCommunication \
-rrrc/components/MasterCommunicationInterface \
+rrrc/components/MasterCommunicationInterface_Bootloader \
 rrrc/components/LEDController \
 rrrc/components/VersionProvider \
 rrrc/components/UpdateManager \

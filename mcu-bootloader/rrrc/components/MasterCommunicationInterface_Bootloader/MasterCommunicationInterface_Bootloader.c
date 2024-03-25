@@ -1,4 +1,4 @@
-#include "MasterCommunicationInterface.h"
+#include "MasterCommunicationInterface_Bootloader.h"
 
 #include "i2cHal.h"
 
@@ -16,7 +16,7 @@ static const uint8_t* messageBuffer;
 
 static bool tx_complete = false;
 
-const MasterCommunicationInterface_Config_t* config;
+static MasterCommunicationInterface_Config_t config;
 
 //*********************************************************************************************
 static int32_t I2C_4_init(uint8_t address)
@@ -35,7 +35,7 @@ static int32_t I2C_4_init(uint8_t address)
 
 void i2c_hal_rx_started(void)
 {
-    MasterCommunicationInterface_Run_SetResponse(config->default_response);
+    MasterCommunicationInterface_Bootloader_Run_SetResponse(config.default_response);
 }
 
 void i2c_hal_rx_complete(const uint8_t* buffer, size_t bufferSize, size_t bytesReceived)
@@ -54,16 +54,17 @@ void i2c_hal_tx_complete(void)
     tx_complete = true;
 }
 
-void MasterCommunicationInterface_Run_OnInit(const MasterCommunicationInterface_Config_t* cfg)
+void MasterCommunicationInterface_Bootloader_Run_OnInit(void)
 {
+    MasterCommunicationInterface_Bootloader_Read_Configuration(&config);
+
     messageReceived = false;
-    config = cfg;
 
     (void) I2C_4_init(0x2B);
     i2c_hal_receive();
 }
 
-void MasterCommunicationInterface_Run_Update(void)
+void MasterCommunicationInterface_Bootloader_Run_Update(void)
 {
     if (messageReceived)
     {
@@ -71,35 +72,35 @@ void MasterCommunicationInterface_Run_Update(void)
         if (messageSize > 0)
         {
             ConstByteArray_t message = {.bytes = messageBuffer, .count = messageSize};
-            MasterCommunicationInterface_RaiseEvent_OnMessageReceived(message);
+            MasterCommunicationInterface_Bootloader_RaiseEvent_OnMessageReceived(message);
         }
         else
         {
-            MasterCommunicationInterface_Run_SetResponse(config->rx_overflow_response);
+            MasterCommunicationInterface_Bootloader_Run_SetResponse(config.rx_overflow_response);
         }
     }
 
     if (tx_complete)
     {
         tx_complete = false;
-        MasterCommunicationInterface_Call_OnTransmitComplete();
+        MasterCommunicationInterface_Bootloader_RaiseEvent_OnTransmissionComplete();
     }
 }
 
 __attribute__((weak))
-void MasterCommunicationInterface_RaiseEvent_OnMessageReceived(ConstByteArray_t message)
+void MasterCommunicationInterface_Bootloader_RaiseEvent_OnMessageReceived(ConstByteArray_t message)
 {
     /* nothing to do */
     (void) message;
 }
 
 __attribute__((weak))
-void MasterCommunicationInterface_Call_OnTransmitComplete(void)
+void MasterCommunicationInterface_Bootloader_RaiseEvent_OnTransmissionComplete(void)
 {
     /* nothing to do */
 }
 
-void MasterCommunicationInterface_Run_SetResponse(ConstByteArray_t response)
+void MasterCommunicationInterface_Bootloader_Run_SetResponse(ConstByteArray_t response)
 {
     i2c_hal_receive();
     i2c_hal_set_tx_buffer(response.bytes, response.count);
