@@ -95,8 +95,7 @@ jobs:
           cd mcu-firmware
           python -m tools.gen_version
           python -m tools.generate_makefile
-          # currently the generated runtime is checked in, so this is not needed
-          # cglue --generate --cglue-output=rrrc/generated_runtime
+          cglue --generate
           make all config=release -j${{ env.CPU_COUNT }}
           python -m tools.prepare
 
