@@ -590,7 +590,7 @@ MotorLibraryStatus_t DcMotor_UpdateConfiguration(MotorPort_t* motorPort, const u
     /* reset states */
     libdata->lastPosition = 0;
     libdata->position = 0;
-    libdata->currentSpeed = 0;
+    libdata->currentSpeed = 0.0f;
     libdata->motorStatus = MOTOR_STATUS_NORMAL;
     _update_status_data(motorPort->port_idx, libdata, 0);
 
