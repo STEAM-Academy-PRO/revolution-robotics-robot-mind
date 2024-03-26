@@ -231,7 +231,7 @@ class MotorPortWrapper(Wrapper):
             unit_amount = MotorConstants.UNIT_DEG
             amount *= 360
 
-        set_fns = {
+        move_motor_command_map = {
             MotorConstants.UNIT_DEG: {
                 MotorConstants.UNIT_SPEED_RPM: {
                     MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_position(
@@ -262,24 +262,34 @@ class MotorPortWrapper(Wrapper):
             },
         }
 
+        motor_control_command = move_motor_command_map[unit_amount][unit_limit][direction]
+
         awaiter = None
 
         def _interrupted():
-            self._log("interrupted")
+            # When interrupted, always switch the motor power off before cancel,
+            # so that it also stops if the unit is time.
+            self._motor.driver.set_power(0)
             if awaiter:
                 awaiter.cancel()
 
         with self.try_take_resource(_interrupted) as resource:
             if resource:
                 self._log("start movement")
-                awaiter = resource.run_uninterruptable(set_fns[unit_amount][unit_limit][direction])
+                awaiter = resource.run_uninterruptable(motor_control_command)
 
                 if unit_amount == MotorConstants.UNIT_DEG:
                     # wait for movement to finish
                     awaiter.wait()
 
                 elif unit_amount == MotorConstants.UNIT_SEC:
+                    # When moving unit is time, we set the motor to rotate "indefinitely"
+                    # as we did not implement that on the motor driver level.
+                    # this means, the resource.run_uninterruptable will not return
+                    # an awaiter, which means it would not be stopped when cancelled,
+                    # it has to be done manually.
                     self._script.sleep(amount)
+                    # Stop it after timeout.
                     resource.run_uninterruptable(partial(self._motor.driver.set_power, 0))
                 self._log("movement finished")
 
