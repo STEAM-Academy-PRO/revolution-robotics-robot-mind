@@ -31,7 +31,7 @@ C_SRCS += \
 main.c \
 driver_init.c \
 atmel_start.c \
-rrrc/components/LEDController_Bootloader/LEDController_Bootloader.c \
+rrrc/components/LEDController/LEDController.c \
 rrrc/components/MasterCommunicationInterface_Bootloader/i2cHal.c \
 rrrc/components/MasterCommunicationInterface_Bootloader/MasterCommunicationInterface_Bootloader.c \
 rrrc/components/UpdateManager/UpdateManager.c \
@@ -79,7 +79,7 @@ Config \
 ../mcu-common/SEGGER/RTT \
 ../mcu-common/CommonComponents/MasterCommunication \
 rrrc/components/MasterCommunicationInterface_Bootloader \
-rrrc/components/LEDController_Bootloader \
+rrrc/components/LEDController \
 rrrc/components/VersionProvider \
 rrrc/components/UpdateManager \
 rrrc/include \

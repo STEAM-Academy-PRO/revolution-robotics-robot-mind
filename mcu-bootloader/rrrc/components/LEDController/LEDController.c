@@ -1,4 +1,4 @@
-#include "LEDController_Bootloader.h"
+#include "LEDController.h"
 #include "utils.h"
 #include "utils_assert.h"
 
@@ -61,7 +61,7 @@ static inline void write_led_byte(uint32_t led_idx, uint32_t byte_idx, uint8_t b
 static inline void write_led_color(uint32_t led_idx, rgb_t color)
 {
     /* brightness scaling */
-    uint8_t max_brightness = LEDController_Bootloader_Read_MaxBrightness();
+    uint8_t max_brightness = LEDController_Read_MaxBrightness();
     rgb_t rgb_dimmed = rgb_change_brightness(color, max_brightness / 255.0f);
 
     write_led_byte(led_idx, 0u, rgb_dimmed.G);
@@ -74,12 +74,12 @@ static void update_frame(void)
     memset(frame_leds, LED_VAL_RES, sizeof(frame_leds));
     for (uint32_t i = 0u; i < STATUS_LEDS_AMOUNT; i++)
     {
-        write_led_color(i, LEDController_Bootloader_Read_StatusLED(i));
+        write_led_color(i, LEDController_Read_StatusLED(i));
     }
 
     for (uint32_t i = 0u; i < RING_LEDS_AMOUNT; i++)
     {
-        write_led_color(STATUS_LEDS_AMOUNT + i, LEDController_Bootloader_Read_RingLED(i));
+        write_led_color(STATUS_LEDS_AMOUNT + i, LEDController_Read_RingLED(i));
     }
 }
 
@@ -99,7 +99,7 @@ static void tx_complete_cb_SPI_0(struct _dma_resource *resource)
 }
 /* End User Code Section: Declarations */
 
-void LEDController_Bootloader_Run_OnInit(void)
+void LEDController_Run_OnInit(void)
 {
     /* Begin User Code Section: OnInit:run Start */
     ledsUpdating = false;
@@ -117,12 +117,12 @@ void LEDController_Bootloader_Run_OnInit(void)
     /* End User Code Section: OnInit:run End */
 }
 
-void LEDController_Bootloader_Run_Update(void)
+void LEDController_Run_Update(void)
 {
     /* Begin User Code Section: Update:run Start */
     if (!ledsUpdating)
     {
-        if (LEDController_Bootloader_Read_StatusLEDs_Changed() || LEDController_Bootloader_Read_RingLEDs_Changed())
+        if (LEDController_Read_StatusLEDs_Changed() || LEDController_Read_RingLEDs_Changed())
         {
             update_frame();
             send_frame();
@@ -135,7 +135,7 @@ void LEDController_Bootloader_Run_Update(void)
 }
 
 __attribute__((weak))
-uint8_t LEDController_Bootloader_Read_MaxBrightness(void)
+uint8_t LEDController_Read_MaxBrightness(void)
 {
     /* Begin User Code Section: MaxBrightness:read Start */
 
@@ -147,7 +147,7 @@ uint8_t LEDController_Bootloader_Read_MaxBrightness(void)
 }
 
 __attribute__((weak))
-rgb_t LEDController_Bootloader_Read_RingLED(uint32_t index)
+rgb_t LEDController_Read_RingLED(uint32_t index)
 {
     ASSERT(index < 12);
     /* Begin User Code Section: RingLED:read Start */
@@ -160,7 +160,7 @@ rgb_t LEDController_Bootloader_Read_RingLED(uint32_t index)
 }
 
 __attribute__((weak))
-bool LEDController_Bootloader_Read_RingLEDs_Changed(void)
+bool LEDController_Read_RingLEDs_Changed(void)
 {
     /* Begin User Code Section: RingLEDs_Changed:read Start */
 
@@ -172,7 +172,7 @@ bool LEDController_Bootloader_Read_RingLEDs_Changed(void)
 }
 
 __attribute__((weak))
-rgb_t LEDController_Bootloader_Read_StatusLED(uint32_t index)
+rgb_t LEDController_Read_StatusLED(uint32_t index)
 {
     ASSERT(index < 4);
     /* Begin User Code Section: StatusLED:read Start */
@@ -185,7 +185,7 @@ rgb_t LEDController_Bootloader_Read_StatusLED(uint32_t index)
 }
 
 __attribute__((weak))
-bool LEDController_Bootloader_Read_StatusLEDs_Changed(void)
+bool LEDController_Read_StatusLEDs_Changed(void)
 {
     /* Begin User Code Section: StatusLEDs_Changed:read Start */
 

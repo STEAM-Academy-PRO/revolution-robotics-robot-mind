@@ -157,7 +157,7 @@ void MasterCommunicationInterface_Bootloader_RaiseEvent_OnTransmissionComplete(v
     }
 }
 
-rgb_t LEDController_Bootloader_Read_RingLED(uint32_t led_idx)
+rgb_t LEDController_Read_RingLED(uint32_t led_idx)
 {
     if (led_idx >= ARRAY_SIZE(ringLeds))
     {
@@ -169,7 +169,7 @@ rgb_t LEDController_Bootloader_Read_RingLED(uint32_t led_idx)
     }
 }
 
-bool LEDController_Bootloader_Read_RingLEDs_Changed(void)
+bool LEDController_Read_RingLEDs_Changed(void)
 {
     bool changed = ringLedsChanged;
     ringLedsChanged = false;
