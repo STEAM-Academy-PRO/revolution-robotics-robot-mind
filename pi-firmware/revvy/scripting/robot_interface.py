@@ -285,7 +285,7 @@ class MotorPortWrapper(Wrapper):
                 elif unit_amount == MotorConstants.UNIT_SEC:
                     # When moving unit is time, we set the motor to rotate "indefinitely"
                     # as we did not implement that on the motor driver level.
-                    # this means, the resource.run_uninterruptable will not return
+                    # This means, the resource.run_uninterruptable will not return
                     # an awaiter, which means it would not be stopped when cancelled,
                     # it has to be done manually.
                     self._script.sleep(amount)
