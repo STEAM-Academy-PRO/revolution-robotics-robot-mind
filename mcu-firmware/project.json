@@ -261,7 +261,7 @@
                     "McuStatusCollector/EnableSlot",
                     {
                         "arguments": {
-                            "slot": 14
+                            "slot": 13
                         }
                     }
                 ]

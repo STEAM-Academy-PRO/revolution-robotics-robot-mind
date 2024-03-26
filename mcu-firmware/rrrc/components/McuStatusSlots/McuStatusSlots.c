@@ -47,7 +47,7 @@ static slot_t slots[16] = {
     { .buffer = { .bytes = battery_status,     .count = ARRAY_SIZE(battery_status),     }, .size = 0u, .version = 0u },
     { .buffer = { .bytes = axl_status,         .count = ARRAY_SIZE(axl_status),         }, .size = 0u, .version = 0u },
     { .buffer = { .bytes = gyro_status,        .count = ARRAY_SIZE(gyro_status),        }, .size = 0u, .version = 0u },
-    { .buffer = { .bytes = reset_status,       .count = ARRAY_SIZE(reset_status),       }, .size = 1u, .version = 0u },
+    { .buffer = { .bytes = reset_status,       .count = ARRAY_SIZE(reset_status),       }, .size = 0u, .version = 0u },
     { .buffer = { .bytes = orientation_status, .count = ARRAY_SIZE(orientation_status), }, .size = 0u, .version = 0u }
 };
 
