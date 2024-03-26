@@ -3,7 +3,6 @@
 
 #include "rrrc/libraries/functions.h"
 #include "rrrc/runtime/runtime.h"
-#include "rrrc/libraries/crc.h"
 #include "rrrc/generated_runtime.h"
 #include "libraries/color.h"
 
@@ -191,12 +190,12 @@ void UpdateManager_RaiseEvent_ProgressChanged(uint8_t progress)
 
 uint8_t MasterCommunication_Call_Calculate_CRC7(uint8_t init_value, ConstByteArray_t data)
 {
-    return CRC7_Calculate(init_value, data.bytes, data.count);
+    return CRC_Run_Calculate_CRC7(init_value, data);
 }
 
 uint16_t MasterCommunication_Call_Calculate_CRC16(uint16_t init_value, ConstByteArray_t data)
 {
-    return CRC16_Calculate(init_value, data.bytes, data.count);
+    return CRC_Run_Calculate_CRC16(init_value, data);
 }
 
 void assert_failed(const char *file, uint32_t line)

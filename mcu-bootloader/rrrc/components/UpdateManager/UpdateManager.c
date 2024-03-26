@@ -2,8 +2,6 @@
 #include "utils.h"
 
 /* Begin User Code Section: Declarations */
-#include "libraries/crc.h"
-
 #include "SEGGER_RTT.h"
 
 #include "libraries/functions.h"

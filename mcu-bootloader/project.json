@@ -15,8 +15,9 @@
     "sources": [],
     "includes": [],
     "components": [
-        "MasterCommunicationInterface_Bootloader",
+        "CRC",
         "LEDController",
+        "MasterCommunicationInterface_Bootloader",
         "UpdateManager"
     ],
     "types": {

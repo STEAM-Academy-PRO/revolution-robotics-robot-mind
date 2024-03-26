@@ -1,4 +1,3 @@
-#include "libraries/crc.h"
 #include "flash_mapping.h"
 #include "hri_rtc_d51.h"
 #include "hri_rstc_d51.h"

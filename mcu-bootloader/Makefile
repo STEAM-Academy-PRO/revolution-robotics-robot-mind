@@ -42,6 +42,7 @@ rrrc/libraries/crc.c \
 rrrc/libraries/functions.c \
 rrrc/generated_runtime.c \
 ../mcu-common/CommonComponents/LEDController/LEDController.c \
+../mcu-common/CommonComponents/CRC/CRC.c \
 ../mcu-common/CommonComponents/MasterCommunication/CommunicationManager.c \
 ../mcu-common/CommonComponents/MasterCommunication/MasterCommunication.c
 
@@ -77,6 +78,7 @@ Config \
 ../mcu-common/SEGGER/RTT \
 ../mcu-common/CommonComponents/MasterCommunication \
 ../mcu-common/CommonComponents/LEDController \
+../mcu-common/CommonComponents/CRC \
 rrrc/components/MasterCommunicationInterface_Bootloader \
 rrrc/components/UpdateManager \
 rrrc/components \

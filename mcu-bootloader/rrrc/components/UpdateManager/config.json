@@ -1,7 +1,9 @@
 {
     "name": "UpdateManager",
     "version": "1.0.0",
-    "requires": {},
+    "requires": {
+        "CRC": "[1.0.0, 2.0.0)"
+    },
     "source_files": [
         "UpdateManager.c"
     ],
