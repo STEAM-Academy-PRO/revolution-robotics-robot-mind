@@ -17,6 +17,7 @@
     "components": [
         "CRC",
         "LEDController",
+        "MasterCommunication",
         "MasterCommunicationInterface_Bootloader",
         "UpdateManager"
     ],
@@ -106,6 +107,7 @@
     "runtime": {
         "runnables": {
             "OnInit": [
+                "MasterCommunication/OnInit",
                 "MasterCommunicationInterface_Bootloader/OnInit",
                 "LEDController/OnInit"
             ],
@@ -115,6 +117,23 @@
                 "LEDController/Update"
             ]
         },
-        "port_connections": []
+        "port_connections": [
+            {
+                "provider": "MasterCommunicationInterface_Bootloader/SetResponse",
+                "consumer": "MasterCommunication/SendResponse"
+            },
+            {
+                "provider": "MasterCommunicationInterface_Bootloader/OnMessageReceived",
+                "consumer": "MasterCommunication/HandleCommand"
+            },
+            {
+                "provider": "CRC/Calculate_CRC7",
+                "consumer": "MasterCommunication/Calculate_CRC7"
+            },
+            {
+                "provider": "CRC/Calculate_CRC16",
+                "consumer": "MasterCommunication/Calculate_CRC16"
+            }
+        ]
     }
 }

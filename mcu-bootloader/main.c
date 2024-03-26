@@ -97,7 +97,6 @@ int main(void)
     // or the target firmware is missing or corrupted
 
     Runtime_RaiseEvent_OnInit();
-    MasterCommunication_Run_OnInit();
 
     // Display some indication why we are in bootloader mode
     switch (startupReason) {
@@ -131,16 +130,6 @@ void MasterCommunicationInterface_Bootloader_Read_Configuration(MasterCommunicat
 {
     dst->default_response = MasterCommunication_Constant_DefaultResponse();
     dst->rx_overflow_response = MasterCommunication_Constant_LongRxErrorResponse();
-}
-
-void MasterCommunicationInterface_Bootloader_RaiseEvent_OnMessageReceived(ConstByteArray_t message)
-{
-    MasterCommunication_Run_HandleCommand(message);
-}
-
-void MasterCommunication_Call_SendResponse(ConstByteArray_t response)
-{
-    MasterCommunicationInterface_Bootloader_Run_SetResponse(response);
 }
 
 void Runtime_RequestJumpToApplication(void)
@@ -186,16 +175,6 @@ void UpdateManager_RaiseEvent_ProgressChanged(uint8_t progress)
     {
         ringLeds[i] = (rgb_t) LED_OFF;
     }
-}
-
-uint8_t MasterCommunication_Call_Calculate_CRC7(uint8_t init_value, ConstByteArray_t data)
-{
-    return CRC_Run_Calculate_CRC7(init_value, data);
-}
-
-uint16_t MasterCommunication_Call_Calculate_CRC16(uint16_t init_value, ConstByteArray_t data)
-{
-    return CRC_Run_Calculate_CRC16(init_value, data);
 }
 
 void assert_failed(const char *file, uint32_t line)
