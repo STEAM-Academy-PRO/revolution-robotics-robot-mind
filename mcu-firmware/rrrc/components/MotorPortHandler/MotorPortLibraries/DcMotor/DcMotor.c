@@ -79,6 +79,15 @@ typedef struct
     int32_t position;
 } MotorLibrary_Dc_Data_t;
 
+typedef struct
+{
+    uint8_t status;
+    uint8_t pwm;
+    int32_t position;
+    float speed;
+    uint8_t version;
+} __attribute__((packed)) DcMotorStatus_t;
+
 static void _reset_timeout(uint16_t* timer)
 {
     *timer = 0u;
@@ -116,27 +125,27 @@ static int32_t degrees_to_ticks(const MotorLibrary_Dc_Data_t* libdata, float deg
     return (int32_t) lroundf(map(degrees, 0.0f, 360.0f, 0.0f, fabsf(libdata->resolution)));
 }
 
-static float ticks_to_degrees(const MotorLibrary_Dc_Data_t* libdata, float value)
+static int32_t ticks_to_degrees(const MotorLibrary_Dc_Data_t* libdata, float value)
 {
-    return map(value, 0.0f, fabsf(libdata->resolution), 0.0f, 360.0f);
+    return (int32_t) lroundf(map(value, 0.0f, fabsf(libdata->resolution), 0.0f, 360.0f));
 }
 
 static void _update_status_data(const MotorPort_t* motorPort, int16_t pwm)
 {
-    uint8_t portIdx = motorPort->port_idx;
     MotorLibrary_Dc_Data_t* libdata = (MotorLibrary_Dc_Data_t*) motorPort->libraryData;
 
-    int32_t pos_degrees = ticks_to_degrees(libdata, libdata->lastPosition);
+    DcMotorStatus_t status_struct = (DcMotorStatus_t) {
+        .status = libdata->motorStatus,
+        .pwm = (uint8_t) (pwm/2), // Divide by 2 to map 0..200 (physical timer config) to 0..100 (%)
+        .position = ticks_to_degrees(libdata, libdata->lastPosition),
+        .speed = libdata->currentSpeed,
+        .version = libdata->currentRequest.version
+    };
 
-    // TODO: this really needs to be a (packed) struct
-    uint8_t status[11];
-    status[0] = libdata->motorStatus;
-    status[1] = (uint8_t) (pwm/2); // Divide by 2 to map 0..200 (physical timer config) to 0..100 (%)
-    memcpy(&status[2], &pos_degrees, sizeof(int32_t));
-    memcpy(&status[6], &libdata->currentSpeed, sizeof(float));
-    status[10] = libdata->currentRequest.version;
-
-    MotorPortHandler_Call_UpdatePortStatus(portIdx, (ByteArray_t){status, sizeof(status)});
+    MotorPortHandler_Call_UpdatePortStatus(motorPort->port_idx, (ByteArray_t) {
+        .bytes = (uint8_t*) &status_struct,
+        .count = sizeof(status_struct)
+    });
 }
 
 /* Clears motor status when configuration or drive command is changed */
