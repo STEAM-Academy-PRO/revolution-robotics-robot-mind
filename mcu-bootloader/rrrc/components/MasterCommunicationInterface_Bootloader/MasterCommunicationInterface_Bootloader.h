@@ -32,6 +32,5 @@ void MasterCommunicationInterface_Bootloader_RaiseEvent_RxTimeout(void);
 void MasterCommunicationInterface_Bootloader_RaiseEvent_OnMessageReceived(ConstByteArray_t message);
 void MasterCommunicationInterface_Bootloader_RaiseEvent_OnTransmissionComplete(void);
 void MasterCommunicationInterface_Bootloader_Read_Configuration(MasterCommunicationInterface_Config_t* value);
-uint8_t MasterCommunicationInterface_Bootloader_Read_DeviceAddress(void);
 
 #endif /* COMPONENT_MASTER_COMMUNICATION_INTERFACE__BOOTLOADER_H_ */

@@ -34,11 +34,6 @@
             "default_value": null,
             "data_type": "MasterCommunicationInterface_Config_t"
         },
-        "DeviceAddress": {
-            "port_type": "ReadValue",
-            "default_value": 0,
-            "data_type": "uint8_t"
-        },
         "RxTimeout": {
             "port_type": "Event"
         },
