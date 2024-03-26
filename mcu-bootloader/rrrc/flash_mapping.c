@@ -101,10 +101,8 @@ bool FMP_CheckTargetFirmware(bool check_expected_crc, uint32_t expected_crc) {
     return (crc32 == FLASH_HEADER->target_checksum);
 }
 
-bool FMP_IsApplicationEmpty(void)
-{
-    const uint32_t* ptr = (const uint32_t*) FLASH_FW_OFFSET;
-    for (size_t i = 0u; i < FLASH_AVAILABLE / 4u; i++)
+static bool _is_region_empty(const uint32_t* ptr, size_t size) {
+    for (size_t i = 0u; i < size / 4u; i++)
     {
         if (ptr[i] != 0xFFFFFFFFu)
         {
@@ -114,17 +112,14 @@ bool FMP_IsApplicationEmpty(void)
     return true;
 }
 
+bool FMP_IsApplicationEmpty(void)
+{
+    return _is_region_empty((const uint32_t*) FLASH_ADDR, FLASH_AVAILABLE);
+}
+
 bool FMP_IsApplicationHeaderEmpty(void)
 {
-    const uint32_t* ptr = (const uint32_t*) FLASH_HDR_OFFSET;
-    for (size_t i = 0u; i < NVMCTRL_BLOCK_SIZE / 4u; i++)
-    {
-        if (ptr[i] != 0xFFFFFFFFu)
-        {
-            return false;
-        }
-    }
-    return true;
+    return _is_region_empty((const uint32_t*) FLASH_HDR_OFFSET, NVMCTRL_BLOCK_SIZE);
 }
 
 void FMP_FixApplicationHeader(void)
