@@ -54,11 +54,6 @@ void i2c_hal_tx_complete(void)
     tx_complete = true;
 }
 
-void sercom2_rx_done_cb(uint8_t data)
-{
-    i2c_hal_on_rx_done(data);
-}
-
 void MasterCommunicationInterface_Run_OnInit(const MasterCommunicationInterface_Config_t* cfg)
 {
     messageReceived = false;
