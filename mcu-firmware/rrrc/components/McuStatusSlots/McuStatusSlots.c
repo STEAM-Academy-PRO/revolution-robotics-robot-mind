@@ -20,8 +20,8 @@
 #define STATUS_SLOT_ORIENTATION ((uint8_t) 14u)
 
 typedef struct {
-    /** The buffer that hold the data. */
-    ByteArray_t array;
+    /** The buffer that hold the data. The buffer may be bigger than the actual data in it. */
+    ByteArray_t buffer;
     /** The actual number of bytes in the buffer. */
     const uint8_t size;
     /** An ID that is used to detect if the value has changed. Incremented on write. */
@@ -31,31 +31,32 @@ typedef struct {
 #define MOTOR_SLOT(x)  (x)
 #define SENSOR_SLOT(x) (x + 6)
 
+// One status slot per motor/sensor port.
 static uint8_t motor_status[6][MAX_MOTOR_STATUS_SIZE] = {0};
 static uint8_t sensor_status[4][MAX_SENSOR_STATUS_SIZE] = {0};
+
 static uint8_t battery_status[4];
 static uint8_t axl_status[6];
 static uint8_t gyro_status[6];
-static uint8_t yaw_status[8];
 static uint8_t reset_status[1];
 static uint8_t orientation_status[12];
 
 static slot_t slots[16] = {
-    { .array = { .bytes = motor_status[0], .count = 0u }, .size = ARRAY_SIZE(motor_status[0]), .version = 0u },
-    { .array = { .bytes = motor_status[1], .count = 0u }, .size = ARRAY_SIZE(motor_status[1]), .version = 0u },
-    { .array = { .bytes = motor_status[2], .count = 0u }, .size = ARRAY_SIZE(motor_status[2]), .version = 0u },
-    { .array = { .bytes = motor_status[3], .count = 0u }, .size = ARRAY_SIZE(motor_status[3]), .version = 0u },
-    { .array = { .bytes = motor_status[4], .count = 0u }, .size = ARRAY_SIZE(motor_status[4]), .version = 0u },
-    { .array = { .bytes = motor_status[5], .count = 0u }, .size = ARRAY_SIZE(motor_status[5]), .version = 0u },
-    { .array = { .bytes = sensor_status[0], .count = 0u }, .size = ARRAY_SIZE(sensor_status[0]), .version = 0u },
-    { .array = { .bytes = sensor_status[1], .count = 0u }, .size = ARRAY_SIZE(sensor_status[1]), .version = 0u },
-    { .array = { .bytes = sensor_status[2], .count = 0u }, .size = ARRAY_SIZE(sensor_status[2]), .version = 0u },
-    { .array = { .bytes = sensor_status[3], .count = 0u }, .size = ARRAY_SIZE(sensor_status[3]), .version = 0u },
-    { .array = { .bytes = battery_status, .count = 0u }, .size = ARRAY_SIZE(battery_status), .version = 0u },
-    { .array = { .bytes = axl_status,     .count = 0u }, .size = ARRAY_SIZE(axl_status),     .version = 0u },
-    { .array = { .bytes = gyro_status,    .count = 0u }, .size = ARRAY_SIZE(gyro_status),    .version = 0u },
-    { .array = { .bytes = reset_status,   .count = 1u }, .size = ARRAY_SIZE(reset_status),   .version = 0u },
-    { .array = { .bytes = orientation_status,   .count = 1u }, .size = ARRAY_SIZE(orientation_status),   .version = 0u }
+    { .buffer = { .bytes = motor_status[0], .count = 0u }, .size = ARRAY_SIZE(motor_status[0]), .version = 0u },
+    { .buffer = { .bytes = motor_status[1], .count = 0u }, .size = ARRAY_SIZE(motor_status[1]), .version = 0u },
+    { .buffer = { .bytes = motor_status[2], .count = 0u }, .size = ARRAY_SIZE(motor_status[2]), .version = 0u },
+    { .buffer = { .bytes = motor_status[3], .count = 0u }, .size = ARRAY_SIZE(motor_status[3]), .version = 0u },
+    { .buffer = { .bytes = motor_status[4], .count = 0u }, .size = ARRAY_SIZE(motor_status[4]), .version = 0u },
+    { .buffer = { .bytes = motor_status[5], .count = 0u }, .size = ARRAY_SIZE(motor_status[5]), .version = 0u },
+    { .buffer = { .bytes = sensor_status[0], .count = 0u }, .size = ARRAY_SIZE(sensor_status[0]), .version = 0u },
+    { .buffer = { .bytes = sensor_status[1], .count = 0u }, .size = ARRAY_SIZE(sensor_status[1]), .version = 0u },
+    { .buffer = { .bytes = sensor_status[2], .count = 0u }, .size = ARRAY_SIZE(sensor_status[2]), .version = 0u },
+    { .buffer = { .bytes = sensor_status[3], .count = 0u }, .size = ARRAY_SIZE(sensor_status[3]), .version = 0u },
+    { .buffer = { .bytes = battery_status, .count = 0u }, .size = ARRAY_SIZE(battery_status), .version = 0u },
+    { .buffer = { .bytes = axl_status,     .count = 0u }, .size = ARRAY_SIZE(axl_status),     .version = 0u },
+    { .buffer = { .bytes = gyro_status,    .count = 0u }, .size = ARRAY_SIZE(gyro_status),    .version = 0u },
+    { .buffer = { .bytes = reset_status,   .count = 1u }, .size = ARRAY_SIZE(reset_status),   .version = 0u },
+    { .buffer = { .bytes = orientation_status,   .count = 1u }, .size = ARRAY_SIZE(orientation_status),   .version = 0u }
 };
 
 static bool compare_and_copy(uint8_t* pDst, const uint8_t* pSrc, size_t size)
@@ -86,20 +87,21 @@ static void update_slot(uint8_t index, const uint8_t* data, uint8_t data_size)
     bool slot_changed = true;
     uint32_t primask = __get_PRIMASK();
     __disable_irq();
-    if (!slot_has_data(slot) || data_size != slot->array.count)
+    if (!slot_has_data(slot) || data_size != slot->buffer.count)
     {
-        memcpy(slot->array.bytes, data, data_size);
-        slot->array.count = data_size;
+        memcpy(slot->buffer.bytes, data, data_size);
+        slot->buffer.count = data_size;
     }
     else
     {
-        slot_changed = !compare_and_copy(slot->array.bytes, data, data_size);
+        uint8_t compare_size = min(data_size, slot->buffer.count);
+        slot_changed = !compare_and_copy(slot->buffer.bytes, data, compare_size);
     }
 
     if (slot_changed)
     {
         slot->version = (slot->version + 1u) & 0x7Fu;
-        McuStatusSlots_Write_SlotData(index, (const SlotData_t) {.data = slot->array, .version = slot->version});
+        McuStatusSlots_Write_SlotData(index, (const SlotData_t) {.data = slot->buffer, .version = slot->version});
     }
     __set_PRIMASK(primask);
 }
@@ -112,7 +114,7 @@ void McuStatusSlots_Run_Reset(void)
     __disable_irq();
     for (size_t i = 0u; i < ARRAY_SIZE(slots); i++)
     {
-        slots[i].array.count = 0u;
+        slots[i].buffer.count = 0u;
         slots[i].version = 0xFFu;
     }
     __set_PRIMASK(primask);
