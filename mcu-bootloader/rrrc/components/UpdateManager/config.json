@@ -1,0 +1,62 @@
+{
+    "name": "UpdateManager",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "UpdateManager.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "ApplicationFlashHeader_t": {
+            "defined_in": "\"flash_mapping.h\"",
+            "pass_semantic": "pointer",
+            "default_value": "(ApplicationFlashHeader_t){0, 0, 0, 0}"
+        },
+        "UpdateManager_Status_t": {
+            "type": "enum",
+            "values": [
+                "UpdateManager_Ok",
+                "UpdateManager_Not_Initialized",
+                "UpdateManager_Error_ImageInvalid"
+            ],
+            "default_value": "UpdateManager_Ok"
+        }
+    },
+    "runnables": {
+        "CheckImageFitsInFlash": {
+            "return_type": "bool",
+            "arguments": {
+                "image_size": "uint32_t"
+            }
+        },
+        "InitializeUpdate": {
+            "arguments": {
+                "firmware_size": "uint32_t",
+                "checksum": "uint32_t"
+            }
+        },
+        "WriteNextChunk": {
+            "return_type": "UpdateManager_Status_t",
+            "arguments": {
+                "data": "ConstByteArray_t"
+            }
+        },
+        "Finalize": {
+            "return_type": "UpdateManager_Status_t"
+        },
+        "UpdateApplicationHeader": {
+            "arguments": {
+                "header": "ApplicationFlashHeader_t"
+            }
+        }
+    },
+    "ports": {
+        "ProgressChanged": {
+            "port_type": "Event",
+            "arguments": {
+                "progress": "uint8_t"
+            }
+        }
+    }
+}

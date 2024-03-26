@@ -176,7 +176,7 @@ bool LEDController_Read_RingLEDs_Changed(void)
     return changed;
 }
 
-void UpdateManager_Write_Progress(uint8_t progress)
+void UpdateManager_RaiseEvent_ProgressChanged(uint8_t progress)
 {
     uint8_t n_leds = (uint8_t) lroundf(map(progress, 0, 255, 0, 12));
     for (uint8_t i = 0u; i < n_leds; i++)

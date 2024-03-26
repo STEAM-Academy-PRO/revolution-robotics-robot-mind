@@ -83,7 +83,7 @@ static Comm_Status_t ProgramApplication_Start(ConstByteArray_t commandPayload, B
     (void) responseCount;
 
     SEGGER_RTT_printf(0, "ProgramApplication\n");
-    switch (UpdateManager_Run_Program(commandPayload.bytes, commandPayload.count))
+    switch (UpdateManager_Run_WriteNextChunk(commandPayload))
     {
         case UpdateManager_Ok:
             return Comm_Status_Ok;

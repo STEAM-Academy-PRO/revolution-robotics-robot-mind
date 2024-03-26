@@ -16,7 +16,8 @@
     "includes": [],
     "components": [
         "MasterCommunicationInterface_Bootloader",
-        "LEDController"
+        "LEDController",
+        "UpdateManager"
     ],
     "types": {
         "const void*": {

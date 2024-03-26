@@ -1,7 +1,6 @@
 #ifndef RUNTIME_H_
 #define RUNTIME_H_
 
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -40,7 +39,6 @@ typedef struct {
 #define COMPONENT_TYPES_MASTER_COMMUNICATION_INTERFACE_H_
 #define COMPONENT_TYPES_VERSION_PROVIDER_H_
 
-#include "components/UpdateManager/UpdateManager.h"
 #include "CommonComponents/MasterCommunication/MasterCommunication.h"
 #include "comm_handlers.h"
 
