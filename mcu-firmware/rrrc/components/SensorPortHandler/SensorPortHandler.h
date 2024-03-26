@@ -97,6 +97,7 @@ void SensorPortHandler_Run_ReadSensorInfo(uint8_t port_idx, uint8_t page, ByteAr
 AsyncResult_t SensorPortHandler_AsyncRunnable_SetPortType(AsyncCommand_t asyncCommand, uint8_t port_idx, uint8_t port_type, bool* result);
 AsyncResult_t SensorPortHandler_AsyncRunnable_TestSensorOnPort(AsyncCommand_t asyncCommand, uint8_t port_idx, uint8_t port_type, TestSensorOnPortResult_t* result);
 uint8_t SensorPortHandler_Constant_PortCount(void);
+void SensorPortHandler_Call_UpdateStatusSlotSize(size_t size);
 void* SensorPortHandler_Call_Allocate(size_t size);
 void SensorPortHandler_Call_Free(void** ptr);
 uint32_t SensorPortHandler_Call_ReadCurrentTicks(void);

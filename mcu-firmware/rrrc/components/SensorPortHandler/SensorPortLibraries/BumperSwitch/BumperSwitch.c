@@ -12,6 +12,8 @@ typedef struct
 
 SensorLibraryStatus_t BumperSwitch_Load(SensorPort_t* sensorPort)
 {
+    SensorPortHandler_Call_UpdateStatusSlotSize(2u);
+
     SensorLibrary_BumperSwitch_Data_t* libdata = SensorPortHandler_Call_Allocate(sizeof(SensorLibrary_BumperSwitch_Data_t));
     libdata->threshold = 75u; /* sensor ADC input has a range of 0..5V, bumper switch is 3V, set threshold to half of that */
     libdata->was_pressed = false;

@@ -23,6 +23,16 @@
     "runnables": {
         "Reset": {},
         "Update": {},
+        "ChangeSensorPortSlotSize": {
+            "arguments": {
+                "size": "size_t"
+            }
+        },
+        "ChangeMotorPortSlotSize": {
+            "arguments": {
+                "size": "size_t"
+            }
+        },
         "UpdateSensorPort": {
             "arguments": {
                 "port": "uint8_t",
@@ -37,6 +47,26 @@
         }
     },
     "ports": {
+        "Allocate": {
+            "port_type": "ServerCall",
+            "return_type": "void*",
+            "arguments": {
+                "size": {
+                    "data_type": "size_t",
+                    "direction": "in"
+                }
+            }
+        },
+        "Free": {
+            "port_type": "ServerCall",
+            "return_type": "void",
+            "arguments": {
+                "ptr": {
+                    "data_type": "void*",
+                    "direction": "inout"
+                }
+            }
+        },
         "SlotData": {
             "port_type": "WriteIndexedData",
             "data_type": "SlotData_t",

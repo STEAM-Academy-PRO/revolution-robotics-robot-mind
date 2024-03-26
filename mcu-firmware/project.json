@@ -433,14 +433,16 @@
                 "provider": "MemoryAllocator/Allocate",
                 "consumers": [
                     "SensorPortHandler/Allocate",
-                    "MotorPortHandler/Allocate"
+                    "MotorPortHandler/Allocate",
+                    "McuStatusSlots/Allocate"
                 ]
             },
             {
                 "provider": "MemoryAllocator/Free",
                 "consumers": [
                     "SensorPortHandler/Free",
-                    "MotorPortHandler/Free"
+                    "MotorPortHandler/Free",
+                    "McuStatusSlots/Free"
                 ]
             },
             {
@@ -731,8 +733,16 @@
                 "consumer": "CommWrapper_McuStatusCollector/Read"
             },
             {
+                "provider": "McuStatusSlots/ChangeMotorPortSlotSize",
+                "consumer": "MotorPortHandler/UpdateStatusSlotSize"
+            },
+            {
                 "provider": "McuStatusSlots/UpdateMotorPort",
                 "consumer": "MotorPortHandler/UpdatePortStatus"
+            },
+            {
+                "provider": "McuStatusSlots/ChangeSensorPortSlotSize",
+                "consumer": "SensorPortHandler/UpdateStatusSlotSize"
             },
             {
                 "provider": "McuStatusSlots/UpdateSensorPort",

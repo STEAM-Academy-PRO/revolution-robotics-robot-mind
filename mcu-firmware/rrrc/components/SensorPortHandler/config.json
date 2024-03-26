@@ -106,6 +106,12 @@
             "data_type": "uint8_t",
             "value": 4
         },
+        "UpdateStatusSlotSize": {
+            "port_type": "ServerCall",
+            "arguments": {
+                "size": "size_t"
+            }
+        },
         "Allocate": {
             "port_type": "ServerCall",
             "return_type": "void*",

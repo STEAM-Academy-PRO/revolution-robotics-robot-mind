@@ -301,6 +301,18 @@ uint8_t SensorPortHandler_Constant_PortCount(void)
 }
 
 __attribute__((weak))
+void SensorPortHandler_Call_UpdateStatusSlotSize(size_t size)
+{
+    (void) size;
+    /* Begin User Code Section: UpdateStatusSlotSize:run Start */
+
+    /* End User Code Section: UpdateStatusSlotSize:run Start */
+    /* Begin User Code Section: UpdateStatusSlotSize:run End */
+
+    /* End User Code Section: UpdateStatusSlotSize:run End */
+}
+
+__attribute__((weak))
 void* SensorPortHandler_Call_Allocate(size_t size)
 {
     (void) size;

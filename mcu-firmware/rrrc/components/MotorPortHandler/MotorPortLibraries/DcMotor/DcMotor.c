@@ -125,6 +125,8 @@ static float ticks_to_degrees(const MotorLibrary_Dc_Data_t* libdata, float value
 
 MotorLibraryStatus_t DcMotor_Load(MotorPort_t* motorPort)
 {
+    MotorPortHandler_Call_UpdateStatusSlotSize(11u);
+
     MotorLibrary_Dc_Data_t* libdata = MotorPortHandler_Call_Allocate(sizeof(MotorLibrary_Dc_Data_t));
 
     libdata->currentRequest.version = 0u;
