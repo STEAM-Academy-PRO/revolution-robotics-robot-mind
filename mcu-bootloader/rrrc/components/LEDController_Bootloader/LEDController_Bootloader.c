@@ -1,7 +1,7 @@
-#include "LEDController.h"
+#include "LEDController_Bootloader.h"
 #include "driver_init.h"
-#include "../../include/color.h"
-#include "../../utils/functions.h"
+#include "include/color.h"
+#include "utils/functions.h"
 
 #include <stdint.h>
 #include <string.h>
