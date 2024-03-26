@@ -1,14 +1,15 @@
 #include "Dummy.h"
 
-SensorLibraryStatus_t DummySensor_Init(SensorPort_t* sensorPort)
+SensorLibraryStatus_t DummySensor_Load(SensorPort_t* sensorPort)
 {
     (void) sensorPort;
     return SensorLibraryStatus_Ok;
 }
 
-void DummySensor_DeInit(SensorPort_t* sensorPort, OnDeInitCompletedCb cb)
+SensorLibraryUnloadStatus_t DummySensor_Unload(SensorPort_t* sensorPort)
 {
-    cb(sensorPort, true);
+    (void) sensorPort;
+    return SensorLibraryUnloadStatus_Done;
 }
 
 SensorLibraryStatus_t DummySensor_Update(SensorPort_t* sensorPort)
@@ -57,9 +58,9 @@ static bool DummySensor_TestSensorOnPort(SensorPort_t *port, SensorOnPortStatus_
 
 const SensorLibrary_t sensor_library_dummy =
 {
-    .name                = "NotConfigured",
-    .Init                = &DummySensor_Init,
-    .DeInit              = &DummySensor_DeInit,
+    .Name                = "NotConfigured",
+    .Load                = &DummySensor_Load,
+    .Unload              = &DummySensor_Unload,
     .Update              = &DummySensor_Update,
     .UpdateConfiguration = &DummySensor_UpdateConfiguration,
     .UpdateAnalogData    = &DummySensor_UpdateAnalogData,

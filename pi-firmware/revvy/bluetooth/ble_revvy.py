@@ -1,6 +1,8 @@
 """ Bluetooth Low Energy interface for Revvy """
 
 import os
+import subprocess
+import time
 from typing import List
 from pybleno import Bleno, BlenoPrimaryService
 
@@ -12,7 +14,7 @@ from revvy.scripting.runtime import ScriptEvent
 
 from revvy.utils.device_name import get_device_name
 from revvy.utils.directories import BLE_STORAGE_DIR, WRITEABLE_ASSETS_DIR
-from revvy.utils.logger import get_logger
+from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.file_storage import FileStorage, MemoryStorage
 
 from revvy.robot_manager import RobotManager
@@ -23,6 +25,7 @@ from revvy.bluetooth.longmessage import extract_asset_longmessage, LongMessageIm
 from revvy.bluetooth.live_message_service import LiveMessageService, MotorData
 
 from revvy.utils.error_reporter import revvy_error_handler
+from revvy.utils.stopwatch import Stopwatch
 
 
 class RevvyBLE:
@@ -213,6 +216,28 @@ class RevvyBLE:
 
     def start(self) -> None:
         """Switch interface on, start the robot."""
+
+        def status() -> int:
+            bluetooth_status = subprocess.run(
+                ["/usr/sbin/service", "bluetooth", "status"], capture_output=True, check=False
+            )
+
+            self._log(f"Bluetooth status: {bluetooth_status.returncode}", LogLevel.DEBUG)
+
+            return bluetooth_status.returncode
+
+        if status() != 0:
+            self._log("Bluetooth service not running, waiting for it to start")
+            stopwatch = Stopwatch()
+            timeout = True
+            while stopwatch.elapsed < 10:
+                if status() == 0:
+                    timeout = False
+                    time.sleep(0.5)
+                    break
+            if timeout:
+                raise TimeoutError("Bluetooth service did not start in time, exiting")
+
         self._bleno.start()
         self._robot_manager.robot_start()
 

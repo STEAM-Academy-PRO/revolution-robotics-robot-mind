@@ -21,7 +21,7 @@ static void rxcomplete(I2CMasterInstance_t* instance, size_t transferred)
     libdata->reading = false;
 }
 
-SensorLibraryStatus_t DebugRTC_Init(SensorPort_t* sensorPort)
+SensorLibraryStatus_t DebugRTC_Load(SensorPort_t* sensorPort)
 {
     SensorPort_SetVccIo(sensorPort, Sensor_VccIo_5V);
     SensorPort_I2C_Enable(sensorPort, 100);
@@ -36,14 +36,15 @@ SensorLibraryStatus_t DebugRTC_Init(SensorPort_t* sensorPort)
     return SensorLibraryStatus_Ok;
 }
 
-void DebugRTC_DeInit(SensorPort_t* sensorPort, OnDeInitCompletedCb cb)
+SensorLibraryUnloadStatus_t DebugRTC_Unload(SensorPort_t* sensorPort)
 {
     SensorPort_SetGreenLed(sensorPort, false);
     SensorPort_SetOrangeLed(sensorPort, false);
     SensorPort_SetVccIo(sensorPort, Sensor_VccIo_3V3);
     SensorPort_I2C_Disable(sensorPort);
     SensorPortHandler_Call_Free(&sensorPort->libraryData);
-    cb(sensorPort, true);
+
+    return SensorLibraryUnloadStatus_Done;
 }
 
 SensorLibraryStatus_t DebugRTC_Update(SensorPort_t* sensorPort)
@@ -103,15 +104,17 @@ void DebugRTC_ReadSensorInfo(SensorPort_t* sensorPort, uint8_t page, uint8_t* bu
 
 static bool DebugRTC_TestSensorOnPort(SensorPort_t *port, SensorOnPortStatus_t *result)
 {
-  *result = SensorOnPortStatus_Unknown;
-  return true;
+    (void) port;
+
+    *result = SensorOnPortStatus_Unknown;
+    return true;
 }
 
 const SensorLibrary_t sensor_library_debug_rtc =
 {
-    .name                = "DebugRTC",
-    .Init                = &DebugRTC_Init,
-    .DeInit              = &DebugRTC_DeInit,
+    .Name                = "DebugRTC",
+    .Load                = &DebugRTC_Load,
+    .Unload              = &DebugRTC_Unload,
     .Update              = &DebugRTC_Update,
     .UpdateConfiguration = &DebugRTC_UpdateConfiguration,
     .UpdateAnalogData    = &DebugRTC_UpdateAnalogData,

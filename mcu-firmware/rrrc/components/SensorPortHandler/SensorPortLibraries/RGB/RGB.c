@@ -570,7 +570,7 @@ static void try_init_port(SensorPort_t* sensorPort)
     libdata->transfering = false;
 }
 
-static SensorLibraryStatus_t ColorSensor_Init(SensorPort_t *sensorPort)
+static SensorLibraryStatus_t ColorSensor_Load(SensorPort_t *sensorPort)
 {
     SensorLibrary_RGB_Data_t* libdata = SensorPortHandler_Call_Allocate(sizeof(SensorLibrary_RGB_Data_t));
     sensorPort->libraryData = libdata;
@@ -607,7 +607,7 @@ static SensorLibraryStatus_t ColorSensor_Init(SensorPort_t *sensorPort)
     return SensorLibraryStatus_Ok;
 }
 
-static void ColorSensor_DeInit(SensorPort_t *sensorPort, OnDeInitCompletedCb cb)
+static SensorLibraryUnloadStatus_t ColorSensor_Unload(SensorPort_t *sensorPort)
 {
     SensorLibrary_RGB_Data_t* libdata = sensorPort->libraryData;
 
@@ -615,20 +615,24 @@ static void ColorSensor_DeInit(SensorPort_t *sensorPort, OnDeInitCompletedCb cb)
     case SENS_DEINIT_STATE_NONE:
         ProcessDeinitRequested(sensorPort);
         break;
+
     case SENS_DEINIT_STATE_IN_PROGRESS:
         break;
+
     case SENS_DEINIT_STATE_COMPLETED:
         ProcessDeinitCompleted(sensorPort);
-        cb(sensorPort, true);
-        break;
+        return SensorLibraryUnloadStatus_Done;
+
     case SENS_DEINIT_STATE_ERROR:
         ProcessDeinitCompleted(sensorPort);
-        cb(sensorPort, false);
-        break;
+        return SensorLibraryUnloadStatus_Done;
+
     default:
         ASSERT(0);
         break;
     }
+
+    return SensorLibraryUnloadStatus_Pending;
 }
 
 static SensorLibraryStatus_t ColorSensor_Update(SensorPort_t *sensorPort)
@@ -775,13 +779,13 @@ out_completed:
 }
 
 const SensorLibrary_t sensor_library_rgb = {
-    .name = "RGB",
-    .Init = &ColorSensor_Init,
-    .DeInit = &ColorSensor_DeInit,
-    .Update = &ColorSensor_Update,
+    .Name                = "RGB",
+    .Load                = &ColorSensor_Load,
+    .Unload              = &ColorSensor_Unload,
+    .Update              = &ColorSensor_Update,
     .UpdateConfiguration = &ColorSensor_UpdateConfiguration,
-    .UpdateAnalogData = &ColorSensor_UpdateAnalogData,
-    .InterruptHandler = &ColorSensor_InterruptCallback,
-    .ReadSensorInfo = &ColorSensor_ReadSensorInfo,
-    .TestSensorOnPort = &ColorSensor_TestSensorOnPort
+    .UpdateAnalogData    = &ColorSensor_UpdateAnalogData,
+    .InterruptHandler    = &ColorSensor_InterruptCallback,
+    .ReadSensorInfo      = &ColorSensor_ReadSensorInfo,
+    .TestSensorOnPort    = &ColorSensor_TestSensorOnPort
 };

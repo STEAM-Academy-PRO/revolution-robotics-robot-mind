@@ -24,9 +24,9 @@
         {
             "label": "generate runtime",
             "type": "shell",
-            "command": "${config:python.pythonPath.linux} -m cglue.cli --generate --cglue-output=rrrc/generated_runtime --cleanup",
+            "command": "${config:python.pythonPath.linux} -m cglue.cli --generate",
             "windows": {
-                "command": "${config:python.pythonPath.windows} -m cglue.cli --generate --cglue-output=rrrc/generated_runtime --cleanup"
+                "command": "${config:python.pythonPath.windows} -m cglue.cli --generate"
             },
             "problemMatcher": []
         },

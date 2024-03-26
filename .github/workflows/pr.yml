@@ -75,7 +75,7 @@ jobs:
           filters: |
             mcu-firmware:
               - mcu-firmware/**
-              - pi-firmware/** # FIXME temporary until we devise a strategy to store the mcu-firmware artifacts
+              - pi-firmware/**
               - .github/workflows/pr.yml
 
       - name: Install dependencies
@@ -179,24 +179,22 @@ jobs:
         id: filter
         with:
           filters: |
-            pi-firmware:
+            any-source:
               - pi-firmware/**
+              - mcu-firmware/**
               - .github/workflows/pr.yml
 
       - name: Running checks
-        if: steps.filter.outputs.pi-firmware == 'true'
+        if: steps.filter.outputs.any-source == 'true'
         run: |
           cd pi-firmware
 
           # clean up the firmware directory to avoid stale files
           rm -rf data/firmware
 
-      # TODO: mcu-firmware should be built for every merge to main to avoid compiling for each PR
-      # we want to build packages because sometimes we need to test the whole system before merging
-
       - name: Package the newly built mcu-firmware
         if: |
-          steps.filter.outputs.pi-firmware == 'true'
+          steps.filter.outputs.any-source == 'true'
           && needs.check-mcu-firmware.result == 'success'
         uses: actions/download-artifact@v4
         with:
@@ -206,13 +204,13 @@ jobs:
       # at this point, we should have a fresh mcu-firmware in pi-firmware/data/firmware
 
       - name: Assembling package
-        if: steps.filter.outputs.pi-firmware == 'true'
+        if: steps.filter.outputs.any-source == 'true'
         run: |
           cd pi-firmware
           python -m dev_tools.create_package --dev
 
       - name: Upload artifacts
-        if: steps.filter.outputs.pi-firmware == 'true'
+        if: steps.filter.outputs.any-source == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: pi-firmware
