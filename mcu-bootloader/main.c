@@ -36,8 +36,6 @@ int main(void)
 {
     atmel_start_init();
 
-    Runtime_RaiseEvent_OnInit();
-
     StartupReason_t startupReason = FMP_CheckBootloaderModeRequest();
 
     if (startupReason == StartupReason_PowerUp || startupReason == StartupReason_BrownOutReset)
@@ -99,9 +97,8 @@ int main(void)
     // If we are below this line then there was either a bootloader request,
     // or the target firmware is missing or corrupted
 
+    Runtime_RaiseEvent_OnInit();
     MasterCommunication_Run_OnInit();
-
-    LEDController_Run_OnInit();
 
     // Display some indication why we are in bootloader mode
     switch (startupReason) {
@@ -127,7 +124,6 @@ int main(void)
     Runtime_RaiseEvent_OnInitDone();
 
     while (1) {
-        LEDController_Run_Update();
         Runtime_RaiseEvent_Loop();
     }
 }
@@ -161,7 +157,7 @@ void MasterCommunicationInterface_Bootloader_RaiseEvent_OnTransmissionComplete(v
     }
 }
 
-rgb_t LEDController_Read_RingLED(uint32_t led_idx)
+rgb_t LEDController_Bootloader_Read_RingLED(uint32_t led_idx)
 {
     if (led_idx >= ARRAY_SIZE(ringLeds))
     {
@@ -173,7 +169,7 @@ rgb_t LEDController_Read_RingLED(uint32_t led_idx)
     }
 }
 
-bool LEDController_Read_RingLEDs_Changed(void)
+bool LEDController_Bootloader_Read_RingLEDs_Changed(void)
 {
     bool changed = ringLedsChanged;
     ringLedsChanged = false;

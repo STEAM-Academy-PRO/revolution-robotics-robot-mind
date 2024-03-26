@@ -1,18 +1,30 @@
-#ifndef COMPONENT_LEDCONTROLLER_H_
-#define COMPONENT_LEDCONTROLLER_H_
+#ifndef COMPONENT_LED_CONTROLLER__BOOTLOADER_H_
+#define COMPONENT_LED_CONTROLLER__BOOTLOADER_H_
 
-#include "../../utils/color.h"
+#ifndef COMPONENT_TYPES_LED_CONTROLLER__BOOTLOADER_H_
+#define COMPONENT_TYPES_LED_CONTROLLER__BOOTLOADER_H_
 
+#include "utils/color.h"
 #include <stdbool.h>
+#include <stdint.h>
 
-void LEDController_Run_OnInit(void);
-void LEDController_Run_Update(void);
-uint8_t LEDController_Read_MaxBrightness(void);
 
-bool LEDController_Read_StatusLEDs_Changed(void);
-bool LEDController_Read_RingLEDs_Changed(void);
+#endif /* COMPONENT_TYPES_LED_CONTROLLER__BOOTLOADER_H_ */
 
-rgb_t LEDController_Read_StatusLED(uint32_t led_idx);
-rgb_t LEDController_Read_RingLED(uint32_t led_idx);
+/* Begin User Code Section: Declarations */
+/*
+FIXME: CGlue runtime generator does not include stdbool.h if no declared type uses it.
+The generator should not ignore the types used by port definitions.
+*/
+#include <stdbool.h>
+/* End User Code Section: Declarations */
 
-#endif /* LEDCONTROLLER_H_ */
+void LEDController_Bootloader_Run_OnInit(void);
+void LEDController_Bootloader_Run_Update(void);
+uint8_t LEDController_Bootloader_Read_MaxBrightness(void);
+rgb_t LEDController_Bootloader_Read_RingLED(uint32_t index);
+bool LEDController_Bootloader_Read_RingLEDs_Changed(void);
+rgb_t LEDController_Bootloader_Read_StatusLED(uint32_t index);
+bool LEDController_Bootloader_Read_StatusLEDs_Changed(void);
+
+#endif /* COMPONENT_LED_CONTROLLER__BOOTLOADER_H_ */

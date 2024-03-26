@@ -15,7 +15,8 @@
     "sources": [],
     "includes": [],
     "components": [
-        "MasterCommunicationInterface_Bootloader"
+        "MasterCommunicationInterface_Bootloader",
+        "LEDController_Bootloader"
     ],
     "types": {
         "const void*": {
@@ -103,11 +104,13 @@
     "runtime": {
         "runnables": {
             "OnInit": [
-                "MasterCommunicationInterface_Bootloader/OnInit"
+                "MasterCommunicationInterface_Bootloader/OnInit",
+                "LEDController_Bootloader/OnInit"
             ],
             "OnInitDone": [],
             "Loop": [
-                "MasterCommunicationInterface_Bootloader/Update"
+                "MasterCommunicationInterface_Bootloader/Update",
+                "LEDController_Bootloader/Update"
             ]
         },
         "port_connections": []

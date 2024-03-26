@@ -42,7 +42,6 @@ typedef struct {
 
 #include "components/UpdateManager/UpdateManager.h"
 #include "CommonComponents/MasterCommunication/MasterCommunication.h"
-#include "components/LEDController_Bootloader/LEDController_Bootloader.h"
 #include "components/VersionProvider/VersionProvider.h"
 #include "comm_handlers.h"
 
