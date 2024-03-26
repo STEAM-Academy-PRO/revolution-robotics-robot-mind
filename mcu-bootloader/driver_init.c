@@ -2,7 +2,7 @@
 #include <peripheral_clk_config.h>
 #include <utils.h>
 #include <hal_init.h>
-#include "utils/crc.h"
+#include "libraries/crc.h"
 #include "hri_mclk_d51.h"
 #include "hri_wdt_d51.h"
 

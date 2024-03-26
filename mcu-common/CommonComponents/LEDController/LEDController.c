@@ -3,12 +3,17 @@
 #include "utils_assert.h"
 
 /* Begin User Code Section: Declarations */
-#include "rrrc_hal.h"
-#include "rrrc_indication.h"
+#include "driver_init.h"
+#include "libraries/color.h"
 #include "libraries/functions.h"
 
 #include <stdint.h>
 #include <string.h>
+
+#define STATUS_LEDS_AMOUNT ((uint8_t) 4u)
+#define RING_LEDS_AMOUNT   ((uint8_t) 12u)
+
+#define LEDS_AMOUNT        (STATUS_LEDS_AMOUNT + RING_LEDS_AMOUNT)
 
 #define LED_VAL_ZERO    ~((uint8_t) 0xC0u)
 #define LED_VAL_ONE     ~((uint8_t) 0xFCu)
@@ -32,7 +37,7 @@ static void SPI_0_Init(void)
     hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM4_GCLK_ID_SLOW, CONF_GCLK_SERCOM4_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_mclk_set_APBDMASK_SERCOM4_bit(MCLK);
 
-    spi_m_dma_init(&SPI_0, WS2812spi);
+    spi_m_dma_init(&SPI_0, SERCOM4);
 
     gpio_set_pin_direction(WS2812pin, GPIO_DIRECTION_OUT);
     gpio_set_pin_pull_mode(WS2812pin, GPIO_PULL_DOWN);
@@ -67,9 +72,14 @@ static inline void write_led_color(uint32_t led_idx, rgb_t color)
 static void update_frame(void)
 {
     memset(frame_leds, LED_VAL_RES, sizeof(frame_leds));
-    for (uint32_t i = 0u; i < LEDS_AMOUNT; i++)
+    for (uint32_t i = 0u; i < STATUS_LEDS_AMOUNT; i++)
     {
-        write_led_color(i, LEDController_Read_Colors(i));
+        write_led_color(i, LEDController_Read_StatusLED(i));
+    }
+
+    for (uint32_t i = 0u; i < RING_LEDS_AMOUNT; i++)
+    {
+        write_led_color(STATUS_LEDS_AMOUNT + i, LEDController_Read_RingLED(i));
     }
 }
 
@@ -112,26 +122,16 @@ void LEDController_Run_Update(void)
     /* Begin User Code Section: Update:run Start */
     if (!ledsUpdating)
     {
-        update_frame();
-        send_frame();
+        if (LEDController_Read_StatusLEDs_Changed() || LEDController_Read_RingLEDs_Changed())
+        {
+            update_frame();
+            send_frame();
+        }
     }
     /* End User Code Section: Update:run Start */
     /* Begin User Code Section: Update:run End */
 
     /* End User Code Section: Update:run End */
-}
-
-__attribute__((weak))
-rgb_t LEDController_Read_Colors(uint32_t index)
-{
-    ASSERT(index < 16);
-    /* Begin User Code Section: Colors:read Start */
-
-    /* End User Code Section: Colors:read Start */
-    /* Begin User Code Section: Colors:read End */
-
-    /* End User Code Section: Colors:read End */
-    return (rgb_t){0, 0, 0};
 }
 
 __attribute__((weak))
@@ -143,5 +143,55 @@ uint8_t LEDController_Read_MaxBrightness(void)
     /* Begin User Code Section: MaxBrightness:read End */
 
     /* End User Code Section: MaxBrightness:read End */
-    return 24u;
+    return 32u;
+}
+
+__attribute__((weak))
+rgb_t LEDController_Read_RingLED(uint32_t index)
+{
+    ASSERT(index < 12);
+    /* Begin User Code Section: RingLED:read Start */
+
+    /* End User Code Section: RingLED:read Start */
+    /* Begin User Code Section: RingLED:read End */
+
+    /* End User Code Section: RingLED:read End */
+    return (rgb_t) { 0, 0, 0 };
+}
+
+__attribute__((weak))
+bool LEDController_Read_RingLEDs_Changed(void)
+{
+    /* Begin User Code Section: RingLEDs_Changed:read Start */
+
+    /* End User Code Section: RingLEDs_Changed:read Start */
+    /* Begin User Code Section: RingLEDs_Changed:read End */
+
+    /* End User Code Section: RingLEDs_Changed:read End */
+    return true;
+}
+
+__attribute__((weak))
+rgb_t LEDController_Read_StatusLED(uint32_t index)
+{
+    ASSERT(index < 4);
+    /* Begin User Code Section: StatusLED:read Start */
+
+    /* End User Code Section: StatusLED:read Start */
+    /* Begin User Code Section: StatusLED:read End */
+
+    /* End User Code Section: StatusLED:read End */
+    return (rgb_t) LED_MAGENTA;
+}
+
+__attribute__((weak))
+bool LEDController_Read_StatusLEDs_Changed(void)
+{
+    /* Begin User Code Section: StatusLEDs_Changed:read Start */
+
+    /* End User Code Section: StatusLEDs_Changed:read Start */
+    /* Begin User Code Section: StatusLEDs_Changed:read End */
+
+    /* End User Code Section: StatusLEDs_Changed:read End */
+    return true;
 }

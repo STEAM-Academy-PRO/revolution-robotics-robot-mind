@@ -1,7 +1,7 @@
 #include "runtime.h"
 
 #include "flash_mapping.h"
-#include "../utils/converter.h"
+#include "libraries/converter.h"
 
 #include <string.h> // memcpy
 #include "SEGGER_RTT.h"

@@ -22,16 +22,20 @@
         "Update": {}
     },
     "ports": {
-        "RingLeds": {
+        "RingLedsIn": {
             "port_type": "ReadIndexedValue",
-            "default_value": null,
             "data_type": "rgb_t",
             "count": 12
         },
-        "Leds": {
+        "RingLeds": {
             "port_type": "WriteIndexedData",
             "data_type": "rgb_t",
-            "count": 16
+            "count": 12
+        },
+        "StatusLeds": {
+            "port_type": "WriteIndexedData",
+            "data_type": "rgb_t",
+            "count": 4
         },
         "MainBatteryLevel": {
             "port_type": "ReadValue",

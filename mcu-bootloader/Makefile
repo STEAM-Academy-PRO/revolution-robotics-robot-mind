@@ -31,25 +31,24 @@ C_SRCS += \
 main.c \
 driver_init.c \
 atmel_start.c \
-rrrc/components/LEDController/LEDController.c \
 rrrc/components/MasterCommunicationInterface_Bootloader/i2cHal.c \
 rrrc/components/MasterCommunicationInterface_Bootloader/MasterCommunicationInterface_Bootloader.c \
 rrrc/components/UpdateManager/UpdateManager.c \
 rrrc/components/VersionProvider/VersionProvider.c \
 rrrc/flash_mapping.c \
 rrrc/runtime/comm_handlers.c \
-rrrc/utils/color.c \
-rrrc/utils/converter.c \
-rrrc/utils/crc.c \
-rrrc/utils/functions.c \
+rrrc/libraries/color.c \
+rrrc/libraries/converter.c \
+rrrc/libraries/crc.c \
+rrrc/libraries/functions.c \
 rrrc/generated_runtime.c \
+../mcu-common/CommonComponents/LEDController/LEDController.c \
 ../mcu-common/CommonComponents/MasterCommunication/CommunicationManager.c \
 ../mcu-common/CommonComponents/MasterCommunication/MasterCommunication.c
 
 INCLUDE_PATHS += \
 rrrc \
 rrrc/runtime \
-rrrc/include \
 rrrc/components \
 Config \
 . \
@@ -78,14 +77,13 @@ Config \
 ../mcu-common/CMSIS/Include \
 ../mcu-common/SEGGER/RTT \
 ../mcu-common/CommonComponents/MasterCommunication \
+../mcu-common/CommonComponents/LEDController \
 rrrc/components/MasterCommunicationInterface_Bootloader \
-rrrc/components/LEDController \
 rrrc/components/VersionProvider \
 rrrc/components/UpdateManager \
-rrrc/include \
 rrrc/components \
 rrrc/runtime \
-rrrc/utils \
+rrrc/libraries \
 third_party
 
 COMPILE_FLAGS += \

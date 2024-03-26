@@ -1,9 +1,9 @@
 #include "UpdateManager.h"
-#include "utils/crc.h"
+#include "libraries/crc.h"
 
 #include "SEGGER_RTT.h"
 
-#include "../../utils/functions.h"
+#include "libraries/functions.h"
 #include <math.h>
 
 static bool isInitialized = false;

@@ -39,8 +39,9 @@ typedef enum {
 
 void LedDisplayController_Run_OnInit(void);
 void LedDisplayController_Run_Update(void);
-void LedDisplayController_Write_Leds(uint32_t index, rgb_t value);
 void LedDisplayController_Write_MaxBrightness(uint8_t value);
+void LedDisplayController_Write_RingLeds(uint32_t index, rgb_t value);
+void LedDisplayController_Write_StatusLeds(uint32_t index, rgb_t value);
 BluetoothStatus_t LedDisplayController_Read_BluetoothStatus(void);
 uint8_t LedDisplayController_Read_DefaultBrightness(void);
 uint8_t LedDisplayController_Read_LowBatteryBrightness(void);
@@ -51,6 +52,6 @@ MasterStatus_t LedDisplayController_Read_MasterStatus(void);
 uint8_t LedDisplayController_Read_MotorBatteryLevel(void);
 bool LedDisplayController_Read_MotorBatteryPresent(void);
 int16_t LedDisplayController_Read_MotorDriveValues(uint32_t index);
-rgb_t LedDisplayController_Read_RingLeds(uint32_t index);
+rgb_t LedDisplayController_Read_RingLedsIn(uint32_t index);
 
 #endif /* COMPONENT_LED_DISPLAY_CONTROLLER_H_ */

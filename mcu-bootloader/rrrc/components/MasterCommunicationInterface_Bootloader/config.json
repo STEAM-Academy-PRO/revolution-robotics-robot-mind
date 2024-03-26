@@ -4,7 +4,7 @@
     "requires": {},
     "source_files": [
         "i2cHal.c",
-        "MasterCommunicationInterface.c"
+        "MasterCommunicationInterface_Bootloader.c"
     ],
     "multiple_instances": false,
     "instance_variables": {},
