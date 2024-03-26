@@ -34,7 +34,6 @@ atmel_start.c \
 rrrc/components/MasterCommunicationInterface_Bootloader/i2cHal.c \
 rrrc/components/MasterCommunicationInterface_Bootloader/MasterCommunicationInterface_Bootloader.c \
 rrrc/components/UpdateManager/UpdateManager.c \
-rrrc/components/VersionProvider/VersionProvider.c \
 rrrc/flash_mapping.c \
 rrrc/runtime/comm_handlers.c \
 rrrc/libraries/color.c \
@@ -79,7 +78,6 @@ Config \
 ../mcu-common/CommonComponents/MasterCommunication \
 ../mcu-common/CommonComponents/LEDController \
 rrrc/components/MasterCommunicationInterface_Bootloader \
-rrrc/components/VersionProvider \
 rrrc/components/UpdateManager \
 rrrc/components \
 rrrc/runtime \
