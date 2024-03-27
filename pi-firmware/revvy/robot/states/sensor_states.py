@@ -64,7 +64,7 @@ class ColorSensorDataHandler(Disposable):
 
         self._value.subscribe(self._on_data_update)
 
-    def _on_data_update(self, value):
+    def _on_data_update(self, value: ColorSensorReading):
         """Need to convert the value back"""
         self._data_update_callback(ColorSensorData(self._sensor_port.id, value))
 
@@ -99,7 +99,7 @@ class UltrasonicSensorDataHandler(Disposable):
 
         self._value.subscribe(self._on_data_update)
 
-    def _on_data_update(self, value):
+    def _on_data_update(self, value: float):
         """Need to convert the value back"""
         self._data_update_callback(UltrasonicSensorData(self._sensor_port.id, value))
 
@@ -136,7 +136,7 @@ class ButtonSensorDataHandler(Disposable):
 
         self._value.subscribe(self._on_data_update)
 
-    def _on_data_update(self, value):
+    def _on_data_update(self, value: bool):
         """
         We need to convert it back to bits
         to send it back to the bluetooth interface.
