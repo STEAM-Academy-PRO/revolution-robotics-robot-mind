@@ -150,7 +150,13 @@ endif
 
 OUTPUT_FILE :=$(OUTPUT_DIR)/rrrc_samd51
 
+.PHONY: all clean
+
 all: $(OUTPUT_FILE).elf
+
+clean:
+	-@$(DEL) Build
+	@echo Removed Build directory
 
 OBJS := $(C_SRCS:%.c=$(OUTPUT_DIR)/%.o)
 C_DEPS := $(OBJS:%.o=%.d)
@@ -175,7 +181,3 @@ $(OUTPUT_FILE).elf: $(OBJS)
 	@echo Finished building target: $@
 	@$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -O binary $(OUTPUT_FILE).elf $(OUTPUT_FILE).bin
 	$(GCC_BINARY_PREFIX)size$(GCC_BINARY_SUFFIX) $(OUTPUT_FILE).elf
-
-clean:
-	-@$(DEL) Build
-	@echo Removed Build directory

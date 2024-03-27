@@ -5,6 +5,7 @@
 #include "SEGGER_RTT.h"
 
 #include "libraries/functions.h"
+#include "libraries/crc.h"
 #include <math.h>
 
 static bool isInitialized = false;

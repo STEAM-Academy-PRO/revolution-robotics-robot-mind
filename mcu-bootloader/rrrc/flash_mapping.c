@@ -2,6 +2,7 @@
 #include "hri_rtc_d51.h"
 #include "hri_rstc_d51.h"
 #include "driver_init.h"
+#include "libraries/crc.h"
 
 #include "components/UpdateManager/UpdateManager.h"
 
