@@ -47,9 +47,6 @@ rrrc/generated_runtime.c \
 ../mcu-common/CommonComponents/MasterCommunication/MasterCommunication.c
 
 INCLUDE_PATHS += \
-rrrc \
-rrrc/runtime \
-rrrc/components \
 Config \
 . \
 ../mcu-common \
@@ -79,12 +76,12 @@ Config \
 ../mcu-common/CommonComponents/MasterCommunication \
 ../mcu-common/CommonComponents/LEDController \
 ../mcu-common/CommonComponents/CRC \
+rrrc \
+rrrc/runtime \
+rrrc/components \
 rrrc/components/MasterCommunicationInterface_Bootloader \
 rrrc/components/UpdateManager \
-rrrc/components \
-rrrc/runtime \
-rrrc/libraries \
-third_party
+rrrc/libraries
 
 COMPILE_FLAGS += \
 -x c \
