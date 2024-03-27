@@ -90,7 +90,7 @@ class RemoteController:
         # Previous expectation was 200ms
         self.next_message_deadline = DEFAULT_MESSAGE_DEADLINE
 
-    def on_joystick_action(self):
+    def on_joystick_action(self) -> None:
         # This is a one shot action to detect first joystick input
         # over one entire controller (play) session
         if self._joystick_mode:
@@ -100,10 +100,10 @@ class RemoteController:
         self._processing = True
         self._previous_time = time.time()
 
-    def reset_background_control_state(self):
+    def reset_background_control_state(self) -> None:
         self._background_control_state = BackgroundControlState.STOPPED
 
-    def reset(self):
+    def reset(self) -> None:
         self._analogActions.clear()
         self._analogStates.clear()
         self._button_handlers.clear()

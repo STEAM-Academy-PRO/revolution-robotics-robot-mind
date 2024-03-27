@@ -95,7 +95,7 @@ def split(data, chunk_size):
     return (data[i : i + chunk_size] for i in range(0, len(data), chunk_size))
 
 
-def hex2rgb(hex_str):
+def hex2rgb(hex_str: str) -> int:
     """
     >>> '{0:X}'.format(hex2rgb("#aabbcc"))
     'AABBCC'

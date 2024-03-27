@@ -18,21 +18,21 @@ class RingLed:
         self._current_scenario = self.BreathingGreen
 
     @property
-    def count(self):
+    def count(self) -> int:
         return self._ring_led_count
 
     @property
-    def scenario(self):
+    def scenario(self) -> int:
         return self._current_scenario
 
-    def start_animation(self, scenario):
+    def start_animation(self, scenario: int):
         """
         Selects and starts a new animation scenario on the LED ring.
         """
         self._current_scenario = scenario
         self._interface.ring_led_set_scenario(scenario)
 
-    def upload_user_frame(self, frame):
+    def upload_user_frame(self, frame: list[int]):
         """
         Updates the MCU's LED ring buffer with a new frame. The frame is not displayed unless
         the UserFrame scenario is active.
@@ -41,7 +41,7 @@ class RingLed:
         """
         self._interface.ring_led_set_user_frame(frame)
 
-    def display_user_frame(self, frame):
+    def display_user_frame(self, frame: list[int]):
         """
         Uploads and displays a new frame on the LED ring.
         """
