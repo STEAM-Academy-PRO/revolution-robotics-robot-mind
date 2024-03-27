@@ -224,12 +224,12 @@ def get_sw_version() -> Version:
 class SystemVersions:
     """HW, SW, FW version store populated by the init updater."""
 
-    def __init__(self):
-        self.sw = None
-        self.hw = None
-        self.fw = None
+    def __init__(self) -> None:
+        self.sw: Optional[Version] = None
+        self.hw: Optional[Version] = None
+        self.fw: Optional[Version] = None
 
-    def set(self, sw: Version, hw: Version, fw: Version):
+    def set(self, sw: Optional[Version], hw: Optional[Version], fw: Optional[Version]):
         self.sw = sw
         self.hw = hw
         self.fw = fw

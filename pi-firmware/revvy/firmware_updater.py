@@ -23,8 +23,7 @@ import time
 import traceback
 from contextlib import suppress
 from json import JSONDecodeError
-
-from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
+from typing import Optional
 
 from revvy.utils.file_storage import IntegrityError
 from revvy.utils.logger import get_logger
@@ -45,7 +44,9 @@ class McuUpdater:
         self._stopwatch = Stopwatch()
         self.is_bootloader_mode = self._is_in_bootloader_mode()
 
-        self.hw_version = self.read_hw_version()
+        hw_version = self.read_hw_version()
+        assert hw_version is not None, "Could not read hardware version, unable to proceed"
+        self.hw_version: Version = hw_version
 
         # Will populate it in finalize.
         self.fw_version = None
@@ -73,14 +74,14 @@ class McuUpdater:
 
         raise TimeoutError("Could not connect to Board! Bailing.")
 
-    def read_hw_version(self):
+    def read_hw_version(self) -> Optional[Version]:
         """Reads the board's version through the i2c interface"""
         if self.is_bootloader_mode:
             return self._bootloader_controller.get_hardware_version()
         else:
             return self._application_controller.get_hardware_version()
 
-    def is_update_needed(self, bin_file_fw_version: Version, fw_crc):
+    def is_update_needed(self, bin_file_fw_version: Version, fw_crc: int):
         """
         Compare firmware version to the currently running one
         """
@@ -172,7 +173,6 @@ class McuUpdater:
             log(f"No update was needed, running FW version {self.fw_version}")
 
     def update_global_version_info(self) -> None:
-        assert self.fw_version is not None
         VERSION.set(self.sw_version, self.hw_version, self.fw_version)
 
 
@@ -193,7 +193,7 @@ def read_firmware_bin_from_fs(fw_data: dict[str, str]) -> bytes:
     return firmware_binary
 
 
-def get_firmware_for_hw_version(fw_dir: str, hw_version: str) -> tuple[Version, bytes]:
+def get_firmware_for_hw_version(fw_dir: str, hw_version: Version) -> tuple[Version, bytes]:
     """MCU firmware version existing in the current package"""
     try:
         fw_metadata = read_json(os.path.join(fw_dir, "catalog.json"))
