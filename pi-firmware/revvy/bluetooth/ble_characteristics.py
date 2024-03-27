@@ -13,7 +13,7 @@ from revvy.bluetooth.data_types import (
     ScriptVariables,
     TimerData,
 )
-from revvy.bluetooth.longmessage import LongMessageError, LongMessageProtocol
+from revvy.bluetooth.longmessage import LongMessageError, LongMessageHandler, LongMessageProtocol
 from revvy.robot.robot import BatteryStatus
 
 from revvy.utils.device_name import get_device_name, set_device_name
@@ -289,7 +289,7 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
 
 
 class LongMessageCharacteristic(Characteristic):
-    def __init__(self, handler) -> None:
+    def __init__(self, handler: LongMessageHandler):
         super().__init__(
             {
                 "uuid": "d59bb321-7218-4fb9-abac-2f6814f31a4d",

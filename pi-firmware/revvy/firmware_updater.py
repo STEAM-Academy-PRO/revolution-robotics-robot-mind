@@ -107,7 +107,7 @@ class McuUpdater:
             # in bootloader mode, probably no firmware, request update
             return True
 
-    def reboot_to_bootloader(self):
+    def reboot_to_bootloader(self) -> None:
         """
         Start the bootloader on the MCU
 
@@ -128,7 +128,7 @@ class McuUpdater:
 
         assert self.is_bootloader_mode
 
-    def upload_binary(self, checksum, data):
+    def upload_binary(self, checksum: int, data: bytes):
         """Send the firmware to the MCU through the transport layer."""
         self.reboot_to_bootloader()
 
@@ -148,7 +148,7 @@ class McuUpdater:
             self._bootloader_controller.send_firmware(chunk)
         log(f"Data transfer took {round(self._stopwatch.elapsed, 1)} seconds")
 
-    def finalize_and_start_application(self, was_update_needed):
+    def finalize_and_start_application(self, was_update_needed: bool):
         """
         Call finalize firmware on the board then reboot to application
         """
@@ -171,7 +171,8 @@ class McuUpdater:
         else:
             log(f"No update was needed, running FW version {self.fw_version}")
 
-    def update_global_version_info(self):
+    def update_global_version_info(self) -> None:
+        assert self.fw_version is not None
         VERSION.set(self.sw_version, self.hw_version, self.fw_version)
 
 
