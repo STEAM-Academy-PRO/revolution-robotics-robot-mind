@@ -58,7 +58,7 @@ jobs:
         run: |
           cd mcu-bootloader
           cglue --generate
-          make config=debug -j${{ env.CPU_COUNT }}
+          make config=ci -j${{ env.CPU_COUNT }}
 
       - name: Upload artifacts
         if: steps.filter.outputs.mcu-bootloader == 'true' && github.event.pull_request.draft == false
@@ -121,7 +121,7 @@ jobs:
           python -m tools.gen_version
           python -m tools.generate_makefile
           cglue --generate
-          make all config=debug -j${{ env.CPU_COUNT }}
+          make all config=ci -j${{ env.CPU_COUNT }}
           python -m tools.prepare --debug
 
       - name: Visualize architecture

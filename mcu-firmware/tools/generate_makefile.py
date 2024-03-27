@@ -69,13 +69,33 @@ else
 \tTRUE := true
 endif
 
+DEBUG_COMPILE_FLAGS := \
+\t-DDEBUG \
+\t-DBOOTLOADER_VERSION=0 \
+\t-DHARDWARE_VERSION=2 \
+\t-O0 \
+\t-g3
+
+RELEASE_COMPILE_FLAGS := \
+\t-DBOOTLOADER_VERSION=0 \
+\t-DHARDWARE_VERSION=2 \
+\t-O3 \
+\t-g3 \
+\t-flto
+
 ifeq ($(config), debug)
 OUTPUT_DIR :=Build/Debug/mcu-firmware
-COMPILE_FLAGS += -DDEBUG -O0 -g3
+COMPILE_FLAGS += $(DEBUG_COMPILE_FLAGS)
+else ifeq ($(config), ci)
+OUTPUT_DIR :=Build/Debug/mcu-firmware
+COMPILE_FLAGS += \
+\t$(DEBUG_COMPILE_FLAGS) \
+\t-fanalyzer
 else
 OUTPUT_DIR :=Build/Release/mcu-firmware
-COMPILE_FLAGS += -O3 -g3 -flto
-LINKER_FLAGS += -flto
+COMPILE_FLAGS += $(RELEASE_COMPILE_FLAGS)
+LINKER_FLAGS += \
+\t-flto
 endif
 
 OUTPUT_FILE :=$(OUTPUT_DIR)/rrrc_samd51
