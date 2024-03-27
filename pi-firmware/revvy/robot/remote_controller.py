@@ -4,7 +4,7 @@ import time
 
 from threading import Event
 import traceback
-from typing import Callable, NamedTuple, Optional, List, Tuple, Type
+from typing import Callable, NamedTuple, Optional, List, Tuple
 from revvy.bluetooth.data_types import BackgroundControlState, TimerData
 from revvy.scripting.runtime import ScriptHandle
 from revvy.utils import error_reporter
