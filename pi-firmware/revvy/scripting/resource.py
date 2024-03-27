@@ -1,3 +1,4 @@
+import abc
 from threading import Lock
 from typing import Callable, List, Optional, Union
 
@@ -5,10 +6,27 @@ from revvy.utils.emitter import SimpleEventEmitter
 from revvy.utils.logger import get_logger, LogLevel
 
 
-class NullHandle:
-    def __init__(self):
-        pass
+class BaseHandle(abc.ABC):
+    @abc.abstractmethod
+    def __enter__(self): ...
 
+    @abc.abstractmethod
+    def __exit__(self, exc_type, exc_val, exc_tb): ...
+
+    @abc.abstractmethod
+    def __bool__(self): ...
+
+    @abc.abstractmethod
+    def interrupt(self): ...
+
+    @abc.abstractmethod
+    def release(self): ...
+
+    @abc.abstractmethod
+    def run_uninterruptable(self, callback): ...
+
+
+class NullHandle(BaseHandle):
     def __enter__(self):
         return self
 
@@ -24,13 +42,14 @@ class NullHandle:
     def release(self):
         pass
 
+    def run_uninterruptable(self, callback):
+        pass
 
-# We return this if the resource is not available, but... why? we should return None if we can't
-# get the resource, and then the user can check if the handle is null.
+
 null_handle = NullHandle()
 
 
-class ResourceHandle:
+class ResourceHandle(BaseHandle):
     def __init__(self, resource: "Resource"):
         self._resource = resource
         self._on_interrupted = SimpleEventEmitter()
@@ -54,11 +73,11 @@ class ResourceHandle:
     def on_released(self) -> SimpleEventEmitter:
         return self._on_released
 
-    def release(self):
+    def release(self) -> None:
         self.on_released.trigger()
         self._resource.release(self)
 
-    def interrupt(self):
+    def interrupt(self) -> None:
         self._is_interrupted = True
         self.on_interrupted.trigger()
 
@@ -68,7 +87,7 @@ class ResourceHandle:
                 return callback()
 
     @property
-    def is_interrupted(self):
+    def is_interrupted(self) -> bool:
         return self._is_interrupted
 
 
@@ -102,7 +121,9 @@ class Resource:
 
             self._current_priority = -1
 
-    def request(self, with_priority=0, on_taken_away: Optional[Callable[[], None]] = None):
+    def request(
+        self, with_priority=0, on_taken_away: Optional[Callable[[], None]] = None
+    ) -> BaseHandle:
         with self._lock:
             if not self._active_handle:
                 self._log(f"create handle for priority {with_priority}")
