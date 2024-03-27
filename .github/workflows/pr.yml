@@ -40,11 +40,14 @@ jobs:
           wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 -O toolchain.tar.bz2
           tar -xjf toolchain.tar.bz2
 
+          sudo apt-get install cppcheck
+
       - name: Build Debug bootloader
         if: steps.filter.outputs.mcu-bootloader == 'true'
         run: |
           cd mcu-bootloader
-          make config=debug -j${{ env.CPU_COUNT }}
+          make all config=debug -j${{ env.CPU_COUNT }}
+          make check config=debug
 
       - name: Upload artifacts
         if: steps.filter.outputs.mcu-bootloader == 'true' && github.event.pull_request.draft == false
