@@ -5,40 +5,35 @@
 
 #include "rrrc_hal.h"
 
-//*********************************************************************************************
-void SENSOR_0_SERCOM_CLK_init(void)
+static void SENSOR_0_SERCOM_CLK_init(void)
 {
     hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM3_GCLK_ID_CORE, CONF_GCLK_SERCOM3_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM3_GCLK_ID_SLOW, CONF_GCLK_SERCOM3_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_mclk_set_APBBMASK_SERCOM3_bit(MCLK);
 }
 
-//*********************************************************************************************
-void SENSOR_1_SERCOM_CLK_init(void)
+static void SENSOR_1_SERCOM_CLK_init(void)
 {
     hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM1_GCLK_ID_CORE, CONF_GCLK_SERCOM1_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM1_GCLK_ID_SLOW, CONF_GCLK_SERCOM1_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_mclk_set_APBAMASK_SERCOM1_bit(MCLK);
 }
 
-//*********************************************************************************************
-void SENSOR_2_SERCOM_CLK_init(void)
+static void SENSOR_2_SERCOM_CLK_init(void)
 {
     hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM0_GCLK_ID_CORE, CONF_GCLK_SERCOM0_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM0_GCLK_ID_SLOW, CONF_GCLK_SERCOM0_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_mclk_set_APBAMASK_SERCOM0_bit(MCLK);
 }
 
-//*********************************************************************************************
-void SENSOR_3_SERCOM_CLK_init(void)
+static void SENSOR_3_SERCOM_CLK_init(void)
 {
     hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM6_GCLK_ID_CORE, CONF_GCLK_SERCOM6_CORE_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_gclk_write_PCHCTRL_reg(GCLK, SERCOM6_GCLK_ID_SLOW, CONF_GCLK_SERCOM6_SLOW_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_mclk_set_APBDMASK_SERCOM6_bit(MCLK);
 }
 
-//*********************************************************************************************
-void EXTERNAL_IRQ_0_init(void)
+static void EXTERNAL_IRQ_0_init(void)
 {
     hri_gclk_write_PCHCTRL_reg(GCLK, EIC_GCLK_ID, CONF_GCLK_EIC_SRC | (1 << GCLK_PCHCTRL_CHEN_Pos));
     hri_mclk_set_APBAMASK_EIC_bit(MCLK);
@@ -46,13 +41,7 @@ void EXTERNAL_IRQ_0_init(void)
     ext_irq_init();
 }
 
-//*********************************************************************************************
-void delay_driver_init(void)
-{
-    delay_init(SysTick);
-}
-
-static void IT_init(void)
+static void interrupt_contorller_init(void)
 {
     /* Set everything to 3, interrupts that access FreeRTOS API must not be at priority 0 */
     for (uint8_t i = 0; i < 138; i++)
@@ -100,9 +89,9 @@ void system_init(void)
     SENSOR_2_SERCOM_CLK_init();
     SENSOR_3_SERCOM_CLK_init();
 
-    IT_init();
+    interrupt_contorller_init();
 
     EXTERNAL_IRQ_0_init();
 
-    delay_driver_init();
+    delay_init(SysTick);
 }

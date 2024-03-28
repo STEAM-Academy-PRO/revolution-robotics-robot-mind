@@ -6,14 +6,9 @@
 
 struct flash_descriptor FLASH_0;
 
-void FLASH_0_CLOCK_init(void)
+static void FLASH_0_init(void)
 {
     hri_mclk_set_AHBMASK_NVMCTRL_bit(MCLK);
-}
-
-void FLASH_0_init(void)
-{
-    FLASH_0_CLOCK_init();
     flash_init(&FLASH_0, NVMCTRL);
 }
 
