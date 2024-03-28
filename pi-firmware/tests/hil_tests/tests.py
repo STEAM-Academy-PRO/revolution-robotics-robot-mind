@@ -372,6 +372,59 @@ robot.sensors["distance_sensor"].read()
         controller.robot_manager.exit(RevvyStatusCode.ERROR)
 
 
+def failing_to_take_resource_from_lower_prio_script_should_not_error(
+    log: Logger, controller: ProgrammedRobotController
+):
+    """
+    While the exactly expected behaviour is currently undefined, an AttributeError due to an
+    incorrect resource handle is definitely not what we want.
+    """
+
+    def fail_on_script_error(*e) -> None:
+        # In this test, if we encounter an error, let's just stop and exit
+        controller.robot_manager.exit(RevvyStatusCode.ERROR)
+
+    controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
+
+    config = RobotConfig()
+    config.add_motor({"type": 1, "name": "motor1"})
+
+    config.process_script(
+        {
+            "assignments": {"buttons": [{"id": 1, "priority": 1}, {"id": 2, "priority": 2}]},
+            "pythonCode": b64_encode_str(
+                """
+while True:
+  robot.motors["motor1"].move(direction=Motor.DIRECTION_FWD, amount=3, unit_amount=Motor.UNIT_SEC, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
+"""
+            ),
+        },
+        0,
+    )
+    config.process_script(
+        {
+            "assignments": {"buttons": [{"id": 3, "priority": 1}]},
+            "pythonCode": b64_encode_str(
+                """
+Control.terminate_all()
+"""
+            ),
+        },
+        0,
+    )
+
+    controller.configure(config)
+
+    controller.press_button(1)
+    time.sleep(0.5)
+    controller.press_button(2)
+
+    # force infinite loops to stop
+    controller.press_button(3)
+
+    controller.wait_for_scripts_to_end()
+
+
 if __name__ == "__main__":
     run_test_scenarios(
         [
@@ -383,5 +436,6 @@ if __name__ == "__main__":
             trying_to_access_uncofigured_motor_raises_error,
             trying_to_access_uncofigured_sensor_raises_error,
             trying_to_drive_without_drivetrain_motors_is_no_op,
+            failing_to_take_resource_from_lower_prio_script_should_not_error,
         ]
     )

@@ -35,7 +35,7 @@ from revvy.robot.led_ring import RingLed
 from revvy.robot.ports.motors.base import MotorConstants, MotorPortDriver
 from revvy.robot.ports.sensors.base import SensorPortDriver
 from revvy.robot.sound import Sound
-from revvy.scripting.resource import Resource
+from revvy.scripting.resource import BaseHandle, null_handle, Resource
 from revvy.scripting.color_functions import (
     ColorData,
     rgb_to_hsv_gray,
@@ -95,9 +95,13 @@ class Wrapper(ABC):
     def __init__(self, script: "ScriptHandle", resource: Resource):
         self._resource = resource
         self._script = script
-        self._current_handle = None
+        self._current_handle = null_handle
 
-    def try_take_resource(self, on_interrupted: Optional[Callable[[], None]] = None):
+    def try_take_resource(self, on_interrupted: Optional[Callable[[], None]] = None) -> BaseHandle:
+        """
+        Intended to be used in a with statement to automatically release the resource.
+        If the resource is not available, returns NullHandle which evaluates to False.
+        """
         if self._script.is_stop_requested:
             raise InterruptedError
 
@@ -123,10 +127,8 @@ class Wrapper(ABC):
         self.if_resource_available(lambda res: res.run_uninterruptable(callback))
 
     def if_resource_available(self, callback) -> None:
-        # If the resource is not available, try_take_resource returns None.
-        resource_ctx = self.try_take_resource()
-        if resource_ctx:
-            with resource_ctx as resource:
+        with self.try_take_resource() as resource:
+            if resource:
                 callback(resource)
 
     def force_release_resource(self) -> None:
@@ -223,7 +225,7 @@ class MotorPortWrapper(Wrapper):
     def pos(self, val):
         self._motor.pos = val
 
-    def move(self, direction, amount, unit_amount, limit, unit_limit):
+    def move(self, direction, amount, unit_amount, limit, unit_limit) -> None:
         self._log("move")
 
         # convert complete rotations to degrees
@@ -266,7 +268,7 @@ class MotorPortWrapper(Wrapper):
 
         awaiter = None
 
-        def _interrupted():
+        def _interrupted() -> None:
             # When interrupted, always switch the motor power off before cancel,
             # so that it also stops if the unit is time.
             self._motor.driver.set_power(0)
@@ -320,10 +322,8 @@ def wrap_async_method(owner: Wrapper, method):
             if awaiter:
                 awaiter.cancel()
 
-        resource_outer = owner.try_take_resource(_interrupted)
-        # TODO: figure out when this can return something that is not a context manager
-        if resource_outer:
-            with resource_outer as resource:
+        with owner.try_take_resource(_interrupted) as resource:
+            if resource:
                 awaiter = method(*args, **kwargs)
                 if awaiter:
                     awaiter.wait()
@@ -333,9 +333,8 @@ def wrap_async_method(owner: Wrapper, method):
 
 def wrap_sync_method(owner: Wrapper, method):
     def _wrapper(*args, **kwargs) -> None:
-        resource_outer = owner.try_take_resource()
-        if resource_outer:
-            with resource_outer as resource:
+        with owner.try_take_resource() as resource:
+            if resource:
                 method(*args, **kwargs)
 
     return _wrapper
