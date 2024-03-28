@@ -1,5 +1,6 @@
+from typing import Callable
 import unittest
-from threading import Event
+from threading import Event, Thread
 
 from mock import Mock
 import mock
@@ -15,8 +16,17 @@ class mockobj:
 
 
 class MockSound(SoundControlBase):
-    def __init__(self):
+    def __init__(self) -> None:
         pass
+
+    def _disable_amp(self) -> None:
+        pass
+
+    def _init_amp(self) -> None:
+        pass
+
+    def _play_sound(self, sound: str, cb: Callable) -> Thread:
+        raise NotImplementedError
 
 
 def create_robot_mock():

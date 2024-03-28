@@ -20,15 +20,13 @@ def create_sensor_data_wrapper(
     sensor_port: PortInstance, sensor, on_data_update
 ) -> Optional[Disposable]:
     """
-    Create wrappers that convert raw sensor value into a more
-    directly usable one. This is a temporary solution to the problem.
+    Create wrappers that smooth and throttle sensor reading
+    so their output is more suitable for BLE.
     """
 
-    # Currently our sensors send up pretty much RAW data from the MCU
-    # which is ok, but unfortunately that code is all around the place too,
-    # so for the time being I create an extra data layer over the sensor
-    # port readings to debounce/throttle the surfacing values and not read
-    # trash.
+    # Currently our sensors send data with too-high sampling rates so these
+    # serve as an extra data layer over the sensor port readings to debounce/throttle
+    # the surfacing values.
     #
     # Ideally, we'll dig down into the bottoms of the drivers and clean the
     # data there and only surface it when it's actually good and reliable.
@@ -64,15 +62,11 @@ class ColorSensorDataHandler(Disposable):
 
         self._value.subscribe(self._on_data_update)
 
-    def _on_data_update(self, value):
+    def _on_data_update(self, value: ColorSensorReading):
         """Need to convert the value back"""
         self._data_update_callback(ColorSensorData(self._sensor_port.id, value))
 
     def update(self, port: PortInstance[ColorSensor]):
-        """
-        Dig out the first two bites.
-        """
-
         self._value.set(port.driver.value)
 
     def dispose(self):
@@ -99,20 +93,13 @@ class UltrasonicSensorDataHandler(Disposable):
 
         self._value.subscribe(self._on_data_update)
 
-    def _on_data_update(self, value):
+    def _on_data_update(self, value: float):
         """Need to convert the value back"""
         self._data_update_callback(UltrasonicSensorData(self._sensor_port.id, value))
 
     def update(self, port: PortInstance[Hcsr04]):
-        """
-        Dig out the first two bites.
-        """
-
-        # This layer should NOT contain bit hacking.
-        value = int.from_bytes(port.driver.raw_value[0:2], "little")
-        # log(f'ultrasonic sensor value {value}')
-        if 0 < value < MAX_ULTRASONIC_SENSOR_DISTANCE:
-            self._value.set(value)
+        if 0 < port.driver.value < MAX_ULTRASONIC_SENSOR_DISTANCE:
+            self._value.set(port.driver.value)
 
     def dispose(self):
         self._value.unsubscribe(self._on_data_update)
@@ -136,7 +123,7 @@ class ButtonSensorDataHandler(Disposable):
 
         self._value.subscribe(self._on_data_update)
 
-    def _on_data_update(self, value):
+    def _on_data_update(self, value: bool):
         """
         We need to convert it back to bits
         to send it back to the bluetooth interface.
@@ -144,8 +131,7 @@ class ButtonSensorDataHandler(Disposable):
         self._data_update_callback(BumperSensorData(self._sensor_port_id, value))
 
     def update(self, port: PortInstance[BumperSwitch]):
-        """dig out the first bit"""
-        self._value.set(port.driver.raw_value[0])
+        self._value.set(port.driver.value)
 
     def dispose(self):
         self._value.unsubscribe(self._on_data_update)

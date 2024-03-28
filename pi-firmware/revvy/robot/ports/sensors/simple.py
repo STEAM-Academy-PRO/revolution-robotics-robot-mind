@@ -1,4 +1,4 @@
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.sensors.base import SensorPortDriver
