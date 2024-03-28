@@ -483,17 +483,6 @@
                 ]
             },
             {
-                "provider": "ErrorStorage/Store",
-                "consumer": [
-                    "CommWrapper_ErrorStorage/Store",
-                    {
-                        "arguments": {
-                            "data": "error"
-                        }
-                    }
-                ]
-            },
-            {
                 "provider": "MasterCommunicationInterface/SetResponse",
                 "consumer": "MasterCommunication/SendResponse"
             },
@@ -553,16 +542,15 @@
             },
             {
                 "provider": "IMUOrientationEstimator/OrientationEulerDegrees",
-                "consumer": [
-                    "McuStatusSlots/YawAngle",
-                    {
-                        "member": "yaw"
-                    }
+                "consumers": [
+                    "McuStatusSlots/Orientation",
+                    [
+                        "McuStatusSlots/YawAngle",
+                        {
+                            "member": "yaw"
+                        }
+                    ]
                 ]
-            },
-            {
-                "provider": "IMUOrientationEstimator/OrientationEulerDegrees",
-                "consumer": "McuStatusSlots/Orientation"
             },
             {
                 "provider": "ADC/MotorCurrent",
@@ -649,11 +637,10 @@
             },
             {
                 "provider": "BatteryCalculator/MotorBatteryPresent",
-                "consumer": "LedDisplayController/MotorBatteryPresent"
-            },
-            {
-                "provider": "BatteryCalculator/MotorBatteryPresent",
-                "consumer": "McuStatusSlots/MotorBatteryPresent"
+                "consumers": [
+                    "LedDisplayController/MotorBatteryPresent",
+                    "McuStatusSlots/MotorBatteryPresent"
+                ]
             },
             {
                 "provider": "LedDisplayController/Leds",
