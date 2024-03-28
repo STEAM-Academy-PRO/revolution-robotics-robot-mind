@@ -170,6 +170,12 @@
             "port_type": "WriteData",
             "data_type": "uint8_t"
         },
+        "UpdateStatusSlotSize": {
+            "port_type": "ServerCall",
+            "arguments": {
+                "size": "size_t"
+            }
+        },
         "MaxAllowedCurrent": {
             "port_type": "WriteIndexedData",
             "data_type": "Current_t",

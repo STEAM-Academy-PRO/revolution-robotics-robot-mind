@@ -81,6 +81,7 @@ void MotorPortHandler_Run_SetPortType(uint8_t port_idx, uint8_t port_type, bool*
 void MotorPortHandler_Run_Configure(uint8_t port_idx, ByteArray_t configuration, bool* result);
 bool MotorPortHandler_Run_CreateDriveRequest(uint8_t port_idx, ConstByteArray_t buffer, DriveRequest_t* request);
 AsyncResult_t MotorPortHandler_AsyncRunnable_TestMotorOnPort(AsyncCommand_t asyncCommand, uint8_t port_idx, uint8_t test_power, uint8_t threshold, bool* result);
+void MotorPortHandler_Call_UpdateStatusSlotSize(size_t size);
 void* MotorPortHandler_Call_Allocate(size_t size);
 void MotorPortHandler_Call_Free(void** ptr);
 void MotorPortHandler_Call_UpdatePortStatus(uint8_t port, ByteArray_t data);

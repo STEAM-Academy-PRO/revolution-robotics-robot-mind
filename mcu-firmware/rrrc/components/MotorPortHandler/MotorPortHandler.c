@@ -348,6 +348,18 @@ AsyncResult_t MotorPortHandler_AsyncRunnable_TestMotorOnPort(AsyncCommand_t asyn
 }
 
 __attribute__((weak))
+void MotorPortHandler_Call_UpdateStatusSlotSize(size_t size)
+{
+    (void) size;
+    /* Begin User Code Section: UpdateStatusSlotSize:run Start */
+
+    /* End User Code Section: UpdateStatusSlotSize:run Start */
+    /* Begin User Code Section: UpdateStatusSlotSize:run End */
+
+    /* End User Code Section: UpdateStatusSlotSize:run End */
+}
+
+__attribute__((weak))
 void* MotorPortHandler_Call_Allocate(size_t size)
 {
     (void) size;
