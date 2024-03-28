@@ -483,17 +483,6 @@
                 ]
             },
             {
-                "provider": "ErrorStorage/Store",
-                "consumer": [
-                    "CommWrapper_ErrorStorage/Store",
-                    {
-                        "arguments": {
-                            "data": "error"
-                        }
-                    }
-                ]
-            },
-            {
                 "provider": "MasterCommunicationInterface/SetResponse",
                 "consumer": "MasterCommunication/SendResponse"
             },
