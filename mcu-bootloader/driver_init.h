@@ -32,9 +32,6 @@ extern "C" {
 
 extern struct flash_descriptor FLASH_0;
 
-void FLASH_0_init(void);
-void FLASH_0_CLOCK_init(void);
-
 /**
  * \brief Perform system initialization, initialize pins and clocks for
  * peripherals

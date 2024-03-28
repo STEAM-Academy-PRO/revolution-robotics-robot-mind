@@ -8,6 +8,21 @@
 #include <string.h>
 
 #define FIRMWARE_VERSION_STRING "0.2." FW_VERSION
+
+/* App header info, as defined (and written) in the bootloader */
+#define FLASH_AVAILABLE     ((FLASH_SIZE / 2) - NVMCTRL_BLOCK_SIZE)
+#define FLASH_FW_OFFSET     (FLASH_SIZE / 2)
+#define FLASH_HDR_OFFSET    (FLASH_FW_OFFSET + FLASH_AVAILABLE)
+
+typedef struct
+{
+    uint32_t hw_version;
+    uint32_t bootloader_version;
+    uint32_t target_checksum;
+    uint32_t target_length;
+} AppFlashHeader_t;
+
+#define FLASH_HEADER  ((AppFlashHeader_t*) (FLASH_HDR_OFFSET))
 /* End User Code Section: Declarations */
 
 uint32_t VersionProvider_Constant_FirmwareVersion(void)
