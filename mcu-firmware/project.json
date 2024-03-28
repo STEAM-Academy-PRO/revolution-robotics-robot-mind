@@ -553,16 +553,15 @@
             },
             {
                 "provider": "IMUOrientationEstimator/OrientationEulerDegrees",
-                "consumer": [
-                    "McuStatusSlots/YawAngle",
-                    {
-                        "member": "yaw"
-                    }
+                "consumers": [
+                    "McuStatusSlots/Orientation",
+                    [
+                        "McuStatusSlots/YawAngle",
+                        {
+                            "member": "yaw"
+                        }
+                    ]
                 ]
-            },
-            {
-                "provider": "IMUOrientationEstimator/OrientationEulerDegrees",
-                "consumer": "McuStatusSlots/Orientation"
             },
             {
                 "provider": "ADC/MotorCurrent",
@@ -649,11 +648,10 @@
             },
             {
                 "provider": "BatteryCalculator/MotorBatteryPresent",
-                "consumer": "LedDisplayController/MotorBatteryPresent"
-            },
-            {
-                "provider": "BatteryCalculator/MotorBatteryPresent",
-                "consumer": "McuStatusSlots/MotorBatteryPresent"
+                "consumers": [
+                    "LedDisplayController/MotorBatteryPresent",
+                    "McuStatusSlots/MotorBatteryPresent"
+                ]
             },
             {
                 "provider": "LedDisplayController/Leds",
