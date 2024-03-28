@@ -17,7 +17,7 @@
 #define MOTOR_CONTROL_POSITION_RELATIVE ((uint8_t) 3u)
 
 #define MOTOR_STATUS_NORMAL         ((uint8_t) 0u)
-#define MOTOR_STATUS_STUCK          ((uint8_t) 1u)
+#define MOTOR_STATUS_BLOCKED        ((uint8_t) 1u)
 #define MOTOR_STATUS_GOAL_REACHED   ((uint8_t) 2u)
 
 #define DRIVE_CONTSTRAINED_POWER    ((uint8_t) 0u)
@@ -79,16 +79,83 @@ typedef struct
     int32_t position;
 } MotorLibrary_Dc_Data_t;
 
-static uint32_t abs_int32(int32_t a)
+typedef struct
 {
-    if (a < 0)
+    uint8_t status;
+    uint8_t pwm;
+    int32_t position;
+    float speed;
+    uint8_t version;
+} __attribute__((packed)) DcMotorStatus_t;
+
+static void _reset_timeout(uint16_t* timer)
+{
+    *timer = 0u;
+}
+
+static void _tick_timeout(uint16_t* timer, uint16_t timeout)
+{
+    if (*timer < timeout)
     {
-        return -a;
+        *timer += 1u;
     }
-    else
+}
+
+static bool _has_timeout_elapsed(const uint16_t* timer, uint16_t timeout)
+{
+    return *timer >= timeout;
+}
+
+static bool _is_motor_blocked(MotorLibrary_Dc_Data_t* libdata, float u)
+{
+    if (libdata->currentSpeed != 0.0f)
     {
-        return a;
+        return false;
     }
+    if (libdata->speedController.config.LowerLimit < u && u < libdata->speedController.config.UpperLimit)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+static int32_t degrees_to_ticks(const MotorLibrary_Dc_Data_t* libdata, float degrees)
+{
+    return (int32_t) lroundf(map(degrees, 0.0f, 360.0f, 0.0f, fabsf(libdata->resolution)));
+}
+
+static int32_t ticks_to_degrees(const MotorLibrary_Dc_Data_t* libdata, float value)
+{
+    return (int32_t) lroundf(map(value, 0.0f, fabsf(libdata->resolution), 0.0f, 360.0f));
+}
+
+static void _update_status_data(const MotorPort_t* motorPort, int16_t pwm)
+{
+    MotorLibrary_Dc_Data_t* libdata = (MotorLibrary_Dc_Data_t*) motorPort->libraryData;
+
+    DcMotorStatus_t status_struct = (DcMotorStatus_t) {
+        .status = libdata->motorStatus,
+        .pwm = (uint8_t) (pwm/2), // Divide by 2 to map 0..200 (physical timer config) to 0..100 (%)
+        .position = ticks_to_degrees(libdata, libdata->lastPosition),
+        .speed = libdata->currentSpeed,
+        .version = libdata->currentRequest.version
+    };
+
+    MotorPortHandler_Call_UpdatePortStatus(motorPort->port_idx, (ByteArray_t) {
+        .bytes = (uint8_t*) &status_struct,
+        .count = sizeof(status_struct)
+    });
+}
+
+/* Clears motor status when configuration or drive command is changed */
+void _reset_motor_status(MotorPort_t* motorPort)
+{
+    MotorLibrary_Dc_Data_t* libdata = (MotorLibrary_Dc_Data_t*) motorPort->libraryData;
+
+    libdata->motorStatus = MOTOR_STATUS_NORMAL;
+    _reset_timeout(&libdata->motorTimeout);
+    _update_status_data(motorPort, 0);
 }
 
 /**
@@ -111,16 +178,6 @@ static void ignore_last_drive_request(MotorPort_t* motorPort)
 
     /* set this dummy request as active */
     libdata->currentRequest = driveRequest;
-}
-
-static int32_t degrees_to_ticks(const MotorLibrary_Dc_Data_t* libdata, float degrees)
-{
-    return (int32_t) lroundf(map(degrees, 0.0f, 360.0f, 0.0f, fabsf(libdata->resolution)));
-}
-
-static float ticks_to_degrees(const MotorLibrary_Dc_Data_t* libdata, float value)
-{
-    return map(value, 0.0f, fabsf(libdata->resolution), 0.0f, 360.0f);
 }
 
 MotorLibraryStatus_t DcMotor_Load(MotorPort_t* motorPort)
@@ -148,8 +205,6 @@ MotorLibraryStatus_t DcMotor_Load(MotorPort_t* motorPort)
     libdata->prevPosDiff = 0;
     libdata->currentSpeed = 0.0f;
     libdata->lastPosition = 0;
-    libdata->motorStatus = MOTOR_STATUS_NORMAL;
-    libdata->motorTimeout = 0u;
 
     /* use linear characteristic by default */
     libdata->nonlinearity_xs[0] = 0.0f;
@@ -167,6 +222,7 @@ MotorLibraryStatus_t DcMotor_Load(MotorPort_t* motorPort)
 #endif
     MotorPort_SetGreenLed(motorPort, true);
 
+    _reset_motor_status(motorPort);
     ignore_last_drive_request(motorPort);
 
     return MotorLibraryStatus_Ok;
@@ -204,7 +260,7 @@ static void _update_current_speed(MotorLibrary_Dc_Data_t* libdata)
     //}
 }
 
-static void _process_new_request(const MotorPort_t* motorPort, MotorLibrary_Dc_Data_t* libdata, const DriveRequest_t* driveRequest)
+static void _process_new_request(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t* libdata, const DriveRequest_t* driveRequest)
 {
     DriveRequest_RequestType_t last_request_type = libdata->currentRequest.request_type;
 
@@ -234,8 +290,7 @@ static void _process_new_request(const MotorPort_t* motorPort, MotorLibrary_Dc_D
     }
 
     libdata->currentRequest = *driveRequest;
-    libdata->motorStatus = MOTOR_STATUS_NORMAL;
-    libdata->motorTimeout = 0u;
+    _reset_motor_status(motorPort);
 
     if (libdata->currentRequest.request_type != DriveRequest_RequestType_Power)
     {
@@ -287,38 +342,6 @@ static void _process_new_request(const MotorPort_t* motorPort, MotorLibrary_Dc_D
             libdata->speedController.config.UpperLimit = power_limit;
         }
     }
-}
-
-static void _reset_timeout(uint16_t* timer)
-{
-    *timer = 0u;
-}
-
-static void _tick_timeout(uint16_t* timer, uint16_t timeout)
-{
-    if (*timer < timeout)
-    {
-        *timer += 1u;
-    }
-}
-
-static bool _has_timeout_elapsed(const uint16_t* timer, uint16_t timeout)
-{
-    return *timer >= timeout;
-}
-
-static bool _is_motor_blocked(MotorLibrary_Dc_Data_t* libdata, float u)
-{
-    if (libdata->currentSpeed != 0.0f)
-    {
-        return false;
-    }
-    if (libdata->speedController.config.LowerLimit < u && u < libdata->speedController.config.UpperLimit)
-    {
-        return false;
-    }
-
-    return true;
 }
 
 static void select_pid(PID_t* controller, const PidConfig_t* coefficients)
@@ -386,7 +409,7 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
             if (_has_timeout_elapsed(&libdata->motorTimeout, MOTOR_TIMEOUT_THRESHOLD))
             {
                 SEGGER_RTT_printf(0, "Motor %u: stuck\n", motorPort->port_idx);
-                libdata->motorStatus = MOTOR_STATUS_STUCK;
+                libdata->motorStatus = MOTOR_STATUS_BLOCKED;
                 ignore_last_drive_request(motorPort);
                 return 0;
             }
@@ -405,21 +428,6 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
     pwm = constrain_int16(pwm, -200, 200);
 
     return pwm;
-}
-
-static void _update_status_data(uint8_t portIdx, const MotorLibrary_Dc_Data_t* libdata, int16_t pwm)
-{
-    int32_t pos_degrees = ticks_to_degrees(libdata, libdata->lastPosition);
-
-    // TODO: this really needs to be a (packed) struct
-    uint8_t status[11];
-    status[0] = libdata->motorStatus;
-    status[1] = (uint8_t) (pwm/2); // Divide by 2 to map 0..200 (physical timer config) to 0..100 (%)
-    memcpy(&status[2], &pos_degrees, sizeof(int32_t));
-    memcpy(&status[6], &libdata->currentSpeed, sizeof(float));
-    status[10] = libdata->currentRequest.version;
-
-    MotorPortHandler_Call_UpdatePortStatus(portIdx, (ByteArray_t){status, sizeof(status)});
 }
 
 MotorLibraryStatus_t DcMotor_Update(MotorPort_t* motorPort)
@@ -442,7 +450,7 @@ MotorLibraryStatus_t DcMotor_Update(MotorPort_t* motorPort)
 
     MotorPort_SetDriveValue(motorPort, pwm);
 
-    _update_status_data(motorPort->port_idx, libdata, pwm);
+    _update_status_data(motorPort, pwm);
 
     return MotorLibraryStatus_Ok;
 }
@@ -586,11 +594,14 @@ MotorLibraryStatus_t DcMotor_UpdateConfiguration(MotorPort_t* motorPort, const u
         libdata->nonlinearity.size = nNonlinearityPoints + 1u;
     }
 
+    /* Make sure motor is stopped */
+    MotorPort_SetDriveValue(motorPort, 0);
+
     /* reset states */
     libdata->lastPosition = 0;
     libdata->position = 0;
-    libdata->currentSpeed = 0;
-    libdata->motorStatus = MOTOR_STATUS_NORMAL;
+    libdata->currentSpeed = 0.0f;
+    _reset_motor_status(motorPort);
 
     ignore_last_drive_request(motorPort);
 

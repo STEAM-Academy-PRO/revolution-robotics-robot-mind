@@ -134,3 +134,15 @@ float sgn_float(float value)
         return 1.0f;
     }
 }
+
+uint32_t abs_int32(int32_t a)
+{
+    if (a < 0)
+    {
+        return -a;
+    }
+    else
+    {
+        return a;
+    }
+}
