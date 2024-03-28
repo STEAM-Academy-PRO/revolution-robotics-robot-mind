@@ -118,18 +118,10 @@
             ]
         },
         "port_connections": {
-            "MasterCommunicationInterface_Bootloader/SetResponse": {
-                "consumer": "MasterCommunication/SendResponse"
-            },
-            "MasterCommunicationInterface_Bootloader/OnMessageReceived": {
-                "consumer": "MasterCommunication/HandleCommand"
-            },
-            "CRC/Calculate_CRC7": {
-                "consumer": "MasterCommunication/Calculate_CRC7"
-            },
-            "CRC/Calculate_CRC16": {
-                "consumer": "MasterCommunication/Calculate_CRC16"
-            }
+            "MasterCommunicationInterface_Bootloader/SetResponse": "MasterCommunication/SendResponse",
+            "MasterCommunicationInterface_Bootloader/OnMessageReceived": "MasterCommunication/HandleCommand",
+            "CRC/Calculate_CRC7": "MasterCommunication/Calculate_CRC7",
+            "CRC/Calculate_CRC16": "MasterCommunication/Calculate_CRC16"
         }
     }
 }
