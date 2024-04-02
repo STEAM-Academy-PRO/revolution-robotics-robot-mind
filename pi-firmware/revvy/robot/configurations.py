@@ -1,6 +1,7 @@
 from revvy.robot.ports.common import DriverConfig
 from revvy.robot.ports.motors.dc_motor import (
     DcMotorController,
+    EmulatedDcMotorController,
     PidConfig,
     PositionThreshold,
     TwoValuePidConfig,
@@ -56,6 +57,27 @@ DC_MOTOR_LINEARITY_TABLE = [
 ]
 """The identified motor characteristic: (output speed, input PWM value)"""
 
+DC_MOTOR_CONFIG_CW = {
+    "speed_controller": DC_MOTOR_SPEED_PID,
+    "position_controller": DC_MOTOR_POSITION_CONFIG,
+    # max deceleration, max acceleration, in units of `[speed units] / 10ms` (?)
+    "acceleration_limits": [500, 500],
+    "max_current": 1.5,  # Amps
+    "linearity": DC_MOTOR_LINEARITY_TABLE,
+    "encoder_resolution": 12,  # The number of ticks per revolution
+    "gear_ratio": 64.8,  # The gear ratio of the motor. It takes this many revolutions of the motor axle to turn the wheel once.
+}
+
+DC_MOTOR_CONFIG_CCW = {
+    "speed_controller": DC_MOTOR_SPEED_PID,
+    "position_controller": DC_MOTOR_POSITION_CONFIG,
+    "acceleration_limits": [500, 500],
+    "max_current": 1.5,
+    "linearity": DC_MOTOR_LINEARITY_TABLE,
+    "encoder_resolution": -12,
+    "gear_ratio": 64.8,
+}
+
 
 # TODO: Right now we're pairing the driver type and the configuration. Instead, we should
 # create configuration objects that can create the driver instances. This way, we can
@@ -63,28 +85,19 @@ DC_MOTOR_LINEARITY_TABLE = [
 class Motors:
     RevvyMotor = DriverConfig(
         driver=DcMotorController,
-        config={
-            "speed_controller": DC_MOTOR_SPEED_PID,
-            "position_controller": DC_MOTOR_POSITION_CONFIG,
-            # max deceleration, max acceleration, in units of `[speed units] / 10ms` (?)
-            "acceleration_limits": [500, 500],
-            "max_current": 1.5,  # Amps
-            "linearity": DC_MOTOR_LINEARITY_TABLE,
-            "encoder_resolution": 12,  # The number of ticks per revolution
-            "gear_ratio": 64.8,  # The gear ratio of the motor. It takes this many revolutions of the motor axle to turn the wheel once.
-        },
+        config=DC_MOTOR_CONFIG_CW,
     )
     RevvyMotor_CCW = DriverConfig(
         driver=DcMotorController,
-        config={
-            "speed_controller": DC_MOTOR_SPEED_PID,
-            "position_controller": DC_MOTOR_POSITION_CONFIG,
-            "acceleration_limits": [500, 500],
-            "max_current": 1.5,
-            "linearity": DC_MOTOR_LINEARITY_TABLE,
-            "encoder_resolution": -12,
-            "gear_ratio": 64.8,
-        },
+        config=DC_MOTOR_CONFIG_CCW,
+    )
+    EmulatedRevvyMotor = DriverConfig(
+        driver=EmulatedDcMotorController,
+        config=DC_MOTOR_CONFIG_CW,
+    )
+    EmulatedRevvyMotor_CCW = DriverConfig(
+        driver=EmulatedDcMotorController,
+        config=DC_MOTOR_CONFIG_CCW,
     )
 
 

@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from enum import Enum
 import struct
 from threading import Lock
@@ -203,11 +203,11 @@ class DcMotorDriverConfig:
         )
 
 
-class DcMotorController(MotorPortDriver):
+class BaseDcMotorDriver(MotorPortDriver):
     """Generic driver for dc motors"""
 
-    def __init__(self, port: PortInstance[MotorPortDriver], port_config):
-        super().__init__(port, "DcMotor")
+    def __init__(self, port: PortInstance[MotorPortDriver], port_config, driver_name: str):
+        super().__init__(port, driver_name)
         self._port = port
         self._port_config = DcMotorDriverConfig(port_config)
 
@@ -386,3 +386,13 @@ class DcMotorController(MotorPortDriver):
             self.set_speed(0)
         else:
             self.set_power(0)
+
+
+class DcMotorController(BaseDcMotorDriver):
+    def __init__(self, port: PortInstance[MotorPortDriver], port_config):
+        super().__init__(port, port_config, "DcMotor")
+
+
+class EmulatedDcMotorController(BaseDcMotorDriver):
+    def __init__(self, port: PortInstance[MotorPortDriver], port_config):
+        super().__init__(port, port_config, "EmulatedDcMotor")

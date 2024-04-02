@@ -215,6 +215,9 @@ class RobotConfig:
 
         i = len(self.motors._ports) + 1
 
+        # TODO: maybe decoding this mapping belongs one level up. We want to be able to register
+        # emulated drivers in tests, though we don't want to expose them to the mobile app. I.e.
+        # this function needs to be more flexible than what's used to process a json config
         if motor["type"] == 2:
             # drivetrain
             motor_type = MOTOR_TYPES[2][motor["side"]][motor["reversed"]]
