@@ -1,4 +1,5 @@
 import time
+from revvy.robot.configurations import Motors
 from revvy.utils.logger import Logger
 from tests.hil_tests.hil_test_utils.runner import run_test_scenarios
 
@@ -89,17 +90,17 @@ def sensors_can_be_read(log: Logger, controller: ProgrammedRobotController):
     controller.with_timeout(2.0)
 
     config = RobotConfig()
-    config.add_motor(None)
-    config.add_motor(None)
-    config.add_motor(None)
-    config.add_motor({"type": 1, "name": "motor4"})
-    config.add_motor(None)
-    config.add_motor(None)
+    config.add_motor(None, "motor1")
+    config.add_motor(None, "motor2")
+    config.add_motor(None, "motor3")
+    config.add_motor(Motors.EmulatedRevvyMotor, "motor4")
+    config.add_motor(None, "motor5")
+    config.add_motor(None, "motor6")
 
-    config.add_sensor({"type": 1, "name": "distance_sensor"})
-    config.add_sensor(None)
-    config.add_sensor({"type": 2, "name": "button"})
-    config.add_sensor({"type": 4, "name": "color_sensor"})
+    config.add_sensor_from_json({"type": 1, "name": "distance_sensor"})
+    config.add_sensor_from_json(None)
+    config.add_sensor_from_json({"type": 2, "name": "button"})
+    config.add_sensor_from_json({"type": 4, "name": "color_sensor"})
 
     config.process_script(
         {
@@ -147,12 +148,15 @@ def motors_dont_cause_errors(log: Logger, controller: ProgrammedRobotController)
     controller.with_timeout(10.0)
 
     config = RobotConfig()
-    config.add_motor({"type": 2, "name": "motor1", "side": 0, "reversed": 0})
-    config.add_motor({"type": 2, "name": "motor2", "side": 1, "reversed": 0})
-    config.add_motor(None)
-    config.add_motor({"type": 1, "name": "motor4"})
-    config.add_motor(None)
-    config.add_motor(None)
+    config.add_motor(Motors.EmulatedRevvyMotor_CCW, "motor1")
+    config.add_motor(Motors.EmulatedRevvyMotor, "motor2")
+    config.add_motor(None, "motor3")
+    config.add_motor(Motors.EmulatedRevvyMotor, "motor4")
+    config.add_motor(None, "motor5")
+    config.add_motor(None, "motor6")
+
+    config.drivetrain.left.append(1)
+    config.drivetrain.right.append(2)
 
     config.process_script(
         {
@@ -237,12 +241,15 @@ def trying_to_access_uncofigured_motor_raises_error(
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
 
     config = RobotConfig()
-    config.add_motor({"type": 2, "name": "motor1", "side": 0, "reversed": 0})
-    config.add_motor({"type": 2, "name": "motor2", "side": 1, "reversed": 0})
-    config.add_motor({"type": 1, "name": "motor3"})
-    config.add_motor(None)
-    config.add_motor(None)
-    config.add_motor(None)
+    config.add_motor(Motors.EmulatedRevvyMotor_CCW, "motor1")
+    config.add_motor(Motors.EmulatedRevvyMotor, "motor2")
+    config.add_motor(Motors.EmulatedRevvyMotor, "motor3")
+    config.add_motor(None, "motor4")
+    config.add_motor(None, "motor5")
+    config.add_motor(None, "motor6")
+
+    config.drivetrain.left.append(1)
+    config.drivetrain.right.append(2)
 
     config.process_script(
         {
@@ -281,12 +288,12 @@ def trying_to_drive_without_drivetrain_motors_is_no_op(
     controller.with_timeout(10.0)
 
     config = RobotConfig()
-    config.add_motor(None)
-    config.add_motor(None)
-    config.add_motor(None)
-    config.add_motor({"type": 1, "name": "motor4"})
-    config.add_motor(None)
-    config.add_motor(None)
+    config.add_motor(None, "motor1")
+    config.add_motor(None, "motor2")
+    config.add_motor(None, "motor3")
+    config.add_motor(Motors.EmulatedRevvyMotor, "motor4")
+    config.add_motor(None, "motor5")
+    config.add_motor(None, "motor6")
 
     config.process_script(
         {
@@ -388,7 +395,7 @@ def failing_to_take_resource_from_lower_prio_script_should_not_error(
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
 
     config = RobotConfig()
-    config.add_motor({"type": 1, "name": "motor1"})
+    config.add_motor(Motors.EmulatedRevvyMotor, "motor1")
 
     config.process_script(
         {
