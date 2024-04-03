@@ -395,4 +395,4 @@ class DcMotorController(BaseDcMotorDriver):
 
 class EmulatedDcMotorController(BaseDcMotorDriver):
     def __init__(self, port: PortInstance[MotorPortDriver], port_config):
-        super().__init__(port, port_config, "EmulatedDcMotor")
+        super().__init__(port, port_config, "DcMotorEmulator")
