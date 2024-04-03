@@ -1,19 +1,28 @@
 #!/usr/bin/python3
 
-# motor identification script, used in conjunction with rtt-viewer. it drives a motor with
-# specific power values, and the speed is measured by rtt-viewer. the data can be used to tune
-# the motor model parameters for the control loops, or just to see differences between individual
-# motors.
+# motor identification script. it drives a motor with specific power values, and reads the speed.
+# the data can be used to tune the motor model parameters for the control loops, or just to see
+# differences between individual motors.
 
 import time
+import sys
 
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.robot.configurations import Motors
 from revvy.utils.thread_wrapper import periodic
 from revvy.robot.robot import Robot
+from revvy.robot.ports.common import PortInstance
+from revvy.robot.ports.motors.dc_motor import DcMotorController
+from revvy.robot_manager import RevvyStatusCode
+from revvy.firmware_updater import update_firmware_if_needed
 
 if __name__ == "__main__":
     interface = RevvyTransportI2C(bus=1)
+
+    ### Before we enter the main loop, let's load up
+    if not update_firmware_if_needed(interface):
+        # exiting with integrity error forces the loader to try a previous package
+        sys.exit(RevvyStatusCode.INTEGRITY_ERROR)
 
     robot = Robot(interface)
 
@@ -23,6 +32,16 @@ if __name__ == "__main__":
 
     motor = robot.motors[4]
     motor.configure(Motors.RevvyMotor)
+
+    # collect (input, speed) pairs
+    recorded_pwms = []
+    recorded_speeds = []
+
+    def _on_motor_status_changed(port: PortInstance[DcMotorController]) -> None:
+        recorded_pwms.append(port.driver.power)
+        recorded_speeds.append(port.driver.speed)
+
+    motor.driver.on_status_changed.add(_on_motor_status_changed)
 
     training = False
     if training:
@@ -37,3 +56,9 @@ if __name__ == "__main__":
         time.sleep(1)
 
     status_update_thread.exit()
+
+    # save data as csv
+    with open("motor_data.csv", "w") as f:
+        f.write("power,speed\n")
+        for i in range(len(recorded_pwms)):
+            f.write(f"{recorded_pwms[i]},{recorded_speeds[i]}\n")
