@@ -1,8 +1,10 @@
 import time
-from revvy.robot.configurations import Motors
 from revvy.utils.logger import Logger
 from tests.hil_tests.hil_test_utils.runner import run_test_scenarios
 
+# IMPORTANT: make sure to import dependencies after this comment. Doing it before may break the
+# in-memory log collector and spam logs.
+from revvy.robot.configurations import Motors
 from revvy.api.programmed import ProgrammedRobotController
 from revvy.robot.robot_events import RobotEvent
 from revvy.robot_config import RobotConfig
