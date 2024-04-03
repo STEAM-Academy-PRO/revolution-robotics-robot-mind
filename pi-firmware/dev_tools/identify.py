@@ -31,7 +31,7 @@ if __name__ == "__main__":
     status_update_thread.start()
 
     motor = robot.motors[4]
-    motor.configure(Motors.RevvyMotor)
+    motor.configure(Motors.EmulatedRevvyMotor)
 
     # collect (input, speed) pairs
     recorded_pwms = []
@@ -40,6 +40,7 @@ if __name__ == "__main__":
     def _on_motor_status_changed(port: PortInstance[DcMotorController]) -> None:
         recorded_pwms.append(port.driver.power)
         recorded_speeds.append(port.driver.speed)
+        print(f"power: {port.driver.power}, speed: {port.driver.speed}")
 
     motor.driver.on_status_changed.add(_on_motor_status_changed)
 

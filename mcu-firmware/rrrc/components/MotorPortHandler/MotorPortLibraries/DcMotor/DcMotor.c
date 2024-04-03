@@ -107,11 +107,10 @@ static void emulator_reset(MotorLibrary_Dc_Data_t* libdata)
  */
 static void emulator_tick(MotorLibrary_Dc_Data_t* libdata, int16_t pwm, float dt)
 {
-    const float MIN_SPEED = 0.01f; /** < in encoder ticks per second */
-    // TODO re-identify the motors to get the characteristic
-    const float K = 1.0f;
-    const float I = 0.0f;
-    libdata->emulatedSpeed = K * (float) pwm + I * libdata->emulatedSpeed;
+    const float MIN_SPEED = 0.1f; /** < in encoder ticks per second */
+    // TODO re-identify the motors to get a more realistic characteristic.
+    const float K = 50.0f; // RPM / %PWM
+    libdata->emulatedSpeed = K * (float) pwm;
 
     if (libdata->emulatedSpeed < MIN_SPEED)
     {
@@ -273,7 +272,7 @@ MotorLibraryStatus_t DcMotor_Load(MotorPort_t* motorPort)
 
 /**
  * Initialize driver in DC motor emulation mode to support HIL-testing higher level control.
- * 
+ *
  * This driver variant provides the same interface as DcMotor, without driving an actual motor. The
  * driver maintains and updates a virual position counter.
  *
@@ -313,9 +312,12 @@ static void _update_current_speed(MotorLibrary_Dc_Data_t* libdata)
     libdata->prevPosDiff = posDiff;
     libdata->lastPosition = current_position;
 
-    /* Calculate speed - 10ms cycle time, 2 consecutive samples */
-    /* one complete revolution in one tick means 100 revolutions in a second */
-    /* speed = dPos / dt, dt = 0.02s -> x50 */
+    /*
+     * Calculate speed - 10ms cycle time, 2 consecutive samples (so 0.02s total window width)
+     * one complete revolution in one tick means 100 revolutions in a second, or 6000 RPM.
+     *
+     * speed = dPos / dt, dt = 0.02s -> x50, result unit is RPM
+     */
     //bool was_moving = (int)libdata->currentSpeed != 0;
     libdata->currentSpeed = map(posDiff + lastPosDiff, 0.0f, fabsf(libdata->resolution), 0.0f, 3000.0f);
     //bool is_moving = (int)libdata->currentSpeed != 0;
