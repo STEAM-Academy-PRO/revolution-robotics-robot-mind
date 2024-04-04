@@ -74,9 +74,9 @@ class RemoteController:
 
         self._button_handlers: List[ButtonHandler] = []
 
-        self._processing = False
-        self._processing_time = 0.0
-        self._previous_time = None
+        self._global_timer_running = False
+        self._global_timer = 0.0
+        self._previous_global_timer_value = 0.0
 
         self._joystick_mode_detected = False
         """Whether user input was detected.
@@ -100,10 +100,10 @@ class RemoteController:
         self._analogStates.clear()
         self._button_handlers.clear()
 
-        self._processing = False
-        self._processing_time = 0.0
+        self._global_timer_running = False
+        self._global_timer = 0.0
         self._background_control_state = BackgroundControlState.STOPPED
-        self._previous_time = None
+        self._previous_global_timer_value = None
         self._joystick_mode_detected = False
 
     def process_background_command(self, cmd: BleAutonomousCmd):
@@ -116,26 +116,26 @@ class RemoteController:
             self._background_control_state = BackgroundControlState.RUNNING
             self._control_button_pressed = AutonomousModeRequest.START
             if not self._joystick_mode_detected:
-                self._processing = True
-                self._processing_time = 0.0
-                self._previous_time = time.time()
+                self._global_timer_running = True
+                self._global_timer = 0.0
+                self._previous_global_timer_value = time.time()
         elif cmd == BleAutonomousCmd.PAUSE:
             self._background_control_state = BackgroundControlState.PAUSED
             self._control_button_pressed = AutonomousModeRequest.PAUSE
             self.timer_increment()
-            self._processing = False
-            self._previous_time = None
+            self._global_timer_running = False
+            self._previous_global_timer_value = None
         elif cmd == BleAutonomousCmd.RESUME:
             self._background_control_state = BackgroundControlState.RUNNING
             self._control_button_pressed = AutonomousModeRequest.RESUME
-            self._processing = True
-            self._previous_time = time.time()
+            self._global_timer_running = True
+            self._previous_global_timer_value = time.time()
         elif cmd == BleAutonomousCmd.RESET:
             self._background_control_state = BackgroundControlState.STOPPED
             self._control_button_pressed = AutonomousModeRequest.STOP
-            self._processing = False
-            self._processing_time = 0.0
-            self._previous_time = None
+            self._global_timer_running = False
+            self._global_timer = 0.0
+            self._previous_global_timer_value = None
 
     def process_analog_command(self, analog_cmd: bytearray):
         """
@@ -235,8 +235,8 @@ class RemoteController:
             # over one entire controller (play) session
             log("Joystick mode ON")
             self._joystick_mode_detected = True
-            self._processing = True
-            self._previous_time = time.time()
+            self._global_timer_running = True
+            self._previous_global_timer_value = time.time()
 
     def link_button_to_runner(self, button_id, script_handle: ScriptHandle):
         log(f"registering callbacks for Button: {button_id}")
@@ -254,14 +254,14 @@ class RemoteController:
         self._analogActions.append((channels, action))
 
     def timer_increment(self) -> None:
-        if self._processing:
+        if self._global_timer_running:
             current_time = time.time()
-            self._processing_time += current_time - self._previous_time
-            self._previous_time = current_time
+            self._global_timer += current_time - self._previous_global_timer_value
+            self._previous_global_timer_value = current_time
 
     @property
     def processing_time(self) -> TimerData:
-        return TimerData(self._processing_time)
+        return TimerData(self._global_timer)
 
     @property
     def background_control_state(self) -> BackgroundControlState:
