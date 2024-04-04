@@ -1,24 +1,37 @@
-#ifndef UPDATEMANAGER_H_
-#define UPDATEMANAGER_H_
+#ifndef COMPONENT_UPDATE_MANAGER_H_
+#define COMPONENT_UPDATE_MANAGER_H_
 
-#include <stdint.h>
-#include <stdbool.h>
+#ifndef COMPONENT_TYPES_UPDATE_MANAGER_H_
+#define COMPONENT_TYPES_UPDATE_MANAGER_H_
 
 #include "flash_mapping.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 
-typedef enum 
-{
+
+typedef enum {
     UpdateManager_Ok,
     UpdateManager_Not_Initialized,
-    UpdateManager_Error_ImageInvalid,
+    UpdateManager_Error_ImageInvalid
 } UpdateManager_Status_t;
 
-bool UpdateManager_Run_CheckImageFitsInFlash(size_t size);
-void UpdateManager_Run_InitializeUpdate(size_t firmware_size, uint32_t checksum);
-UpdateManager_Status_t UpdateManager_Run_Program(const uint8_t* pData, size_t chunkSize);
+typedef struct {
+    const uint8_t* bytes;
+    size_t count;
+} ConstByteArray_t;
+
+#endif /* COMPONENT_TYPES_UPDATE_MANAGER_H_ */
+
+/* Begin User Code Section: Declarations */
+
+/* End User Code Section: Declarations */
+
+bool UpdateManager_Run_CheckImageFitsInFlash(uint32_t image_size);
+void UpdateManager_Run_InitializeUpdate(uint32_t firmware_size, uint32_t checksum);
+UpdateManager_Status_t UpdateManager_Run_WriteNextChunk(ConstByteArray_t data);
 UpdateManager_Status_t UpdateManager_Run_Finalize(void);
-
 void UpdateManager_Run_UpdateApplicationHeader(const ApplicationFlashHeader_t* header);
-void UpdateManager_Write_Progress(uint8_t progress);
+void UpdateManager_RaiseEvent_ProgressChanged(uint8_t progress);
 
-#endif /* UPDATEMANAGER_H_ */
+#endif /* COMPONENT_UPDATE_MANAGER_H_ */

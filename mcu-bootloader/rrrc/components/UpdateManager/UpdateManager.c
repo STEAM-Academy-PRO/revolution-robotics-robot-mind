@@ -1,9 +1,11 @@
 #include "UpdateManager.h"
-#include "utils/crc.h"
+#include "utils.h"
 
+/* Begin User Code Section: Declarations */
 #include "SEGGER_RTT.h"
 
-#include "../../utils/functions.h"
+#include "libraries/functions.h"
+#include "libraries/crc.h"
 #include <math.h>
 
 static bool isInitialized = false;
@@ -51,14 +53,21 @@ static void _program_bytes(const uint8_t* pData, size_t dataSize)
         ++pData;
     }
 }
+/* End User Code Section: Declarations */
 
-bool UpdateManager_Run_CheckImageFitsInFlash(size_t size)
+bool UpdateManager_Run_CheckImageFitsInFlash(uint32_t image_size)
 {
-    return size <= FLASH_AVAILABLE;
+    /* Begin User Code Section: CheckImageFitsInFlash:run Start */
+    return image_size <= FLASH_AVAILABLE;
+    /* End User Code Section: CheckImageFitsInFlash:run Start */
+    /* Begin User Code Section: CheckImageFitsInFlash:run End */
+
+    /* End User Code Section: CheckImageFitsInFlash:run End */
 }
 
-void UpdateManager_Run_InitializeUpdate(size_t firmware_size, uint32_t checksum)
+void UpdateManager_Run_InitializeUpdate(uint32_t firmware_size, uint32_t checksum)
 {
+    /* Begin User Code Section: InitializeUpdate:run Start */
     SEGGER_RTT_WriteString(0, "Initializing update\r\n");
 
     isInitialized = true;
@@ -75,36 +84,46 @@ void UpdateManager_Run_InitializeUpdate(size_t firmware_size, uint32_t checksum)
         .target_length = firmware_size
     };
 
-    UpdateManager_Write_Progress(0u);
+    UpdateManager_RaiseEvent_ProgressChanged(0u);
 
     UpdateManager_Run_UpdateApplicationHeader(&header);
-    
+
     /* Initialize the write parameters and erase firmware block in flash memory */
     flash_erase(&FLASH_0, FLASH_FW_OFFSET, FLASH_AVAILABLE / NVMCTRL_PAGE_SIZE);
     _select_start_addr(FLASH_FW_OFFSET);
+    /* End User Code Section: InitializeUpdate:run Start */
+    /* Begin User Code Section: InitializeUpdate:run End */
+
+    /* End User Code Section: InitializeUpdate:run End */
 }
 
-UpdateManager_Status_t UpdateManager_Run_Program(const uint8_t* pData, size_t chunkSize)
+UpdateManager_Status_t UpdateManager_Run_WriteNextChunk(ConstByteArray_t data)
 {
+    /* Begin User Code Section: WriteNextChunk:run Start */
     if (!isInitialized)
     {
         return UpdateManager_Not_Initialized;
     }
 
     /* update checksum */
-    current_crc = CRC32_Calculate(current_crc, pData, chunkSize);
-    current_length += chunkSize;
-    
+    current_crc = CRC32_Calculate(current_crc, data.bytes, data.count);
+    current_length += data.count;
+
     /* program flash */
-    _program_bytes(pData, chunkSize);
-    
-    UpdateManager_Write_Progress(lroundf(map(current_length, 0, total_length, 0, 255)));
+    _program_bytes(data.bytes, data.count);
+
+    UpdateManager_RaiseEvent_ProgressChanged(lroundf(map(current_length, 0, total_length, 0, 255)));
 
     return UpdateManager_Ok;
+    /* End User Code Section: WriteNextChunk:run Start */
+    /* Begin User Code Section: WriteNextChunk:run End */
+
+    /* End User Code Section: WriteNextChunk:run End */
 }
 
 UpdateManager_Status_t UpdateManager_Run_Finalize(void)
 {
+    /* Begin User Code Section: Finalize:run Start */
     /* if not initialized, try to reboot to application */
     if (isInitialized)
     {
@@ -114,7 +133,7 @@ UpdateManager_Status_t UpdateManager_Run_Finalize(void)
         {
             return UpdateManager_Error_ImageInvalid;
         }
-    
+
         if (!FMP_CheckTargetFirmware(true, expected_crc))
         {
             return UpdateManager_Error_ImageInvalid;
@@ -126,21 +145,35 @@ UpdateManager_Status_t UpdateManager_Run_Finalize(void)
 
     /* this will not be reached */
     return UpdateManager_Ok;
+    /* End User Code Section: Finalize:run Start */
+    /* Begin User Code Section: Finalize:run End */
+
+    /* End User Code Section: Finalize:run End */
 }
 
 void UpdateManager_Run_UpdateApplicationHeader(const ApplicationFlashHeader_t* header)
 {
+    /* Begin User Code Section: UpdateApplicationHeader:run Start */
     /* Also erase the block that stores the firmware header and store the header */
     flash_erase(&FLASH_0, FLASH_HDR_OFFSET, NVMCTRL_BLOCK_SIZE / NVMCTRL_PAGE_SIZE);
 
     _select_start_addr(FLASH_HDR_OFFSET);
     _program_bytes((uint8_t*) header, sizeof(ApplicationFlashHeader_t));
     _flush();
+    /* End User Code Section: UpdateApplicationHeader:run Start */
+    /* Begin User Code Section: UpdateApplicationHeader:run End */
+
+    /* End User Code Section: UpdateApplicationHeader:run End */
 }
 
 __attribute__((weak))
-void UpdateManager_Write_Progress(uint8_t progress)
+void UpdateManager_RaiseEvent_ProgressChanged(uint8_t progress)
 {
     (void) progress;
-    /* nothing to do */
+    /* Begin User Code Section: ProgressChanged:run Start */
+
+    /* End User Code Section: ProgressChanged:run Start */
+    /* Begin User Code Section: ProgressChanged:run End */
+
+    /* End User Code Section: ProgressChanged:run End */
 }

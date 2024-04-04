@@ -1,10 +1,10 @@
 #include <atmel_start.h>
 #include "flash_mapping.h"
 
-#include "rrrc/utils/functions.h"
+#include "rrrc/libraries/functions.h"
 #include "rrrc/runtime/runtime.h"
-#include "rrrc/include/color.h"
-#include "rrrc/utils/crc.h"
+#include "rrrc/generated_runtime.h"
+#include "libraries/color.h"
 
 #include <math.h>
 
@@ -15,10 +15,6 @@
 #else
 #define DEBUG_SKIP_FW_INTEGRITY_CHECK 0
 #endif
-
-static MasterCommunicationInterface_Config_t communicationConfig =
-{
-};
 
 static bool jump_to_application = false;
 
@@ -100,14 +96,7 @@ int main(void)
     // If we are below this line then there was either a bootloader request,
     // or the target firmware is missing or corrupted
 
-    MasterCommunication_Run_OnInit();
-
-    communicationConfig.default_response = MasterCommunication_Constant_DefaultResponse();
-    communicationConfig.rx_overflow_response = MasterCommunication_Constant_LongRxErrorResponse();
-
-    MasterCommunicationInterface_Run_OnInit(&communicationConfig);
-
-    LEDController_Run_OnInit();
+    Runtime_RaiseEvent_OnInit();
 
     // Display some indication why we are in bootloader mode
     switch (startupReason) {
@@ -130,20 +119,17 @@ int main(void)
             break;
     }
 
+    Runtime_RaiseEvent_OnInitDone();
+
     while (1) {
-        MasterCommunicationInterface_Run_Update();
-        LEDController_Run_Update();
+        Runtime_RaiseEvent_Loop();
     }
 }
 
-void MasterCommunicationInterface_RaiseEvent_OnMessageReceived(ConstByteArray_t message)
+void MasterCommunicationInterface_Bootloader_Read_Configuration(MasterCommunicationInterface_Config_t* dst)
 {
-    MasterCommunication_Run_HandleCommand(message);
-}
-
-void MasterCommunication_Call_SendResponse(ConstByteArray_t response)
-{
-    MasterCommunicationInterface_Run_SetResponse(response);
+    dst->default_response = MasterCommunication_Constant_DefaultResponse();
+    dst->rx_overflow_response = MasterCommunication_Constant_LongRxErrorResponse();
 }
 
 void Runtime_RequestJumpToApplication(void)
@@ -151,7 +137,7 @@ void Runtime_RequestJumpToApplication(void)
     jump_to_application = true;
 }
 
-void MasterCommunicationInterface_Call_OnTransmitComplete(void)
+void MasterCommunicationInterface_Bootloader_RaiseEvent_OnTransmissionComplete(void)
 {
     if (jump_to_application)
     {
@@ -178,7 +164,7 @@ bool LEDController_Read_RingLEDs_Changed(void)
     return changed;
 }
 
-void UpdateManager_Write_Progress(uint8_t progress)
+void UpdateManager_RaiseEvent_ProgressChanged(uint8_t progress)
 {
     uint8_t n_leds = (uint8_t) lroundf(map(progress, 0, 255, 0, 12));
     for (uint8_t i = 0u; i < n_leds; i++)
@@ -189,16 +175,6 @@ void UpdateManager_Write_Progress(uint8_t progress)
     {
         ringLeds[i] = (rgb_t) LED_OFF;
     }
-}
-
-uint8_t MasterCommunication_Call_Calculate_CRC7(uint8_t init_value, ConstByteArray_t data)
-{
-    return CRC7_Calculate(init_value, data.bytes, data.count);
-}
-
-uint16_t MasterCommunication_Call_Calculate_CRC16(uint16_t init_value, ConstByteArray_t data)
-{
-    return CRC16_Calculate(init_value, data.bytes, data.count);
 }
 
 void assert_failed(const char *file, uint32_t line)

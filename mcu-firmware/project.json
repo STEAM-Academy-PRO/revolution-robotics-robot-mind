@@ -643,16 +643,20 @@
                 ]
             },
             {
-                "provider": "LedDisplayController/Leds",
-                "consumer": "LEDController/Colors"
+                "provider": "RingLedDisplay/LedColor",
+                "consumer": "LedDisplayController/RingLedsIn"
             },
             {
                 "provider": "LedDisplayController/MaxBrightness",
                 "consumer": "LEDController/MaxBrightness"
             },
             {
-                "provider": "RingLedDisplay/LedColor",
-                "consumer": "LedDisplayController/RingLeds"
+                "provider": "LedDisplayController/StatusLeds",
+                "consumer": "LEDController/StatusLED"
+            },
+            {
+                "provider": "LedDisplayController/RingLeds",
+                "consumer": "LEDController/RingLED"
             },
             {
                 "provider": "MasterStatusObserver/MasterStatus",

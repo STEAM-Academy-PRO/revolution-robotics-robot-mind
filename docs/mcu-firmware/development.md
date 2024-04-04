@@ -29,8 +29,7 @@ Building a debug firmware
 ```bash
 python -m tools.gen_version
 python -m tools.generate_makefile
-# currently the generated runtime is checked in, so this is not needed
-# cglue --generate --cglue-output=rrrc/generated_runtime
+cglue --generate
 make all config=debug
 
 # if you want to include the firmware in a pi-firmware package
@@ -46,8 +45,7 @@ Building a release bootloader
 ```bash
 python -m tools.gen_version
 python -m tools.generate_makefile
-# currently the generated runtime is checked in, so this is not needed
-# cglue --generate --cglue-output=rrrc/generated_runtime
+cglue --generate
 make all config=release
 
 # if you want to include the firmware in a pi-firmware package

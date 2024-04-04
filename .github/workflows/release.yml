@@ -37,6 +37,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install dependencies
+        run: |
+          eval `ssh-agent -s`
+          ssh-add - <<< '${{ secrets.SSH_PRIVATE_KEY }}'
+          cd mcu-firmware
+          echo 'Upgrade pip' # default pip discards cglue's package
+          python -m pip install --upgrade pip
+          pip --version
+          echo 'Install pip requirements'
+          pip install -r tools/requirements.txt
+
       - name: Install compiler
         run: |
           cd /usr/share
@@ -48,6 +59,7 @@ jobs:
       - name: Build Release bootloader
         run: |
           cd mcu-bootloader
+          cglue --generate
           make config=release -j${{ env.CPU_COUNT }}
 
       - name: Upload artifacts

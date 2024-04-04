@@ -1,0 +1,50 @@
+{
+    "name": "MasterCommunicationInterface_Bootloader",
+    "version": "1.0.0",
+    "requires": {},
+    "source_files": [
+        "i2cHal.c",
+        "MasterCommunicationInterface_Bootloader.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "MasterCommunicationInterface_Config_t": {
+            "type": "struct",
+            "fields": {
+                "default_response": "ConstByteArray_t",
+                "rx_overflow_response": "ConstByteArray_t",
+                "rx_timeout": "uint32_t"
+            }
+        }
+    },
+    "runnables": {
+        "OnInit": {},
+        "Update": {},
+        "SetResponse": {
+            "return_type": "void",
+            "arguments": {
+                "response": "ConstByteArray_t"
+            }
+        }
+    },
+    "ports": {
+        "Configuration": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "MasterCommunicationInterface_Config_t"
+        },
+        "RxTimeout": {
+            "port_type": "Event"
+        },
+        "OnMessageReceived": {
+            "port_type": "Event",
+            "arguments": {
+                "message": "ConstByteArray_t"
+            }
+        },
+        "OnTransmissionComplete": {
+            "port_type": "Event"
+        }
+    }
+}

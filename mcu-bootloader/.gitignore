@@ -6,3 +6,5 @@ Build/*
 Config/fw_version.h
 .vscode/settings.json
 .vscode/launch.json
+rrrc/generated_runtime.c
+rrrc/generated_runtime.h

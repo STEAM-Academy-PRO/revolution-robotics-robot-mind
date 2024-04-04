@@ -31,26 +31,22 @@ C_SRCS += \
 main.c \
 driver_init.c \
 atmel_start.c \
-rrrc/components/LEDController/LEDController.c \
-rrrc/components/MasterCommunicationInterface/i2cHal.c \
-rrrc/components/MasterCommunicationInterface/MasterCommunicationInterface.c \
+rrrc/components/MasterCommunicationInterface_Bootloader/i2cHal.c \
+rrrc/components/MasterCommunicationInterface_Bootloader/MasterCommunicationInterface_Bootloader.c \
 rrrc/components/UpdateManager/UpdateManager.c \
-rrrc/components/VersionProvider/VersionProvider.c \
 rrrc/flash_mapping.c \
 rrrc/runtime/comm_handlers.c \
-rrrc/utils/color.c \
-rrrc/utils/converter.c \
-rrrc/utils/crc.c \
-rrrc/utils/functions.c \
-rrrc/watchdog.c \
+rrrc/libraries/color.c \
+rrrc/libraries/converter.c \
+rrrc/libraries/crc.c \
+rrrc/libraries/functions.c \
+rrrc/generated_runtime.c \
+../mcu-common/CommonComponents/LEDController/LEDController.c \
+../mcu-common/CommonComponents/CRC/CRC.c \
 ../mcu-common/CommonComponents/MasterCommunication/CommunicationManager.c \
 ../mcu-common/CommonComponents/MasterCommunication/MasterCommunication.c
 
 INCLUDE_PATHS += \
-rrrc \
-rrrc/runtime \
-rrrc/include \
-rrrc/components \
 Config \
 . \
 ../mcu-common \
@@ -78,15 +74,14 @@ Config \
 ../mcu-common/CMSIS/Include \
 ../mcu-common/SEGGER/RTT \
 ../mcu-common/CommonComponents/MasterCommunication \
-rrrc/components/MasterCommunicationInterface \
-rrrc/components/LEDController \
-rrrc/components/VersionProvider \
-rrrc/components/UpdateManager \
-rrrc/include \
-rrrc/components \
+../mcu-common/CommonComponents/LEDController \
+../mcu-common/CommonComponents/CRC \
+rrrc \
 rrrc/runtime \
-rrrc/utils \
-third_party
+rrrc/components \
+rrrc/components/MasterCommunicationInterface_Bootloader \
+rrrc/components/UpdateManager \
+rrrc/libraries
 
 COMPILE_FLAGS += \
 -x c \
@@ -155,7 +150,13 @@ endif
 
 OUTPUT_FILE :=$(OUTPUT_DIR)/rrrc_samd51
 
+.PHONY: all clean
+
 all: $(OUTPUT_FILE).elf
+
+clean:
+	-@$(DEL) Build
+	@echo Removed Build directory
 
 OBJS := $(C_SRCS:%.c=$(OUTPUT_DIR)/%.o)
 C_DEPS := $(OBJS:%.o=%.d)
@@ -180,7 +181,3 @@ $(OUTPUT_FILE).elf: $(OBJS)
 	@echo Finished building target: $@
 	@$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -O binary $(OUTPUT_FILE).elf $(OUTPUT_FILE).bin
 	$(GCC_BINARY_PREFIX)size$(GCC_BINARY_SUFFIX) $(OUTPUT_FILE).elf
-
-clean:
-	-@$(DEL) Build
-	@echo Removed Build directory

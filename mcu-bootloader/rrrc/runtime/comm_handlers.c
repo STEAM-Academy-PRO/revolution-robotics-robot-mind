@@ -1,9 +1,10 @@
 #include "runtime.h"
 
 #include "flash_mapping.h"
-#include "../utils/converter.h"
+#include "libraries/converter.h"
+#include "utils.h"
 
-#include <string.h> // memcpy
+#include <string.h>
 #include "SEGGER_RTT.h"
 
 /* These constants are common between bootloader and application */
@@ -15,6 +16,7 @@ static Comm_Status_t InitializeUpdate_Start(ConstByteArray_t commandPayload, Byt
 static Comm_Status_t ProgramApplication_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 static Comm_Status_t FinalizeUpdate_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 static Comm_Status_t ReadApplicationCrc_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
+static Comm_Status_t VersionProvider_GetHardwareVersion_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 
 /* These commands relate to BootloaderControl in pi-firmware/revvy/mcu/rrrc_control.py */
 Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT] =
@@ -81,7 +83,7 @@ static Comm_Status_t ProgramApplication_Start(ConstByteArray_t commandPayload, B
     (void) responseCount;
 
     SEGGER_RTT_printf(0, "ProgramApplication\n");
-    switch (UpdateManager_Run_Program(commandPayload.bytes, commandPayload.count))
+    switch (UpdateManager_Run_WriteNextChunk(commandPayload))
     {
         case UpdateManager_Ok:
             return Comm_Status_Ok;
@@ -106,5 +108,32 @@ static Comm_Status_t FinalizeUpdate_Start(ConstByteArray_t commandPayload, ByteA
 
         default:
             return Comm_Status_Error_CommandError;
+    }
+}
+
+static Comm_Status_t VersionProvider_GetHardwareVersion_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount)
+{
+    (void) commandPayload;
+
+    static const char* hw_version_strings[] =
+    {
+        "1.0.0",
+        "1.0.1",
+        "2.0.0"
+    };
+
+    uint32_t hw = HARDWARE_VERSION;
+
+    if (hw < ARRAY_SIZE(hw_version_strings))
+    {
+        uint8_t len = strlen(hw_version_strings[hw]);
+        memcpy(response.bytes, hw_version_strings[hw], len);
+        *responseCount = len;
+
+        return Comm_Status_Ok;
+    }
+    else
+    {
+        return Comm_Status_Error_InternalError;
     }
 }
