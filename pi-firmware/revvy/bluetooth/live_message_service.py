@@ -48,11 +48,6 @@ class LiveMessageService(BlenoPrimaryService):
 
         self._robot_manager = robot_manager
 
-        # on_joystick_action is a callback that should run when LiveMessageService
-        # detects that joystick action is received from mobile app over a curtain
-        # characteristic
-        # self.__joystick_action_cb = None
-
         self._read_variable_characteristic = ReadVariableCharacteristic(
             "d4ad2a7b-57be-4803-8df0-6807073961ad", b"Variable Slots"
         )
