@@ -182,40 +182,7 @@ class LiveMessageService(BlenoPrimaryService):
         is the middle value representing joystick axis in neutral state.
         """
 
-        def joystick_axis_is_neutral(value) -> bool:
-            """
-            Value is in 1 byte range 0-255, with 127 being the middle position
-            of a joystick along that axis
-            """
-            return value == 127
-
-        def joystick_xy_is_moved(analog_values) -> bool:
-            if len(analog_values) < 2:
-                return False
-
-            x_value = analog_values[0]
-            y_value = analog_values[1]
-            for v in [x_value, y_value]:
-                if not joystick_axis_is_neutral(v):
-                    return True
-            return False
-
         command = parse_control_message(data)
-
-        # This seems like it's doing nothing...
-        joystick_xy_action = joystick_xy_is_moved(command.analog)
-        joystick_button_action = any(command.buttons)
-
-        # log(f'data: {str(data)}')
-        # log(f'analog_values: {str(analog_values)}')
-        # log(f'deadline_packed: {str(deadline_packed)}')
-        # log(f'button_values: {str(button_values)}')
-
-        # First user input action triggers global timer
-        if joystick_xy_action or joystick_button_action:
-            # log(f'joystick_xy_action: {str(joystick_xy_action)}')
-            self._robot_manager.on_joystick_action()
-
         self._robot_manager.handle_periodic_control_message(command)
         return True
 

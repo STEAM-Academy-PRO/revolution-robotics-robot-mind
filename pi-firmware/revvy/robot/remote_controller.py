@@ -226,6 +226,13 @@ class RemoteController:
         else:
             self.next_message_deadline = msg.next_deadline
 
+        # First user input action triggers global timer
+        joystick_xy_action = any([v != 127 for v in msg.analog])
+        joystick_button_action = any(msg.buttons)
+
+        if joystick_xy_action or joystick_button_action:
+            self.on_joystick_action()
+
     def link_button_to_runner(self, button_id, script_handle: ScriptHandle):
         log(f"registering callbacks for Button: {button_id}")
         log(script_handle.descriptor.source, LogLevel.DEBUG)
