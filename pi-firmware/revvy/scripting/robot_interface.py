@@ -95,7 +95,7 @@ class Wrapper(ABC):
     def __init__(self, script: "ScriptHandle", resource: Resource):
         self._resource = resource
         self._script = script
-        self._current_handle = null_handle
+        self._current_handle: BaseHandle = null_handle
 
     def try_take_resource(self, on_interrupted: Optional[Callable[[], None]] = None) -> BaseHandle:
         """
@@ -112,7 +112,7 @@ class Wrapper(ABC):
         if handle:
 
             def _release_handle() -> None:
-                self._current_handle = None
+                self._current_handle = null_handle
 
             # lints ignored because pyright doesn't understand that if hand is true,
             # it's not a null_handle
