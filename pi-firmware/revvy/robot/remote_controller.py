@@ -78,27 +78,19 @@ class RemoteController:
         self._processing_time = 0.0
         self._previous_time = None
 
-        # Joystick mode opposed to autonomous mode
-        # Difference matters for the processing_time (aka the 'global timer'),
-        # as for in simple joystick mode, processing time should not start until
-        # the user presses something on a joystick, therefore we have to
-        # know the difference in code
-        self._joystick_mode = False
+        self._joystick_mode_detected = False
+        """Whether user input was detected.
+        
+        Difference matters for the processing_time (aka the 'global timer'),
+        as for in simple joystick mode, processing time should not start until
+        the user presses something on a joystick, therefore we have to
+        know the difference in code
+        """
 
         # Wait time is in the middle of integration, we have to have default
         # behavior for mobile versions that will have zeroes in deadline field
         # Previous expectation was 200ms
         self.next_message_deadline = DEFAULT_MESSAGE_DEADLINE
-
-    def on_joystick_action(self) -> None:
-        # This is a one shot action to detect first joystick input
-        # over one entire controller (play) session
-        if self._joystick_mode:
-            return
-        log("Joystick mode ON")
-        self._joystick_mode = True
-        self._processing = True
-        self._previous_time = time.time()
 
     def reset_background_control_state(self) -> None:
         self._background_control_state = BackgroundControlState.STOPPED
@@ -112,7 +104,7 @@ class RemoteController:
         self._processing_time = 0.0
         self._background_control_state = BackgroundControlState.STOPPED
         self._previous_time = None
-        self._joystick_mode = False
+        self._joystick_mode_detected = False
 
     def process_background_command(self, cmd: BleAutonomousCmd):
         # TODO: (╯°□°）╯︵ ┻━┻
@@ -123,7 +115,7 @@ class RemoteController:
             log(f"start background program: {cmd}")
             self._background_control_state = BackgroundControlState.RUNNING
             self._control_button_pressed = AutonomousModeRequest.START
-            if not self._joystick_mode:
+            if not self._joystick_mode_detected:
                 self._processing = True
                 self._processing_time = 0.0
                 self._previous_time = time.time()
@@ -226,12 +218,25 @@ class RemoteController:
         else:
             self.next_message_deadline = msg.next_deadline
 
-        # First user input action triggers global timer
-        joystick_xy_action = any([v != 127 for v in msg.analog])
+        # Global timer needs to be started only once.
+        # Check outside of the function to avoid the function call overhead
+        if not self._joystick_mode_detected:
+            # First user input action triggers global timer
+            self.start_timer_on_interaction(msg)
+
+    def start_timer_on_interaction(self, msg: RemoteControllerCommand):
+        # Currently hardcoded for the joystick X and Y middle position.
+        # FIXME: generalize if we support more input methods
+        joystick_xy_action = msg.analog[0] != 127 or msg.analog[1] != 127
         joystick_button_action = any(msg.buttons)
 
         if joystick_xy_action or joystick_button_action:
-            self.on_joystick_action()
+            # This is a one shot action to detect first joystick input
+            # over one entire controller (play) session
+            log("Joystick mode ON")
+            self._joystick_mode_detected = True
+            self._processing = True
+            self._previous_time = time.time()
 
     def link_button_to_runner(self, button_id, script_handle: ScriptHandle):
         log(f"registering callbacks for Button: {button_id}")
