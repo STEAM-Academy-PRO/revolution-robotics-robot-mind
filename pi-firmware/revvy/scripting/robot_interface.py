@@ -282,7 +282,8 @@ class MotorPortWrapper(Wrapper):
 
                 if unit_amount == MotorConstants.UNIT_DEG:
                     # wait for movement to finish
-                    awaiter.wait()
+                    if awaiter is not None:
+                        awaiter.wait()
 
                 elif unit_amount == MotorConstants.UNIT_SEC:
                     # When moving unit is time, we set the motor to rotate "indefinitely"

@@ -8,7 +8,7 @@ from revvy.utils.logger import get_logger, LogLevel
 
 class BaseHandle(abc.ABC):
     @abc.abstractmethod
-    def __enter__(self): ...
+    def __enter__(self) -> "BaseHandle": ...
 
     @abc.abstractmethod
     def __exit__(self, exc_type, exc_val, exc_tb): ...
@@ -27,7 +27,7 @@ class BaseHandle(abc.ABC):
 
 
 class NullHandle(BaseHandle):
-    def __enter__(self):
+    def __enter__(self) -> BaseHandle:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -56,7 +56,7 @@ class ResourceHandle(BaseHandle):
         self._on_released = SimpleEventEmitter()
         self._is_interrupted = False
 
-    def __enter__(self):
+    def __enter__(self) -> BaseHandle:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
