@@ -84,8 +84,6 @@ class RobotManager:
 
         self._session_id = 0
 
-        self.on_joystick_action = self.remote_controller.on_joystick_action
-
         self._robot_state.on(RobotEvent.FATAL_ERROR, lambda *args: self.exit(RevvyStatusCode.ERROR))
 
         # Start reading status from the robot.
