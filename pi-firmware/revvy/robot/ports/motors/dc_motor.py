@@ -376,7 +376,7 @@ class DcMotorController(MotorPortDriver):
             status, self._power, self._pos, self._speed, current_task = raw_status
 
             self._update_motor_status(MotorStatus(status), current_task)
-            self.on_status_changed.trigger(self._port)
+            self.on_status_changed.trigger((self._port, current_task))
         else:
             self.log(f"Received {len(data)} bytes of data instead of {MOTOR_PACKET_SIZE_BYTES}")
 

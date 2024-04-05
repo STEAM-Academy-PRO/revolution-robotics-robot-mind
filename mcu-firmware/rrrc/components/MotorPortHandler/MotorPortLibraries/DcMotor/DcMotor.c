@@ -108,7 +108,7 @@ static bool _has_timeout_elapsed(const uint16_t* timer, uint16_t timeout)
 
 static bool _is_motor_blocked(MotorLibrary_Dc_Data_t* libdata, float u)
 {
-    if (libdata->currentSpeed != 0.0f)
+    if (libdata->prevPosDiff != 0)
     {
         return false;
     }
@@ -410,7 +410,6 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
             {
                 SEGGER_RTT_printf(0, "Motor %u: stuck\n", motorPort->port_idx);
                 libdata->motorStatus = MOTOR_STATUS_BLOCKED;
-                ignore_last_drive_request(motorPort);
                 return 0;
             }
         }

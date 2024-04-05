@@ -133,6 +133,7 @@ class DifferentialDrivetrain:
         self._log = get_logger("Drivetrain")
         self._imu = imu
         self._controller: Optional[DrivetrainController] = None
+        self.request_ids = []
 
     @property
     def yaw(self) -> float:
@@ -166,12 +167,15 @@ class DifferentialDrivetrain:
         self._motors.clear()
         self._left_motors.clear()
         self._right_motors.clear()
+        self.request_ids.clear()
 
     def _add_motor(self, motor: PortInstance[MotorPortDriver]):
         self._motors.append(motor)
 
         motor.driver.on_status_changed.add(self._on_motor_status_changed)
         motor.on_config_changed.add(self._on_motor_config_changed)
+
+        self.request_ids.append(0)
 
     def add_left_motor(self, motor: PortInstance[MotorPortDriver]):
         self._log(f"Add motor {motor.id} to left side")
@@ -186,6 +190,7 @@ class DifferentialDrivetrain:
     def _on_motor_config_changed(self, motor: PortInstance[MotorPortDriver], _):
         # if a motor config changes, remove the motor from the drivetrain
         self._motors.remove(motor)
+        self.request_ids.pop()
 
         with suppress(ValueError):
             self._left_motors.remove(motor)
@@ -193,7 +198,14 @@ class DifferentialDrivetrain:
         with suppress(ValueError):
             self._right_motors.remove(motor)
 
-    def _on_motor_status_changed(self, _) -> None:
+    def _on_motor_status_changed(self, data: tuple[PortInstance[MotorPortDriver], int]) -> None:
+        port, task_id = data
+
+        # only react to updates to our own requests
+        idx = self._motors.index(port)
+        if task_id != self.request_ids[idx]:
+            return
+
         if all(m.driver.status == MotorStatus.BLOCKED for m in self._motors):
             self._log("All motors blocked, releasing")
             self._abort_controller()
@@ -212,7 +224,7 @@ class DifferentialDrivetrain:
             *(motor.driver.create_set_power_command(0) for motor in self._left_motors),
             *(motor.driver.create_set_power_command(0) for motor in self._right_motors),
         )
-        self._interface.set_motor_port_control_value(bytes(commands))
+        self.request_ids = self._interface.set_motor_port_control_value(bytes(commands))
 
     def _apply_speeds(self, left, right, power_limit):
         commands = itertools.chain(
@@ -225,7 +237,7 @@ class DifferentialDrivetrain:
                 for motor in self._right_motors
             ),
         )
-        self._interface.set_motor_port_control_value(bytes(commands))
+        self.request_ids = self._interface.set_motor_port_control_value(bytes(commands))
 
     def _apply_positions(self, left, right, left_speed, right_speed, power_limit):
         commands = itertools.chain(
@@ -238,7 +250,7 @@ class DifferentialDrivetrain:
                 for motor in self._right_motors
             ),
         )
-        self._interface.set_motor_port_control_value(bytes(commands))
+        self.request_ids = self._interface.set_motor_port_control_value(bytes(commands))
 
     def _process_unit_speed(self, speed, unit_speed):
         if unit_speed == MotorConstants.UNIT_SPEED_RPM:
