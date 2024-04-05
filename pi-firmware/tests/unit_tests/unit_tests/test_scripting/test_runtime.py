@@ -7,7 +7,7 @@ import mock
 
 from revvy.hardware_dependent.sound import SoundControlBase
 from revvy.scripting.resource import Resource
-from revvy.scripting.robot_interface import PortCollection, RobotInterface
+from revvy.scripting.robot_interface import PortCollection
 from revvy.scripting.runtime import ScriptManager, ScriptDescriptor
 
 
@@ -98,7 +98,7 @@ def create_robot_mock():
 #     return robot_mock
 
 
-class RobotInterfaceMock(RobotInterface):
+class RobotInterfaceMock:
     def __init__(self, *args) -> None:
         pass
 
