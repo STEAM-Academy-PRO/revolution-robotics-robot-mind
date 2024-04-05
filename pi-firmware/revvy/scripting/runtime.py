@@ -160,11 +160,12 @@ class ScriptHandle(Emitter[ScriptEvent]):
 
 
 class ScriptManager:
-    def __init__(self, robot: "Robot"):
+    def __init__(self, robot: "Robot", wrapper=RobotWrapper):
         self._robot = robot
         self._globals: dict[str, Any] = {}
         self._scripts: dict[str, ScriptHandle] = {}
         self._log = get_logger("ScriptManager")
+        self._wrapper = wrapper
 
     def reset(self) -> None:
         self.stop_all_scripts()
@@ -186,7 +187,6 @@ class ScriptManager:
         script: ScriptDescriptor,
         # tests don't pass a config, which is weird and probably wrong
         config: Optional["RobotConfig"] = None,
-        robot_wrapper_class=RobotWrapper,
     ):
         # TODO: This is a not a good place here: we should not need to check if a script
         # is running, when trying to override it, lifecycle should prevent this from
@@ -200,7 +200,7 @@ class ScriptManager:
         try:
             # Note: Due to dependency injection, this is wrapped out.
             # FIXME the lint ignore shouldn't be there. Fix tests.
-            interface = robot_wrapper_class(
+            interface = self._wrapper(
                 script_handle, self._robot, config, self._robot.resources  # type: ignore tests pass a None and a mock wrapper
             )
             script_handle.on_stopping(interface.release_resources)
