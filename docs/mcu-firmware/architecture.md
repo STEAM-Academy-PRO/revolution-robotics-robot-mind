@@ -6,8 +6,8 @@ ports for external sensors and motors, as well as a 6-degree of freedom [Inertia
 to keep track of the Brain's orientation in 3D space. The firmware running on the MCU controls
 the IMU, and can be set up in runtime to interface with the configurable motor and sensor ports.
 The MCU is connected to a higher level host via [I2C](i2c.md), and implements a number of commands
-which can be used to configure and control the robot. Firmware components may expose can expose data
-using a notification mechanism called status slots **TODO write docs**.
+which can be used to configure and control the robot. Firmware components may exposedata
+using a notification mechanism called [status slots](slots.md).
 
 The firmware is broken up into smaller software components. The software component architecture is
 managed by CGlue, an in-house developed firmware architecture and toolkit. CGlue

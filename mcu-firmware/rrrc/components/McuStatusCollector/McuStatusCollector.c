@@ -10,6 +10,11 @@ static uint32_t slots = 0u;
 static uint8_t versions[16];
 static uint8_t start_at_slot = 0u;
 
+/**
+ * Returns whether the slot was read successfully.
+ * If this function returns false, the slots contains data that should be read but does not fit
+ * into the destination buffer.
+ */
 static bool _read_slot(uint8_t index, uint8_t* pData, uint8_t bufferSize, uint8_t* slotSize)
 {
     static uint8_t buffer[64];
@@ -55,6 +60,11 @@ static bool _read_slot(uint8_t index, uint8_t* pData, uint8_t bufferSize, uint8_
     return slot_fits;
 }
 
+static bool is_slot_enabled(uint32_t slot)
+{
+    return (slots & (1u << slot)) != 0u;
+}
+
 /* End User Code Section: Declarations */
 
 void McuStatusCollector_Run_Reset(void)
@@ -72,22 +82,28 @@ void McuStatusCollector_Run_Reset(void)
 uint8_t McuStatusCollector_Run_Read(ByteArray_t destination)
 {
     /* Begin User Code Section: Read:run Start */
-    uint8_t idx = 0u;
+    uint8_t written = 0u;
 
     uint8_t start_at = start_at_slot;
     bool all_read = true;
 
+    /*
+     * We keep a cursor of which slot we need to read next. This ensures that if not every
+     * slot fits into the destination buffer, we can continue reading the remaining slots
+     * in the next call to this function.
+     */
     for (uint32_t i = start_at; i < 32u; i++)
     {
-        if ((slots & (1u << i)) != 0u) /* < slot enabled? */
+        if (is_slot_enabled(i))
         {
             uint8_t slotSize = 0u;
-            if (_read_slot(i, &destination.bytes[idx], destination.count - idx, &slotSize))
+            if (_read_slot(i, &destination.bytes[written], destination.count - written, &slotSize))
             {
-                idx += slotSize;
+                written += slotSize;
             }
             else
             {
+                /* Record which slot didn't fit, so we can start from here next time */
                 start_at_slot = i;
                 all_read = false;
                 break;
@@ -97,17 +113,20 @@ uint8_t McuStatusCollector_Run_Read(ByteArray_t destination)
 
     if (all_read)
     {
+        /* If we read all slots so far from the end of the list,
+         * we can continue from the beginning */
         for (uint32_t i = 0u; i < start_at; i++)
         {
-            if ((slots & (1u << i)) != 0u) /* < slot enabled? */
+            if (is_slot_enabled(i))
             {
                 uint8_t slotSize = 0u;
-                if (_read_slot(i, &destination.bytes[idx], destination.count - idx, &slotSize))
+                if (_read_slot(i, &destination.bytes[written], destination.count - written, &slotSize))
                 {
-                    idx += slotSize;
+                    written += slotSize;
                 }
                 else
                 {
+                    /* Record which slot didn't fit, so we can start from here next time */
                     start_at_slot = i;
                     break;
                 }
@@ -117,7 +136,10 @@ uint8_t McuStatusCollector_Run_Read(ByteArray_t destination)
 
     /* End User Code Section: Read:run Start */
     /* Begin User Code Section: Read:run End */
-    return idx;
+
+    /* We return how many bytes we wrote into the buffer */
+    return written;
+
     /* End User Code Section: Read:run End */
 }
 
