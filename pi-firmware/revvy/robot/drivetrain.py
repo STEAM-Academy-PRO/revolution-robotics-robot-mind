@@ -63,6 +63,13 @@ class TurnController(DrivetrainController):
         self._turn_angle = turn_angle
         self._start_angle = drivetrain.yaw
         self._last_yaw_change_time = Stopwatch()
+
+        # We store the last yaw angle and use it to detect if the robot is stuck.
+        # If the yaw angle does not change for 3 seconds, we cancel the controller.
+        # We're sensitive to changes larger than 0.5 degrees to avoid false positives due to noise.
+        # This value starts from `None` which causes the controller to drive the motors on the first
+        # update. This is a bit of a hack, but we need the motors to turn in order for `update` to
+        # be called again.
         self._last_yaw_angle = None
 
         super().__init__(drivetrain)
@@ -77,7 +84,7 @@ class TurnController(DrivetrainController):
             # goal reached or someone picked up the robot and started turning it by hand in the wrong direction?
             self._awaiter.finish()
 
-        elif self._last_yaw_angle != yaw:
+        elif self._last_yaw_angle is None or abs(self._last_yaw_angle - yaw) > 0.5:
             self._last_yaw_angle = yaw
             self._last_yaw_change_time.reset()
 
