@@ -12,11 +12,7 @@
 #endif /* COMPONENT_TYPES_LED_CONTROLLER_H_ */
 
 /* Begin User Code Section: Declarations */
-/*
-FIXME: CGlue runtime generator does not include stdbool.h if no declared type uses it.
-The generator should not ignore the types used by port definitions.
-*/
-#include <stdbool.h>
+
 /* End User Code Section: Declarations */
 
 void LEDController_Run_OnInit(void);
