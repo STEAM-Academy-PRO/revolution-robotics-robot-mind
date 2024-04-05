@@ -435,57 +435,17 @@ Control.terminate_all()
     controller.wait_for_scripts_to_end()
 
 
-def motor_timeout(log: Logger, controller: ProgrammedRobotController):
-    def fail_on_script_error(*e) -> None:
-        # In this test, if we encounter an error, let's just stop and exit
-        controller.robot_manager.exit(RevvyStatusCode.ERROR)
-
-    controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
-    controller.with_timeout(5.0)
-
-    config = RobotConfig()
-    config.add_motor(Motors.EmulatedRevvyMotor_CCW, "motor1")
-    config.add_motor(Motors.EmulatedRevvyMotor, "motor2")
-    config.add_motor(None, "motor3")
-    config.add_motor(Motors.EmulatedRevvyMotor, "motor4")
-    config.add_motor(None, "motor5")
-    config.add_motor(None, "motor6")
-
-    config.drivetrain.left.append(1)
-    config.drivetrain.right.append(2)
-
-    config.process_script(
-        {
-            "assignments": {"buttons": [{"id": 1, "priority": 0}]},
-            "pythonCode": b64_encode_str(
-                """
-robot.turn(direction=Motor.DIRECTION_LEFT, rotation=90, unit_rotation=Motor.UNIT_TURN_ANGLE, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
-"""
-            ),
-        },
-        0,
-    )
-
-    controller.configure(config)
-
-    log("Start script")
-    controller.press_button(1)
-
-    controller.wait_for_scripts_to_end()
-
-
 if __name__ == "__main__":
     run_test_scenarios(
         [
-            # can_play_sound,
-            # can_stop_script_with_long_sleep,
-            # sensors_can_be_read,
-            # test_motor_for_i2c_bug,
-            # motors_dont_cause_errors,
-            # trying_to_access_uncofigured_motor_raises_error,
-            # trying_to_access_uncofigured_sensor_raises_error,
-            # trying_to_drive_without_drivetrain_motors_is_no_op,
-            # failing_to_take_resource_from_lower_prio_script_should_not_error,
-            motor_timeout
+            can_play_sound,
+            can_stop_script_with_long_sleep,
+            sensors_can_be_read,
+            test_motor_for_i2c_bug,
+            motors_dont_cause_errors,
+            trying_to_access_uncofigured_motor_raises_error,
+            trying_to_access_uncofigured_sensor_raises_error,
+            trying_to_drive_without_drivetrain_motors_is_no_op,
+            failing_to_take_resource_from_lower_prio_script_should_not_error,
         ]
     )
