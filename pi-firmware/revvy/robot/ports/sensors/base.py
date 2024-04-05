@@ -79,5 +79,5 @@ class NullSensor(SensorPortDriver):
         return 0
 
     @property
-    def raw_value(self):
-        return 0
+    def raw_value(self) -> bytes:
+        return bytes()

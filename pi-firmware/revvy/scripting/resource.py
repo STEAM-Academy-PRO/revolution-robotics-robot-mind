@@ -1,6 +1,6 @@
 import abc
 from threading import Lock
-from typing import Callable, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
 from revvy.utils.emitter import SimpleEventEmitter
 from revvy.utils.logger import get_logger, LogLevel
@@ -14,7 +14,7 @@ class BaseHandle(abc.ABC):
     def __exit__(self, exc_type, exc_val, exc_tb): ...
 
     @abc.abstractmethod
-    def __bool__(self): ...
+    def __bool__(self) -> bool: ...
 
     @abc.abstractmethod
     def interrupt(self): ...
@@ -23,7 +23,9 @@ class BaseHandle(abc.ABC):
     def release(self): ...
 
     @abc.abstractmethod
-    def run_uninterruptable(self, callback): ...
+    def run_uninterruptable(
+        self, callback
+    ) -> Optional[Any]: ...  # todo: return type of the callback
 
 
 class NullHandle(BaseHandle):
@@ -33,7 +35,7 @@ class NullHandle(BaseHandle):
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return False
 
     def interrupt(self):
@@ -42,7 +44,7 @@ class NullHandle(BaseHandle):
     def release(self):
         pass
 
-    def run_uninterruptable(self, callback):
+    def run_uninterruptable(self, callback) -> Optional[Any]:
         pass
 
 
@@ -62,7 +64,7 @@ class ResourceHandle(BaseHandle):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.release()
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return True
 
     @property
@@ -81,7 +83,7 @@ class ResourceHandle(BaseHandle):
         self._is_interrupted = True
         self.on_interrupted.trigger()
 
-    def run_uninterruptable(self, callback):
+    def run_uninterruptable(self, callback) -> Optional[Any]:
         with self._resource:
             if not self._is_interrupted:
                 return callback()

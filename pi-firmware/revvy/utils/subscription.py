@@ -1,7 +1,6 @@
 """ Simple type-safe dispose util """
 
 from abc import ABC, abstractmethod
-from ctypes import Array
 
 
 class Disposable(ABC):
@@ -17,7 +16,7 @@ class DisposableArray:
     """Collection of sensor data wrappers that can be disposed easily."""
 
     def __init__(self):
-        self._subscriptions: Array[Disposable] = []
+        self._subscriptions: list[Disposable] = []
 
     def add(self, subscription: Disposable):
         """Append element to list."""

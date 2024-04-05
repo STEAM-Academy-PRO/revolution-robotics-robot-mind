@@ -282,7 +282,7 @@ class MotorPortWrapper(Wrapper):
 
                 if unit_amount == MotorConstants.UNIT_DEG:
                     # wait for movement to finish
-                    if awaiter is not None:
+                    if awaiter:  # can be None if resource is interrupted by another script
                         awaiter.wait()
 
                 elif unit_amount == MotorConstants.UNIT_SEC:
@@ -754,9 +754,6 @@ class RobotWrapper(RobotInterface):
         self._sound.force_release_resource()
         self._ring_led.force_release_resource()
         self._drivetrain.force_release_resource()
-
-    def time(self):
-        return self._robot.time
 
     @property
     def robot(self):
