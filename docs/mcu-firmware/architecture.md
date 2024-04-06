@@ -9,6 +9,28 @@ The MCU is connected to a higher level host via [I2C](i2c.md), and implements a 
 which can be used to configure and control the robot. Firmware components may exposedata
 using a notification mechanism called [status slots](slots.md).
 
+```
+                  ┌─────────┐
+                  │Raspberry│
+                  └────▲────┘
+                       │ I2C (polling + commands)
+                       │
+┌──────┐               │               ┌──────┐
+│Motor1│◄──┐ Motor     │    Motor  ┌──►│Motor4│
+├──────┤   │ iface  ┌──▼──┐ iface  │   ├──────┤
+│Motor2│◄──┼────────► MCU ◄────────┼──►│Motor5│
+├──────┤   │        └▲─▲──┘        │   ├──────┤
+│Motor3│◄──┘  ┌───┐  │ │           └──►│Motor6│
+└──────┘      │IMU◄──┘ │               └──────┘
+              └───┘    │ Sensor iface
+                       │ (digital, analog, i2c)
+           ┌───────┬───┴───┬───────┐
+           │       │       │       │
+       ┌───▼───┬───▼───┬───▼───┬───▼───┐
+       │Sensor1│Sensor2│Sensor3│Sensor4│
+       └───────┴───────┴───────┴───────┘
+```
+
 The firmware is broken up into smaller software components. The software component architecture is
 managed by CGlue, an in-house developed firmware architecture and toolkit. CGlue
 generates component boilerplate code using component descriptor `json` files, checks component
