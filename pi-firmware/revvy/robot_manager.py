@@ -12,6 +12,8 @@ import time
 from threading import Event
 
 from revvy.mcu.rrrc_control import RevvyTransportBase
+from revvy.robot.ports.common import PortInstance
+from revvy.robot.ports.motors.base import MotorPortDriver
 from revvy.robot.robot import Robot
 from revvy.robot.remote_controller import (
     AutonomousModeRequest,
@@ -291,13 +293,12 @@ class RobotManager:
         for motor in self._robot.motors:
             driver = motor.configure(config.motors[motor.id])
 
-            # We used to send up power and speed too, but we do not seem to use it anywhere.
-            # Angle could however be sent back up.
-            # Note that we reduce the ID here, so we do not need that anywhere else.
-            # This way we have motors 0-5 in RobotState already. Just a simple array.
-            driver.on_status_changed.add(
-                lambda p: self._robot_state.set_motor_angle(p.id - 1, p.driver.pos)
-            )
+            # Listen to data changes and update the robot state with new motor angles.
+            def on_status_change(data: tuple[PortInstance[MotorPortDriver], int]):
+                port = data[0]
+                self._robot_state.set_motor_angle(port.id, port.driver.pos)
+
+            driver.on_status_changed.add(on_status_change)
 
         for motor_id in config.drivetrain.left:
             self._robot.drivetrain.add_left_motor(self._robot.motors[motor_id])

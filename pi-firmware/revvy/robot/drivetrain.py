@@ -63,6 +63,13 @@ class TurnController(DrivetrainController):
         self._turn_angle = turn_angle
         self._start_angle = drivetrain.yaw
         self._last_yaw_change_time = Stopwatch()
+
+        # We store the last yaw angle and use it to detect if the robot is stuck.
+        # If the yaw angle does not change for 3 seconds, we cancel the controller.
+        # We're sensitive to changes larger than 0.5 degrees to avoid false positives due to noise.
+        # This value starts from `None` which causes the controller to drive the motors on the first
+        # update. This is a bit of a hack, but we need the motors to turn in order for `update` to
+        # be called again.
         self._last_yaw_angle = None
 
         super().__init__(drivetrain)
@@ -77,7 +84,7 @@ class TurnController(DrivetrainController):
             # goal reached or someone picked up the robot and started turning it by hand in the wrong direction?
             self._awaiter.finish()
 
-        elif self._last_yaw_angle != yaw:
+        elif self._last_yaw_angle is None or abs(self._last_yaw_angle - yaw) > 0.5:
             self._last_yaw_angle = yaw
             self._last_yaw_change_time.reset()
 
@@ -126,6 +133,7 @@ class DifferentialDrivetrain:
         self._log = get_logger("Drivetrain")
         self._imu = imu
         self._controller: Optional[DrivetrainController] = None
+        self.request_ids = []
 
     @property
     def yaw(self) -> float:
@@ -159,12 +167,15 @@ class DifferentialDrivetrain:
         self._motors.clear()
         self._left_motors.clear()
         self._right_motors.clear()
+        self.request_ids.clear()
 
     def _add_motor(self, motor: PortInstance[MotorPortDriver]):
         self._motors.append(motor)
 
         motor.driver.on_status_changed.add(self._on_motor_status_changed)
         motor.on_config_changed.add(self._on_motor_config_changed)
+
+        self.request_ids.append(0)
 
     def add_left_motor(self, motor: PortInstance[MotorPortDriver]):
         self._log(f"Add motor {motor.id} to left side")
@@ -179,6 +190,7 @@ class DifferentialDrivetrain:
     def _on_motor_config_changed(self, motor: PortInstance[MotorPortDriver], _):
         # if a motor config changes, remove the motor from the drivetrain
         self._motors.remove(motor)
+        self.request_ids.pop()
 
         with suppress(ValueError):
             self._left_motors.remove(motor)
@@ -186,7 +198,14 @@ class DifferentialDrivetrain:
         with suppress(ValueError):
             self._right_motors.remove(motor)
 
-    def _on_motor_status_changed(self, _) -> None:
+    def _on_motor_status_changed(self, data: tuple[PortInstance[MotorPortDriver], int]) -> None:
+        port, task_id = data
+
+        # only react to updates to our own requests
+        idx = self._motors.index(port)
+        if task_id != self.request_ids[idx]:
+            return
+
         if all(m.driver.status == MotorStatus.BLOCKED for m in self._motors):
             self._log("All motors blocked, releasing")
             self._abort_controller()
@@ -205,7 +224,7 @@ class DifferentialDrivetrain:
             *(motor.driver.create_set_power_command(0) for motor in self._left_motors),
             *(motor.driver.create_set_power_command(0) for motor in self._right_motors),
         )
-        self._interface.set_motor_port_control_value(bytes(commands))
+        self.request_ids = self._interface.set_motor_port_control_value(bytes(commands))
 
     def _apply_speeds(self, left, right, power_limit):
         commands = itertools.chain(
@@ -218,7 +237,7 @@ class DifferentialDrivetrain:
                 for motor in self._right_motors
             ),
         )
-        self._interface.set_motor_port_control_value(bytes(commands))
+        self.request_ids = self._interface.set_motor_port_control_value(bytes(commands))
 
     def _apply_positions(self, left, right, left_speed, right_speed, power_limit):
         commands = itertools.chain(
@@ -231,7 +250,7 @@ class DifferentialDrivetrain:
                 for motor in self._right_motors
             ),
         )
-        self._interface.set_motor_port_control_value(bytes(commands))
+        self.request_ids = self._interface.set_motor_port_control_value(bytes(commands))
 
     def _process_unit_speed(self, speed, unit_speed):
         if unit_speed == MotorConstants.UNIT_SPEED_RPM:
