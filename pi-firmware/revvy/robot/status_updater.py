@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.logger import get_logger
 
@@ -24,17 +24,20 @@ class McuStatusUpdater:
         "reset": 13,
         "orientation": 14,
     }
-    """Class to read status from the MCU
+    """Class to read status from the MCU.
 
-    This class is the counterpart of McuStatusUpdater/McuStatusUpdaterWrapper implemented on the MCU and is used
-    to enable and read specific data slots. It was designed to read multiple pieces of data in one run to decrease
+    This class is the counterpart of the CommWrapper_McuStatusCollector, McuStatusCollector and
+    McuStatusSlots components implemented on the MCU. This class is used to enable and read specific
+    data slots.
+
+    It was designed to read multiple pieces of data in one run to decrease
     communication interface overhead, thus to allow lower latency updates"""
 
-    def __init__(self, robot: RevvyControl):
-        self._robot = robot
+    def __init__(self, interface: RevvyControl):
+        self._interface = interface
         self._is_enabled = [False] * 32
         self._is_enabled[self.mcu_updater_slots["reset"]] = True
-        self._handlers: List[Optional[StatusUpdater]] = [None] * 32
+        self._handlers: list[Optional[StatusUpdater]] = [None] * 32
         self._log = get_logger("McuStatusUpdater")
 
     def reset(self) -> None:
@@ -42,14 +45,14 @@ class McuStatusUpdater:
         self._is_enabled = [False] * 32
         self._is_enabled[self.mcu_updater_slots["reset"]] = True
         self._handlers = [None] * 32
-        self._robot.status_updater_reset()
+        self._interface.status_updater_reset()
 
     def enable_slot(self, slot, callback: StatusUpdater):
         slot_idx = self.mcu_updater_slots[slot]
         if not self._is_enabled[slot_idx]:
             self._is_enabled[slot_idx] = True
             # self._log(f'enable slot {slot_idx}')
-            self._robot.status_updater_control(slot_idx, True)
+            self._interface.status_updater_control(slot_idx, True)
         self._handlers[slot_idx] = callback
 
     def disable_slot(self, slot) -> None:
@@ -57,11 +60,11 @@ class McuStatusUpdater:
         if self._is_enabled[slot_idx]:
             self._is_enabled[slot_idx] = False
             self._log(f"disable slot {slot_idx}")
-            self._robot.status_updater_control(slot_idx, False)
+            self._interface.status_updater_control(slot_idx, False)
         self._handlers[slot_idx] = None
 
     def read(self) -> None:
-        data = self._robot.status_updater_read()
+        data = self._interface.status_updater_read()
 
         idx = 0
         while idx < len(data):

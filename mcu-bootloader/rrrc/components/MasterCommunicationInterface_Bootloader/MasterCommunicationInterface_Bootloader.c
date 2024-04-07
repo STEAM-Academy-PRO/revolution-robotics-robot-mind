@@ -56,6 +56,7 @@ void i2c_hal_tx_complete(void)
 {
     tx_complete = true;
 }
+/* End User Code Section: Declarations */
 
 void MasterCommunicationInterface_Bootloader_Run_OnInit(void)
 {

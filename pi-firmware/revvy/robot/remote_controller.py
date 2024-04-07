@@ -291,6 +291,12 @@ class RemoteControllerScheduler:
 
     def periodic_control_message_handler(self, message: RemoteControllerCommand):
         """This function is called by the ble interface to pass the received control message."""
+
+        # We want to block the BLE thread as little as possible. Therefore in this function we
+        # only swap the message and signal the controller thread that new data is available.
+        # The controller thread is waiting for the event to be set in `_wait_for_message`.
+        # Blocking the BLE thread may cause the Raspberry Pi Zero W2 to drop connection and the
+        # BLE interface to stop working.
         self._message = message
         self._data_ready_event.set()
 

@@ -16,9 +16,11 @@
 #define MOTOR_CONTROL_POSITION          ((uint8_t) 2u)
 #define MOTOR_CONTROL_POSITION_RELATIVE ((uint8_t) 3u)
 
-#define MOTOR_STATUS_NORMAL         ((uint8_t) 0u)
-#define MOTOR_STATUS_BLOCKED        ((uint8_t) 1u)
-#define MOTOR_STATUS_GOAL_REACHED   ((uint8_t) 2u)
+typedef enum {
+    DcMotorStatus_Normal = 0u,
+    DcMotorStatus_Blocked = 1u,
+    DcMotorStatus_GoalReached = 2u,
+} __attribute__((packed)) DcMotorStatus_t;
 
 #define DRIVE_CONTSTRAINED_POWER    ((uint8_t) 0u)
 #define DRIVE_CONTSTRAINED_SPEED    ((uint8_t) 1u)
@@ -69,7 +71,7 @@ typedef struct
     int32_t positionRequestBreakpoint; /** < in encoder ticks */
 
     /* last status */
-    uint8_t motorStatus;
+    DcMotorStatus_t motorStatus;
     int32_t lastPosition;
     int32_t prevPosDiff;
     float currentSpeed; /** < rpm */
@@ -81,12 +83,15 @@ typedef struct
 
 typedef struct
 {
-    uint8_t status;
+    DcMotorStatus_t status;
     uint8_t pwm;
     int32_t position;
     float speed;
     uint8_t version;
-} __attribute__((packed)) DcMotorStatus_t;
+} __attribute__((packed)) DcMotorStatusSlot_t;
+
+// assert that the struct is packed
+_Static_assert(sizeof(DcMotorStatusSlot_t) == 11u);
 
 static void _reset_timeout(uint16_t* timer)
 {
@@ -134,7 +139,7 @@ static void _update_status_data(const MotorPort_t* motorPort, int16_t pwm)
 {
     MotorLibrary_Dc_Data_t* libdata = (MotorLibrary_Dc_Data_t*) motorPort->libraryData;
 
-    DcMotorStatus_t status_struct = (DcMotorStatus_t) {
+    DcMotorStatusSlot_t status_struct = (DcMotorStatusSlot_t) {
         .status = libdata->motorStatus,
         .pwm = (uint8_t) (pwm/2), // Divide by 2 to map 0..200 (physical timer config) to 0..100 (%)
         .position = ticks_to_degrees(libdata, libdata->lastPosition),
@@ -153,7 +158,7 @@ void _reset_motor_status(MotorPort_t* motorPort)
 {
     MotorLibrary_Dc_Data_t* libdata = (MotorLibrary_Dc_Data_t*) motorPort->libraryData;
 
-    libdata->motorStatus = MOTOR_STATUS_NORMAL;
+    libdata->motorStatus = DcMotorStatus_Normal;
     _reset_timeout(&libdata->motorTimeout);
     _update_status_data(motorPort, 0);
 }
@@ -389,9 +394,9 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
         /* update status if goal is reached */
         if (distanceFromGoal < libdata->atLeastOneDegree)
         {
-            if (libdata->motorStatus != MOTOR_STATUS_GOAL_REACHED) {
+            if (libdata->motorStatus != DcMotorStatus_GoalReached) {
                 SEGGER_RTT_printf(0, "Motor %u: request %u: goal reached\n", motorPort->port_idx, libdata->currentRequest.version);
-                libdata->motorStatus = MOTOR_STATUS_GOAL_REACHED;
+                libdata->motorStatus = DcMotorStatus_GoalReached;
             }
         }
         /* calculate speed to reach requested position */
@@ -409,7 +414,7 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
             if (_has_timeout_elapsed(&libdata->motorTimeout, MOTOR_TIMEOUT_THRESHOLD))
             {
                 SEGGER_RTT_printf(0, "Motor %u: stuck\n", motorPort->port_idx);
-                libdata->motorStatus = MOTOR_STATUS_BLOCKED;
+                libdata->motorStatus = DcMotorStatus_Blocked;
                 return 0;
             }
         }
