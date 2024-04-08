@@ -3,6 +3,7 @@ from json import JSONDecodeError
 from typing import Optional, TypeVar
 
 from revvy.robot.configurations import Motors, Sensors
+from revvy.robot.ports.common import DriverConfig
 from revvy.scripting.runtime import ScriptDescriptor
 from revvy.utils.functions import b64_decode_str, str_to_func
 from revvy.scripting.builtin_scripts import builtin_scripts
@@ -40,17 +41,18 @@ class PortConfig:
     def names(self):
         return self._port_names
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int) -> Optional[DriverConfig]:
+        """Returns a DriverConfig or None if the port is not configured"""
         return self._ports.get(item)
 
-    def __setitem__(self, item, value):
+    def __setitem__(self, item: int, value: Optional[DriverConfig]):
         self._ports[item] = value
 
 
 class RemoteControlConfig:
     def __init__(self) -> None:
         self.analog = []
-        self.buttons = [None] * 32
+        self.buttons: list[Optional[ScriptDescriptor]] = [None] * 32
         self.variable_slots = []
 
 

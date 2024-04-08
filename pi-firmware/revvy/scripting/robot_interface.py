@@ -2,35 +2,27 @@
 This is the robot's Blockly API.
 Whatever code blockly generates, it compiles to python
 code that uses these functions.
-
-DANGER!!!!
-Do not delete any imports, even if they are not used,
-as the generated code MAY use it!
-
 """
 
-from abc import ABC, abstractmethod
-import struct
+from abc import ABC
 import time
 import random
 
 from functools import partial
-from math import floor, sqrt
-from numbers import Number
 from enum import Enum
 
-from typing import TYPE_CHECKING, Callable, Generic, List, NamedTuple, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Callable, Generic, NamedTuple, Optional, TypeVar, Union
 
 from revvy.robot.ports.sensors.simple import ColorSensorReading
 
 # # To have types, use this to avoid circular dependencies.
 if TYPE_CHECKING:
+    from revvy.robot.robot import Robot
     from revvy.scripting.runtime import ScriptHandle
     from revvy.robot_config import RobotConfig
     from revvy.robot.drivetrain import DifferentialDrivetrain
 
 
-from revvy.robot.configurations import Motors, Sensors
 from revvy.robot.led_ring import RingLed
 from revvy.robot.ports.motors.base import MotorConstants, MotorPortDriver
 from revvy.robot.ports.sensors.base import SensorPortDriver
@@ -191,7 +183,7 @@ class RingLedWrapper(Wrapper):
     def start_animation(self, scenario: int):
         self.using_resource(partial(self._ring_led.start_animation, scenario))
 
-    def set(self, leds: List[int], color):
+    def set(self, leds: list[int], color):
         rgb = color_string_to_rgb(color) or 0
 
         for idx in leds:
@@ -282,7 +274,7 @@ class MotorPortWrapper(Wrapper):
 
                 if unit_amount == MotorConstants.UNIT_DEG:
                     # wait for movement to finish
-                    if awaiter is not None:
+                    if awaiter:  # can be None if resource is interrupted by another script
                         awaiter.wait()
 
                 elif unit_amount == MotorConstants.UNIT_SEC:
@@ -639,7 +631,7 @@ class PortCollection(Generic[PortWrapper]):
     Used by blockly to access ports by mobile-configured names.
     """
 
-    def __init__(self, ports: List[PortWrapper]):
+    def __init__(self, ports: list[PortWrapper]):
         self._ports = ports
         self._alias_map: dict[str, int] = {}
 
@@ -663,54 +655,13 @@ class PortCollection(Generic[PortWrapper]):
         return self._ports.__iter__()
 
 
-class RobotInterface(ABC):
-    @abstractmethod
-    def time(self):
-        pass
-
-    @property
-    @abstractmethod
-    def motors(self) -> PortCollection:
-        pass
-
-    @property
-    @abstractmethod
-    def sensors(self) -> PortCollection:
-        pass
-
-    @property
-    @abstractmethod
-    def led(self):
-        pass
-
-    @property
-    @abstractmethod
-    def sound(self):
-        pass
-
-    @property
-    @abstractmethod
-    def drivetrain(self):
-        pass
-
-    @property
-    @abstractmethod
-    def imu(self):
-        pass
-
-    @abstractmethod
-    def play_tune(self, name):
-        pass
-
-
-# FIXME: do we need the base class?
-class RobotWrapper(RobotInterface):
+class RobotWrapper:
     """Wrapper class that exposes API to user-written scripts"""
 
     def __init__(
         self,
         script: "ScriptHandle",
-        robot: RobotInterface,
+        robot: "Robot",
         config: "RobotConfig",
         resources: dict,
     ):
@@ -738,7 +689,6 @@ class RobotWrapper(RobotInterface):
         # shorthand functions
         self.drive = self._drivetrain.drive
         self.turn = self._drivetrain.turn
-
         self.time = robot.time
 
     def release_resources(self, none=None):
@@ -754,9 +704,6 @@ class RobotWrapper(RobotInterface):
         self._sound.force_release_resource()
         self._ring_led.force_release_resource()
         self._drivetrain.force_release_resource()
-
-    def time(self):
-        return self._robot.time
 
     @property
     def robot(self):
@@ -886,7 +833,7 @@ class RobotWrapper(RobotInterface):
             time.sleep(delta_seconds)
         line_driver.stop()
 
-    def debug_print_colors(self, colors: List[ColorData]):
+    def debug_print_colors(self, colors: list[ColorData]):
         for i, color in enumerate(colors):
             name = "noname"
             for channel in RGBChannelSensor:
@@ -897,7 +844,7 @@ class RobotWrapper(RobotInterface):
             v = int(color.value)
             log(f"{color.red},{color.green},{color.blue}->{h},{s},{v}:{name}")
 
-    def read_rgb_sensor_data(self) -> List[ColorData]:
+    def read_rgb_sensor_data(self) -> list[ColorData]:
         sensor_data: ColorSensorReading = self._sensors["color_sensor"].read()
 
         return [

@@ -15,7 +15,7 @@ the MCU reads new data from a particular port.
 
 from abc import ABC, abstractmethod
 from collections.abc import Set
-from typing import Generic, Iterator, NamedTuple, TypeVar
+from typing import Generic, Iterator, NamedTuple, Optional, TypeVar
 
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.emitter import SimpleEventEmitter
@@ -175,7 +175,7 @@ class PortInstance(Generic[DriverType]):
     def driver(self) -> DriverType:
         return self._driver
 
-    def configure(self, config: "DriverConfig") -> DriverType:
+    def configure(self, config: Optional["DriverConfig"]) -> DriverType:
         """
         Configures the port with the given driver and configuration.
         If config is None, the port is set to not configured.
