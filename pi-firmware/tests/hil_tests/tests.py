@@ -4,7 +4,7 @@ from tests.hil_tests.hil_test_utils.runner import run_test_scenarios
 
 # IMPORTANT: make sure to import dependencies after this comment. Doing it before may break the
 # in-memory log collector and spam logs.
-from revvy.robot.configurations import Motors
+from revvy.robot.configurations import Motors, ccw_motor
 from revvy.api.programmed import ProgrammedRobotController
 from revvy.robot.robot_events import RobotEvent
 from revvy.robot_config import RobotConfig
@@ -150,7 +150,7 @@ def motors_dont_cause_errors(log: Logger, controller: ProgrammedRobotController)
     controller.with_timeout(20.0)
 
     config = RobotConfig()
-    config.add_motor(Motors.EmulatedRevvyMotor_CCW, "motor1")
+    config.add_motor(ccw_motor(Motors.EmulatedRevvyMotor), "motor1")
     config.add_motor(Motors.EmulatedRevvyMotor, "motor2")
     config.add_motor(None, "motor3")
     config.add_motor(Motors.EmulatedRevvyMotor, "motor4")
@@ -247,7 +247,7 @@ def missing_motor_does_not_block_script(log: Logger, controller: ProgrammedRobot
 
     config = RobotConfig()
     # intentionally not EmulatedRevvyMotor to test blocking behaviour
-    config.add_motor(Motors.RevvyMotor_CCW, "motor1")
+    config.add_motor(ccw_motor(Motors.RevvyMotor), "motor1")
     config.add_motor(None, "motor2")
     config.add_motor(None, "motor3")
     config.add_motor(None, "motor4")
@@ -322,7 +322,7 @@ def trying_to_access_uncofigured_motor_raises_error(
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
 
     config = RobotConfig()
-    config.add_motor(Motors.EmulatedRevvyMotor_CCW, "motor1")
+    config.add_motor(ccw_motor(Motors.EmulatedRevvyMotor), "motor1")
     config.add_motor(Motors.EmulatedRevvyMotor, "motor2")
     config.add_motor(Motors.EmulatedRevvyMotor, "motor3")
     config.add_motor(None, "motor4")

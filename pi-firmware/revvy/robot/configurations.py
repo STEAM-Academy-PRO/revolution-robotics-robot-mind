@@ -75,18 +75,6 @@ class Motors:
             "gear_ratio": 64.8,  # The gear ratio of the motor. It takes this many revolutions of the motor axle to turn the wheel once.
         },
     )
-    RevvyMotor_CCW = DriverConfig(
-        driver=DcMotorController,
-        config={
-            "speed_controller": DC_MOTOR_SPEED_PID,
-            "position_controller": DC_MOTOR_POSITION_CONFIG,
-            "acceleration_limits": [500, 500],
-            "max_current": 1.5,
-            "linearity": DC_MOTOR_LINEARITY_TABLE,
-            "encoder_resolution": -12,
-            "gear_ratio": 64.8,
-        },
-    )
     EmulatedRevvyMotor = DriverConfig(
         driver=EmulatedDcMotorController,
         config={
@@ -100,16 +88,16 @@ class Motors:
             "gear_ratio": 64.8,  # The gear ratio of the motor. It takes this many revolutions of the motor axle to turn the wheel once.
         },
     )
-    EmulatedRevvyMotor_CCW = DriverConfig(
-        driver=EmulatedDcMotorController,
+
+
+def ccw_motor(config: DriverConfig) -> DriverConfig:
+    """Returns a new configuration with the encoder resolution negated. This causes the motor to
+    rotate in the opposite direction."""
+    return DriverConfig(
+        driver=config.driver,
         config={
-            "speed_controller": DC_MOTOR_SPEED_PID,
-            "position_controller": DC_MOTOR_POSITION_CONFIG,
-            "acceleration_limits": [500, 500],
-            "max_current": 1.5,
-            "linearity": [(200, 200)],  # emulated motors are linear. First point (0, 0) is implied.
-            "encoder_resolution": -12,
-            "gear_ratio": 64.8,
+            **config.config,
+            "encoder_resolution": -config.config["encoder_resolution"],
         },
     )
 

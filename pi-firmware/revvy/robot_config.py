@@ -2,7 +2,7 @@ import json
 from json import JSONDecodeError
 from typing import Optional, TypeVar
 
-from revvy.robot.configurations import Motors, Sensors
+from revvy.robot.configurations import Motors, Sensors, ccw_motor
 from revvy.robot.ports.common import DriverConfig
 from revvy.scripting.runtime import ScriptDescriptor
 from revvy.utils.functions import b64_decode_str, str_to_func
@@ -216,8 +216,8 @@ class RobotConfig:
             Motors.RevvyMotor,
             # motor
             [
-                [Motors.RevvyMotor_CCW, Motors.RevvyMotor],  # left
-                [Motors.RevvyMotor, Motors.RevvyMotor_CCW],  # right
+                [ccw_motor(Motors.RevvyMotor), Motors.RevvyMotor],  # left
+                [Motors.RevvyMotor, ccw_motor(Motors.RevvyMotor)],  # right
             ],
         ]
 
