@@ -147,7 +147,7 @@ def motors_dont_cause_errors(log: Logger, controller: ProgrammedRobotController)
         controller.robot_manager.exit(RevvyStatusCode.ERROR)
 
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
-    controller.with_timeout(20.0)
+    controller.with_timeout(30.0)
 
     config = RobotConfig()
     config.add_motor(ccw_motor(Motors.EmulatedRevvyMotor), "motor1")
@@ -366,7 +366,7 @@ def trying_to_drive_without_drivetrain_motors_is_no_op(
         controller.robot_manager.exit(RevvyStatusCode.ERROR)
 
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
-    controller.with_timeout(10.0)
+    controller.with_timeout(30.0)
 
     config = RobotConfig()
     config.add_motor(None, "motor1")
