@@ -217,9 +217,9 @@ class RevvyBLE:
     def start(self) -> None:
         """Switch interface on, start the robot."""
 
-        def status() -> int:
+        def service_status(service: str) -> int:
             bluetooth_status = subprocess.run(
-                ["/usr/bin/systemctl", "status", "bluetooth.target"],
+                ["/usr/bin/systemctl", "status", service],
                 capture_output=True,
                 check=False,
             )
@@ -228,16 +228,33 @@ class RevvyBLE:
 
             return bluetooth_status.returncode
 
-        if status() != 0:
+        # the old service descriptor contained a circular dependency, which means systemd
+        # started up dependencies in a different order than we expected. This caused the
+        # bluetooth service to not be started when we tried to start the revvy service.
+        with open("/etc/systemd/system/revvy.service", "r") as f:
+            is_old = "WantedBy=multi-user.target" in f.read()
+
+        if is_old:
+            service = "bluetooth.service"
+        else:
+            service = "bluetooth.target"
+
+        if service_status(service) != 0:
             self._log("Bluetooth service not running, waiting for it to start")
             stopwatch = Stopwatch()
             timeout = True
             while stopwatch.elapsed < 10:
-                if status() == 0:
+                if service_status(service) == 0:
                     timeout = False
                     break
             if timeout:
                 raise TimeoutError("Bluetooth service did not start in time, exiting")
+
+        if is_old:
+            # This is a bit longer than measured startup time of bluetooth.service. For some reason
+            # systemd immediately reports the service as started, but it takes a bit longer for the
+            # bluetooth functionality to be available.
+            time.sleep(1.5)
 
         self._bleno.start()
         self._robot_manager.robot_start()
