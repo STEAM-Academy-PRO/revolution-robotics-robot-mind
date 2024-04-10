@@ -175,12 +175,12 @@ robot.drivetrain.set_speed(direction=Motor.DIRECTION_BACK, speed=75, unit_speed=
 
 robot.drive(direction=Motor.DIRECTION_FWD, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
 robot.drive(direction=Motor.DIRECTION_FWD, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
-robot.drive(direction=Motor.DIRECTION_FWD, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
-robot.drive(direction=Motor.DIRECTION_FWD, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
+robot.drive(direction=Motor.DIRECTION_FWD, rotation=1, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
+robot.drive(direction=Motor.DIRECTION_FWD, rotation=1, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
 robot.drive(direction=Motor.DIRECTION_BACK, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
 robot.drive(direction=Motor.DIRECTION_BACK, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
-robot.drive(direction=Motor.DIRECTION_BACK, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
-robot.drive(direction=Motor.DIRECTION_BACK, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
+robot.drive(direction=Motor.DIRECTION_BACK, rotation=1, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
+robot.drive(direction=Motor.DIRECTION_BACK, rotation=1, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
 
 # blockly only generates unit_speed=RPM
 # beware that UNIT_TURN_ANGLE turns take 3 seconds to time out
@@ -195,14 +195,14 @@ robot.motors["motor4"].move(direction=Motor.DIRECTION_FWD, amount=0.1, unit_amou
 robot.motors["motor4"].move(direction=Motor.DIRECTION_FWD, amount=0.1, unit_amount=Motor.UNIT_SEC, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
 robot.motors["motor4"].move(direction=Motor.DIRECTION_FWD, amount=3, unit_amount=Motor.UNIT_DEG, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
 robot.motors["motor4"].move(direction=Motor.DIRECTION_FWD, amount=3, unit_amount=Motor.UNIT_DEG, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
-robot.motors["motor4"].move(direction=Motor.DIRECTION_FWD, amount=3, unit_amount=Motor.UNIT_ROT, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
-robot.motors["motor4"].move(direction=Motor.DIRECTION_FWD, amount=3, unit_amount=Motor.UNIT_ROT, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
+robot.motors["motor4"].move(direction=Motor.DIRECTION_FWD, amount=1, unit_amount=Motor.UNIT_ROT, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
+robot.motors["motor4"].move(direction=Motor.DIRECTION_FWD, amount=1, unit_amount=Motor.UNIT_ROT, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
 robot.motors["motor4"].move(direction=Motor.DIRECTION_BACK, amount=0.1, unit_amount=Motor.UNIT_SEC, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
 robot.motors["motor4"].move(direction=Motor.DIRECTION_BACK, amount=0.1, unit_amount=Motor.UNIT_SEC, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
 robot.motors["motor4"].move(direction=Motor.DIRECTION_BACK, amount=3, unit_amount=Motor.UNIT_DEG, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
 robot.motors["motor4"].move(direction=Motor.DIRECTION_BACK, amount=3, unit_amount=Motor.UNIT_DEG, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
-robot.motors["motor4"].move(direction=Motor.DIRECTION_BACK, amount=3, unit_amount=Motor.UNIT_ROT, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
-robot.motors["motor4"].move(direction=Motor.DIRECTION_BACK, amount=3, unit_amount=Motor.UNIT_ROT, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
+robot.motors["motor4"].move(direction=Motor.DIRECTION_BACK, amount=1, unit_amount=Motor.UNIT_ROT, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
+robot.motors["motor4"].move(direction=Motor.DIRECTION_BACK, amount=1, unit_amount=Motor.UNIT_ROT, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
 robot.motors["motor4"].spin(direction=Motor.DIRECTION_FWD, rotation=75, unit_rotation=Motor.UNIT_SPEED_RPM)
 robot.motors["motor4"].spin(direction=Motor.DIRECTION_FWD, rotation=75, unit_rotation=Motor.UNIT_SPEED_PWR)
 robot.motors["motor4"].spin(direction=Motor.DIRECTION_BACK, rotation=75, unit_rotation=Motor.UNIT_SPEED_RPM)
@@ -271,12 +271,12 @@ robot.drivetrain.set_speed(direction=Motor.DIRECTION_BACK, speed=75, unit_speed=
 
 robot.drive(direction=Motor.DIRECTION_FWD, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
 robot.drive(direction=Motor.DIRECTION_FWD, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
-robot.drive(direction=Motor.DIRECTION_FWD, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
-robot.drive(direction=Motor.DIRECTION_FWD, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
+robot.drive(direction=Motor.DIRECTION_FWD, rotation=1, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
+robot.drive(direction=Motor.DIRECTION_FWD, rotation=1, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
 robot.drive(direction=Motor.DIRECTION_BACK, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
 robot.drive(direction=Motor.DIRECTION_BACK, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
-robot.drive(direction=Motor.DIRECTION_BACK, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
-robot.drive(direction=Motor.DIRECTION_BACK, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
+robot.drive(direction=Motor.DIRECTION_BACK, rotation=1, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
+robot.drive(direction=Motor.DIRECTION_BACK, rotation=1, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
 
 # blockly only generates unit_speed=RPM
 # beware that UNIT_TURN_ANGLE turns take 3 seconds to time out
@@ -291,8 +291,8 @@ robot.motors["motor1"].move(direction=Motor.DIRECTION_FWD, amount=0.1, unit_amou
 robot.motors["motor1"].move(direction=Motor.DIRECTION_FWD, amount=0.1, unit_amount=Motor.UNIT_SEC, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
 robot.motors["motor1"].move(direction=Motor.DIRECTION_FWD, amount=3, unit_amount=Motor.UNIT_DEG, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
 robot.motors["motor1"].move(direction=Motor.DIRECTION_FWD, amount=3, unit_amount=Motor.UNIT_DEG, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
-robot.motors["motor1"].move(direction=Motor.DIRECTION_FWD, amount=3, unit_amount=Motor.UNIT_ROT, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
-robot.motors["motor1"].move(direction=Motor.DIRECTION_FWD, amount=3, unit_amount=Motor.UNIT_ROT, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
+robot.motors["motor1"].move(direction=Motor.DIRECTION_FWD, amount=1, unit_amount=Motor.UNIT_ROT, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
+robot.motors["motor1"].move(direction=Motor.DIRECTION_FWD, amount=1, unit_amount=Motor.UNIT_ROT, limit=75, unit_limit=Motor.UNIT_SPEED_PWR)
 robot.motors["motor1"].spin(direction=Motor.DIRECTION_FWD, rotation=75, unit_rotation=Motor.UNIT_SPEED_RPM)
 robot.motors["motor1"].spin(direction=Motor.DIRECTION_FWD, rotation=75, unit_rotation=Motor.UNIT_SPEED_PWR)
 robot.motors["motor1"].stop(action=Motor.ACTION_RELEASE)
@@ -391,12 +391,12 @@ robot.drivetrain.set_speed(direction=Motor.DIRECTION_BACK, speed=75, unit_speed=
 
 robot.drive(direction=Motor.DIRECTION_FWD, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
 robot.drive(direction=Motor.DIRECTION_FWD, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
-robot.drive(direction=Motor.DIRECTION_FWD, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
-robot.drive(direction=Motor.DIRECTION_FWD, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
+robot.drive(direction=Motor.DIRECTION_FWD, rotation=1, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
+robot.drive(direction=Motor.DIRECTION_FWD, rotation=1, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
 robot.drive(direction=Motor.DIRECTION_BACK, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
 robot.drive(direction=Motor.DIRECTION_BACK, rotation=0.1, unit_rotation=Motor.UNIT_SEC, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
-robot.drive(direction=Motor.DIRECTION_BACK, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
-robot.drive(direction=Motor.DIRECTION_BACK, rotation=3, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
+robot.drive(direction=Motor.DIRECTION_BACK, rotation=1, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
+robot.drive(direction=Motor.DIRECTION_BACK, rotation=1, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
 
 # blockly only generates unit_speed=RPM
 robot.turn(direction=Motor.DIRECTION_LEFT, rotation=90, unit_rotation=Motor.UNIT_TURN_ANGLE, speed=75, unit_speed=Motor.UNIT_SPEED_RPM)
