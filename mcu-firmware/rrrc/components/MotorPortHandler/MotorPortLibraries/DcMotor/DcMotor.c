@@ -112,7 +112,7 @@ static void emulator_tick(MotorLibrary_Dc_Data_t* libdata, int16_t pwm, float dt
     const float K = 50.0f; // RPM / %PWM
     libdata->emulatedSpeed = K * (float) pwm;
 
-    if (libdata->emulatedSpeed < MIN_SPEED)
+    if (fabsf(libdata->emulatedSpeed) < MIN_SPEED)
     {
         libdata->emulatedSpeed = 0.0f;
     }
