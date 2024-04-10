@@ -77,6 +77,7 @@ typedef struct
     int32_t prevPosDiff;
     float currentSpeed; /** < rpm */
     uint16_t motorTimeout;
+    uint8_t lastCreatedCommandVersion;
 
     /* current status */
     int32_t position;
@@ -242,6 +243,7 @@ static void initialize_driver(MotorPort_t* motorPort, bool isEmulated)
     libdata->prevPosDiff = 0;
     libdata->currentSpeed = 0.0f;
     libdata->lastPosition = 0;
+    libdata->lastCreatedCommandVersion = 0u;
 
     /* use linear characteristic by default */
     libdata->nonlinearity_xs[0] = 0.0f;
@@ -810,10 +812,11 @@ MotorLibraryStatus_t DcMotor_CreateDriveRequest(const MotorPort_t* motorPort, co
         return MotorLibraryStatus_InputError;
     }
 
-    const MotorLibrary_Dc_Data_t* libdata = (const MotorLibrary_Dc_Data_t*) motorPort->libraryData;
+    MotorLibrary_Dc_Data_t* libdata = (MotorLibrary_Dc_Data_t*) motorPort->libraryData;
 
     /* make sure the request won't get ignored if the caller decides to apply it */
-    driveRequest->version = libdata->currentRequest.version + 1u;
+    libdata->lastCreatedCommandVersion += 1u;
+    driveRequest->version = libdata->lastCreatedCommandVersion;
 
     switch (data[0])
     {
