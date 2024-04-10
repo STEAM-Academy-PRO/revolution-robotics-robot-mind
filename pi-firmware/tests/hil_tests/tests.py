@@ -514,6 +514,46 @@ Control.terminate_all()
     controller.wait_for_scripts_to_end()
 
 
+@with_timeout(30)
+def move_does_not_block_forever(log: Logger, controller: ProgrammedRobotController):
+    """
+    While the exactly expected behaviour is currently undefined, an AttributeError due to an
+    incorrect resource handle is definitely not what we want.
+    """
+
+    def fail_on_script_error(*e) -> None:
+        # In this test, if we encounter an error, let's just stop and exit
+        controller.robot_manager.exit(RevvyStatusCode.ERROR)
+
+    controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
+
+    config = RobotConfig()
+    config.add_motor(Motors.EmulatedRevvyMotor, "motor1")
+
+    config.drivetrain.left.append(1)
+
+    config.process_script(
+        {
+            "assignments": {"buttons": [{"id": 1, "priority": 1}]},
+            "pythonCode": b64_encode_str(
+                """
+for i in range(5):
+    robot.log(f"Move {i}")
+    robot.drive(direction=Motor.DIRECTION_FWD, rotation=1, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
+    robot.drive(direction=Motor.DIRECTION_BACK, rotation=1, unit_rotation=Motor.UNIT_ROT, speed=75, unit_speed=Motor.UNIT_SPEED_PWR)
+"""
+            ),
+        },
+        0,
+    )
+
+    controller.configure(config)
+
+    controller.press_button(1)
+
+    controller.wait_for_scripts_to_end()
+
+
 if __name__ == "__main__":
     run_test_scenarios(
         [
@@ -521,6 +561,7 @@ if __name__ == "__main__":
             can_stop_script_with_long_sleep,
             sensors_can_be_read,
             test_motor_for_i2c_bug,
+            move_does_not_block_forever,
             motors_dont_cause_errors,
             missing_motor_does_not_block_script,
             trying_to_access_uncofigured_motor_raises_error,

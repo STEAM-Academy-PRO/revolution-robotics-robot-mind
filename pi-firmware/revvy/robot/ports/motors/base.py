@@ -44,6 +44,11 @@ class MotorPortDriver(PortDriver):
 
     @property
     @abstractmethod
+    def active_request_id(self) -> int:
+        """Returns the request ID that was last read back from the MCU."""
+
+    @property
+    @abstractmethod
     def speed(self) -> float: ...
 
     @property
@@ -93,6 +98,10 @@ class NullMotor(MotorPortDriver):
     @property
     def status(self) -> MotorStatus:
         return MotorStatus.NORMAL
+
+    @property
+    def active_request_id(self) -> int:
+        return 0
 
     @property
     def speed(self) -> float:

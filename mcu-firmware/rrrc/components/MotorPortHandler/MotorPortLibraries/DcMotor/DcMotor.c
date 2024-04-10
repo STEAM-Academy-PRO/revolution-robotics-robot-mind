@@ -25,7 +25,11 @@ typedef enum {
 #define DRIVE_CONTSTRAINED_POWER    ((uint8_t) 0u)
 #define DRIVE_CONTSTRAINED_SPEED    ((uint8_t) 1u)
 
-#define MOTOR_TIMEOUT_THRESHOLD     ((uint16_t) 10u)   /** < 100ms @ 10ms update */
+/* The time it takes to realize that the motors can't move */
+#define MOTOR_TIMEOUT_THRESHOLD     ((uint16_t) 10u)  /** < 100ms @ 10ms update */
+
+/* The time it takes to realize we can't get closer to a position target */
+#define POSITION_TIMEOUT            ((uint16_t) 50u)  /** < 0.5s @ 10ms update */
 
 // #define DOUBLE_ENCODER_RESOLUTION
 
@@ -69,7 +73,7 @@ typedef struct
     float maxDeceleration;
 
     DriveRequest_t currentRequest;
-    int32_t positionRequestBreakpoint; /** < in encoder ticks */
+    uint32_t positionRequestBreakpoint; /** < in encoder ticks */
 
     /* last status */
     DcMotorStatus_t motorStatus;
@@ -78,6 +82,8 @@ typedef struct
     float currentSpeed; /** < rpm */
     uint16_t motorTimeout;
     uint8_t lastCreatedCommandVersion;
+    uint32_t minPositionDistance;
+    uint16_t minPositionTimeout;
 
     /* current status */
     int32_t position;
@@ -244,6 +250,8 @@ static void initialize_driver(MotorPort_t* motorPort, bool isEmulated)
     libdata->currentSpeed = 0.0f;
     libdata->lastPosition = 0;
     libdata->lastCreatedCommandVersion = 0u;
+    libdata->minPositionDistance = UINT32_MAX;
+    _reset_timeout(&libdata->minPositionTimeout);
 
     /* use linear characteristic by default */
     libdata->nonlinearity_xs[0] = 0.0f;
@@ -342,6 +350,8 @@ static void _process_new_request(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t*
             request_kind = "speed";
             break;
         case DriveRequest_RequestType_Position:
+            libdata->minPositionDistance = UINT32_MAX;
+            _reset_timeout(&libdata->minPositionTimeout);
             request_kind = "position";
             break;
         default:
@@ -444,7 +454,7 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
     }
     else
     {
-        int32_t distanceFromGoal = abs_int32(libdata->lastPosition - libdata->currentRequest.request.position);
+        uint32_t distanceFromGoal = (uint32_t)abs_int32(libdata->lastPosition - libdata->currentRequest.request.position);
         if (distanceFromGoal < libdata->positionRequestBreakpoint)
         {
             select_pid(&libdata->positionController, &libdata->slowPositionConfig);
@@ -460,6 +470,27 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
             if (libdata->motorStatus != DcMotorStatus_GoalReached) {
                 SEGGER_RTT_printf(0, "Motor %u: request %u: goal reached\n", motorPort->port_idx, libdata->currentRequest.version);
                 libdata->motorStatus = DcMotorStatus_GoalReached;
+            }
+        }
+        else
+        {
+            /*
+            Keep track of the minimum distance and apply a timeout. If we can't get closer to
+            the goal, we shouldn't wait forever in a misguided hope.
+            */
+            if (distanceFromGoal < libdata->minPositionDistance)
+            {
+                libdata->minPositionDistance = distanceFromGoal;
+                _reset_timeout(&libdata->minPositionTimeout);
+            }
+            else if (!_has_timeout_elapsed(&libdata->minPositionTimeout, POSITION_TIMEOUT))
+            {
+                _tick_timeout(&libdata->minPositionTimeout, POSITION_TIMEOUT);
+                if (_has_timeout_elapsed(&libdata->minPositionTimeout, POSITION_TIMEOUT))
+                {
+                    SEGGER_RTT_printf(0, "Motor %u: request %u: timeout\n", motorPort->port_idx, libdata->currentRequest.version);
+                    libdata->motorStatus = DcMotorStatus_GoalReached;
+                }
             }
         }
         /* calculate speed to reach requested position */
