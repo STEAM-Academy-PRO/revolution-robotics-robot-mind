@@ -27,8 +27,6 @@ class DrivetrainController(ABC):
             self._awaiter.finish()
             return
 
-        self.update()
-
     @property
     def awaiter(self) -> Awaiter:
         return self._awaiter
