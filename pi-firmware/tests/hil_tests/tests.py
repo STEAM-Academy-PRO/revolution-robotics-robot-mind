@@ -1,6 +1,6 @@
 import time
 from revvy.utils.logger import Logger
-from tests.hil_tests.hil_test_utils.runner import run_test_scenarios
+from tests.hil_tests.hil_test_utils.runner import run_test_scenarios, with_timeout
 
 # IMPORTANT: make sure to import dependencies after this comment. Doing it before may break the
 # in-memory log collector and spam logs.
@@ -37,6 +37,7 @@ def can_play_sound(log: Logger, controller: ProgrammedRobotController):
     controller.press_button(1)
 
 
+@with_timeout(2)
 def can_stop_script_with_long_sleep(log: Logger, controller: ProgrammedRobotController):
     """A test case that configures a script to sleep for a long time. We then stop the script by pressing a button."""
 
@@ -45,7 +46,6 @@ def can_stop_script_with_long_sleep(log: Logger, controller: ProgrammedRobotCont
         controller.robot_manager.exit(RevvyStatusCode.ERROR)
 
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
-    controller.with_timeout(2.0)
 
     config = RobotConfig()
     config.process_script(
@@ -80,6 +80,7 @@ def test_motor_for_i2c_bug(log: Logger, controller: ProgrammedRobotController):
     controller.robot_manager.robot._robot_control.test_motor_on_port(6, 60, 10)
 
 
+@with_timeout(2)
 def sensors_can_be_read(log: Logger, controller: ProgrammedRobotController):
     """A test case that configures a script to read sensors."""
 
@@ -89,7 +90,6 @@ def sensors_can_be_read(log: Logger, controller: ProgrammedRobotController):
 
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
     # TODO: sensors should not wait for data, but provide a default
-    controller.with_timeout(2.0)
 
     config = RobotConfig()
     config.add_motor(None, "motor1")
@@ -135,6 +135,7 @@ robot.motors["motor4"].pos
     controller.wait_for_scripts_to_end()
 
 
+@with_timeout(30)
 def motors_dont_cause_errors(log: Logger, controller: ProgrammedRobotController):
     """
     A test case that configures a script to drive the robot and motors. Since no motors and
@@ -147,7 +148,6 @@ def motors_dont_cause_errors(log: Logger, controller: ProgrammedRobotController)
         controller.robot_manager.exit(RevvyStatusCode.ERROR)
 
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
-    controller.with_timeout(30.0)
 
     config = RobotConfig()
     config.add_motor(ccw_motor(Motors.EmulatedRevvyMotor), "motor1")
@@ -231,6 +231,7 @@ robot.motors["motor4"].pos = 0
     controller.wait_for_scripts_to_end()
 
 
+@with_timeout(20)
 def missing_motor_does_not_block_script(log: Logger, controller: ProgrammedRobotController):
     """
     A test case that configures a script to drive a motors. Since no motors and
@@ -243,7 +244,6 @@ def missing_motor_does_not_block_script(log: Logger, controller: ProgrammedRobot
         controller.robot_manager.exit(RevvyStatusCode.ERROR)
 
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
-    controller.with_timeout(20.0)
 
     config = RobotConfig()
     # intentionally not EmulatedRevvyMotor to test blocking behaviour
@@ -357,6 +357,7 @@ robot.motors["motor4"].pos
         controller.robot_manager.exit(RevvyStatusCode.ERROR)
 
 
+@with_timeout(30)
 def trying_to_drive_without_drivetrain_motors_is_no_op(
     log: Logger, controller: ProgrammedRobotController
 ):
@@ -366,7 +367,6 @@ def trying_to_drive_without_drivetrain_motors_is_no_op(
         controller.robot_manager.exit(RevvyStatusCode.ERROR)
 
     controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
-    controller.with_timeout(30.0)
 
     config = RobotConfig()
     config.add_motor(None, "motor1")

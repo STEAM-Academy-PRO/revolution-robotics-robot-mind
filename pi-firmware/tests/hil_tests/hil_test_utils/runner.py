@@ -105,3 +105,17 @@ def run_test_scenarios(scenarios: List[Callable[[Logger, ProgrammedRobotControll
         if failed > 0:
             log(f"{failed}/{total} scenarios failed")
             sys.exit(1)
+
+
+def with_timeout(timeout: float):
+    def decorator(scenario: Callable[[Logger, ProgrammedRobotController], None]):
+        def wrapper(log: Logger, controller: ProgrammedRobotController):
+            log(f"Running scenario: {scenario.__name__} with timeout {timeout}")
+            controller.with_timeout(timeout)
+            scenario(log, controller)
+
+        wrapper.__name__ = scenario.__name__
+
+        return wrapper
+
+    return decorator
