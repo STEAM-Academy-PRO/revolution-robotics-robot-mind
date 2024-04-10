@@ -666,6 +666,7 @@ class RobotWrapper:
         resources: dict,
     ):
         self._robot = robot
+        self.log = get_logger("RobotWrapper", base=script.log)
 
         motor_wrappers = [
             MotorPortWrapper(script, port, resources[f"motor_{port.id}"]) for port in robot.motors
