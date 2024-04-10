@@ -73,7 +73,6 @@ typedef struct
     float maxDeceleration;
 
     DriveRequest_t currentRequest;
-    uint32_t positionRequestBreakpoint; /** < in encoder ticks */
 
     /* last status */
     DcMotorStatus_t motorStatus;
@@ -455,7 +454,7 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
     else
     {
         uint32_t distanceFromGoal = (uint32_t)abs_int32(libdata->lastPosition - libdata->currentRequest.request.position);
-        if (distanceFromGoal < libdata->positionRequestBreakpoint)
+        if (distanceFromGoal < libdata->currentRequest.positionBreakpoint)
         {
             select_pid(&libdata->positionController, &libdata->slowPositionConfig);
         }
@@ -820,11 +819,11 @@ static MotorLibraryStatus_t _create_position_request(const MotorLibrary_Dc_Data_
 
     switch (libdata->positionBreakpointKind) {
         case PositionBreakpointKind_Degrees:
-            driveRequest->positionBreakpoint = degrees_to_ticks(libdata, libdata->positionBreakpoint);
+            driveRequest->positionBreakpoint = (uint32_t) degrees_to_ticks(libdata, libdata->positionBreakpoint);
             break;
         case PositionBreakpointKind_Relative: {
             float distanceTicks = fabsf((float)(libdata->lastPosition - requested_position));
-            driveRequest->positionBreakpoint = libdata->positionBreakpoint * distanceTicks;
+            driveRequest->positionBreakpoint = (uint32_t) lroundf(libdata->positionBreakpoint * distanceTicks);
             break;
         }
         default:

@@ -450,7 +450,7 @@ void MotorPortHandler_Read_DriveRequest(uint32_t index, DriveRequest_t* value)
         .request            = {
             .power = 0
         },
-        .positionBreakpoint = 0.0f
+        .positionBreakpoint = 0u
     };
     /* Begin User Code Section: DriveRequest:read End */
 

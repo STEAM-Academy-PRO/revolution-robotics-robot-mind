@@ -62,7 +62,7 @@
                 "speed_limit": "float",
                 "request_type": "DriveRequest_RequestType_t",
                 "request": "DriveRequest_RequestValue_t",
-                "positionBreakpoint": "float"
+                "positionBreakpoint": "uint32_t"
             }
         },
         "Current_t": {
