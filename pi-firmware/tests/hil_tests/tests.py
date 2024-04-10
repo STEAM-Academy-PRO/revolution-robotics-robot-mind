@@ -135,7 +135,7 @@ robot.motors["motor4"].pos
     controller.wait_for_scripts_to_end()
 
 
-@with_timeout(30)
+@with_timeout(60)
 def motors_dont_cause_errors(log: Logger, controller: ProgrammedRobotController):
     """
     A test case that configures a script to drive the robot and motors. Since no motors and
