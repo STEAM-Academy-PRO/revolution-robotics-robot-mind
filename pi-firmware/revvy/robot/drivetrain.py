@@ -223,7 +223,7 @@ class DifferentialDrivetrain:
 
     def _apply_motor_commands(self, commands: bytes):
         with self._update_lock:
-            self.request_ids = self._interface.set_motor_port_control_value(commands)
+            self.request_ids = list(self._interface.set_motor_port_control_value(commands))
 
     def _apply_release(self):
         # this runs as a callback to Awaiter.finish() or cancel(), in both

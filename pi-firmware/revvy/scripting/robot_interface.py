@@ -319,7 +319,7 @@ def wrap_async_method(owner: Wrapper, method):
 
         with owner.try_take_resource(_interrupted) as resource:
             if resource:
-                awaiter: Awaiter = method(*args, **kwargs)
+                awaiter = method(*args, **kwargs)
                 if awaiter:
                     awaiter.wait()
 
