@@ -5,7 +5,6 @@
 #include "SEGGER_RTT.h"
 
 #include "CommonLibraries/functions.h"
-#include "libraries/crc.h"
 #include <math.h>
 
 static bool isInitialized = false;
@@ -106,7 +105,7 @@ UpdateManager_Status_t UpdateManager_Run_WriteNextChunk(ConstByteArray_t data)
     }
 
     /* update checksum */
-    current_crc = CRC32_Calculate(current_crc, data.bytes, data.count);
+    current_crc = UpdateManager_Call_Calculate_CRC32(current_crc, data);
     current_length += data.count;
 
     /* program flash */
@@ -176,4 +175,18 @@ void UpdateManager_RaiseEvent_ProgressChanged(uint8_t progress)
     /* Begin User Code Section: ProgressChanged:run End */
 
     /* End User Code Section: ProgressChanged:run End */
+}
+
+__attribute__((weak))
+uint32_t UpdateManager_Call_Calculate_CRC32(uint32_t init_value, ConstByteArray_t data)
+{
+    (void) data;
+    (void) init_value;
+    /* Begin User Code Section: Calculate_CRC32:run Start */
+
+    /* End User Code Section: Calculate_CRC32:run Start */
+    /* Begin User Code Section: Calculate_CRC32:run End */
+
+    /* End User Code Section: Calculate_CRC32:run End */
+    return 0u;
 }

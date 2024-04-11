@@ -39,7 +39,6 @@ rrrc/components/MasterCommunicationInterface_Bootloader/MasterCommunicationInter
 rrrc/components/UpdateManager/UpdateManager.c \
 rrrc/flash_mapping.c \
 rrrc/runtime/comm_handlers.c \
-rrrc/libraries/crc.c \
 rrrc/generated_runtime.c \
 ../mcu-common/CommonComponents/LEDController/LEDController.c \
 ../mcu-common/CommonComponents/CRC/CRC.c \
@@ -81,8 +80,7 @@ rrrc \
 rrrc/runtime \
 rrrc/components \
 rrrc/components/MasterCommunicationInterface_Bootloader \
-rrrc/components/UpdateManager \
-rrrc/libraries
+rrrc/components/UpdateManager
 
 COMPILE_FLAGS += \
 -x c \

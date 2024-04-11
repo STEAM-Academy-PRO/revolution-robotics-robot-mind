@@ -2,7 +2,6 @@
 #include <peripheral_clk_config.h>
 #include <utils.h>
 #include <hal_init.h>
-#include "libraries/crc.h"
 #include "hri_mclk_d51.h"
 #include "hri_wdt_d51.h"
 
@@ -18,7 +17,6 @@ void system_init(void)
 {
     // Perform the very basic init and check the bootloader mode request
     init_mcu();
-    CRC32_Init();
     FLASH_0_init();
 
     // Temporarily (until next boot) write-protect the bootloader pages (first 64K for now)

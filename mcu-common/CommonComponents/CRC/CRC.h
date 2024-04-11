@@ -19,7 +19,9 @@ typedef struct {
 
 /* End User Code Section: Declarations */
 
+void CRC_Run_OnInit(void);
 uint8_t CRC_Run_Calculate_CRC7(uint8_t init_value, ConstByteArray_t data);
 uint16_t CRC_Run_Calculate_CRC16(uint16_t init_value, ConstByteArray_t data);
+uint32_t CRC_Run_Calculate_CRC32(uint32_t init_value, ConstByteArray_t data);
 
 #endif /* COMPONENT_CRC_H_ */

@@ -255,7 +255,8 @@
                 "IMUOrientationEstimator/OnInit",
                 "McuStatusSlots/Reset",
                 "McuStatusCollector/Reset",
-                "MotorDriver_8833/OnInit"
+                "MotorDriver_8833/OnInit",
+                "CRC/OnInit"
             ],
             "OnInitDone": [
                 [

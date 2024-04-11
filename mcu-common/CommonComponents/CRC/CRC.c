@@ -79,6 +79,24 @@ static const uint16_t crc16_table[256] =
     0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0
 };
 
+static uint32_t crc32_table[256];
+
+static void CRC32_Init(void)
+{
+    #define CRC32_POLYNOMIAL (0xEDB88320)
+
+    for (int idx = 0; idx < 256; idx++)
+    {
+        uint8_t bit = 8;
+        uint32_t val = idx;
+        do
+        {
+            val = (val & 1) ? ((val >> 1) ^ CRC32_POLYNOMIAL) : (val >> 1);
+        } while (--bit);
+        crc32_table[idx] = val;
+    }
+}
+
 static inline uint8_t crc7_byte(uint8_t crcval, uint8_t byte)
 {
     return crc7_table[(uint8_t)(byte ^ (crcval << 1u))];
@@ -89,7 +107,22 @@ static inline uint16_t crc16_byte(uint16_t crcval, uint8_t byte)
     return (crc16_table[(byte ^ (crcval >> 8)) & 0xFFu] ^ (crcval << 8)) & 0xFFFFu;
 }
 
+static inline uint16_t crc32_byte(uint32_t crcval, uint8_t byte)
+{
+    return crc32_table[(crcval ^ byte) & 0xFF] ^ (crcval >> 8);
+}
+
 /* End User Code Section: Declarations */
+
+void CRC_Run_OnInit(void)
+{
+    /* Begin User Code Section: OnInit:run Start */
+    CRC32_Init();
+    /* End User Code Section: OnInit:run Start */
+    /* Begin User Code Section: OnInit:run End */
+
+    /* End User Code Section: OnInit:run End */
+}
 
 uint8_t CRC_Run_Calculate_CRC7(uint8_t init_value, ConstByteArray_t data)
 {
@@ -99,11 +132,9 @@ uint8_t CRC_Run_Calculate_CRC7(uint8_t init_value, ConstByteArray_t data)
     {
         crc = crc7_byte(crc, data.bytes[i]);
     }
-
-    return crc;
     /* End User Code Section: Calculate_CRC7:run Start */
     /* Begin User Code Section: Calculate_CRC7:run End */
-
+    return crc;
     /* End User Code Section: Calculate_CRC7:run End */
 }
 
@@ -115,10 +146,23 @@ uint16_t CRC_Run_Calculate_CRC16(uint16_t init_value, ConstByteArray_t data)
     {
         crc = crc16_byte(crc, data.bytes[i]);
     }
-
-    return crc;
     /* End User Code Section: Calculate_CRC16:run Start */
     /* Begin User Code Section: Calculate_CRC16:run End */
-
+    return crc;
     /* End User Code Section: Calculate_CRC16:run End */
+}
+
+uint32_t CRC_Run_Calculate_CRC32(uint32_t init_value, ConstByteArray_t data)
+{
+    /* Begin User Code Section: Calculate_CRC32:run Start */
+    uint16_t crc = init_value;
+    for (size_t i = 0u; i < data.count; i++)
+    {
+        crc = crc32_byte(crc, data.bytes[i]);
+    }
+
+    /* End User Code Section: Calculate_CRC32:run Start */
+    /* Begin User Code Section: Calculate_CRC32:run End */
+    return crc;
+    /* End User Code Section: Calculate_CRC32:run End */
 }
