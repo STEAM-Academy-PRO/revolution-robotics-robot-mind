@@ -1,10 +1,10 @@
 #include <atmel_start.h>
 #include "flash_mapping.h"
 
-#include "rrrc/libraries/functions.h"
+#include "CommonLibraries/functions.h"
+#include "CommonLibraries/color.h"
 #include "rrrc/runtime/runtime.h"
 #include "rrrc/generated_runtime.h"
-#include "libraries/color.h"
 
 #include <math.h>
 

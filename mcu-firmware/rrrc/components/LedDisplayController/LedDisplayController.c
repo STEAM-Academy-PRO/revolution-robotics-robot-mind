@@ -3,7 +3,7 @@
 #include "utils_assert.h"
 
 /* Begin User Code Section: Declarations */
-#include "libraries/functions.h"
+#include "CommonLibraries/functions.h"
 #include <math.h>
 
 #define MAIN_BATTERY_INDICATOR_LED  0

@@ -4,7 +4,7 @@
 /* Begin User Code Section: Declarations */
 #include "SEGGER_RTT.h"
 
-#include "libraries/functions.h"
+#include "CommonLibraries/functions.h"
 #include "libraries/crc.h"
 #include <math.h>
 

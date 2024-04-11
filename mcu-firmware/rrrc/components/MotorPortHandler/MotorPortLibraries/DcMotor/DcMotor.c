@@ -1,8 +1,8 @@
 #include "DcMotor.h"
 #include "SEGGER_RTT.h"
 
-#include "libraries/converter.h"
-#include "libraries/functions.h"
+#include "CommonLibraries/converter.h"
+#include "CommonLibraries/functions.h"
 #include "libraries/controller/pid.h"
 #include "libraries/interpolation/linear_interpolate.h"
 #include "utils.h"

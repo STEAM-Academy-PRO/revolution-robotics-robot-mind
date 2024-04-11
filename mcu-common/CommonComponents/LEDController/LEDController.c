@@ -4,8 +4,7 @@
 
 /* Begin User Code Section: Declarations */
 #include "driver_init.h"
-#include "libraries/color.h"
-#include "libraries/functions.h"
+#include "CommonLibraries/functions.h"
 
 #include <stdint.h>
 #include <string.h>

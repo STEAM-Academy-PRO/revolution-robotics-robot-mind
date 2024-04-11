@@ -4,7 +4,7 @@
 
 /* Begin User Code Section: Declarations */
 #include <math.h>
-#include "libraries/functions.h"
+#include "CommonLibraries/functions.h"
 /* End User Code Section: Declarations */
 
 void MotorDerating_Run_OnUpdate(void)

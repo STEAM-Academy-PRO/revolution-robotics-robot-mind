@@ -28,6 +28,9 @@ C_SRCS += \
 ../mcu-common/SEGGER/RTT/SEGGER_RTT.c \
 ../mcu-common/SEGGER/RTT/SEGGER_RTT_printf.c \
 ../mcu-common/SEGGER/RTT/Syscalls/SEGGER_RTT_Syscalls_GCC.c \
+../mcu-common/CommonLibraries/color.c \
+../mcu-common/CommonLibraries/converter.c \
+../mcu-common/CommonLibraries/functions.c \
 main.c \
 driver_init.c \
 atmel_start.c \
@@ -36,10 +39,7 @@ rrrc/components/MasterCommunicationInterface_Bootloader/MasterCommunicationInter
 rrrc/components/UpdateManager/UpdateManager.c \
 rrrc/flash_mapping.c \
 rrrc/runtime/comm_handlers.c \
-rrrc/libraries/color.c \
-rrrc/libraries/converter.c \
 rrrc/libraries/crc.c \
-rrrc/libraries/functions.c \
 rrrc/generated_runtime.c \
 ../mcu-common/CommonComponents/LEDController/LEDController.c \
 ../mcu-common/CommonComponents/CRC/CRC.c \
@@ -76,6 +76,7 @@ Config \
 ../mcu-common/CommonComponents/MasterCommunication \
 ../mcu-common/CommonComponents/LEDController \
 ../mcu-common/CommonComponents/CRC \
+../mcu-common \
 rrrc \
 rrrc/runtime \
 rrrc/components \
