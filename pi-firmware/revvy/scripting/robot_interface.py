@@ -5,6 +5,7 @@ code that uses these functions.
 """
 
 from abc import ABC
+from math import floor
 import time
 import random
 
@@ -187,7 +188,7 @@ class RingLedWrapper(Wrapper):
         rgb = color_string_to_rgb(color) or 0
 
         for idx in leds:
-            index = (idx - 1) % len(self._user_leds)
+            index = floor(idx - 1) % len(self._user_leds)
             self._user_leds[index] = rgb
 
         self.using_resource(partial(self._ring_led.display_user_frame, self._user_leds))
