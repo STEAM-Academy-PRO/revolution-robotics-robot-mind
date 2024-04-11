@@ -554,6 +554,40 @@ for i in range(5):
     controller.wait_for_scripts_to_end()
 
 
+@with_timeout(5)
+def motor_script_can_be_stopped(log: Logger, controller: ProgrammedRobotController):
+    def fail_on_script_error(*e) -> None:
+        # In this test, if we encounter an error, let's just stop and exit
+        controller.robot_manager.exit(RevvyStatusCode.ERROR)
+
+    controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
+
+    config = RobotConfig()
+    config.add_motor(Motors.EmulatedRevvyMotor, "motor1")
+
+    config.process_script(
+        {
+            "assignments": {"buttons": [{"id": 1, "priority": 1}]},
+            "pythonCode": b64_encode_str(
+                """
+robot.motors["motor1"].move(direction=Motor.DIRECTION_FWD, amount=300, unit_amount=Motor.UNIT_SEC, limit=75, unit_limit=Motor.UNIT_SPEED_RPM)
+"""
+            ),
+        },
+        0,
+    )
+
+    controller.configure(config)
+
+    controller.press_button(1)
+    time.sleep(0.5)
+    controller.press_button(1)
+
+    assert controller.robot_manager.robot.motors[1].driver.power == 0
+
+    controller.wait_for_scripts_to_end()
+
+
 if __name__ == "__main__":
     run_test_scenarios(
         [
@@ -568,5 +602,6 @@ if __name__ == "__main__":
             trying_to_access_uncofigured_sensor_raises_error,
             trying_to_drive_without_drivetrain_motors_is_no_op,
             failing_to_take_resource_from_lower_prio_script_should_not_error,
+            motor_script_can_be_stopped,
         ]
     )
