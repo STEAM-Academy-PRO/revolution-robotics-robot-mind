@@ -3891,7 +3891,7 @@ void vTaskList(char *pcWriteBuffer)
 
 			/* Write the rest of the string. */
 			sprintf(pcWriteBuffer,
-			        "\t%c\t%u\t%u\t%u\r\n",
+			        "\t%c\t%u\t%u\t%u\n",
 			        cStatus,
 			        (unsigned int)pxTaskStatusArray[x].uxCurrentPriority,
 			        (unsigned int)pxTaskStatusArray[x].usStackHighWaterMark,
@@ -3988,7 +3988,7 @@ void vTaskGetRunTimeStats(char *pcWriteBuffer)
 #ifdef portLU_PRINTF_SPECIFIER_REQUIRED
 					{
 						sprintf(pcWriteBuffer,
-						        "\t%lu\t\t%lu%%\r\n",
+						        "\t%lu\t\t%lu%%\n",
 						        pxTaskStatusArray[x].ulRunTimeCounter,
 						        ulStatsAsPercentage);
 					}
@@ -3997,7 +3997,7 @@ void vTaskGetRunTimeStats(char *pcWriteBuffer)
 						/* sizeof( int ) == sizeof( long ) so a smaller
 						printf() library can be used. */
 						sprintf(pcWriteBuffer,
-						        "\t%u\t\t%u%%\r\n",
+						        "\t%u\t\t%u%%\n",
 						        (unsigned int)pxTaskStatusArray[x].ulRunTimeCounter,
 						        (unsigned int)ulStatsAsPercentage);
 					}
@@ -4007,13 +4007,13 @@ void vTaskGetRunTimeStats(char *pcWriteBuffer)
 consumed less than 1% of the total run time. */
 #ifdef portLU_PRINTF_SPECIFIER_REQUIRED
 					{
-						sprintf(pcWriteBuffer, "\t%lu\t\t<1%%\r\n", pxTaskStatusArray[x].ulRunTimeCounter);
+						sprintf(pcWriteBuffer, "\t%lu\t\t<1%%\n", pxTaskStatusArray[x].ulRunTimeCounter);
 					}
 #else
 					{
 						/* sizeof( int ) == sizeof( long ) so a smaller
 						printf() library can be used. */
-						sprintf(pcWriteBuffer, "\t%u\t\t<1%%\r\n", (unsigned int)pxTaskStatusArray[x].ulRunTimeCounter);
+						sprintf(pcWriteBuffer, "\t%u\t\t<1%%\n", (unsigned int)pxTaskStatusArray[x].ulRunTimeCounter);
 					}
 #endif
 				}

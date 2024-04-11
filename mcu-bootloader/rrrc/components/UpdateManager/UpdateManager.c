@@ -2,7 +2,7 @@
 #include "utils.h"
 
 /* Begin User Code Section: Declarations */
-#include "SEGGER_RTT.h"
+#include "CommonLibraries/log.h"
 
 #include "CommonLibraries/functions.h"
 #include <math.h>
@@ -67,7 +67,7 @@ bool UpdateManager_Run_CheckImageFitsInFlash(uint32_t image_size)
 void UpdateManager_Run_InitializeUpdate(uint32_t firmware_size, uint32_t checksum)
 {
     /* Begin User Code Section: InitializeUpdate:run Start */
-    SEGGER_RTT_WriteString(0, "Initializing update\r\n");
+    LOG_RAW("Initializing update\n");
 
     isInitialized = true;
     expected_crc = checksum;

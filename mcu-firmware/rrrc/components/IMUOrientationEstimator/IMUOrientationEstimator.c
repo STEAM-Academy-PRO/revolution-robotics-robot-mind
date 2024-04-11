@@ -4,7 +4,7 @@
 
 /* Begin User Code Section: Declarations */
 #include <math.h>
-// #include "SEGGER_RTT.h"
+// #include "CommonLibraries/log.h"
 
 static Quaternion_t orientation;
 
@@ -258,7 +258,7 @@ static void UpdateOrientationResult(const Quaternion_t result)
         .roll = rad_to_deg(euler.roll),
         .yaw = yaw + nTurns * 360.0f,
     };
-    // SEGGER_RTT_printf(0, "%d %d %d\n", (int32_t) eulerDegrees.yaw, (int32_t) eulerDegrees.pitch, (int32_t) eulerDegrees.roll);
+    // LOG("%d %d %d\n", (int32_t) eulerDegrees.yaw, (int32_t) eulerDegrees.pitch, (int32_t) eulerDegrees.roll);
     IMUOrientationEstimator_Write_OrientationEulerDegrees(&eulerDegrees);
 }
 

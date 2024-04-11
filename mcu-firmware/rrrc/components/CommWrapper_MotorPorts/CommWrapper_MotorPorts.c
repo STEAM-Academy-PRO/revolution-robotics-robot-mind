@@ -3,7 +3,7 @@
 #include "utils_assert.h"
 
 /* Begin User Code Section: Declarations */
-#include "SEGGER_RTT.h"
+#include "CommonLibraries/log.h"
 #include <string.h>
 
 static uint8_t config_buffer[256];
@@ -117,7 +117,7 @@ Comm_Status_t CommWrapper_MotorPorts_Run_Command_SetPortConfig_Start(ConstByteAr
 
     if (commandPayload.count == 0u || commandPayload.count > ARRAY_SIZE(config_buffer) + 1u)
     {
-        SEGGER_RTT_printf(0, "Payload length error (%u)\n", commandPayload.count);
+        LOG("Payload length error (%u)\n", commandPayload.count);
         return Comm_Status_Error_PayloadLengthError;
     }
 
@@ -301,7 +301,7 @@ Comm_Status_t CommWrapper_MotorPorts_Run_Command_TestMotorOnPort_GetResult(ByteA
     /* End User Code Section: Command_TestMotorOnPort_GetResult:run Start */
     /* Begin User Code Section: Command_TestMotorOnPort_GetResult:run End */
 
-    SEGGER_RTT_WriteString(0, "Should never reach this\n");
+    LOG("Should never reach this\n");
     /* End User Code Section: Command_TestMotorOnPort_GetResult:run End */
 }
 

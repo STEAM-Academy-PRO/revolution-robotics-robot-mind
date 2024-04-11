@@ -5,7 +5,7 @@
 #include "utils.h"
 
 #include <string.h>
-#include "SEGGER_RTT.h"
+#include "CommonLibraries/log.h"
 
 /* These constants are common between bootloader and application */
 #define OPERATION_MODE_BOOTLOADER   ((uint8_t) 0xBBu)
@@ -35,7 +35,7 @@ static Comm_Status_t GetOperationMode_Start(ConstByteArray_t commandPayload, Byt
 {
     (void) commandPayload;
 
-    SEGGER_RTT_printf(0, "GetOperationMode\n");
+    LOG_RAW("GetOperationMode\n");
     response.bytes[0] = OPERATION_MODE_BOOTLOADER;
     *responseCount = 1u;
     return Comm_Status_Ok;
@@ -45,7 +45,7 @@ static Comm_Status_t ReadApplicationCrc_Start(ConstByteArray_t commandPayload, B
 {
     (void) commandPayload;
 
-    SEGGER_RTT_printf(0, "ReadApplicationCrc\n");
+    LOG_RAW("ReadApplicationCrc\n");
     uint32_t checksum = FMP_ReadApplicationChecksum();
     memcpy(&response.bytes[0], &checksum, 4u);
     *responseCount = 4u;
@@ -57,7 +57,7 @@ static Comm_Status_t InitializeUpdate_Start(ConstByteArray_t commandPayload, Byt
     (void) response;
     (void) responseCount;
 
-    SEGGER_RTT_printf(0, "InitializeUpdate\n");
+    LOG_RAW("InitializeUpdate\n");
     if (commandPayload.count != 8u)
     {
         return Comm_Status_Error_PayloadLengthError;
@@ -84,7 +84,7 @@ static Comm_Status_t ProgramApplication_Start(ConstByteArray_t commandPayload, B
     (void) response;
     (void) responseCount;
 
-    SEGGER_RTT_printf(0, "ProgramApplication\n");
+    LOG_RAW("ProgramApplication\n");
     switch (UpdateManager_Run_WriteNextChunk(commandPayload))
     {
         case UpdateManager_Ok:
@@ -101,7 +101,7 @@ static Comm_Status_t FinalizeUpdate_Start(ConstByteArray_t commandPayload, ByteA
     (void) response;
     (void) responseCount;
 
-    SEGGER_RTT_printf(0, "FinalizeUpdate\n");
+    LOG_RAW("FinalizeUpdate\n");
     switch (UpdateManager_Run_Finalize())
     {
         case UpdateManager_Ok:

@@ -8,7 +8,7 @@
 
 #include <math.h>
 
-#include "SEGGER_RTT.h"
+#include "CommonLibraries/log.h"
 
 #ifdef DEBUG
 #define DEBUG_SKIP_FW_INTEGRITY_CHECK 1
@@ -42,39 +42,39 @@ int main(void)
         clear_rtt();
     }
 
-    SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_NO_BLOCK_SKIP);
+    LOG_INIT();
 
     switch (startupReason) {
         case StartupReason_PowerUp:
-            SEGGER_RTT_WriteString(0, "Startup reason: Power up\r\n");
+            LOG_RAW("Startup reason: Power up\n");
             break;
         case StartupReason_BootloaderRequest:
-            SEGGER_RTT_WriteString(0, "Startup reason: Bootloader mode requested\r\n");
+            LOG_RAW("Startup reason: Bootloader mode requested\n");
             break;
         case StartupReason_WatchdogReset:
-            SEGGER_RTT_WriteString(0, "Startup reason: WDT reset\r\n");
+            LOG_RAW("Startup reason: WDT reset\n");
             break;
         case StartupReason_BrownOutReset:
-            SEGGER_RTT_WriteString(0, "Startup reason: brown-out event\r\n");
+            LOG_RAW("Startup reason: brown-out event\n");
             break;
     }
 
-    SEGGER_RTT_WriteString(0, "Starting bootloader\r\n");
+    LOG_RAW("Starting bootloader\n");
 
     // We allow the app to start after a brown-out event. We trust the detector to prevent
     // incorrect behavior.
     if (startupReason == StartupReason_PowerUp || startupReason == StartupReason_BrownOutReset)
     {
-        SEGGER_RTT_WriteString(0, "Checking firmware\r\n");
+        LOG_RAW("Checking firmware\n");
         /* TODO: debug bootloaders should look for empty header info and write it */
         bool start_application = FMP_CheckTargetFirmware(false, 0u);
 #if DEBUG_SKIP_FW_INTEGRITY_CHECK
         if (!start_application)
         {
-            SEGGER_RTT_WriteString(0, "Debug mode, application CRC mismatch\r\n");
+            LOG_RAW("Debug mode, application CRC mismatch\n");
             if (FMP_IsApplicationHeaderEmpty() || FLASH_HEADER->bootloader_version != BOOTLOADER_VERSION)
             {
-                SEGGER_RTT_WriteString(0, "Debug mode, fixing up application header\r\n");
+                LOG_RAW("Debug mode, fixing up application header\n");
                 atmel_start_init();
                 FMP_FixApplicationHeader();
                 NVIC_SystemReset();
@@ -84,15 +84,15 @@ int main(void)
 #endif
         if (start_application)
         {
-            SEGGER_RTT_WriteString(0, "Bootloader: Starting application\r\n");
+            LOG_RAW("Bootloader: Starting application\n");
             /* this should be the only application start point to avoid getting stuck in a hard fault */
             FMT_JumpTargetFirmware();
         } else {
-            SEGGER_RTT_WriteString(0, "No valid firmware found\r\n");
+            LOG_RAW("No valid firmware found\n");
         }
     }
 
-    SEGGER_RTT_WriteString(0, "Entered bootloader mode\r\n");
+    LOG_RAW("Entered bootloader mode\n");
     // If we are below this line then there was either a bootloader request,
     // or the target firmware is missing or corrupted
 
@@ -179,6 +179,6 @@ void UpdateManager_RaiseEvent_ProgressChanged(uint8_t progress)
 
 void assert_failed(const char *file, uint32_t line)
 {
-    SEGGER_RTT_printf(0, "Bootloader Assert failed at line %u of %s\r\n", line, file);
+    LOG("Bootloader Assert failed at line %u of %s\n", line, file);
     __BKPT(0);
 }
