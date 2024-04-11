@@ -36,9 +36,9 @@ from revvy.scripting.color_functions import (
     color_name_to_rgb,
 )
 
+from revvy.utils.awaiter import Awaiter
 from revvy.utils.functions import hex2rgb
 from revvy.robot.ports.common import PortInstance
-
 from revvy.utils.functions import map_values
 from revvy.utils.logger import get_logger
 
@@ -310,6 +310,8 @@ class MotorPortWrapper(Wrapper):
 
 def wrap_async_method(owner: Wrapper, method):
     def _wrapper(*args, **kwargs) -> None:
+        awaiter: Optional[Awaiter] = None
+
         def _interrupted() -> None:
             """Cancels the awaiter if someone with higher priority takes over the resource."""
             if awaiter:
@@ -666,6 +668,7 @@ class RobotWrapper:
         resources: dict,
     ):
         self._robot = robot
+        self.log = get_logger("RobotWrapper", base=script.log)
 
         motor_wrappers = [
             MotorPortWrapper(script, port, resources[f"motor_{port.id}"]) for port in robot.motors

@@ -26,7 +26,8 @@
 static const MotorLibrary_t* libraries[] =
 {
     &motor_library_dummy,
-    &motor_library_dc
+    &motor_library_dc,
+    &motor_library_dc_emulator,
 };
 
 static size_t motorPortCount = 0u;
@@ -81,8 +82,6 @@ void MotorPortHandler_Run_OnInit(MotorPort_t* ports, uint8_t portCount)
     }
 }
 
-extern Current_t MotorCurrentFilter_FilteredCurrent_array[6];
-extern int16_t MotorPortHandler_DriveStrength_array[6];
 #define TEST_MOTOR_ON_PORT_STATE_IDLING 0
 #define TEST_MOTOR_ON_PORT_STATE_IN_PROGRESS 1
 
@@ -451,7 +450,7 @@ void MotorPortHandler_Read_DriveRequest(uint32_t index, DriveRequest_t* value)
         .request            = {
             .power = 0
         },
-        .positionBreakpoint = 0.0f
+        .positionBreakpoint = 0u
     };
     /* Begin User Code Section: DriveRequest:read End */
 

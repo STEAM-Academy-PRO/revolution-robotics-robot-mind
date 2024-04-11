@@ -1,6 +1,7 @@
 from revvy.robot.ports.common import DriverConfig
 from revvy.robot.ports.motors.dc_motor import (
     DcMotorController,
+    EmulatedDcMotorController,
     PidConfig,
     PositionThreshold,
     TwoValuePidConfig,
@@ -74,16 +75,29 @@ class Motors:
             "gear_ratio": 64.8,  # The gear ratio of the motor. It takes this many revolutions of the motor axle to turn the wheel once.
         },
     )
-    RevvyMotor_CCW = DriverConfig(
-        driver=DcMotorController,
+    EmulatedRevvyMotor = DriverConfig(
+        driver=EmulatedDcMotorController,
         config={
             "speed_controller": DC_MOTOR_SPEED_PID,
             "position_controller": DC_MOTOR_POSITION_CONFIG,
+            # max deceleration, max acceleration, in units of `[speed units] / 10ms` (?)
             "acceleration_limits": [500, 500],
-            "max_current": 1.5,
-            "linearity": DC_MOTOR_LINEARITY_TABLE,
-            "encoder_resolution": -12,
-            "gear_ratio": 64.8,
+            "max_current": 1.5,  # Amps
+            "linearity": [(200, 200)],  # emulated motors are linear. First point (0, 0) is implied.
+            "encoder_resolution": 12,  # The number of ticks per revolution
+            "gear_ratio": 64.8,  # The gear ratio of the motor. It takes this many revolutions of the motor axle to turn the wheel once.
+        },
+    )
+
+
+def ccw_motor(config: DriverConfig) -> DriverConfig:
+    """Returns a new configuration with the encoder resolution negated. This causes the motor to
+    rotate in the opposite direction."""
+    return DriverConfig(
+        driver=config.driver,
+        config={
+            **config.config,
+            "encoder_resolution": -config.config["encoder_resolution"],
         },
     )
 

@@ -2,7 +2,7 @@ import json
 from json import JSONDecodeError
 from typing import Optional, TypeVar
 
-from revvy.robot.configurations import Motors, Sensors
+from revvy.robot.configurations import Motors, Sensors, ccw_motor
 from revvy.robot.ports.common import DriverConfig
 from revvy.scripting.runtime import ScriptDescriptor
 from revvy.utils.functions import b64_decode_str, str_to_func
@@ -10,26 +10,6 @@ from revvy.scripting.builtin_scripts import builtin_scripts
 from revvy.utils.logger import get_logger
 
 log = get_logger("RobotConfig")
-
-MOTOR_TYPES = [
-    None,
-    Motors.RevvyMotor,
-    # motor
-    [
-        [Motors.RevvyMotor_CCW, Motors.RevvyMotor],  # left
-        [Motors.RevvyMotor, Motors.RevvyMotor_CCW],  # right
-    ],
-]
-
-MOTOR_SIDES = ["left", "right"]
-
-SENSOR_TYPES = [
-    None,
-    Sensors.Ultrasonic,
-    Sensors.BumperSwitch,
-    None,
-    Sensors.SofteqCS,
-]
 
 
 class PortConfig:
@@ -209,37 +189,64 @@ class RobotConfig:
             )
             self.background_scripts.append(script_desc)
 
-    def add_motor(self, motor) -> None:
+    def add_motor(self, config: Optional[DriverConfig], alias: str):
+        i = len(self.motors._ports) + 1
+
+        if config is not None:
+            self.motors.names[alias] = i
+
+        self.motors[i] = config
+
+    def add_sensor(self, config: Optional[DriverConfig], alias: str):
+        i = len(self.sensors._ports) + 1
+
+        if config is not None:
+            self.sensors.names[alias] = i
+
+        self.sensors[i] = config
+
+    def add_motor_from_json(self, motor: Optional[dict]):
+        i = len(self.motors._ports) + 1
+
         if not motor:
             motor = {"type": 0}
 
-        i = len(self.motors._ports) + 1
+        MOTOR_TYPES = [
+            None,
+            Motors.RevvyMotor,
+            # motor
+            [
+                [ccw_motor(Motors.RevvyMotor), Motors.RevvyMotor],  # left
+                [Motors.RevvyMotor, ccw_motor(Motors.RevvyMotor)],  # right
+            ],
+        ]
 
         if motor["type"] == 2:
             # drivetrain
             motor_type = MOTOR_TYPES[2][motor["side"]][motor["reversed"]]
-            self.drivetrain.add(motor["side"], i)
 
+            # register drivetrain motors automatically
+            self.drivetrain.add(motor["side"], i)
         else:
             motor_type = MOTOR_TYPES[motor["type"]]
 
-        if motor_type is not None:
-            self.motors.names[motor["name"]] = i
+        self.add_motor(motor_type, motor.get("name", f"motor{i}"))
 
-        self.motors[i] = motor_type
-
-    def add_sensor(self, sensor) -> None:
-        if not sensor:
-            sensor = {"type": 0}
-
+    def add_sensor_from_json(self, sensor: Optional[dict]):
         i = len(self.sensors._ports) + 1
 
-        sensor_type = SENSOR_TYPES[sensor["type"]]
+        if not sensor:
+            sensor = {"type": 0, "name": f"sensor{i}"}
 
-        if sensor_type is not None:
-            self.sensors.names[sensor["name"]] = i
+        SENSOR_TYPES = [
+            None,
+            Sensors.Ultrasonic,
+            Sensors.BumperSwitch,
+            None,
+            Sensors.SofteqCS,
+        ]
 
-        self.sensors[i] = sensor_type
+        self.add_sensor(SENSOR_TYPES[sensor["type"]], sensor.get("name", f"motor{i}"))
 
     @staticmethod
     def from_string(config_string: str) -> "RobotConfig":
@@ -277,13 +284,13 @@ class RobotConfig:
 
         try:
             for motor in robot_config.get("motors", []):
-                config.add_motor(motor)
+                config.add_motor_from_json(motor)
         except (TypeError, IndexError, KeyError, ValueError) as e:
             raise ConfigError("Failed to decode received motor configuration") from e
 
         try:
             for sensor in robot_config.get("sensors", []):
-                config.add_sensor(sensor)
+                config.add_sensor_from_json(sensor)
         except (TypeError, IndexError, KeyError, ValueError) as e:
             raise ConfigError("Failed to decode received sensor configuration") from e
 

@@ -49,13 +49,19 @@ void MotorPort_DisableExti1(MotorPort_t* motorPort)
 void MotorPort_EnableExti0(MotorPort_t* motorPort)
 {
     const MotorLibrary_t* library = motorPort->library;
-    int32_t res = ext_irq_enable(GPIO_FROM_FAST_PIN(motorPort->gpio.enc0), library->Gpio0Callback, motorPort);
-    ASSERT(res == ERR_NONE);
+    if (library->Gpio0Callback != NULL)
+    {
+        int32_t res = ext_irq_enable(GPIO_FROM_FAST_PIN(motorPort->gpio.enc0), library->Gpio0Callback, motorPort);
+        ASSERT(res == ERR_NONE);
+    }
 }
 
 void MotorPort_EnableExti1(MotorPort_t* motorPort)
 {
     const MotorLibrary_t* library = motorPort->library;
-    int32_t res = ext_irq_enable(GPIO_FROM_FAST_PIN(motorPort->gpio.enc1), library->Gpio1Callback, motorPort);
-    ASSERT(res == ERR_NONE);
+    if (library->Gpio0Callback != NULL)
+    {
+        int32_t res = ext_irq_enable(GPIO_FROM_FAST_PIN(motorPort->gpio.enc1), library->Gpio1Callback, motorPort);
+        ASSERT(res == ERR_NONE);
+    }
 }

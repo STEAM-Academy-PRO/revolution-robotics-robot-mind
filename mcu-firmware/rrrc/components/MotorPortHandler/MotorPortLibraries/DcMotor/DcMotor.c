@@ -25,7 +25,11 @@ typedef enum {
 #define DRIVE_CONTSTRAINED_POWER    ((uint8_t) 0u)
 #define DRIVE_CONTSTRAINED_SPEED    ((uint8_t) 1u)
 
-#define MOTOR_TIMEOUT_THRESHOLD     ((uint16_t) 10u)   /** < 100ms @ 10ms update */
+/* The time it takes to realize that the motors can't move */
+#define MOTOR_TIMEOUT_THRESHOLD     ((uint16_t) 10u)  /** < 100ms @ 10ms update */
+
+/* The time it takes to realize we can't get closer to a position target */
+#define POSITION_TIMEOUT            ((uint16_t) 50u)  /** < 0.5s @ 10ms update */
 
 // #define DOUBLE_ENCODER_RESOLUTION
 
@@ -43,6 +47,7 @@ typedef enum {
 typedef struct
 {
     /* configuration */
+    bool isEmulated; /** < Disconnects driver from the motor driver IC and enables a digital twin */
     PidConfig_t slowPositionConfig;
     PidConfig_t fastPositionConfig;
     float positionBreakpoint; /** < in the unit specified by positionBreakpointKind, relative to the distance from the goal */
@@ -68,7 +73,6 @@ typedef struct
     float maxDeceleration;
 
     DriveRequest_t currentRequest;
-    int32_t positionRequestBreakpoint; /** < in encoder ticks */
 
     /* last status */
     DcMotorStatus_t motorStatus;
@@ -76,9 +80,14 @@ typedef struct
     int32_t prevPosDiff;
     float currentSpeed; /** < rpm */
     uint16_t motorTimeout;
+    uint8_t lastCreatedCommandVersion;
+    uint32_t minPositionDistance;
+    uint16_t minPositionTimeout;
 
     /* current status */
     int32_t position;
+    float emulatedSpeed;
+    float emulatedPosition;
 } MotorLibrary_Dc_Data_t;
 
 typedef struct
@@ -92,6 +101,32 @@ typedef struct
 
 // assert that the struct is packed
 _Static_assert(sizeof(DcMotorStatusSlot_t) == 11u);
+
+static void emulator_reset(MotorLibrary_Dc_Data_t* libdata)
+{
+    libdata->emulatedSpeed = 0.0f;
+    libdata->emulatedPosition = 0.0f;
+}
+
+/**
+ * Based on PWM and motor model, calculates a new position.
+ */
+static void emulator_tick(MotorLibrary_Dc_Data_t* libdata, int16_t pwm, float dt)
+{
+    const float MIN_SPEED = 0.1f; /** < in encoder ticks per second */
+    // TODO re-identify the motors to get a more realistic characteristic.
+    const float K = 50.0f; // RPM / %PWM
+    libdata->emulatedSpeed = K * (float) pwm;
+
+    if (fabsf(libdata->emulatedSpeed) < MIN_SPEED)
+    {
+        libdata->emulatedSpeed = 0.0f;
+    }
+
+    /* Apply calculated speed to the position counter. We use a float intermediary to reduce error */
+    libdata->emulatedPosition += dt * libdata->emulatedSpeed;
+    libdata->position = (int32_t) lroundf(libdata->emulatedPosition);
+}
 
 static void _reset_timeout(uint16_t* timer)
 {
@@ -185,11 +220,14 @@ static void ignore_last_drive_request(MotorPort_t* motorPort)
     libdata->currentRequest = driveRequest;
 }
 
-MotorLibraryStatus_t DcMotor_Load(MotorPort_t* motorPort)
+static void initialize_driver(MotorPort_t* motorPort, bool isEmulated)
 {
     MotorPortHandler_Call_UpdateStatusSlotSize(11u);
 
     MotorLibrary_Dc_Data_t* libdata = MotorPortHandler_Call_Allocate(sizeof(MotorLibrary_Dc_Data_t));
+
+    libdata->isEmulated = isEmulated;
+    emulator_reset(libdata);
 
     libdata->currentRequest.version = 0u;
 
@@ -210,6 +248,9 @@ MotorLibraryStatus_t DcMotor_Load(MotorPort_t* motorPort)
     libdata->prevPosDiff = 0;
     libdata->currentSpeed = 0.0f;
     libdata->lastPosition = 0;
+    libdata->lastCreatedCommandVersion = 0u;
+    libdata->minPositionDistance = UINT32_MAX;
+    _reset_timeout(&libdata->minPositionTimeout);
 
     /* use linear characteristic by default */
     libdata->nonlinearity_xs[0] = 0.0f;
@@ -229,6 +270,29 @@ MotorLibraryStatus_t DcMotor_Load(MotorPort_t* motorPort)
 
     _reset_motor_status(motorPort);
     ignore_last_drive_request(motorPort);
+}
+
+MotorLibraryStatus_t DcMotor_Load(MotorPort_t* motorPort)
+{
+    initialize_driver(motorPort, false);
+
+    return MotorLibraryStatus_Ok;
+}
+
+/**
+ * Initialize driver in DC motor emulation mode to support HIL-testing higher level control.
+ *
+ * This driver variant provides the same interface as DcMotor, without driving an actual motor. The
+ * driver maintains and updates a virual position counter.
+ *
+ * TODO: the driver should implement a characteristic close to the identified motors for it to act
+ * as a proper digital twin. The DcMotor driver should also be refactored to reuse code. The emulator
+ * driver needs to periodically react to the requested PWM and somehow apply position counter changes
+ * to the encoder input signals, everything else should be the same.
+ */
+MotorLibraryStatus_t DcMotorEmulator_Load(MotorPort_t* motorPort)
+{
+    initialize_driver(motorPort, true);
 
     return MotorLibraryStatus_Ok;
 }
@@ -245,6 +309,9 @@ MotorLibraryStatus_t DcMotor_Unload(MotorPort_t* motorPort)
     return MotorLibraryStatus_Ok;
 }
 
+/**
+ * Calculates motor speed from the tracked encoder pulse count.
+ */
 static void _update_current_speed(MotorLibrary_Dc_Data_t* libdata)
 {
     /* Calculate current speed (no need to lock here, int32 copy is atomic and lastPosition is only written on one thread) */
@@ -254,9 +321,12 @@ static void _update_current_speed(MotorLibrary_Dc_Data_t* libdata)
     libdata->prevPosDiff = posDiff;
     libdata->lastPosition = current_position;
 
-    /* Calculate speed - 10ms cycle time, 2 consecutive samples */
-    /* one complete revolution in one tick means 100 revolutions in a second */
-    /* speed = dPos / dt, dt = 0.02s -> x50 */
+    /*
+     * Calculate speed - 10ms cycle time, 2 consecutive samples (so 0.02s total window width)
+     * one complete revolution in one tick means 100 revolutions in a second, or 6000 RPM.
+     *
+     * speed = dPos / dt, dt = 0.02s -> x50, result unit is RPM
+     */
     //bool was_moving = (int)libdata->currentSpeed != 0;
     libdata->currentSpeed = map(posDiff + lastPosDiff, 0.0f, fabsf(libdata->resolution), 0.0f, 3000.0f);
     //bool is_moving = (int)libdata->currentSpeed != 0;
@@ -279,6 +349,8 @@ static void _process_new_request(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t*
             request_kind = "speed";
             break;
         case DriveRequest_RequestType_Position:
+            libdata->minPositionDistance = UINT32_MAX;
+            _reset_timeout(&libdata->minPositionTimeout);
             request_kind = "position";
             break;
         default:
@@ -381,8 +453,8 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
     }
     else
     {
-        int32_t distanceFromGoal = abs_int32(libdata->lastPosition - libdata->currentRequest.request.position);
-        if (distanceFromGoal < libdata->positionRequestBreakpoint)
+        uint32_t distanceFromGoal = (uint32_t)abs_int32(libdata->lastPosition - libdata->currentRequest.request.position);
+        if (distanceFromGoal < libdata->currentRequest.positionBreakpoint)
         {
             select_pid(&libdata->positionController, &libdata->slowPositionConfig);
         }
@@ -397,6 +469,27 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
             if (libdata->motorStatus != DcMotorStatus_GoalReached) {
                 SEGGER_RTT_printf(0, "Motor %u: request %u: goal reached\n", motorPort->port_idx, libdata->currentRequest.version);
                 libdata->motorStatus = DcMotorStatus_GoalReached;
+            }
+        }
+        else
+        {
+            /*
+            Keep track of the minimum distance and apply a timeout. If we can't get closer to
+            the goal, we shouldn't wait forever in a misguided hope.
+            */
+            if (distanceFromGoal < libdata->minPositionDistance)
+            {
+                libdata->minPositionDistance = distanceFromGoal;
+                _reset_timeout(&libdata->minPositionTimeout);
+            }
+            else if (!_has_timeout_elapsed(&libdata->minPositionTimeout, POSITION_TIMEOUT))
+            {
+                _tick_timeout(&libdata->minPositionTimeout, POSITION_TIMEOUT);
+                if (_has_timeout_elapsed(&libdata->minPositionTimeout, POSITION_TIMEOUT))
+                {
+                    SEGGER_RTT_printf(0, "Motor %u: request %u: timeout\n", motorPort->port_idx, libdata->currentRequest.version);
+                    libdata->motorStatus = DcMotorStatus_GoalReached;
+                }
             }
         }
         /* calculate speed to reach requested position */
@@ -452,7 +545,16 @@ MotorLibraryStatus_t DcMotor_Update(MotorPort_t* motorPort)
     /* control the motor */
     int16_t pwm = _run_motor_control(motorPort, libdata);
 
-    MotorPort_SetDriveValue(motorPort, pwm);
+    if (libdata->isEmulated)
+    {
+        // TODO: emulator should probably be implemented in a different Update function
+        // to avoid wasting CPU in normal operation.
+        emulator_tick(libdata, pwm, 0.01); // 10ms tick rate
+    }
+    else
+    {
+        MotorPort_SetDriveValue(motorPort, pwm);
+    }
 
     _update_status_data(motorPort, pwm);
 
@@ -599,13 +701,17 @@ MotorLibraryStatus_t DcMotor_UpdateConfiguration(MotorPort_t* motorPort, const u
     }
 
     /* Make sure motor is stopped */
-    MotorPort_SetDriveValue(motorPort, 0);
+    if (!libdata->isEmulated)
+    {
+        MotorPort_SetDriveValue(motorPort, 0);
+    }
 
     /* reset states */
     libdata->lastPosition = 0;
     libdata->position = 0;
     libdata->currentSpeed = 0.0f;
     _reset_motor_status(motorPort);
+    emulator_reset(libdata);
 
     ignore_last_drive_request(motorPort);
 
@@ -713,11 +819,11 @@ static MotorLibraryStatus_t _create_position_request(const MotorLibrary_Dc_Data_
 
     switch (libdata->positionBreakpointKind) {
         case PositionBreakpointKind_Degrees:
-            driveRequest->positionBreakpoint = degrees_to_ticks(libdata, libdata->positionBreakpoint);
+            driveRequest->positionBreakpoint = (uint32_t) degrees_to_ticks(libdata, libdata->positionBreakpoint);
             break;
         case PositionBreakpointKind_Relative: {
             float distanceTicks = fabsf((float)(libdata->lastPosition - requested_position));
-            driveRequest->positionBreakpoint = libdata->positionBreakpoint * distanceTicks;
+            driveRequest->positionBreakpoint = (uint32_t) lroundf(libdata->positionBreakpoint * distanceTicks);
             break;
         }
         default:
@@ -736,10 +842,11 @@ MotorLibraryStatus_t DcMotor_CreateDriveRequest(const MotorPort_t* motorPort, co
         return MotorLibraryStatus_InputError;
     }
 
-    const MotorLibrary_Dc_Data_t* libdata = (const MotorLibrary_Dc_Data_t*) motorPort->libraryData;
+    MotorLibrary_Dc_Data_t* libdata = (MotorLibrary_Dc_Data_t*) motorPort->libraryData;
 
     /* make sure the request won't get ignored if the caller decides to apply it */
-    driveRequest->version = libdata->currentRequest.version + 1u;
+    libdata->lastCreatedCommandVersion += 1u;
+    driveRequest->version = libdata->lastCreatedCommandVersion;
 
     switch (data[0])
     {
@@ -767,6 +874,18 @@ const MotorLibrary_t motor_library_dc =
     .Update              = &DcMotor_Update,
     .Gpio0Callback       = &DcMotor_Gpio0Callback,
     .Gpio1Callback       = &DcMotor_Gpio1Callback,
+    .UpdateConfiguration = &DcMotor_UpdateConfiguration,
+    .CreateDriveRequest  = &DcMotor_CreateDriveRequest
+};
+
+const MotorLibrary_t motor_library_dc_emulator =
+{
+    .Name                = "DcMotorEmulator",
+    .Load                = &DcMotorEmulator_Load,
+    .Unload              = &DcMotor_Unload,
+    .Update              = &DcMotor_Update,
+    .Gpio0Callback       = NULL,
+    .Gpio1Callback       = NULL,
     .UpdateConfiguration = &DcMotor_UpdateConfiguration,
     .CreateDriveRequest  = &DcMotor_CreateDriveRequest
 };
