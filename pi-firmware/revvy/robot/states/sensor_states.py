@@ -98,7 +98,7 @@ class UltrasonicSensorDataHandler(Disposable):
         self._data_update_callback(UltrasonicSensorData(self._sensor_port.id, value))
 
     def update(self, port: PortInstance[Hcsr04]):
-        if 0 < port.driver.value < MAX_ULTRASONIC_SENSOR_DISTANCE:
+        if port.driver.value is not None and 0 < port.driver.value < MAX_ULTRASONIC_SENSOR_DISTANCE:
             self._value.set(port.driver.value)
 
     def dispose(self):
