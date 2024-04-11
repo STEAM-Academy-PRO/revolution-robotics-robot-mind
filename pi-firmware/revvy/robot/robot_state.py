@@ -69,9 +69,13 @@ class RobotStatePoller(Emitter[RobotEvent]):
         self._status_update_thread.start()
 
     def set_motor_angle(self, idx: int, angle: int):
-        """We update this from robot manager."""
+        """
+        We update this from robot manager.
+        @param idx: 1-6
+        """
         angles = copy.deepcopy(self._motor_angles.get())
-        angles[idx] = angle
+        # Mind the index offset! Here we have 0-5
+        angles[idx - 1] = angle
         self._motor_angles.set(angles)
 
     def stop_polling_mcu(self) -> None:
