@@ -4,7 +4,7 @@ import time
 
 from threading import Event
 import traceback
-from typing import Callable, NamedTuple, Optional, List, Tuple
+from typing import Callable, NamedTuple, Optional, Tuple
 from revvy.bluetooth.data_types import BackgroundControlState, TimerData
 from revvy.scripting.runtime import ScriptHandle
 from revvy.utils import error_reporter
@@ -29,7 +29,7 @@ class RemoteControllerCommand(NamedTuple):
     """Raw message coming through the ble interface"""
 
     analog: bytearray
-    buttons: List[bool]
+    buttons: list[bool]
     background_command: BleAutonomousCmd
     next_deadline: Optional[int]
 
@@ -58,7 +58,7 @@ class ButtonHandler:
     last_press_stopped_it: bool
 
 
-AnalogAction = Tuple[List[int], ScriptHandle]
+AnalogAction = Tuple[list[int], ScriptHandle]
 """ ([channel], callback) pairs"""
 
 
@@ -68,11 +68,11 @@ class RemoteController:
         self._background_control_state = BackgroundControlState.STOPPED
         self._control_button_pressed = AutonomousModeRequest.NONE
 
-        self._analogActions: List[AnalogAction] = []
+        self._analogActions: list[AnalogAction] = []
         # the last analog values, used to compare if a callback needs to be fired
         self._analogStates = bytearray()
 
-        self._button_handlers: List[ButtonHandler] = []
+        self._button_handlers: list[ButtonHandler] = []
 
         self._global_timer_running = False
         self._global_timer = 0.0
@@ -160,7 +160,7 @@ class RemoteController:
                 # looks like an action was registered for an analog channel that we didn't receive
                 log(f'Skip analog handler for channels {", ".join(map(str, channels))}')
 
-    def run_button_script(self, button_pressed_list: List[bool]):
+    def run_button_script(self, button_pressed_list: list[bool]):
         """
         On the controller user binds blockly programs to the buttons.
         Here we iterate over the handlers and the button states, and if the button is pressed

@@ -1,15 +1,12 @@
-import struct
-import time
+from typing import Callable
 
-from math import sqrt
-
-from revvy.scripting.robot_interface import DriveTrainWrapper
+from revvy.scripting.robot_interface import DriveTrainWrapper, RobotWrapper
 from revvy.scripting.robot_interface import MotorConstants as Motor
 from revvy.utils.functions import clip, map_values
 from revvy.scripting.controllers import stick_controller, joystick
 
 
-def normalize_analog(b):
+def normalize_analog(b: int) -> float:
     """
     >>> normalize_analog(0)
     -1.0
@@ -21,7 +18,11 @@ def normalize_analog(b):
     return clip((b - 127) / 127.0, -1.0, 1.0)
 
 
-def drive(drivetrain_control: DriveTrainWrapper, channels, controller):
+def drive(
+    drivetrain_control: DriveTrainWrapper,
+    channels,
+    controller: Callable[[float, float], tuple[float, float]],
+) -> None:
     x = normalize_analog(channels[0])
     y = normalize_analog(channels[1])
 
@@ -30,31 +31,12 @@ def drive(drivetrain_control: DriveTrainWrapper, channels, controller):
     drivetrain_control.set_speeds(map_values(sl, 0, 1, 0, 120), map_values(sr, 0, 1, 0, 120))
 
 
-def drive_joystick(robot, channels, **_):
+def drive_joystick(robot: RobotWrapper, channels, **_):
     drive(robot.drivetrain, channels, joystick)
 
 
-def drive_2sticks(robot, channels, **_):
+def drive_2sticks(robot: RobotWrapper, channels, **_):
     drive(robot.drivetrain, channels, stick_controller)
-
-
-class ColorHSV:
-    def __init__(self, hue, saturation, value):
-        self.hue = hue
-        self.saturation = saturation
-        self.value = value
-
-    @property
-    def h(self):
-        return self.hue
-
-    @property
-    def s(self):
-        return self.saturation
-
-    @property
-    def v(self):
-        return self.value
 
 
 builtin_scripts = {

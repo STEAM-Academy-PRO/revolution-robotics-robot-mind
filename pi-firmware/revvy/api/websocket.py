@@ -7,6 +7,7 @@ import struct
 import threading
 from time import time
 import traceback
+from typing import Any
 from revvy.api.camera import Camera
 from revvy.utils.error_reporter import RobotErrorType
 from revvy.utils.version import VERSION
@@ -55,12 +56,12 @@ ignore_log_events = [
 
 
 # Function to check if an object is a named tuple
-def is_namedtuple(obj):
+def is_namedtuple(obj) -> bool:
     return isinstance(obj, tuple) and hasattr(obj, "_fields")
 
 
 class NamedTupleEncoder(json.JSONEncoder):
-    def default(self, o):
+    def default(self, o) -> Any:
         if is_namedtuple(o):
             return o._asdict()  # Convert the named tuple to a dictionary
         if isinstance(o, Enum):
@@ -73,7 +74,7 @@ class NamedTupleEncoder(json.JSONEncoder):
 
 
 # Function to encode data dynamically
-def encode_data(data):
+def encode_data(data) -> str:
     return json.dumps(data, cls=NamedTupleEncoder)
 
 
@@ -91,13 +92,13 @@ class RobotWebSocketApi:
 
         robot_manager.on_all(self.all_event_capture)
 
-    def all_event_capture(self, object_ref, evt, data=None):
+    def all_event_capture(self, object_ref, evt, data=None) -> None:
         if evt not in ignore_log_events:
             log(f"{evt} {str(data)}")
         if evt in send_control_events:
             self.send({"event": evt, "data": data})
 
-    def start(self):
+    def start(self) -> None:
         """Starts separate thread"""
         asyncio.set_event_loop(asyncio.new_event_loop())
         log("Starting WebSocket server")
@@ -107,11 +108,11 @@ class RobotWebSocketApi:
         self._event_loop.run_until_complete(server)
         self._event_loop.run_forever()
 
-    def thread(self):
+    def thread(self) -> None:
         websocket_thread = threading.Thread(target=self.start, name="WebSocket")
         websocket_thread.start()
 
-    async def incoming_connection(self, websocket, path):
+    async def incoming_connection(self, websocket, path) -> None:
         """On new connection, a new this will be ran."""
         try:
             # Ditch former connections!
@@ -193,7 +194,9 @@ class RobotWebSocketApi:
             # Print a message when a connection is closed
             log(f"Client disconnected: {websocket.remote_address}")
 
-    def send(self, message):
+    def send(self, message) -> None:
+        assert self._event_loop is not None
+
         for ws in self._connections:
             try:
                 # log(f'msg: {message["event"]}')
@@ -203,7 +206,7 @@ class RobotWebSocketApi:
                 print(message)
                 log(f"{message}")
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         """Disconnects all clients"""
         for ws in self._connections:
             ws.close()

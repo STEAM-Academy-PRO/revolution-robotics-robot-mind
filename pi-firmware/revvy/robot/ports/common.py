@@ -197,6 +197,6 @@ class PortInstance(Generic[DriverType]):
 
         return self.driver
 
-    def uninitialize(self):
+    def uninitialize(self) -> None:
         # self.log('Set to not configured')
         self.configure(None)

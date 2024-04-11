@@ -12,8 +12,18 @@ import random
 from functools import partial
 from enum import Enum
 
-from typing import TYPE_CHECKING, Callable, Generic, NamedTuple, Optional, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Generic,
+    Iterator,
+    NamedTuple,
+    Optional,
+    TypeVar,
+    Union,
+)
 
+from revvy.robot.imu import IMU
 from revvy.robot.ports.sensors.simple import ColorSensorReading
 
 # # To have types, use this to avoid circular dependencies.
@@ -654,7 +664,7 @@ class PortCollection(Generic[PortWrapper]):
         # access by (1-based) position
         return self._ports[item - 1]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[PortWrapper]:
         return self._ports.__iter__()
 
 
@@ -695,7 +705,7 @@ class RobotWrapper:
         self.turn = self._drivetrain.turn
         self.time = robot.time
 
-    def release_resources(self, none=None):
+    def release_resources(self, none=None) -> None:
         # Sensor wrappers
         for sensor in self._sensors:
             sensor.force_release_resource()
@@ -710,31 +720,31 @@ class RobotWrapper:
         self._drivetrain.force_release_resource()
 
     @property
-    def robot(self):
+    def robot(self) -> "Robot":
         return self._robot
 
     @property
-    def motors(self):
+    def motors(self) -> PortCollection[MotorPortWrapper]:
         return self._motors
 
     @property
-    def sensors(self):
+    def sensors(self) -> PortCollection[SensorPortWrapper]:
         return self._sensors
 
     @property
-    def led(self):
+    def led(self) -> RingLedWrapper:
         return self._ring_led
 
     @property
-    def drivetrain(self):
+    def drivetrain(self) -> DriveTrainWrapper:
         return self._drivetrain
 
     @property
-    def imu(self):
+    def imu(self) -> IMU:
         return self._robot.imu
 
     @property
-    def sound(self):
+    def sound(self) -> SoundWrapper:
         return self._sound
 
     def play_tune(self, name: str):

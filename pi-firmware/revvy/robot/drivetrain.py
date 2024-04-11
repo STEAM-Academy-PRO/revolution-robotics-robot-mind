@@ -53,7 +53,11 @@ class TurnController(DrivetrainController):
     Kp = 0.75
 
     def __init__(
-        self, drivetrain: "DifferentialDrivetrain", turn_angle, wheel_speed=None, power_limit=None
+        self,
+        drivetrain: "DifferentialDrivetrain",
+        turn_angle: int,
+        wheel_speed: int,
+        power_limit: int,
     ):
         self._max_turn_wheel_speed = wheel_speed
         self._max_turn_power = power_limit
@@ -237,14 +241,18 @@ class DifferentialDrivetrain:
         )
         self._apply_motor_commands(bytes(commands))
 
-    def _apply_speeds(self, left, right, power_limit):
+    def _apply_speeds(self, left: float, right: float, power_limit: Optional[float]):
         commands = itertools.chain(
             *(
-                motor.driver.create_set_speed_command(left, power_limit)
+                motor.driver.create_set_speed_command(  # pyright: ignore (Don't know about DcMotor driver here)
+                    left, power_limit
+                )
                 for motor in self._left_motors
             ),
             *(
-                motor.driver.create_set_speed_command(right, power_limit)
+                motor.driver.create_set_speed_command(  # pyright: ignore (Don't know about DcMotor driver here)
+                    right, power_limit
+                )
                 for motor in self._right_motors
             ),
         )

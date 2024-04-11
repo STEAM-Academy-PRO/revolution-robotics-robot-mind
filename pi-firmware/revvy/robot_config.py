@@ -13,12 +13,14 @@ log = get_logger("RobotConfig")
 
 
 class PortConfig:
-    def __init__(self):
-        self._ports = {}
-        self._port_names = {}
+    """Configuration data for a set of ports, indexed by port id (1-based)."""
+
+    def __init__(self) -> None:
+        self._ports = {}  # id -> port config
+        self._port_names: dict[str, int] = {}  # name -> id
 
     @property
-    def names(self):
+    def names(self) -> dict[str, int]:
         return self._port_names
 
     def __getitem__(self, item: int) -> Optional[DriverConfig]:
@@ -132,7 +134,7 @@ class RobotConfig:
                 raise KeyError(f'Builtin script "{script_name}" does not exist')
 
             log(f"Use builtin script: {script_name}")
-            return builtin_scripts[script_name], "built in script: " + script_name
+            return builtin_scripts[script_name], f"built in script: {script_name}"
 
         source_b64 = json_get_field_optional(script, ["pythonCode", "pythoncode"], value_type=str)
 
