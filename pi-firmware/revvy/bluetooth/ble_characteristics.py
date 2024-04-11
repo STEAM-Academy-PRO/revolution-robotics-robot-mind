@@ -8,7 +8,6 @@ from typing import Generic, TypeVar
 from pybleno import Characteristic, Descriptor
 from revvy.bluetooth.data_types import (
     GyroData,
-    MotorData,
     ProgramStatusCollection,
     ScriptVariables,
     TimerData,
@@ -156,10 +155,6 @@ class SensorCharacteristic(BrainToMobileCharacteristic):
         # FIXME: prefix with data length is probably unnecessary
         value = value.__bytes__()
         super().updateValue([len(value), *value])
-
-
-class MotorCharacteristic(BrainToMobileCharacteristic[MotorData]):
-    pass
 
 
 class GyroCharacteristic(BrainToMobileCharacteristic[GyroData]):

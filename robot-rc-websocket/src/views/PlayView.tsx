@@ -78,8 +78,6 @@ export default function PlayView({
     return { get, set, status, setStatus }
   })
 
-  const [motorAngles, setMotorAngles] = createSignal<Array<number>>([0, 0, 0, 0, 0, 0])
-
   const BUFFER = 256
   const turnaroundArray = new Array(BUFFER).fill(0)
 
@@ -107,9 +105,6 @@ export default function PlayView({
           break
         case 'battery_change':
           setBattery(data.data)
-          break
-        case 'motor_change':
-          setMotorAngles(data.data)
           break
         case 'version_info':
           setVersion(Object.keys(data.data).map((k) => `${k}: ${data.data[k]}`).join(' '))
@@ -250,7 +245,6 @@ export default function PlayView({
         <span class={styles.status}>version: {version()}</span>
         <span class={styles.status}>orientation: {JSON.stringify(orientation())}</span>
         <span class={styles.status}>battery: {battery()?.join(' ')}</span>
-        <span class={styles.status}>motor angles: {motorAngles()?.join(' ')}</span>
         {Object.keys(sensors()).map((sensorKey) => (
           <span class={styles.status}>
             <SensorView type={SensorTypeResolve[sensors()[sensorKey].type]}

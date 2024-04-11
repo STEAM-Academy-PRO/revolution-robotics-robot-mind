@@ -290,14 +290,7 @@ class RobotManager:
 
         # set up motors
         for motor in self._robot.motors:
-            driver = motor.configure(config.motors[motor.id])
-
-            # Listen to data changes and update the robot state with new motor angles.
-            def on_status_change(data: tuple[PortInstance[MotorPortDriver], int]):
-                port = data[0]
-                self._robot_state.set_motor_angle(port.id, port.driver.pos)
-
-            driver.on_status_changed.add(on_status_change)
+            motor.configure(config.motors[motor.id])
 
         for motor_id in config.drivetrain.left:
             self._robot.drivetrain.add_left_motor(self._robot.motors[motor_id])
