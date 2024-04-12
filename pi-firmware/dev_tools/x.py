@@ -172,6 +172,7 @@ if __name__ == "__main__":
         ],
     )
     parser.add_argument("--release", help="Build in release mode", action="store_true")
+    parser.add_argument("--no-start", help="Do not start the deployed package", action="store_true")
     args = parser.parse_args()
 
     config = "release" if args.release else "debug"
@@ -186,14 +187,16 @@ if __name__ == "__main__":
         upload_package_to_robot(dev_package=True)
         ssh("sudo systemctl stop revvy")
         ssh("~/RevvyFramework/launch_revvy.py --install-only --skip-dependencies")
-        ssh("sudo systemctl start revvy")
+        if not args.no_start:
+            ssh("sudo systemctl start revvy")
 
     elif args.action == "full-deploy":
         build(config)
         upload_package_to_robot(dev_package=False)
         ssh("sudo systemctl stop revvy")
         ssh("~/RevvyFramework/launch_revvy.py --install-only")
-        ssh("sudo systemctl start revvy")
+        if not args.no_start:
+            ssh("sudo systemctl start revvy")
 
     elif args.action == "test":
         build(config, dev_package=True)
