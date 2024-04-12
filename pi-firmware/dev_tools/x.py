@@ -167,6 +167,7 @@ if __name__ == "__main__":
             # list commands here
             "build",
             "deploy",
+            "full-deploy",  # Slow. Installs to versioned folder and installs dependencies.
             "test",
         ],
     )
@@ -182,15 +183,22 @@ if __name__ == "__main__":
     elif args.action == "deploy":
         build(config)
         upload_debug_launcher()
-        upload_package_to_robot(True)
+        upload_package_to_robot(dev_package=True)
         ssh("sudo systemctl stop revvy")
         ssh("~/RevvyFramework/launch_revvy.py --install-only --skip-dependencies")
+        ssh("sudo systemctl start revvy")
+
+    elif args.action == "full-deploy":
+        build(config)
+        upload_package_to_robot(dev_package=False)
+        ssh("sudo systemctl stop revvy")
+        ssh("~/RevvyFramework/launch_revvy.py --install-only")
         ssh("sudo systemctl start revvy")
 
     elif args.action == "test":
         build(config, dev_package=True)
         upload_debug_launcher()
-        upload_package_to_robot(True)
+        upload_package_to_robot(dev_package=True)
         ssh("sudo systemctl stop revvy")
         ssh("~/RevvyFramework/launch_revvy.py --install-only --skip-dependencies")
         ssh(
