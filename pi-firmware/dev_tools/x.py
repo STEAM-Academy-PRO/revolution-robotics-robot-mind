@@ -129,8 +129,11 @@ def copy_firmware_into_place() -> None:
         shutil.copytree("../../../mcu-firmware/Build/output", ".", dirs_exist_ok=True)
 
 
-def create_py_package() -> None:
-    os.system("python -m dev_tools.create_package")
+def create_py_package(dev_package: bool):
+    if dev_package:
+        os.system("python -m dev_tools.create_package --dev")
+    else:
+        os.system("python -m dev_tools.create_package")
 
 
 def upload_debug_launcher() -> None:
@@ -149,10 +152,10 @@ def upload_package_to_robot(dev_package: bool) -> None:
     upload_file("install/pi-firmware.meta", f"/home/pi/RevvyFramework/user/ble/{dst_name}.meta")
 
 
-def build(config: str):
+def build(config: str, dev_package: bool = False):
     build_firmware(config)
     copy_firmware_into_place()
-    create_py_package()
+    create_py_package(dev_package)
 
 
 if __name__ == "__main__":
@@ -164,6 +167,7 @@ if __name__ == "__main__":
             # list commands here
             "build",
             "deploy",
+            "test",
         ],
     )
     parser.add_argument("--release", help="Build in release mode", action="store_true")
@@ -182,3 +186,13 @@ if __name__ == "__main__":
         ssh("sudo systemctl stop revvy")
         ssh("~/RevvyFramework/launch_revvy.py --install-only --skip-dependencies")
         ssh("sudo systemctl start revvy")
+
+    elif args.action == "test":
+        build(config, dev_package=True)
+        upload_debug_launcher()
+        upload_package_to_robot(True)
+        ssh("sudo systemctl stop revvy")
+        ssh("~/RevvyFramework/launch_revvy.py --install-only --skip-dependencies")
+        ssh(
+            "cd ~/RevvyFramework/user/packages/dev-pi-firmware/ && python3 -u -m tests.hil_tests.tests"
+        )
