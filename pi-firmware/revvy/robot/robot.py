@@ -112,7 +112,7 @@ class Robot:
         stopwatch = Stopwatch()
         while stopwatch.elapsed < 10:
             try:
-                self._robot_control.read_operation_mode()
+                self._robot_control.ping()
                 return
             except OSError:
                 time.sleep(0.5)

@@ -155,21 +155,6 @@ class SetBluetoothStatusCommand(ReturnlessCommand, Command):
         return self._send(bytes([status]))
 
 
-class McuOperationMode(Enum):
-    APPLICATION = 0xAA
-    BOOTLOADER = 0xBB
-
-
-class ReadOperationModeCommand(ParameterlessCommand[McuOperationMode]):
-    @property
-    def command_id(self) -> int:
-        return 0x06
-
-    def parse_response(self, payload: bytes):
-        assert len(payload) == 1
-        return McuOperationMode(payload[0])
-
-
 class RebootToBootloaderCommand(ReturnlessCommand, ParameterlessCommand):
     @property
     def command_id(self) -> int:
