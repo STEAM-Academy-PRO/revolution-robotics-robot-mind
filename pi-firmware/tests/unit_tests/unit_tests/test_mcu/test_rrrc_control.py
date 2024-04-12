@@ -21,13 +21,12 @@ class TestParseStringList(unittest.TestCase):
 
 
 class TestControlCommands(unittest.TestCase):
-    def test_revvy_command_instances(self):
+    def test_revvy_command_instances(self) -> None:
         control = RevvyControl(None)
 
         self.assertIs(PingCommand, type(control.ping))
 
         self.assertIs(SetMasterStatusCommand, type(control.set_master_status))
-        self.assertIs(ReadOperationModeCommand, type(control.read_operation_mode))
         self.assertIs(SetBluetoothStatusCommand, type(control.set_bluetooth_connection_status))
         self.assertIs(ReadHardwareVersionCommand, type(control.get_hardware_version))
         self.assertIs(ReadFirmwareVersionCommand, type(control.get_firmware_version))
@@ -54,13 +53,12 @@ class TestControlCommands(unittest.TestCase):
         self.assertIs(McuStatusUpdater_ControlCommand, type(control.status_updater_control))
         self.assertIs(McuStatusUpdater_ReadCommand, type(control.status_updater_read))
 
-    def test_revvy_command_ids(self):
+    def test_revvy_command_ids(self) -> None:
         control = RevvyControl(None)
 
         self.assertEqual(0, control.ping.command_id)
 
         self.assertEqual(0x04, control.set_master_status.command_id)
-        self.assertEqual(0x06, control.read_operation_mode.command_id)
         self.assertEqual(0x05, control.set_bluetooth_connection_status.command_id)
         self.assertEqual(0x01, control.get_hardware_version.command_id)
         self.assertEqual(0x02, control.get_firmware_version.command_id)
@@ -87,19 +85,17 @@ class TestControlCommands(unittest.TestCase):
         self.assertEqual(0x3B, control.status_updater_control.command_id)
         self.assertEqual(0x3C, control.status_updater_read.command_id)
 
-    def test_bootloader_command_instances(self):
+    def test_bootloader_command_instances(self) -> None:
         control = BootloaderControl(None)
 
-        self.assertIs(ReadOperationModeCommand, type(control.read_operation_mode))
         self.assertIs(ReadHardwareVersionCommand, type(control.get_hardware_version))
         self.assertIs(InitializeUpdateCommand, type(control.send_init_update))
         self.assertIs(SendFirmwareCommand, type(control.send_firmware))
         self.assertIs(FinalizeUpdateCommand, type(control.finalize_update))
 
-    def test_bootloader_command_ids(self):
+    def test_bootloader_command_ids(self) -> None:
         control = BootloaderControl(None)
 
-        self.assertEqual(0x06, control.read_operation_mode.command_id)
         # read application crc (0x07) is not implemented
         self.assertEqual(0x01, control.get_hardware_version.command_id)
         self.assertEqual(0x08, control.send_init_update.command_id)
