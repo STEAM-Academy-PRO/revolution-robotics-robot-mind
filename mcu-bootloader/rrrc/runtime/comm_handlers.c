@@ -67,6 +67,8 @@ static Comm_Status_t InitializeUpdate_Start(ConstByteArray_t commandPayload, Byt
     size_t firmware_size = get_uint32(&commandPayload.bytes[0]);
     uint32_t checksum = get_uint32(&commandPayload.bytes[4]);
 
+    // TODO: this should be an async server call. The operation takes long and the RPi may time out.
+
     if (!UpdateManager_Run_CheckImageFitsInFlash(firmware_size))
     {
         return Comm_Status_Error_CommandError;
@@ -122,6 +124,7 @@ static Comm_Status_t VersionProvider_GetHardwareVersion_Start(ConstByteArray_t c
         "2.0.0"
     };
 
+    SEGGER_RTT_printf(0, "GetHardwareVersion\n");
     uint32_t hw = HARDWARE_VERSION;
 
     if (hw < ARRAY_SIZE(hw_version_strings))
