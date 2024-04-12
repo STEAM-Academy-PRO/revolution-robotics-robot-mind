@@ -124,7 +124,7 @@ static Comm_Status_t VersionProvider_GetHardwareVersion_Start(ConstByteArray_t c
         "2.0.0"
     };
 
-    SEGGER_RTT_printf(0, "GetHardwareVersion\n");
+    LOG_RAW("GetHardwareVersion\n");
     uint32_t hw = HARDWARE_VERSION;
 
     if (hw < ARRAY_SIZE(hw_version_strings))
