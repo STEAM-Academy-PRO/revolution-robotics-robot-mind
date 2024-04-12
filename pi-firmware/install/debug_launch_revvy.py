@@ -591,7 +591,7 @@ def main():
     skipped_versions = []
     while True:
         cleanup_invalid_installations(INSTALLED_PACKAGES_DIR)
-        install_updates(INSTALLED_PACKAGES_DIR)
+        install_updates(INSTALLED_PACKAGES_DIR, not args.skip_dependencies)
 
         if start_newest_framework(skipped_versions):
             print("Exiting launcher")
