@@ -141,7 +141,7 @@ jobs:
 
           # install dependencies
           pip install -r install/requirements.txt
-          pip install -r install/requirements_test.txt
+          pip install -r install/requirements_dev.txt
 
           # run checks
           # python -m dev_tools.precommit_pep8 --check-all
