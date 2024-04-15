@@ -80,6 +80,8 @@ if __name__ == "__main__":
             # list commands here
             "build",
             "generate",
+            "erase",
+            "run",
         ],
     )
     parser.add_argument("--release", help="Build in release mode", action="store_true")
@@ -93,3 +95,13 @@ if __name__ == "__main__":
 
     elif args.action == "generate":
         generate_files()
+
+    elif args.action == "erase":
+        shell(f"probe-rs erase --chip atsamd51p19a")
+
+    elif args.action == "run":
+        build(config)
+        dir = "Release" if args.release else "Debug"
+        shell(
+            f"probe-rs run --chip atsamd51p19a Build/{dir}/mcu-bootloader/rrrc_samd51.elf"
+        )
