@@ -4,7 +4,6 @@ import argparse
 import os
 import shutil
 import json
-import time
 from typing import Optional
 from contextlib import contextmanager
 
