@@ -3,5 +3,7 @@
     "python.pythonPath.linux": "venv/bin/python",
     "cortex-debug.armToolchainPath": "/usr/share/gcc-arm/gcc-arm-none-eabi-10.3-2021.10/bin",
     "editor.formatOnSave": false,
-    "maxParallelBuilds": 4
+    "maxParallelBuilds": 4,
+    "project.gcc.prefix": "\"C:/gcc/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-",
+    "project.gcc.suffix": ".exe\""
 }

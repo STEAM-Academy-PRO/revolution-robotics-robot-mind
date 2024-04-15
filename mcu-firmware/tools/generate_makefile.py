@@ -1,5 +1,7 @@
 import argparse
 import json
+import os
+import shutil
 
 import chevron
 
@@ -54,16 +56,12 @@ LINKER_FLAGS := \\
 ifeq ($(OS),Windows_NT)
 \tSHELL := cmd.exe
 \tMKDIR := md
-\tGCC_BINARY_PREFIX := "C:/gcc/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-
-\tGCC_BINARY_SUFFIX := .exe"
 \tNULL := nul
 \tDEL := rmdir /s /q
 \tTRUE := VER>nul
 else
 \tSHELL := /bin/bash
 \tMKDIR := mkdir -p
-\tGCC_BINARY_PREFIX := /usr/share/gcc-arm/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-
-\tGCC_BINARY_SUFFIX :=
 \tNULL := /dev/null
 \tDEL := rm -rf
 \tTRUE := true
@@ -113,19 +111,19 @@ endif
 $(OUTPUT_DIR)/%.d: %.c
 \t@echo Collecting dependencies: $<
 \t@$(MKDIR) "$(@D)" 2>$(NULL) || $(TRUE)
-\t@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) $(addprefix -I,$(INCLUDE_PATHS)) $(COMPILE_FLAGS) -MF $@ -MT$@ -M $<
+\t@{{{ gcc }}} $(addprefix -I,$(INCLUDE_PATHS)) $(COMPILE_FLAGS) -MF $@ -MT$@ -M $<
 
 $(OUTPUT_DIR)/%.o: %.c
 \t@echo Building file: $<
-\t@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) $(addprefix -I,$(INCLUDE_PATHS)) $(COMPILE_FLAGS) -o $@ $<
+\t@{{{ gcc }}} $(addprefix -I,$(INCLUDE_PATHS)) $(COMPILE_FLAGS) -o $@ $<
 \t@echo Finished building: $<
 
 $(OUTPUT_FILE).elf: $(OBJS)
 \t@echo Building target: $@
-\t@$(GCC_BINARY_PREFIX)gcc$(GCC_BINARY_SUFFIX) -o$(OUTPUT_FILE).elf $(OBJS) $(LINKER_FLAGS) -Wl,-Map=$(OUTPUT_FILE).map -Wl,--start-group -lm  -Wl,--end-group -Wl,--gc-sections
+\t@{{{ gcc }}} -o$(OUTPUT_FILE).elf $(OBJS) $(LINKER_FLAGS) -Wl,-Map=$(OUTPUT_FILE).map -Wl,--start-group -lm  -Wl,--end-group -Wl,--gc-sections
 \t@echo Finished building target: $@
-\t@$(GCC_BINARY_PREFIX)objcopy$(GCC_BINARY_SUFFIX) -O binary $(OUTPUT_FILE).elf $(OUTPUT_FILE).bin
-\t$(GCC_BINARY_PREFIX)size$(GCC_BINARY_SUFFIX) $(OUTPUT_FILE).elf
+\t@{{{ objcopy }}} -O binary $(OUTPUT_FILE).elf $(OUTPUT_FILE).bin
+\t@{{{ size }}} $(OUTPUT_FILE).elf
 
 clean:
 \t-@$(DEL) Build
@@ -140,6 +138,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--cleanup", help="Clean up newly created backup", action="store_true"
+    )
+    parser.add_argument(
+        "--ci", help="This script is running in CI", action="store_true"
     )
 
     args = parser.parse_args()
@@ -166,9 +167,24 @@ if __name__ == "__main__":
             component_file.format(source) for source in component_config["source_files"]
         ]
 
+    if args.ci:
+        workspace_config = json.load(open(".vscode/settings.ci.json"))
+    else:
+        if not os.path.exists(".vscode/settings.json"):
+            print("Looks like first run, copied vscode settings.example to settings!")
+            shutil.copy(".vscode/settings.example.json", ".vscode/settings.json")
+
+        workspace_config = json.load(open(".vscode/settings.json"))
+
+    def gcc_binary(name: str) -> str:
+        return f"{workspace_config['project.gcc.prefix']}{name}{workspace_config['project.gcc.suffix']}"
+
     template_context = {
         "sources": list_to_chevron_list(source_files, "source", "last"),
         "includes": list_to_chevron_list(config["includes"], "path", "last"),
+        "gcc": gcc_binary("gcc"),
+        "objcopy": gcc_binary("objcopy"),
+        "size": gcc_binary("size"),
     }
     makefile_contents = chevron.render(makefile_template, template_context)
 
