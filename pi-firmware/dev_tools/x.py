@@ -20,6 +20,14 @@ def green(text: str) -> str:
     return colored(text, "32")
 
 
+def red(text: str) -> str:
+    return colored(text, "31")
+
+
+def blue(text: str) -> str:
+    return colored(text, "34")
+
+
 # utilities
 
 
@@ -31,6 +39,14 @@ def in_folder(folder: str):
         yield
     finally:
         os.chdir(cwd)
+
+
+def shell(command: str) -> None:
+    print(f"{green('Running')} {command}")
+    exit_code = os.system(command)
+    if exit_code != 0:
+        print(f"{red('Error')} {blue(command)} failed with exit code {exit_code}")
+        exit(exit_code)
 
 
 cached_host: Optional[str] = None
@@ -103,17 +119,10 @@ def ssh(command: str) -> int:
 
 def build_firmware(config: str) -> None:
     with in_folder("../mcu-firmware"):
-        # TOOD: this should probably call a similar x-like script in the firmware folder
-        os.system("python -m tools.gen_version")
-        os.system("python -m tools.generate_makefile --cleanup")
-        os.system("cglue --generate")
-        os.system(f"make all config={config} -j12")  # TODO: configurable job count
-
-        # tools.prepare moves the built firmware into the output folder and generates metadata
         if config == "debug":
-            os.system("python -m tools.prepare --debug")
+            shell("python -m tools.x build")
         else:
-            os.system("python -m tools.prepare")
+            shell("python -m tools.x build --release")
 
 
 def copy_firmware_into_place() -> None:
@@ -130,9 +139,9 @@ def copy_firmware_into_place() -> None:
 
 def create_py_package(dev_package: bool):
     if dev_package:
-        os.system("python -m dev_tools.create_package --dev")
+        shell("python -m dev_tools.create_package --dev")
     else:
-        os.system("python -m dev_tools.create_package")
+        shell("python -m dev_tools.create_package")
 
 
 def upload_debug_launcher() -> None:
