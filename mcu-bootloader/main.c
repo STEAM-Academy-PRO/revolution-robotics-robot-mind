@@ -159,7 +159,8 @@ void MasterCommunicationInterface_Bootloader_RaiseEvent_OnTransmissionComplete(v
 {
     if (jump_to_application)
     {
-        FMT_JumpTargetFirmware();
+        /* Reset here - firmware will be loaded at the beginning of the bootloader execution */
+        NVIC_SystemReset();
     }
 }
 

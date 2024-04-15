@@ -159,7 +159,7 @@ class McuUpdater:
         try:
             self._bootloader_controller.finalize_update()
         except OSError:
-            # In this place, we expect an error because the bootloader reboots before responding.
+            # In this place, we ignore errors because the bootloader may reboot.
             pass
         except Exception:
             log(traceback.format_exc())
