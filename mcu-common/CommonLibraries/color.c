@@ -11,12 +11,12 @@ rgb_t hsv_to_rgb(hsv_t hsv_col)
 
     float hh = h / 60.0f;
     uint8_t hue = (uint8_t) hh;
-    
+
     float ff = hh - hue;
     float p = v * (1.0f - s);
     float q = v * (1.0f - (s * ff));
     float t = v * (1.0f - (s * (1.0f - ff)));
-    
+
     uint8_t qq = (uint8_t)(q * 255u);
     uint8_t vv = (uint8_t)(v * 255u);
     uint8_t tt = (uint8_t)(t * 255u);
@@ -25,7 +25,7 @@ rgb_t hsv_to_rgb(hsv_t hsv_col)
     switch (hue)
     {
         case 0:
-            return (rgb_t) { 
+            return (rgb_t) {
                 .R = vv,
                 .G = tt,
                 .B = pp };
@@ -49,7 +49,7 @@ rgb_t hsv_to_rgb(hsv_t hsv_col)
                 .R = tt,
                 .G = pp,
                 .B = vv };
-        case 5: 
+        case 5:
         default:
             return (rgb_t) {
                 .R = vv,
@@ -96,37 +96,35 @@ static inline float min3(float x, float y, float z)
 
 hsv_t rgb_to_hsv(rgb_t rgb)
 {
-    float rp = rgb.R / 255.0f;
-    float gp = rgb.G / 255.0f;
-    float bp = rgb.B / 255.0f;
+    int32_t cmin_u = min3(rgb.R, rgb.G, rgb.B);
+    int32_t cmax_u = max3(rgb.R, rgb.G, rgb.B);
 
-    float cmax = max3(rp, gp, bp);
-    float cmin = min3(rp, gp, bp);
-
-    float delta = cmax - cmin;
+    int32_t delta_u = (cmax_u - cmin_u);
 
     hsv_t hsv;
-    if (delta == 0.0f)
+    if (cmin_u == cmax_u)
     {
         hsv.s = 0;
         hsv.h = 0;
     }
-    else if (cmax == rp)
-    {
-        hsv.h = 60 * (lroundf(((gp - bp) / delta)) % 6);
-    }
-    else if (cmax == gp)
-    {
-        hsv.s = lroundf(100 * delta / cmax);
-        hsv.h = 60 * ((bp - rp) / delta + 2);
-    }
     else
     {
-        hsv.s = lroundf(100 * delta / cmax);
-        hsv.h = 60 * ((rp - gp) / delta + 4);
+        hsv.s = 100 - ((100 * cmin_u) / cmax_u);
+        if (cmax_u == rgb.R)
+        {
+            hsv.h = ((60 * (rgb.G - rgb.B) / delta_u) + 360) % 360;
+        }
+        else if (cmax_u == rgb.G)
+        {
+            hsv.h = 60 * (rgb.B - rgb.R) / delta_u + 120;
+        }
+        else
+        {
+            hsv.h = 60 * (rgb.R - rgb.G) / delta_u + 240;
+        }
     }
 
-    hsv.v = lroundf(100 * cmax);
+    hsv.v = (100 * cmax_u) / 255;
     return hsv;
 }
 
