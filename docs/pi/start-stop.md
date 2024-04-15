@@ -30,7 +30,7 @@ About the integrity protection and modifications
 ------------------------------------------------
 
 After startup the framework scans for unintended modifications in the source code. This is done by
-comparing the checksum of the individual files to those contained in the `manifest.json` file. If a 
+comparing the checksum of the individual files to those contained in the `manifest.json` file. If a
 file is not listed in the manifest, it is ignored. If a checksum does not match, the framework
 exits, deletes the "damaged" package and if possible, an older one is then started.
 

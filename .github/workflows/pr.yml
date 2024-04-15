@@ -163,7 +163,7 @@ jobs:
 
           # install dependencies
           pip install -r install/requirements.txt
-          pip install -r install/requirements_test.txt
+          pip install -r install/requirements_dev.txt
 
           # check formatting
           black --check .

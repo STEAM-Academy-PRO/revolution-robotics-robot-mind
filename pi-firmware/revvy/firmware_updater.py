@@ -57,16 +57,19 @@ class McuUpdater:
     def _is_in_bootloader_mode(self) -> bool:
         """
         Tries to connect to the board and determine,
-        if it's in bootloader mode or application mode
+        if it's in bootloader mode or application mode.
+
+        This function uses arbitrary MCU commands that have no side effects. Connection is
+        determined by the success of the command.
         """
         self._stopwatch.reset()
         while self._stopwatch.elapsed < 10:
             with suppress(OSError):
-                self._application_controller.read_operation_mode()
+                self._application_controller.ping()
                 return False
 
             with suppress(OSError):
-                self._bootloader_controller.read_operation_mode()
+                self._bootloader_controller.get_hardware_version()
                 return True
 
             # log("Failed to read operation mode. Retrying")

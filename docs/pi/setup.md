@@ -6,7 +6,7 @@ Set up the project
 - Active the virtual environment by running
   - Windows: `.\venv\Scripts\activate`
   - Linux: `source ./venv/bin/activate`
-- Install the required packages by running `pip install -r install/requirements_test.txt`
+- Install the required packages by running `pip install -r install/requirements_dev.txt`
 
 Recommended Dev Env
 -------------------
