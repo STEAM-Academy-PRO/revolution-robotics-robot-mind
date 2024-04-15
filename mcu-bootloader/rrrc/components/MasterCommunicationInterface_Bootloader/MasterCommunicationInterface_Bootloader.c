@@ -48,8 +48,8 @@ void i2c_hal_rx_complete(const uint8_t* buffer, size_t bufferSize, size_t bytesR
     } else {
         messageSize = (ssize_t)bytesReceived;
     }
-    messageReceived = true;
     messageBuffer = buffer;
+    messageReceived = true;
 }
 
 void i2c_hal_tx_complete(void)

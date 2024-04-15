@@ -3,6 +3,7 @@ import struct
 import binascii
 from enum import Enum
 from threading import Lock
+import time
 from typing import NamedTuple
 
 from revvy.utils.functions import retry
@@ -407,6 +408,7 @@ class RevvyTransport:
     _transaction_mutex = Lock()  # Ensures that write-read pairs are not interrupted
     timeout = 5  # [seconds] how long the MCU is allowed to respond with "busy" or no response
     retry = 100  # FIXME: 100 seems like an excessive value
+    retry_sleep_threshold = 20  # FIXME: This is a hack to work around an RPi Zero v1 issue that may prevent firmware updates from succeedin.
 
     def __init__(self, transport: RevvyTransportInterface):
         self._transport = transport
@@ -470,17 +472,21 @@ class RevvyTransport:
         """
 
         response_header = None
-        for _ in range(self.retry):
+        exception = None
+        for i in range(self.retry):
             try:
                 header_bytes = self._transport.read(5)
                 response_header = ResponseHeader.create(header_bytes)
                 break
-            except Exception:
-                pass
+            except Exception as e:
+                exception = e
+                # if we're struggling to read the header, allow some time for the MCU to catch up.
+                if i > self.retry_sleep_threshold:
+                    time.sleep(0.01)
 
         if not response_header:
             self.log("Error reading response header: retry limit reached!", LogLevel.ERROR)
-            raise BrokenPipeError("Read response header error")
+            raise BrokenPipeError(f"Read response header error: {exception}")
 
         # At this point we have read the response header and we know the command has
         # finished processing. We can now read the payload and return the result.
