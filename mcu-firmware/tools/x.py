@@ -80,6 +80,7 @@ if __name__ == "__main__":
         choices=[
             # list commands here
             "build",
+            "rebuild",
             "generate",
             "erase",
             "run",
@@ -92,6 +93,10 @@ if __name__ == "__main__":
 
     # handle commands here
     if args.action == "build":
+        build(config)
+
+    elif args.action == "rebuild":
+        shell("make clean")
         build(config)
 
     elif args.action == "generate":
