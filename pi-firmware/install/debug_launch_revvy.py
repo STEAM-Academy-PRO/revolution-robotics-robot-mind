@@ -1,5 +1,9 @@
 #!/bin/python3
 # type: ignore
+
+# A modified version of `launch_revvy.py` from pi-os, used for development.
+# This script adds the `--skip-dependencies` option.
+
 import argparse
 import json
 import os
