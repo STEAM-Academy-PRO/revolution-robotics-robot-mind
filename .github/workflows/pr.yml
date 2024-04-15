@@ -57,7 +57,7 @@ jobs:
         if: steps.filter.outputs.mcu-bootloader == 'true'
         run: |
           cd mcu-bootloader
-          ./x build --ci
+          python -m tools.x build --ci
 
       - name: Upload artifacts
         if: steps.filter.outputs.mcu-bootloader == 'true' && github.event.pull_request.draft == false
@@ -117,7 +117,7 @@ jobs:
         if: steps.filter.outputs.mcu-firmware == 'true'
         run: |
           cd mcu-firmware
-          ./x build --ci
+          python -m tools.x build --ci
 
       - name: Visualize architecture
         if: steps.filter.outputs.mcu-firmware == 'true'

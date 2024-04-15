@@ -59,7 +59,7 @@ jobs:
       - name: Build Release bootloader
         run: |
           cd mcu-bootloader
-          ./x build --ci --release
+          python -m tools.x build --ci --release
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -104,7 +104,7 @@ jobs:
       - name: Build Release firmware
         run: |
           cd mcu-firmware
-          ./x build --ci --release
+          python -m tools.x build --ci --release
 
       - name: Upload packagable artifacts
         uses: actions/upload-artifact@v4
