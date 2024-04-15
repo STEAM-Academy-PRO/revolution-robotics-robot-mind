@@ -81,26 +81,28 @@ StartupReason_t FMP_CheckBootloaderModeRequest(void) {
     return startupReason;
 }
 
-bool FMP_CheckTargetFirmware(bool check_expected_crc, uint32_t expected_crc) {
-
-    uint32_t crc32 = 0xFFFFFFFFu;
-
-    // Sanity check that the target firmware size fits the dedicated region
+bool FMP_FlashHeaderValid(void)
+{
     if (FLASH_HEADER->target_length > FLASH_AVAILABLE) {
         return false;
     }
-    // On request check that the stored CRC matches the expected
-    if (check_expected_crc && (FLASH_HEADER->target_checksum != expected_crc)) {
-        return false;
-    }
 
-    crc32 = CRC_Run_Calculate_CRC32(crc32, (ConstByteArray_t) {
+    return true;
+}
+
+uint32_t FMP_RecordedFirmwareCRC(void)
+{
+    return FLASH_HEADER->target_checksum;
+}
+
+uint32_t FMP_CalculateFirmwareCRC(void)
+{
+    uint32_t crc32 = CRC_Run_Calculate_CRC32(0xFFFFFFFFu, (ConstByteArray_t) {
         .bytes = s_fw_data,
         .count = FLASH_HEADER->target_length,
     });
     crc32 ^= 0xFFFFFFFFu; // Final CRC bit inversion as per algo specification
-
-    return (crc32 == FLASH_HEADER->target_checksum);
+    return crc32;
 }
 
 static bool _is_region_empty(const uint32_t* ptr, size_t size) {
