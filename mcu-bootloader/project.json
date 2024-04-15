@@ -109,7 +109,8 @@
             "OnInit": [
                 "MasterCommunication/OnInit",
                 "MasterCommunicationInterface_Bootloader/OnInit",
-                "LEDController/OnInit"
+                "LEDController/OnInit",
+                "CRC/OnInit"
             ],
             "OnInitDone": [],
             "Loop": [
@@ -121,7 +122,8 @@
             "MasterCommunicationInterface_Bootloader/SetResponse": "MasterCommunication/SendResponse",
             "MasterCommunicationInterface_Bootloader/OnMessageReceived": "MasterCommunication/HandleCommand",
             "CRC/Calculate_CRC7": "MasterCommunication/Calculate_CRC7",
-            "CRC/Calculate_CRC16": "MasterCommunication/Calculate_CRC16"
+            "CRC/Calculate_CRC16": "MasterCommunication/Calculate_CRC16",
+            "CRC/Calculate_CRC32": "UpdateManager/Calculate_CRC32"
         }
     }
 }

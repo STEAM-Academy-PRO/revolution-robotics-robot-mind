@@ -7,7 +7,7 @@
 #include <tc_lite.h>
 #include <hal_gpio.h>
 #include "atmel_start_pins.h"
-#include "libraries/functions.h"
+#include "CommonLibraries/functions.h"
 
 #define NUM_MOTORS 6
 #define MOTOR_SPEED_RESOLUTION 200

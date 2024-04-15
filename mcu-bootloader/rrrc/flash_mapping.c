@@ -2,9 +2,8 @@
 #include "hri_rtc_d51.h"
 #include "hri_rstc_d51.h"
 #include "driver_init.h"
-#include "libraries/crc.h"
 
-#include "components/UpdateManager/UpdateManager.h"
+#include "generated_runtime.h"
 
 static const void * s_fw_data = (const void *) FLASH_FW_OFFSET;
 
@@ -95,7 +94,10 @@ bool FMP_CheckTargetFirmware(bool check_expected_crc, uint32_t expected_crc) {
         return false;
     }
 
-    crc32 = CRC32_Calculate(crc32, s_fw_data, FLASH_HEADER->target_length);
+    crc32 = CRC_Run_Calculate_CRC32(crc32, (ConstByteArray_t) {
+        .bytes = s_fw_data,
+        .count = FLASH_HEADER->target_length,
+    });
     crc32 ^= 0xFFFFFFFFu; // Final CRC bit inversion as per algo specification
 
     return (crc32 == FLASH_HEADER->target_checksum);

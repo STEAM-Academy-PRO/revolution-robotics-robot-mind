@@ -59,6 +59,20 @@
             "arguments": {
                 "progress": "uint8_t"
             }
+        },
+        "Calculate_CRC32": {
+            "port_type": "ServerCall",
+            "return_type": "uint32_t",
+            "arguments": {
+                "init_value": {
+                    "data_type": "uint32_t",
+                    "direction": "in"
+                },
+                "data": {
+                    "data_type": "ConstByteArray_t",
+                    "direction": "in"
+                }
+            }
         }
     }
 }

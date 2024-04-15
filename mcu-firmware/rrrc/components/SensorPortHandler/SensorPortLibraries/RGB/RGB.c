@@ -1,13 +1,6 @@
-/*
- * ColorSensor.c
- *
- * Created: 2022. 03. 31. 12:48:20
- *  Author: Vladimir Yakovlev
- */
-
 #include "RGB.h"
 #include "utils.h"
-#include "libraries/color.h"
+#include "CommonLibraries/color.h"
 #include <hal_delay.h>
 #include <string.h>
 

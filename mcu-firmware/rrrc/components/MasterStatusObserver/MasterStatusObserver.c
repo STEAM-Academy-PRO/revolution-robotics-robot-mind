@@ -3,7 +3,7 @@
 
 /* Begin User Code Section: Declarations */
 #include <compiler.h>
-#include "SEGGER_RTT.h"
+#include "CommonLibraries/log.h"
 
 #define MSO_UPDATE_PERIOD       ((uint32_t)100u)
 
@@ -91,7 +91,7 @@ Comm_Status_t MasterStatusObserver_Run_Command_SetMasterStatus_Start(ConstByteAr
     }
     else
     {
-        SEGGER_RTT_printf(0, "SetMasterStatus: %u\r\n", commandPayload.bytes[0]);
+        LOG("SetMasterStatus: %u\n", commandPayload.bytes[0]);
         switch (commandPayload.bytes[0])
         {
             case 0u:

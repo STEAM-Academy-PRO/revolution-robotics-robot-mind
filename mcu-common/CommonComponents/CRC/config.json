@@ -9,6 +9,7 @@
     "instance_variables": {},
     "types": {},
     "runnables": {
+        "OnInit": {},
         "Calculate_CRC7": {
             "return_type": "uint8_t",
             "arguments": {
@@ -27,6 +28,19 @@
             "arguments": {
                 "init_value": {
                     "data_type": "uint16_t",
+                    "direction": "in"
+                },
+                "data": {
+                    "data_type": "ConstByteArray_t",
+                    "direction": "in"
+                }
+            }
+        },
+        "Calculate_CRC32": {
+            "return_type": "uint32_t",
+            "arguments": {
+                "init_value": {
+                    "data_type": "uint32_t",
                     "direction": "in"
                 },
                 "data": {

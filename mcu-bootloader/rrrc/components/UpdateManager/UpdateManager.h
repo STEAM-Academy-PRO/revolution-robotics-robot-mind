@@ -33,5 +33,6 @@ UpdateManager_Status_t UpdateManager_Run_WriteNextChunk(ConstByteArray_t data);
 UpdateManager_Status_t UpdateManager_Run_Finalize(void);
 void UpdateManager_Run_UpdateApplicationHeader(const ApplicationFlashHeader_t* header);
 void UpdateManager_RaiseEvent_ProgressChanged(uint8_t progress);
+uint32_t UpdateManager_Call_Calculate_CRC32(uint32_t init_value, ConstByteArray_t data);
 
 #endif /* COMPONENT_UPDATE_MANAGER_H_ */

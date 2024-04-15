@@ -1,8 +1,8 @@
 #include "DcMotor.h"
-#include "SEGGER_RTT.h"
+#include "CommonLibraries/log.h"
 
-#include "libraries/converter.h"
-#include "libraries/functions.h"
+#include "CommonLibraries/converter.h"
+#include "CommonLibraries/functions.h"
 #include "libraries/controller/pid.h"
 #include "libraries/interpolation/linear_interpolate.h"
 #include "utils.h"
@@ -331,7 +331,7 @@ static void _update_current_speed(MotorLibrary_Dc_Data_t* libdata)
     libdata->currentSpeed = map(posDiff + lastPosDiff, 0.0f, fabsf(libdata->resolution), 0.0f, 3000.0f);
     //bool is_moving = (int)libdata->currentSpeed != 0;
     //if (was_moving || is_moving){
-    //    SEGGER_RTT_printf(0, "Motor speed: %d\n", (int)libdata->currentSpeed);
+    //    LOG("Motor speed: %d\n", (int)libdata->currentSpeed);
     //}
 }
 
@@ -358,7 +358,7 @@ static void _process_new_request(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t*
             break;
     }
 
-    SEGGER_RTT_printf(0, "Motor %u: new %s request: %u\n", motorPort->port_idx, request_kind, driveRequest->version);
+    LOG("Motor %u: new %s request: %u\n", motorPort->port_idx, request_kind, driveRequest->version);
 
     if (last_request_type != driveRequest->request_type)
     {
@@ -467,7 +467,7 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
         if (distanceFromGoal < libdata->atLeastOneDegree)
         {
             if (libdata->motorStatus != DcMotorStatus_GoalReached) {
-                SEGGER_RTT_printf(0, "Motor %u: request %u: goal reached\n", motorPort->port_idx, libdata->currentRequest.version);
+                LOG("Motor %u: request %u: goal reached\n", motorPort->port_idx, libdata->currentRequest.version);
                 libdata->motorStatus = DcMotorStatus_GoalReached;
             }
         }
@@ -487,7 +487,7 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
                 _tick_timeout(&libdata->minPositionTimeout, POSITION_TIMEOUT);
                 if (_has_timeout_elapsed(&libdata->minPositionTimeout, POSITION_TIMEOUT))
                 {
-                    SEGGER_RTT_printf(0, "Motor %u: request %u: timeout\n", motorPort->port_idx, libdata->currentRequest.version);
+                    LOG("Motor %u: request %u: timeout\n", motorPort->port_idx, libdata->currentRequest.version);
                     libdata->motorStatus = DcMotorStatus_GoalReached;
                 }
             }
@@ -506,7 +506,7 @@ static int16_t _run_motor_control(MotorPort_t* motorPort, MotorLibrary_Dc_Data_t
             _tick_timeout(&libdata->motorTimeout, MOTOR_TIMEOUT_THRESHOLD);
             if (_has_timeout_elapsed(&libdata->motorTimeout, MOTOR_TIMEOUT_THRESHOLD))
             {
-                SEGGER_RTT_printf(0, "Motor %u: stuck\n", motorPort->port_idx);
+                LOG("Motor %u: stuck\n", motorPort->port_idx);
                 libdata->motorStatus = DcMotorStatus_Blocked;
                 return 0;
             }
@@ -623,19 +623,19 @@ MotorLibraryStatus_t DcMotor_UpdateConfiguration(MotorPort_t* motorPort, const u
     /* Do we have the required data? */
     if (size < header_size)
     {
-        SEGGER_RTT_printf(0, "DcMotor_UpdateConfiguration: expected at least %u bytes, got %u\n", header_size, size);
+        LOG("DcMotor_UpdateConfiguration: expected at least %u bytes, got %u\n", header_size, size);
         return MotorLibraryStatus_InputError;
     }
     /* Linearity table is optional but must be 8 bytes per entry */
     if ((size - header_size) % 8 != 0u)
     {
-        SEGGER_RTT_printf(0, "DcMotor_UpdateConfiguration: linearity table size error\n");
+        LOG("DcMotor_UpdateConfiguration: linearity table size error\n");
         return MotorLibraryStatus_InputError;
     }
     size_t nNonlinearityPoints = (size - header_size) / 8u;
     if (nNonlinearityPoints > 9u) /** < 1 point is reserved for (0, 0) */
     {
-        SEGGER_RTT_printf(0, "DcMotor_UpdateConfiguration: linearity table too large: %u elements\n", nNonlinearityPoints);
+        LOG("DcMotor_UpdateConfiguration: linearity table too large: %u elements\n", nNonlinearityPoints);
         return MotorLibraryStatus_InputError;
     }
 
@@ -653,7 +653,7 @@ MotorLibraryStatus_t DcMotor_UpdateConfiguration(MotorPort_t* motorPort, const u
         case 0: libdata->positionBreakpointKind = PositionBreakpointKind_Degrees; break;
         case 1: libdata->positionBreakpointKind = PositionBreakpointKind_Relative; break;
         default:
-            SEGGER_RTT_printf(0, "DcMotor_UpdateConfiguration: invalid positionBreakpointKind: %u\n", data[44]);
+            LOG("DcMotor_UpdateConfiguration: invalid positionBreakpointKind: %u\n", data[44]);
             return MotorLibraryStatus_InputError;
     }
     libdata->positionBreakpoint = get_float(&data[45]);
@@ -723,14 +723,14 @@ static MotorLibraryStatus_t _create_pwm_request(const MotorLibrary_Dc_Data_t* li
     (void) libdata;
     if (size != 2u)
     {
-        SEGGER_RTT_printf(0, "_create_pwm_request: got %d bytes, expected 2\n", size);
+        LOG("_create_pwm_request: got %d bytes, expected 2\n", size);
         return MotorLibraryStatus_InputError;
     }
 
     int8_t pwm = data[1];
     if (pwm < -100 || pwm > 100)
     {
-        SEGGER_RTT_printf(0, "_create_pwm_request: invalid pwm %d\n", pwm);
+        LOG("_create_pwm_request: invalid pwm %d\n", pwm);
         return MotorLibraryStatus_InputError;
     }
 
@@ -759,7 +759,7 @@ static MotorLibraryStatus_t _create_speed_request(const MotorLibrary_Dc_Data_t* 
     }
     else
     {
-        SEGGER_RTT_printf(0, "_create_speed_request input error: got %d bytes\n", size);
+        LOG("_create_speed_request input error: got %d bytes\n", size);
         return MotorLibraryStatus_InputError;
     }
 
@@ -793,7 +793,7 @@ static MotorLibraryStatus_t _create_position_request(const MotorLibrary_Dc_Data_
                 break;
 
             default:
-                SEGGER_RTT_printf(0, "_create_position_request input error: unknown limit type %d\n", data[5]);
+                LOG("_create_position_request input error: unknown limit type %d\n", data[5]);
                 return MotorLibraryStatus_InputError;
         }
     }
@@ -804,7 +804,7 @@ static MotorLibraryStatus_t _create_position_request(const MotorLibrary_Dc_Data_
     }
     else
     {
-        SEGGER_RTT_printf(0, "_create_position_request input error: got %d bytes\n", size);
+        LOG("_create_position_request input error: got %d bytes\n", size);
         return MotorLibraryStatus_InputError;
     }
 
@@ -838,7 +838,7 @@ MotorLibraryStatus_t DcMotor_CreateDriveRequest(const MotorPort_t* motorPort, co
 {
     if (size == 0u)
     {
-        SEGGER_RTT_printf(0, "DcMotor_CreateDriveRequest: empty request\n");
+        LOG("DcMotor_CreateDriveRequest: empty request\n");
         return MotorLibraryStatus_InputError;
     }
 
@@ -861,7 +861,7 @@ MotorLibraryStatus_t DcMotor_CreateDriveRequest(const MotorPort_t* motorPort, co
             return _create_position_request(libdata, data, size, driveRequest);
 
         default:
-            SEGGER_RTT_printf(0, "DcMotor_CreateDriveRequest: unknown control mode %d\n", data[0]);
+            LOG("DcMotor_CreateDriveRequest: unknown control mode %d\n", data[0]);
             return MotorLibraryStatus_InputError;
     }
 }

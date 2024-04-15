@@ -6,3 +6,4 @@ includes:
 - CMSIS headers
 - The Microchip ATSAMD51P19A support code (hal, hpl, hri, startup code)
 - SEGGER RTT implementation
+- Common CGlue components and common misc libraries

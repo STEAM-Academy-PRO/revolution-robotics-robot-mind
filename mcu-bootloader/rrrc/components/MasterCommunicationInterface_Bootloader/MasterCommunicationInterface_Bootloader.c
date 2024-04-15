@@ -5,7 +5,6 @@
 /* Begin User Code Section: Declarations */
 #include "i2cHal.h"
 
-#include "SEGGER_RTT.h"
 #include "driver_init.h"
 #include "utils_assert.h"
 #include <peripheral_clk_config.h>
