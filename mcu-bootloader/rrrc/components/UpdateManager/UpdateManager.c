@@ -134,9 +134,31 @@ UpdateManager_Status_t UpdateManager_Run_Finalize(void)
             return UpdateManager_Error_ImageInvalid;
         }
 
-        if (!FMP_CheckTargetFirmware(true, expected_crc))
+        bool crc_ok = FMP_FlashHeaderValid();
+
+        if (!crc_ok)
         {
-            LOG("Firmware CRC mismatch: %X\n", expected_crc);
+            LOG_RAW("Invalid firmware header\n");
+        }
+        else
+        {
+            uint32_t calculated_crc = FMP_CalculateFirmwareCRC();
+            uint32_t recorded_crc = FMP_RecordedFirmwareCRC();
+
+            if (recorded_crc != expected_crc)
+            {
+                LOG("Firmware checksum mismatch: recorded %X, expected %X\n", recorded_crc, expected_crc);
+                crc_ok = false;
+            }
+            else if (calculated_crc != expected_crc)
+            {
+                LOG("Firmware CRC mismatch: calculated %X, expected %X\n", calculated_crc, expected_crc);
+                crc_ok = false;
+            }
+        }
+
+        if (!crc_ok)
+        {
             return UpdateManager_Error_ImageInvalid;
         }
     }

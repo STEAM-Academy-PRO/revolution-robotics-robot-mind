@@ -29,8 +29,10 @@ typedef enum {
 StartupReason_t FMP_CheckBootloaderModeRequest (void);
 
 uint32_t FMP_ReadApplicationChecksum(void);
-bool FMP_CheckTargetFirmware (bool check_expected_crc, uint32_t expected_crc);
+bool FMP_FlashHeaderValid(void);
+uint32_t FMP_RecordedFirmwareCRC(void);
+uint32_t FMP_CalculateFirmwareCRC(void);
 bool FMP_IsApplicationEmpty(void);
 bool FMP_IsApplicationHeaderEmpty(void);
 void FMP_FixApplicationHeader(void);
-void FMT_JumpTargetFirmware (void);
+void FMT_JumpTargetFirmware(void);
