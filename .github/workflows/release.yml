@@ -59,8 +59,7 @@ jobs:
       - name: Build Release bootloader
         run: |
           cd mcu-bootloader
-          cglue --generate
-          make config=release -j${{ env.CPU_COUNT }}
+          ./x build --ci --release
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -105,11 +104,7 @@ jobs:
       - name: Build Release firmware
         run: |
           cd mcu-firmware
-          python -m tools.gen_version
-          python -m tools.generate_makefile
-          cglue --generate
-          make all config=release -j${{ env.CPU_COUNT }}
-          python -m tools.prepare
+          ./x build --ci --release
 
       - name: Upload packagable artifacts
         uses: actions/upload-artifact@v4

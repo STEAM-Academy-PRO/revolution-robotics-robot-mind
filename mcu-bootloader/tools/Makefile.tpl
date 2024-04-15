@@ -2,40 +2,40 @@
 
 C_SRCS += \
 {{# sources }}
-{{ source }}{{^ last }} \{{/ last }}
+	{{ source }}{{^ last }} \{{/ last }}
 {{/ sources }}
 
 INCLUDE_PATHS += \
 {{# includes }}
-{{ path }}{{^ last }} \{{/ last }}
+	{{ path }}{{^ last }} \{{/ last }}
 {{/ includes }}
 
 COMPILE_FLAGS += \
--x c \
--mthumb \
--D__SAMD51P19A__ \
--ffunction-sections \
--fdata-sections \
--mlong-calls \
--Wall \
--Wextra \
--Wundef \
--Wdouble-promotion \
--mcpu=cortex-m4 \
--c \
--std=gnu99 \
--mfloat-abi=hard \
--mfpu=fpv4-sp-d16 \
--MD \
--MP
+	-x c \
+	-mthumb \
+	-D__SAMD51P19A__ \
+	-ffunction-sections \
+	-fdata-sections \
+	-mlong-calls \
+	-Wall \
+	-Wextra \
+	-Wundef \
+	-Wdouble-promotion \
+	-mcpu=cortex-m4 \
+	-c \
+	-std=gnu99 \
+	-mfloat-abi=hard \
+	-mfpu=fpv4-sp-d16 \
+	-MD \
+	-MP
 
 LINKER_FLAGS := \
--mthumb \
--mfloat-abi=hard \
--mfpu=fpv4-sp-d16 \
--mcpu=cortex-m4 \
---specs=nano.specs \
--TConfig/samd51p19a_flash.ld
+	-mthumb \
+	-mfloat-abi=hard \
+	-mfpu=fpv4-sp-d16 \
+	-mcpu=cortex-m4 \
+	--specs=nano.specs \
+	-TConfig/samd51p19a_flash.ld
 
 ifeq ($(OS),Windows_NT)
 	SHELL := cmd.exe
@@ -68,18 +68,16 @@ RELEASE_COMPILE_FLAGS := \
 	-flto
 
 ifeq ($(config), debug)
-OUTPUT_DIR :=Build/Debug/mcu-bootloader
-COMPILE_FLAGS += $(DEBUG_COMPILE_FLAGS)
-else ifeq ($(config), ci)
-OUTPUT_DIR :=Build/Debug/mcu-bootloader
-COMPILE_FLAGS += \
-	$(DEBUG_COMPILE_FLAGS) \
-	-fanalyzer
+	OUTPUT_DIR :=Build/Debug/mcu-bootloader
+	COMPILE_FLAGS += $(DEBUG_COMPILE_FLAGS)
 else
-OUTPUT_DIR :=Build/Release/mcu-bootloader
-COMPILE_FLAGS += $(RELEASE_COMPILE_FLAGS)
-LINKER_FLAGS += \
-	-flto
+	OUTPUT_DIR :=Build/Release/mcu-bootloader
+	COMPILE_FLAGS += $(RELEASE_COMPILE_FLAGS)
+	LINKER_FLAGS += -flto
+endif
+
+ifeq ($(ci), true)
+	COMPILE_FLAGS += -fanalyzer
 endif
 
 OUTPUT_FILE :=$(OUTPUT_DIR)/rrrc_samd51

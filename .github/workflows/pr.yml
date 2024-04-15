@@ -57,8 +57,7 @@ jobs:
         if: steps.filter.outputs.mcu-bootloader == 'true'
         run: |
           cd mcu-bootloader
-          cglue --generate
-          make config=ci -j${{ env.CPU_COUNT }}
+          ./x build --ci
 
       - name: Upload artifacts
         if: steps.filter.outputs.mcu-bootloader == 'true' && github.event.pull_request.draft == false
@@ -118,11 +117,7 @@ jobs:
         if: steps.filter.outputs.mcu-firmware == 'true'
         run: |
           cd mcu-firmware
-          python -m tools.gen_version
-          python -m tools.generate_makefile
-          cglue --generate
-          make all config=ci -j${{ env.CPU_COUNT }}
-          python -m tools.prepare --debug
+          ./x build --ci
 
       - name: Visualize architecture
         if: steps.filter.outputs.mcu-firmware == 'true'

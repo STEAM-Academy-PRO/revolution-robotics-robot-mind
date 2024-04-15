@@ -36,12 +36,15 @@ def shell(command: str) -> None:
         exit(exit_code)
 
 
-def load_project_settings() -> str:
-    if not os.path.exists(".vscode/settings.json"):
-        print("Looks like first run, copied vscode settings.example to settings!")
-        shutil.copy(".vscode/settings.example.json", ".vscode/settings.json")
+def load_project_settings(in_ci: bool) -> dict:
+    if in_ci:
+        return json.load(open(".vscode/settings.ci.json"))
+    else:
+        if not os.path.exists(".vscode/settings.json"):
+            print("Looks like first run, copied vscode settings.example to settings!")
+            shutil.copy(".vscode/settings.example.json", ".vscode/settings.json")
 
-    return json.load(open(".vscode/settings.json"))
+        return json.load(open(".vscode/settings.json"))
 
 
 # Command implementations
@@ -58,12 +61,13 @@ def generate_files() -> None:
     shell("cglue --generate")
 
 
-def build(config: str) -> None:
+def build(config: str, in_ci: bool) -> None:
     generate_files()
 
     print(f"{green('Building')} Firmware")
-    settings = load_project_settings()
-    shell(f"make all config={config} -j{settings.get('maxParallelBuilds', 4)}")
+    settings = load_project_settings(in_ci)
+    ci = "ci=1" if in_ci else ""
+    shell(f"make all config={config} {ci} -j{settings.get('maxParallelBuilds', 4)}")
 
     # tools.prepare moves the built firmware into the output folder and generates metadata
     if config == "debug":
@@ -87,17 +91,18 @@ if __name__ == "__main__":
         ],
     )
     parser.add_argument("--release", help="Build in release mode", action="store_true")
+    parser.add_argument("--ci", help="Build runs in CI", action="store_true")
     args = parser.parse_args()
 
     config = "release" if args.release else "debug"
 
     # handle commands here
     if args.action == "build":
-        build(config)
+        build(config, args.ci)
 
     elif args.action == "rebuild":
         shell("make clean")
-        build(config)
+        build(config, args.ci)
 
     elif args.action == "generate":
         generate_files()
@@ -106,7 +111,7 @@ if __name__ == "__main__":
         shell(f"probe-rs erase --chip atsamd51p19a")
 
     elif args.action == "run":
-        build(config)
+        build(config, args.ci)
         dir = "Release" if args.release else "Debug"
         shell(
             f"probe-rs run --chip atsamd51p19a Build/{dir}/mcu-firmware/rrrc_samd51.elf"
