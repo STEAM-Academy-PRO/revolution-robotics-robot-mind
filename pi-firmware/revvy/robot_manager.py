@@ -289,8 +289,10 @@ class RobotManager:
         self._bg_controlled_scripts.assign("list_slots", scriptvars)
 
         # set up motors
-        for motor in self._robot.motors:
-            motor.configure(config.motors[motor.id])
+        for motor_port in self._robot.motors:
+            motor_config = config.motors[motor_port.id]
+            log(f"Configuring motor {motor_port.id} {motor_config}")
+            motor_port.configure(motor_config)
 
         for motor_id in config.drivetrain.left:
             self._robot.drivetrain.add_left_motor(self._robot.motors[motor_id])
@@ -303,7 +305,8 @@ class RobotManager:
 
         # Re-configure sensors, subscribe to their data's changes.
         for sensor_port in self._robot.sensors:
-            log(f"Configuring sensor {sensor_port.id} {config.sensors[sensor_port.id]}")
+            sensor_config = config.sensors[sensor_port.id]
+            log(f"Configuring sensor {sensor_port.id} {sensor_config}")
             # Code smell: Instead of creating a new sensor object, we just
             # configure one. I'd prefer re-initializing the Sensor object.
             # not sure if it ditches the references.
@@ -318,8 +321,6 @@ class RobotManager:
             # I would prefer to create SensorPort classes in here, the configuration part, handle
             # the emitting, data-cleaning, event-smoothening/throttling and everything under one roof
             # because it DEPENDS what kind of a sensor it is how to clean the signal.
-
-            sensor_config = config.sensors[sensor_port.id]
 
             sensor_port.configure(sensor_config)
 

@@ -67,5 +67,5 @@ class TestPortConfiguration(unittest.TestCase):
         self.assertEqual(3, motors["M2"])
         self.assertEqual(9, sensors["S4"])
 
-        self.assertEqual([3, 4], config.drivetrain.left)
-        self.assertEqual([2], config.drivetrain.right)
+        self.assertEqual([2, 3], config.drivetrain.left)
+        self.assertEqual([1], config.drivetrain.right)

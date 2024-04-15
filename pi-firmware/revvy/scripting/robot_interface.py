@@ -669,8 +669,12 @@ class PortCollection(Generic[PortWrapper]):
                 key_list = self._alias_map.keys()
                 raise KeyError(f"key '{item}' not found in alias map. Available keys: {key_list}")
 
-        # access by (1-based) position
-        return self._ports[item - 1]
+        assert type(item) is int
+
+        try:
+            return self._ports[item]
+        except IndexError as e:
+            raise IndexError(f"Port index out of range: {item}") from e
 
     def __iter__(self) -> Iterator[PortWrapper]:
         return self._ports.__iter__()

@@ -8,7 +8,7 @@
 
 static uint8_t config_buffer[256];
 
-#define MOTOR_PORT_IDX(x) ((x) - 1u)
+#define MOTOR_PORT_IDX(x) (x)
 /* End User Code Section: Declarations */
 
 Comm_Status_t CommWrapper_MotorPorts_Run_Command_GetPortAmount_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount)
@@ -183,7 +183,7 @@ Comm_Status_t CommWrapper_MotorPorts_Run_Command_SetControlValue_Start(ConstByte
     {
         uint8_t segmentHeader = commandPayload.bytes[processedBytes];
         uint8_t segmentDataLength = (segmentHeader & 0xF8u) >> 3;
-        uint8_t portIdx = (segmentHeader & 0x07u); // port idx is indexed from 0 here
+        uint8_t portIdx = MOTOR_PORT_IDX(segmentHeader & 0x07u);
 
         if (portIdx >= CommWrapper_MotorPorts_Read_PortCount())
         {
