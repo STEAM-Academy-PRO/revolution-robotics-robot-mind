@@ -159,7 +159,7 @@ def build(config: str, dev_package: bool = False):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog="./x", description="Revvy build and deploy tool")
     parser.add_argument(
         "action",
         help="Action to execute",
