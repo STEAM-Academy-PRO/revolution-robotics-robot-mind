@@ -130,23 +130,20 @@ UpdateManager_Status_t UpdateManager_Run_Finalize(void)
 
         if (current_length != total_length)
         {
+            LOG("Firmware size mismatch: %u != %u\n", current_length, total_length);
             return UpdateManager_Error_ImageInvalid;
         }
 
         if (!FMP_CheckTargetFirmware(true, expected_crc))
         {
+            LOG("Firmware CRC mismatch: %X\n", expected_crc);
             return UpdateManager_Error_ImageInvalid;
         }
     }
 
-    /* Reset here - firmware will be loaded at the beginning of the bootloader execution */
-    NVIC_SystemReset();
-
-    /* this will not be reached */
-    return UpdateManager_Ok;
     /* End User Code Section: Finalize:run Start */
     /* Begin User Code Section: Finalize:run End */
-
+    return UpdateManager_Ok;
     /* End User Code Section: Finalize:run End */
 }
 
