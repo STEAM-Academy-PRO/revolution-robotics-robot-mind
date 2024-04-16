@@ -157,7 +157,7 @@ size_t Comm_Handle(const Comm_Command_t* command, Comm_Response_t* response, siz
         resultStatus = Comm_Status_Error_InternalError;
     }
 
-    if (resultStatus != Comm_Status_Ok)
+    if (resultStatus != Comm_Status_Ok && resultStatus != Comm_Status_Pending)
     {
         LOG("Command 0x%X failed with status %d\n", command->header.command, resultStatus);
     }
