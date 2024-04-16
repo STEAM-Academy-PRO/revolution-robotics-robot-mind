@@ -146,8 +146,8 @@ def create_py_package(dev_package: bool):
 
 def upload_debug_launcher() -> None:
     ssh("sudo chmod +777 /home/pi/RevvyFramework")
+    ssh("sudo chmod +777 /home/pi/RevvyFramework/launch_revvy.py")
     upload_file("install/debug_launch_revvy.py", "/home/pi/RevvyFramework/launch_revvy.py")
-    ssh("chmod +x ~/RevvyFramework/launch_revvy.py")
 
 
 def upload_package_to_robot(dev_package: bool) -> None:
