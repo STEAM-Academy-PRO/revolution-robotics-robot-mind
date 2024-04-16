@@ -13,6 +13,10 @@
         ]
     },
     "sources": [
+        "rrrc/main.c",
+        "rrrc/driver_init.c",
+        "rrrc/flash_mapping.c",
+        "rrrc/runtime/comm_handlers.c",
         "../mcu-common/Atmel/hal/src/hal_atomic.c",
         "../mcu-common/Atmel/hal/src/hal_cache.c",
         "../mcu-common/Atmel/hal/src/hal_delay.c",
@@ -44,17 +48,11 @@
         "../mcu-common/SEGGER/RTT/Syscalls/SEGGER_RTT_Syscalls_GCC.c",
         "../mcu-common/CommonLibraries/color.c",
         "../mcu-common/CommonLibraries/converter.c",
-        "../mcu-common/CommonLibraries/functions.c",
-        "main.c",
-        "driver_init.c",
-        "atmel_start.c",
-        "rrrc/flash_mapping.c",
-        "rrrc/runtime/comm_handlers.c"
+        "../mcu-common/CommonLibraries/functions.c"
     ],
     "includes": [
         ".",
         "rrrc",
-        "rrrc/runtime",
         "Config",
         "../mcu-common",
         "../mcu-common/Atmel/hpl/nvmctrl",

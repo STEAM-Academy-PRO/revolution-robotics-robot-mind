@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include "CommonLibraries/log.h"
 
-#include "comm_handlers.h"
+#include "runtime/comm_handlers.h"
 
 static bool _commandValid(const Comm_Command_t* command)
 {

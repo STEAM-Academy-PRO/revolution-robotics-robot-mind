@@ -1,4 +1,11 @@
-#include <atmel_start.h>
+#include "driver_init.h"
+#include <peripheral_clk_config.h>
+#include <utils.h>
+#include <hal_init.h>
+#include "hri_mclk_d51.h"
+#include "hri_wdt_d51.h"
+
+struct flash_descriptor FLASH_0;
 
 static void enable_brownout_detector(void)
 {
@@ -11,7 +18,7 @@ static void enable_brownout_detector(void)
     // Set up BOD and wait for power supply to settle
     // Disable BOD33 before changing the configuration
     SUPC->BOD33.bit.ENABLE = 0;
-    while (!SUPC->STATUS.bit.B33SRDY) {};
+    while (!SUPC->STATUS.bit.B33SRDY) {}
 
     // Datasheet 19.8.5, 3.3V Brown-Out Detector (BOD33) Control:
     // VBOD- = 1.5 + LEVEL[7:0] x VBOD33_LEVEL_STEP
@@ -40,14 +47,14 @@ static void enable_brownout_detector(void)
 
     // Enable BOD33
     SUPC->BOD33.bit.ENABLE = 1;
-    while (!SUPC->STATUS.bit.BOD33RDY) {};
+    while (!SUPC->STATUS.bit.BOD33RDY) {}
 
     // Wait for voltage to settle. BOD33DET is set to 0 when the voltage is above the threshold.
     while (SUPC->STATUS.bit.BOD33DET) {}
 
     // Set up BOD to reset if supply voltage drops
     SUPC->BOD33.bit.ENABLE = 0;
-    while (!SUPC->STATUS.bit.B33SRDY) {};
+    while (!SUPC->STATUS.bit.B33SRDY) {}
 
     SUPC->BOD33.reg |= SUPC_BOD33_ACTION_RESET;
     SUPC->BOD33.bit.ENABLE = 1;
@@ -55,11 +62,34 @@ static void enable_brownout_detector(void)
     // We don't have to wait for synchronization here as we are not planning to write more bits
 }
 
+static void FLASH_0_init(void)
+{
+    hri_mclk_set_AHBMASK_NVMCTRL_bit(MCLK);
+    flash_init(&FLASH_0, NVMCTRL);
+}
+
+void watchdog_start(void)
+{
+    hri_mclk_set_APBAMASK_WDT_bit(MCLK);
+    hri_wdt_clear_CTRLA_WEN_bit(WDT);
+    hri_wdt_write_CONFIG_PER_bf(WDT, 0x07u);
+    hri_wdt_set_CTRLA_ENABLE_bit(WDT);
+}
+
 /**
  * Initializes MCU, drivers and middleware in the project
  **/
-void atmel_start_init(void)
+void system_init(void)
 {
     enable_brownout_detector();
-    system_init();
+
+    // Perform the very basic init and check the bootloader mode request
+    init_mcu();
+    FLASH_0_init();
+
+    // Temporarily (until next boot) write-protect the bootloader pages (first 64K for now)
+    flash_lock(&FLASH_0, 0, 32);
+    flash_lock(&FLASH_0, 0x4000, 32);
+    flash_lock(&FLASH_0, 0x8000, 32);
+    flash_lock(&FLASH_0, 0xC000, 32);
 }

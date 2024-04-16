@@ -12,14 +12,6 @@ static const void * s_fw_data = (const void *) FLASH_FW_OFFSET;
  */
 static const void * s_rtc_module = (const void *) RTC;
 
-static void JumpTargetFirmware (uint32_t jump_addr) {
-    __asm__ (" mov   r1, %0        \n"
-             " ldr   r0, [r1, #4]  \n"
-             " ldr   sp, [r1]      \n"
-             " blx   r0"
-             : : "r" (jump_addr));
-}
-
 uint32_t FMP_ReadApplicationChecksum(void)
 {
     return FLASH_HEADER->target_checksum;
@@ -140,5 +132,10 @@ void FMP_FixApplicationHeader(void)
 void FMT_JumpTargetFirmware(void) {
     __disable_irq();
     watchdog_start();
-    JumpTargetFirmware(FLASH_ADDR + FLASH_FW_OFFSET);
+    size_t jump_addr = FLASH_ADDR + FLASH_FW_OFFSET;
+    __asm__ (" mov   r1, %0        \n"
+             " ldr   r0, [r1, #4]  \n"
+             " ldr   sp, [r1]      \n"
+             " blx   r0"
+             : : "r" (jump_addr));
 }
