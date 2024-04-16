@@ -19,7 +19,7 @@ from typing import Generic, Iterator, NamedTuple, Optional, TypeVar
 
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.emitter import SimpleEventEmitter
-from revvy.utils.logger import get_logger
+from revvy.utils.logger import LogLevel, get_logger
 
 
 class PortDriver(ABC):
@@ -31,7 +31,7 @@ class PortDriver(ABC):
         self._on_status_changed = SimpleEventEmitter()
         self.log = get_logger([f"PortDriver[{port.id}]", port_kind, driver_name])
 
-        self.log(f"Driver created")
+        self.log(f"Driver created", LogLevel.DEBUG)
 
     @property
     def driver_name(self) -> str:
@@ -156,7 +156,7 @@ class PortInstance(Generic[DriverType]):
         self._supported = supported
         self._default_driver = default_driver
         self._set_port_type = set_port_type
-        self._driver = default_driver.create(self)
+        self._driver: DriverType = default_driver.create(self)
 
     @property
     def id(self) -> int:
@@ -181,17 +181,19 @@ class PortInstance(Generic[DriverType]):
         If config is None, the port is set to not configured.
         """
 
-        # Temporarily disable reading port by emitting an event that announced the port is not configured
-        self._config_changed_callbacks.trigger(self, None)
+        was_unconfigured = type(self._driver) == self._default_driver.driver
 
-        self.driver.uninitialize()
+        if not (was_unconfigured and config is None):
+            # Temporarily disable reading port by emitting an event that announced the port is not configured
+            self._config_changed_callbacks.trigger(self, None)
 
-        driver_config = config or self._default_driver
-        self._driver = driver_config.create(self)
+            self._driver.uninitialize()
 
-        self.log(f"set to {self.driver.driver_name}")
+            driver_config = config or self._default_driver
+            self._driver = driver_config.create(self)
+            self.log(f"set to {self.driver.driver_name}")
 
-        self._config_changed_callbacks.trigger(self, config)
+            self._config_changed_callbacks.trigger(self, config)
 
         return self.driver
 
