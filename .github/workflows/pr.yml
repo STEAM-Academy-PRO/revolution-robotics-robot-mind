@@ -166,7 +166,7 @@ jobs:
           # run linter
           pyright
 
-          timeout 5m nose2 -B
+          timeout 5m python -m dev_tools.x test
 
   archive-pi-firmware:
     permissions:

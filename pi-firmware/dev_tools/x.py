@@ -177,6 +177,7 @@ if __name__ == "__main__":
             "deploy",
             "full-deploy",  # Slow. Installs to versioned folder and installs dependencies.
             "test",
+            "hil-test",
             "run",
         ],
     )
@@ -214,7 +215,7 @@ if __name__ == "__main__":
         if not args.no_start:
             ssh("sudo systemctl start revvy")
 
-    elif args.action == "test":
+    elif args.action == "hil-test":
         build(config, dev_package=True)
         upload_debug_launcher()
         upload_package_to_robot(dev_package=True)
@@ -223,3 +224,9 @@ if __name__ == "__main__":
         ssh(
             "cd ~/RevvyFramework/user/packages/dev-pi-firmware/ && python3 -u -m tests.hil_tests.tests"
         )
+
+    elif args.action == "test":
+        print(green("Running unit tests"))
+        shell("cd tests && nose2 -B")
+        print(green("Running doctests"))
+        shell("cd revvy && nose2 -B")

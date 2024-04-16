@@ -140,7 +140,7 @@ jobs:
 
           # run checks
           # python -m dev_tools.precommit_pep8 --check-all
-          timeout 5m nose2 -B
+          timeout 5m python -m dev_tools.x test
 
   assemble-and-upload:
     permissions:
