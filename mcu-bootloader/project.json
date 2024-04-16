@@ -49,16 +49,12 @@
         "driver_init.c",
         "atmel_start.c",
         "rrrc/flash_mapping.c",
-        "rrrc/runtime/comm_handlers.c",
-        "rrrc/generated_runtime.c"
+        "rrrc/runtime/comm_handlers.c"
     ],
     "includes": [
         ".",
         "rrrc",
         "rrrc/runtime",
-        "rrrc/components",
-        "rrrc/components/MasterCommunicationInterface_Bootloader",
-        "rrrc/components/UpdateManager",
         "Config",
         "../mcu-common",
         "../mcu-common/Atmel/hpl/nvmctrl",
@@ -83,11 +79,7 @@
         "../mcu-common/Atmel/hri",
         "../mcu-common/Atmel/samd51a/include",
         "../mcu-common/CMSIS/Include",
-        "../mcu-common/SEGGER/RTT",
-        "../mcu-common/CommonComponents/MasterCommunication",
-        "../mcu-common/CommonComponents/LEDController",
-        "../mcu-common/CommonComponents/CRC",
-        "../mcu-common"
+        "../mcu-common/SEGGER/RTT"
     ],
     "components": [
         "CRC",

@@ -38,7 +38,12 @@ if __name__ == "__main__":
     rt.load()
     config = rt._project_config
 
+    runtime_source = config["settings"]["generated_runtime"] + ".c"
+
     source_files = config["sources"]
+    source_files.append(runtime_source)
+
+    include_paths = config["includes"]
 
     for component in config["components"]:
         component_file = rt.component_dir(component) + "/{}"
@@ -64,7 +69,7 @@ if __name__ == "__main__":
 
     template_context = {
         "sources": list_to_chevron_list(source_files, "source", "last"),
-        "includes": list_to_chevron_list(config["includes"], "path", "last"),
+        "includes": list_to_chevron_list(include_paths, "path", "last"),
         "gcc": gcc_binary("gcc"),
         "objcopy": gcc_binary("objcopy"),
         "size": gcc_binary("size"),

@@ -38,7 +38,12 @@ if __name__ == "__main__":
     rt.load()
     config = rt._project_config
 
+    runtime_source = config["settings"]["generated_runtime"] + ".c"
+
     source_files = config["sources"]
+    source_files.append(runtime_source)
+
+    include_paths = config["includes"]
 
     for component in config["components"]:
         component_file = rt.component_dir(component) + "/{}"

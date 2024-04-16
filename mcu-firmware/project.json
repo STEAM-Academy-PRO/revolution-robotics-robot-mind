@@ -15,7 +15,6 @@
     "sources": [
         "rrrc/driver_init.c",
         "rrrc/main.c",
-        "rrrc/generated_runtime.c",
         "rrrc/rrrc_worklogic.c",
         "rrrc/runtime/comm_handlers.c",
         "rrrc/libraries/controller/pid.c",
