@@ -85,10 +85,10 @@ class LongMessageType:
     ASSET_DATA = 5
     MAX = 6
 
-    PermanentMessages = [FIRMWARE_DATA, FRAMEWORK_DATA, ASSET_DATA]
+    PersistedMessages = [FIRMWARE_DATA, FRAMEWORK_DATA, ASSET_DATA]
 
     @staticmethod
-    def validate(long_message_type):
+    def validate(long_message_type: int):
         if not (0 < long_message_type < LongMessageType.MAX):
             raise LongMessageError(f"Invalid long message type {long_message_type}")
 
@@ -144,7 +144,7 @@ class LongMessageStorage:
     def _get_storage(self, message_type):
         return (
             self._storage
-            if message_type in LongMessageType.PermanentMessages
+            if message_type in LongMessageType.PersistedMessages
             else self._temp_storage
         )
 
