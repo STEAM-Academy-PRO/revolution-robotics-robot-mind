@@ -139,9 +139,8 @@ RELEASE_COMPILE_FLAGS := \
 	-DDEBUG_LOG \
 	-DBOOTLOADER_VERSION=0 \
 	-DHARDWARE_VERSION=2 \
-	-O3 \
-	-g3 \
-	-flto
+	-O0 \
+	-g3
 
 ifeq ($(config), debug)
 OUTPUT_DIR :=Build/Debug/mcu-bootloader
@@ -154,8 +153,6 @@ COMPILE_FLAGS += \
 else
 OUTPUT_DIR :=Build/Release/mcu-bootloader
 COMPILE_FLAGS += $(RELEASE_COMPILE_FLAGS)
-LINKER_FLAGS += \
-	-flto
 endif
 
 OUTPUT_FILE :=$(OUTPUT_DIR)/rrrc_samd51
