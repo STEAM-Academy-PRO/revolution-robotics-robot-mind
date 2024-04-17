@@ -144,7 +144,12 @@ def create_py_package(dev_package: bool):
         shell("python -m dev_tools.create_package")
 
 
+def unlock_pi() -> None:
+    ssh("sudo mount -o rw,remount /")
+
+
 def upload_debug_launcher() -> None:
+    unlock_pi()
     ssh("sudo chmod +777 /home/pi/RevvyFramework")
     ssh("sudo chmod +777 /home/pi/RevvyFramework/launch_revvy.py")
     upload_file("install/debug_launch_revvy.py", "/home/pi/RevvyFramework/launch_revvy.py")
