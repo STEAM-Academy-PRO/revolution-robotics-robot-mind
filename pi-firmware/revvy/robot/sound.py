@@ -5,7 +5,7 @@ from typing import Callable, Optional
 
 from revvy.hardware_dependent.sound import SoundControlBase
 from revvy.utils.assets import Assets
-from revvy.utils.directories import WRITEABLE_DATA_DIR, WRITEABLE_ASSETS_DIR
+from revvy.utils.directories import WRITEABLE_DATA_DIR, WRITEABLE_ASSETS_DIR, PACKAGE_ASSETS_DIR
 from revvy.utils.functions import read_json
 from revvy.utils.logger import LogLevel, get_logger
 
@@ -20,7 +20,7 @@ class Sound:
         self._assets = Assets()
 
         # Package sounds
-        self._assets.add_source(os.path.join("data", "assets"))
+        self._assets.add_source(PACKAGE_ASSETS_DIR)
 
         # Users can upload their own sounds in the writeable assets folder.
         self._assets.add_source(WRITEABLE_ASSETS_DIR)
