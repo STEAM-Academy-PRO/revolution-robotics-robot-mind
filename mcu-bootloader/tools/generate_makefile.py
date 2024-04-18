@@ -14,21 +14,11 @@ from cglue.plugins.ProjectConfigCompactor import project_config_compactor
 from cglue.plugins.RuntimeEvents import runtime_events
 from cglue.cglue import CGlue
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--config", help="Name of project config json file", default="./project.json"
-    )
-    parser.add_argument(
-        "--cleanup", help="Clean up newly created backup", action="store_true"
-    )
-    parser.add_argument(
-        "--ci", help="This script is running in CI", action="store_true"
-    )
 
-    args = parser.parse_args()
+def generate_makefile(clean_up: bool, in_ci: bool) -> bool:
+    """Generates Makefile for the project and returns whether it was changed or not."""
 
-    rt = CGlue(args.config)
+    rt = CGlue("./project.json")
     rt.add_plugin(project_config_compactor())
     rt.add_plugin(builtin_data_types())
     rt.add_plugin(runtime_events())
@@ -55,7 +45,7 @@ if __name__ == "__main__":
             component_file.format(source) for source in component_config["source_files"]
         ]
 
-    if args.ci:
+    if in_ci:
         workspace_config = json.load(open(".vscode/settings.ci.json"))
     else:
         if not os.path.exists(".vscode/settings.json"):
@@ -77,7 +67,23 @@ if __name__ == "__main__":
     makefile_template = open("tools/Makefile.tpl", "r").read()
     makefile_contents = chevron.render(makefile_template, template_context)
 
-    if change_file("Makefile", makefile_contents, args.cleanup):
+    if change_file("Makefile", makefile_contents, clean_up):
         print("New makefile generated")
+        return True
     else:
         print("Makefile up to date")
+        return False
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--cleanup", help="Clean up newly created backup", action="store_true"
+    )
+    parser.add_argument(
+        "--ci", help="This script is running in CI", action="store_true"
+    )
+
+    args = parser.parse_args()
+
+    generate_makefile(clean_up=args.cleanup, in_ci=args.ci)

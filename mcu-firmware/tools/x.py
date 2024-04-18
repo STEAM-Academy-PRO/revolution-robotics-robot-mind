@@ -5,6 +5,8 @@ import json
 import os
 import shutil
 
+from tools.generate_makefile import generate_makefile
+
 
 # logging helpers
 
@@ -50,21 +52,23 @@ def load_project_settings(in_ci: bool) -> dict:
 # Command implementations
 
 
-def generate_files() -> None:
+def generate_files(in_ci: bool) -> bool:
     print(f"{green('Updating')} Version file")
     shell("python -m tools.gen_version")
 
     print(f"{green('Generating')} Makefile")
-    shell("python -m tools.generate_makefile --cleanup")
+    makefile_changed = generate_makefile(in_ci=in_ci, clean_up=True)
 
     print(f"{green('Generating')} CGlue runtime")
     shell("cglue --generate")
 
+    return makefile_changed
+
 
 def build(config: str, in_ci: bool, rebuild: bool) -> None:
-    generate_files()
+    makefile_changed = generate_files(in_ci)
 
-    if rebuild:
+    if rebuild or makefile_changed:
         shell("make clean")
 
     print(f"{green('Building')} Firmware")
@@ -104,7 +108,7 @@ if __name__ == "__main__":
         build(config, in_ci=args.ci, rebuild=args.rebuild)
 
     elif args.action == "generate":
-        generate_files()
+        generate_files(in_ci=args.ci)
 
     elif args.action == "erase":
         shell(f"probe-rs erase --chip atsamd51p19a")
