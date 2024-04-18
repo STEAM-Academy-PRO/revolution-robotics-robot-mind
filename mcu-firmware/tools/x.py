@@ -61,8 +61,11 @@ def generate_files() -> None:
     shell("cglue --generate")
 
 
-def build(config: str, in_ci: bool) -> None:
+def build(config: str, in_ci: bool, rebuild: bool) -> None:
     generate_files()
+
+    if rebuild:
+        shell("make clean")
 
     print(f"{green('Building')} Firmware")
     settings = load_project_settings(in_ci)
@@ -84,13 +87,13 @@ if __name__ == "__main__":
         choices=[
             # list commands here
             "build",
-            "rebuild",
             "generate",
             "erase",
             "run",
         ],
     )
     parser.add_argument("--release", help="Build in release mode", action="store_true")
+    parser.add_argument("--rebuild", help="Clean before building", action="store_true")
     parser.add_argument("--ci", help="Build runs in CI", action="store_true")
     args = parser.parse_args()
 
@@ -98,11 +101,7 @@ if __name__ == "__main__":
 
     # handle commands here
     if args.action == "build":
-        build(config, args.ci)
-
-    elif args.action == "rebuild":
-        shell("make clean")
-        build(config, args.ci)
+        build(config, in_ci=args.ci, rebuild=args.rebuild)
 
     elif args.action == "generate":
         generate_files()
@@ -111,7 +110,7 @@ if __name__ == "__main__":
         shell(f"probe-rs erase --chip atsamd51p19a")
 
     elif args.action == "run":
-        build(config, args.ci)
+        build(config, in_ci=args.ci, rebuild=args.rebuild)
         dir = "Release" if args.release else "Debug"
         shell(
             f"probe-rs run --chip atsamd51p19a Build/{dir}/mcu-firmware/rrrc_samd51.elf"
