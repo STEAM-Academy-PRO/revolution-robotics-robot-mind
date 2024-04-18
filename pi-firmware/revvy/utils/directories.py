@@ -12,10 +12,12 @@ CURRENT_INSTALLATION_PATH = dirname(dirname(dirname(current_directory)))
 
 os.chdir(CURRENT_INSTALLATION_PATH)
 
-WRITEABLE_DIR_ROOT = join("..", "..", "..", "user")
+WRITEABLE_DIR_ROOT = os.path.realpath(join(CURRENT_INSTALLATION_PATH, "..", "..", "..", "user"))
 
-WRITEABLE_DATA_DIR = join(WRITEABLE_DIR_ROOT, "data")
+WRITEABLE_DATA_DIR = os.path.realpath(join(WRITEABLE_DIR_ROOT, "data"))
 
-WRITEABLE_ASSETS_DIR = join(WRITEABLE_DIR_ROOT, "assets")
+WRITEABLE_ASSETS_DIR = os.path.realpath(join(WRITEABLE_DIR_ROOT, "assets"))
 
-BLE_STORAGE_DIR = join(WRITEABLE_DIR_ROOT, "ble")
+BLE_STORAGE_DIR = os.path.realpath(join(WRITEABLE_DIR_ROOT, "ble"))
+
+PACKAGE_ASSETS_DIR = os.path.realpath(join(CURRENT_INSTALLATION_PATH, "data", "assets"))
