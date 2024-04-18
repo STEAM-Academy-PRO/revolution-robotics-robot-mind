@@ -93,6 +93,7 @@ if __name__ == "__main__":
             "generate",
             "erase",
             "run",
+            "reflash-clean",
         ],
     )
     parser.add_argument("--release", help="Build in release mode", action="store_true")
@@ -115,6 +116,14 @@ if __name__ == "__main__":
     elif args.action == "run":
         build(config, in_ci=args.ci, rebuild=args.rebuild)
         dir = "Release" if args.release else "Debug"
+        shell(
+            f"probe-rs run --chip atsamd51p19a Build/{dir}/mcu-bootloader/rrrc_samd51.elf"
+        )
+
+    elif args.action == "reflash-clean":
+        build(config, in_ci=args.ci, rebuild=args.rebuild)
+        dir = "Release" if args.release else "Debug"
+        shell(f"probe-rs erase --chip atsamd51p19a")
         shell(
             f"probe-rs run --chip atsamd51p19a Build/{dir}/mcu-bootloader/rrrc_samd51.elf"
         )
