@@ -26,23 +26,30 @@ class SoundControlBase(abc.ABC):
     @abc.abstractmethod
     def _play_sound(self, sound: str, cb: Callable) -> Thread: ...
 
-    def _run_command(self, command: str) -> subprocess.Popen:
-        return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    def _run_command(self, command: list[str]) -> subprocess.Popen:
+        return subprocess.Popen(
+            args=command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=False,
+        )
 
-    def _run_command_with_callback(self, command: str, callback) -> Thread:
-        def run_in_thread(command) -> None:
-            process = self._run_command(command)
-            with self._lock:
-                self._processes.append(process)
+    def _run_command_with_callback(self, commands: list[list[str]], callback) -> Thread:
+        def run_in_thread(commands: list[list[str]]) -> None:
+            for command in commands:
+                process = self._run_command(command)
+                with self._lock:
+                    self._processes.append(process)
 
-            process.wait()
+                process.wait()
 
-            with self._lock:
-                self._processes.remove(process)
+                with self._lock:
+                    self._processes.remove(process)
 
-            callback()
+            if callback:
+                callback()
 
-        thread = Thread(target=run_in_thread, args=(command,))
+        thread = Thread(target=run_in_thread, args=(commands,))
         thread.start()
 
         return thread
@@ -61,7 +68,7 @@ class SoundControlBase(abc.ABC):
     def set_volume(self, volume: int):
         self._log(f"Setting volume to {volume}")
         volume = clip(volume, 0, 100)
-        self._run_command(f"amixer sset Master {volume}%")
+        self._run_command(["amixer", "sset", "Master", f"{volume}%"])
 
     def reset_volume(self) -> None:
         self.set_volume(self._default_volume)
@@ -83,21 +90,24 @@ class SoundControlBase(abc.ABC):
 
 class SoundControlV1(SoundControlBase):
     def _init_amp(self) -> None:
-        self._run_command("gpio -g mode 13 alt0;gpio -g mode 22 out").wait()
+        self._run_command(["gpio", "-g", "mode", "13", "alt0"]).wait()
+        self._run_command(["gpio", "-g", "mode", "22", "out"]).wait()
 
     def _play_sound(self, sound: str, cb: Callable) -> Thread:
-        return self._run_command_with_callback(f'gpio write 3 1;mpg123 "{sound}"', cb)
+        return self._run_command_with_callback([["gpio", "write", "3", "1"], ["mpg123", sound]], cb)
 
     def _disable_amp(self) -> None:
-        self._run_command("gpio write 3 0").wait()
+        self._run_command(["gpio", "write", "3", "0"]).wait()
 
 
 class SoundControlV2(SoundControlBase):
     def _init_amp(self) -> None:
-        self._run_command("gpio -g mode 13 alt0;gpio -g mode 22 out;gpio write 3 1").wait()
+        self._run_command(["gpio", "-g", "mode", "13", "alt0"]).wait()
+        self._run_command(["gpio", "-g", "mode", "22", "out"]).wait()
+        self._run_command(["gpio", "write", "3", "1"]).wait()
 
     def _play_sound(self, sound: str, cb: Callable) -> Thread:
-        return self._run_command_with_callback(f'gpio write 3 0;mpg123 "{sound}"', cb)
+        return self._run_command_with_callback([["gpio", "write", "3", "0"], ["mpg123", sound]], cb)
 
     def _disable_amp(self) -> None:
-        self._run_command("gpio write 3 1").wait()
+        self._run_command(["gpio", "write", "3", "1"]).wait()

@@ -37,6 +37,9 @@ int main(void)
     // FIXME: we need to initialize CRC here because the generated runtime starts later.
     CRC_Run_OnInit();
 
+    // FIXME: we need to initialize CRC here because the generated runtime starts later.
+    CRC_Run_OnInit();
+
     StartupReason_t startupReason = FMP_CheckBootloaderModeRequest();
 
     if (startupReason == StartupReason_PowerUp || startupReason == StartupReason_BrownOutReset)

@@ -159,6 +159,7 @@ UpdateManager_Status_t UpdateManager_Run_Finalize(void)
 
         if (!crc_ok)
         {
+            LOG("Firmware CRC mismatch: %X\n", expected_crc);
             return UpdateManager_Error_ImageInvalid;
         }
     }
