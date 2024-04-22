@@ -76,7 +76,7 @@ class SetPowerCommand(MotorCommand):
 
 
 class SetSpeedCommand(MotorCommand):
-    def __init__(self, speed, power_limit=None):
+    def __init__(self, speed: float, power_limit: Optional[float] = None):
         REQUEST_SPEED = 1
         super().__init__(REQUEST_SPEED)
 
@@ -237,7 +237,7 @@ class BaseDcMotorDriver(MotorPortDriver):
         """
         return SetPowerCommand(power).command_to_port(self._port.id - 1)
 
-    def create_set_speed_command(self, speed, power_limit=None) -> bytes:
+    def create_set_speed_command(self, speed: float, power_limit: Optional[float] = None) -> bytes:
         """Create a command to set the regulated speed of the current motor.
 
         You can send the returned command (or multiple commands)

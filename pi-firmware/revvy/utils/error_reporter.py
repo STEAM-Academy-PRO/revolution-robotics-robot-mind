@@ -143,7 +143,11 @@ class ErrorHandler:
         error_reader = McuErrorReader(robot_control)
         log("Reading MCU errors...")
         for error_entry in error_reader.read_all():
-            self.report_error(RobotErrorType.MCU, error_entry, None)
+            self.report_error(
+                RobotErrorType.MCU,
+                error_entry,  # pyright: ignore - this or report_error's signature is incorrect
+                None,
+            )
 
         # This is not super ideal as we are not making sure that the error
         # actually gets sent up, however we do run this function only

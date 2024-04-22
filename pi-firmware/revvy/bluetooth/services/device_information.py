@@ -13,7 +13,7 @@ from revvy.utils.version import VERSION
 class DeviceInformationService(BleService):
     """Channel to send system info via Bluetooth"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         hw = VersionCharacteristic(uuid="2A27", version_info=str(VERSION.hw))
         fw = VersionCharacteristic(uuid="2A26", version_info=str(VERSION.fw))
         sw = VersionCharacteristic(uuid="2A28", version_info=str(VERSION.sw))

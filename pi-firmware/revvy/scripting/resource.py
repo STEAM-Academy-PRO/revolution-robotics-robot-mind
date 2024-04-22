@@ -11,7 +11,7 @@ class BaseHandle(abc.ABC):
     def __enter__(self) -> "BaseHandle": ...
 
     @abc.abstractmethod
-    def __exit__(self, exc_type, exc_val, exc_tb): ...
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None: ...
 
     @abc.abstractmethod
     def __bool__(self) -> bool: ...
@@ -32,7 +32,7 @@ class NullHandle(BaseHandle):
     def __enter__(self) -> BaseHandle:
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         pass
 
     def __bool__(self) -> bool:
@@ -61,7 +61,7 @@ class ResourceHandle(BaseHandle):
     def __enter__(self) -> BaseHandle:
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.release()
 
     def __bool__(self) -> bool:
@@ -106,10 +106,10 @@ class Resource:
         self._current_priority = -1
         self._active_handle = null_handle
 
-    def __enter__(self):
-        self._lock.__enter__()
+    def __enter__(self) -> bool:
+        return self._lock.__enter__()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self._lock.__exit__(exc_type, exc_val, exc_tb)
 
     def reset(self) -> None:

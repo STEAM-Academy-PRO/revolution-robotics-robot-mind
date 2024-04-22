@@ -1,4 +1,4 @@
-import abc
+from abc import ABC, abstractmethod
 import os
 import json
 from json import JSONDecodeError
@@ -19,14 +19,14 @@ class IntegrityError(StorageError):
     pass
 
 
-class StorageInterface(abc.ABC):
-    @abc.abstractmethod
+class StorageInterface(ABC):
+    @abstractmethod
     def read_metadata(self, filename: str) -> dict: ...
 
-    @abc.abstractmethod
+    @abstractmethod
     def write(self, filename: str, data: bytes, metadata=None, md5=None): ...
 
-    @abc.abstractmethod
+    @abstractmethod
     def read(self, filename: str) -> bytes: ...
 
 

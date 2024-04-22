@@ -374,7 +374,7 @@ class McuStatusUpdater_ReadCommand(ParameterlessCommand[bytes]):
         return payload
 
 
-class ErrorMemory_ReadCount(ParameterlessCommand):
+class ErrorMemory_ReadCount(ParameterlessCommand[int]):
     @property
     def command_id(self) -> int:
         return 0x3D
@@ -384,7 +384,7 @@ class ErrorMemory_ReadCount(ParameterlessCommand):
         return int.from_bytes(payload, byteorder="little")
 
 
-class ErrorMemory_ReadErrors(Command):
+class ErrorMemory_ReadErrors(Command[list[bytes]]):
     @property
     def command_id(self) -> int:
         return 0x3E

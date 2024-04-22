@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Generator
 
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.utils.logger import get_logger
@@ -20,14 +21,14 @@ class McuErrorReader:
         self._count = interface.error_memory_read_count()
         self._log(f"Stored errors: {self._count}")
 
-    def update(self):
+    def update(self) -> None:
         self._count = self._interface.error_memory_read_count()
 
     @property
-    def count(self):
+    def count(self) -> int:
         return self._count
 
-    def read_all(self):
+    def read_all(self) -> Generator[bytes, None, None]:
         remaining = self._count
         last_error_idx = 0
         while remaining > 0:
@@ -43,7 +44,7 @@ class McuErrorReader:
                 last_error_idx += 1
                 yield error_entry
 
-    def clear(self):
+    def clear(self) -> None:
         self._log("Clearing error memory")
         self._interface.error_memory_clear()
         self.update()

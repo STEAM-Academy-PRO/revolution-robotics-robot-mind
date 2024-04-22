@@ -151,7 +151,7 @@ class ScriptHandle(Emitter[ScriptEvent]):
                 self.log(f"resetting_variable: {var}")
                 var.reset_value()
 
-    def start(self, **kwargs):
+    def start(self, **kwargs) -> Event:
         if not kwargs:
             self._inputs = self._globals
         else:

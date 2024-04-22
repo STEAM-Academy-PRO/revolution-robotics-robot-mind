@@ -23,7 +23,7 @@ class MotorData:
 class GyroData:
     """A 3D vector"""
 
-    def __init__(self, a, b, c):
+    def __init__(self, a: float, b: float, c: float):
         self.a = floor0(a, 1)
         self.b = floor0(b, 1)
         self.c = floor0(c, 1)
@@ -35,7 +35,7 @@ class GyroData:
         # These values are rounded to the first decimal so we can compare them directly
         return other.a == self.a and other.b == self.b and other.c == self.c
 
-    def __json__(self):
+    def __json__(self) -> dict:
         return {"a": self.a, "b": self.b, "c": self.c}
 
     def __bytes__(self) -> bytes:
@@ -43,7 +43,7 @@ class GyroData:
 
 
 class ProgramStatusCollection:
-    def __init__(self):
+    def __init__(self) -> None:
         self._states = [0] * 32
         self._log = get_logger("ProgramStatusCollection")
 
@@ -103,7 +103,7 @@ class ScriptVariables:
 
 
 class TimerData:
-    def __init__(self, value):
+    def __init__(self, value) -> None:
         self.value = value
 
     def __bytes__(self) -> bytes:
@@ -141,7 +141,7 @@ class SensorData(Serialize):
         self.port_id = port_id
         self.value = value
 
-    def __json__(self):
+    def __json__(self) -> dict:
         return {"port_id": self.port_id, "value": self.value}
 
     def __bytes__(self) -> bytes:
