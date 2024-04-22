@@ -80,7 +80,7 @@ class RemoteController:
 
         self._joystick_mode_detected = False
         """Whether user input was detected.
-        
+
         Difference matters for the processing_time (aka the 'global timer'),
         as for in simple joystick mode, processing time should not start until
         the user presses something on a joystick, therefore we have to

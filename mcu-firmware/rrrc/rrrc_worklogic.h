@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include "generated_runtime.h"
-#include "comm_handlers.h"
+#include "runtime/comm_handlers.h"
 
 void RRRC_ProcessLogic_Init(void);
 void RRRC_ProcessLogic_xTask(void* user_data);

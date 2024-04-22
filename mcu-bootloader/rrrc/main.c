@@ -1,9 +1,8 @@
-#include <atmel_start.h>
+#include "driver_init.h"
 #include "flash_mapping.h"
 
 #include "CommonLibraries/functions.h"
 #include "CommonLibraries/color.h"
-#include "rrrc/runtime/runtime.h"
 #include "rrrc/generated_runtime.h"
 
 #include <math.h>
@@ -33,7 +32,10 @@ static void clear_rtt(void) {
 
 int main(void)
 {
-    atmel_start_init();
+    system_init();
+
+    // FIXME: we need to initialize CRC here because the generated runtime starts later.
+    CRC_Run_OnInit();
 
     // FIXME: we need to initialize CRC here because the generated runtime starts later.
     CRC_Run_OnInit();
@@ -93,7 +95,6 @@ int main(void)
             if (FMP_IsApplicationHeaderEmpty() || FLASH_HEADER->bootloader_version != BOOTLOADER_VERSION)
             {
                 LOG_RAW("Debug mode, fixing up application header\n");
-                atmel_start_init();
                 FMP_FixApplicationHeader();
                 NVIC_SystemReset();
             }
@@ -150,7 +151,7 @@ void MasterCommunicationInterface_Bootloader_Read_Configuration(MasterCommunicat
     dst->rx_overflow_response = MasterCommunication_Constant_LongRxErrorResponse();
 }
 
-void Runtime_RequestJumpToApplication(void)
+void CommHandlers_RequestJumpToApplication(void)
 {
     jump_to_application = true;
 }

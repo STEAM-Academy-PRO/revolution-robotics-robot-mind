@@ -13,7 +13,12 @@ from revvy.bluetooth.data_types import (
     ScriptVariables,
     TimerData,
 )
-from revvy.bluetooth.longmessage import LongMessageError, LongMessageHandler, LongMessageProtocol
+from revvy.bluetooth.longmessage import (
+    LongMessageError,
+    LongMessageHandler,
+    LongMessageProtocol,
+    LongMessageProtocolResult,
+)
 from revvy.robot.robot import BatteryStatus
 
 from revvy.utils.device_name import get_device_name, set_device_name
@@ -310,10 +315,10 @@ class LongMessageCharacteristic(Characteristic):
                 callback(Characteristic.RESULT_UNLIKELY_ERROR, None)
 
     @staticmethod
-    def _translate_result(result) -> int:
-        if result == LongMessageProtocol.RESULT_SUCCESS:
+    def _translate_result(result: LongMessageProtocolResult) -> int:
+        if result == LongMessageProtocolResult.RESULT_SUCCESS:
             return Characteristic.RESULT_SUCCESS
-        elif result == LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH:
+        elif result == LongMessageProtocolResult.RESULT_INVALID_ATTRIBUTE_LENGTH:
             return Characteristic.RESULT_INVALID_ATTRIBUTE_LENGTH
         else:
             return Characteristic.RESULT_UNLIKELY_ERROR

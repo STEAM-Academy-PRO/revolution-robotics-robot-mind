@@ -151,6 +151,10 @@ def bits_to_bool_list(byte_list) -> List[bool]:
 
 
 def bytestr_hash(byte_str: bytes) -> str:
+    """
+    >>> bytestr_hash(b'hello')
+    '5d41402abc4b2a76b9719d911017c592'
+    """
     hash_fn = hashlib.md5()
     hash_fn.update(byte_str)
     return hash_fn.hexdigest()

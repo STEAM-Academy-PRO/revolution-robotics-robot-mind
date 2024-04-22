@@ -59,7 +59,7 @@ def generate_makefile(clean_up: bool, in_ci: bool) -> bool:
 
     template_context = {
         "sources": list_to_chevron_list(source_files, "source", "last"),
-        "includes": list_to_chevron_list(config["includes"], "path", "last"),
+        "includes": list_to_chevron_list(include_paths, "path", "last"),
         "gcc": gcc_binary("gcc"),
         "objcopy": gcc_binary("objcopy"),
         "size": gcc_binary("size"),

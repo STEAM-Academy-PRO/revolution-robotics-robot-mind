@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "probe-rs launch",
-      "preLaunchTask": "prepare debug binary",
+      "preLaunchTask": "make debug",
       "type": "probe-rs-debug",
       "flashingConfig": {
         "haltAfterReset": true,
@@ -50,7 +50,7 @@
     },
     {
       "name": "Cortex Debug (JLink)",
-      "preLaunchTask": "prepare debug binary",
+      "preLaunchTask": "make debug",
       "cwd": "${workspaceFolder}",
       "executable": "${workspaceFolder}/Build/Debug/mcu-firmware/rrrc_samd51.elf",
       "serverpath": "<path to your>/JLinkGDBServerCL.exe",

@@ -5,6 +5,7 @@ from revvy.bluetooth.longmessage import (
     LongMessageStorage,
     LongMessageHandler,
     LongMessageProtocol,
+    LongMessageProtocolResult,
     bytes2hexdigest,
     MessageType,
     LongMessageType,
@@ -30,7 +31,7 @@ class TestLongMessageRead(unittest.TestCase):
 
     def test_read_returns_hash(self):
         persistent = MemoryStorage()
-        persistent.write(2, b"abcd")
+        persistent.write("2", b"abcd")
 
         md5_hash = hashlib.md5(b"abcd").hexdigest()
 
@@ -57,7 +58,7 @@ class TestLongMessageRead(unittest.TestCase):
         ble.handle_write(0, [2])  # select long message 2
         ble.handle_write(1, bytes([0] * 16))  # init
         self.assertEqual(
-            LongMessageProtocol.RESULT_SUCCESS,
+            LongMessageProtocolResult.RESULT_SUCCESS,
             ble.handle_write(MessageType.UPLOAD_MESSAGE, bytes([2])),
         )
 

@@ -1,4 +1,5 @@
-#include "runtime.h"
+#include "rrrc/generated_runtime.h"
+#include "comm_handlers.h"
 
 #include "flash_mapping.h"
 #include "CommonLibraries/converter.h"
@@ -105,7 +106,7 @@ static Comm_Status_t FinalizeUpdate_Start(ConstByteArray_t commandPayload, ByteA
     switch (UpdateManager_Run_Finalize())
     {
         case UpdateManager_Ok:
-            Runtime_RequestJumpToApplication();
+            CommHandlers_RequestJumpToApplication();
             return Comm_Status_Ok;
 
         default:
@@ -139,4 +140,10 @@ static Comm_Status_t VersionProvider_GetHardwareVersion_Start(ConstByteArray_t c
     {
         return Comm_Status_Error_InternalError;
     }
+}
+
+__attribute__((weak))
+void CommHandlers_RequestJumpToApplication(void)
+{
+
 }

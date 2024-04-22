@@ -8,3 +8,4 @@ Config/fw_version.h
 .vscode/launch.json
 rrrc/generated_runtime.c
 rrrc/generated_runtime.h
+Makefile

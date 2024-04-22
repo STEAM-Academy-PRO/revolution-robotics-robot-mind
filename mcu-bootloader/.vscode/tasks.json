@@ -20,10 +20,16 @@
             }
         },
         {
+            "label": "make debug",
+            "type": "shell",
+            "command": "./x build",
+            "problemMatcher": []
+        },
+        {
             "label": "make release",
             "type": "shell",
-            "command": "make all config=release -j${config:maxParallelBuilds}",
-            "problemMatcher": [],
+            "command": "./x build --release",
+            "problemMatcher": []
         },
     ]
 }

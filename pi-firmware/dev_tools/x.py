@@ -20,6 +20,14 @@ def green(text: str) -> str:
     return colored(text, "32")
 
 
+def red(text: str) -> str:
+    return colored(text, "31")
+
+
+def blue(text: str) -> str:
+    return colored(text, "34")
+
+
 # utilities
 
 
@@ -31,6 +39,14 @@ def in_folder(folder: str):
         yield
     finally:
         os.chdir(cwd)
+
+
+def shell(command: str) -> None:
+    print(f"{green('Running')} {command}")
+    exit_code = os.system(command)
+    if exit_code != 0:
+        print(f"{red('Error')} {blue(command)} failed with exit code {exit_code}")
+        exit(exit_code)
 
 
 cached_host: Optional[str] = None
@@ -103,17 +119,10 @@ def ssh(command: str) -> int:
 
 def build_firmware(config: str) -> None:
     with in_folder("../mcu-firmware"):
-        # TOOD: this should probably call a similar x-like script in the firmware folder
-        os.system("python -m tools.gen_version")
-        os.system("python -m tools.generate_makefile --cleanup")
-        os.system("cglue --generate")
-        os.system(f"make all config={config} -j12")  # TODO: configurable job count
-
-        # tools.prepare moves the built firmware into the output folder and generates metadata
         if config == "debug":
-            os.system("python -m tools.prepare --debug")
+            shell("python -m tools.x build")
         else:
-            os.system("python -m tools.prepare")
+            shell("python -m tools.x build --release")
 
 
 def copy_firmware_into_place() -> None:
@@ -130,15 +139,20 @@ def copy_firmware_into_place() -> None:
 
 def create_py_package(dev_package: bool):
     if dev_package:
-        os.system("python -m dev_tools.create_package --dev")
+        shell("python -m dev_tools.create_package --dev")
     else:
-        os.system("python -m dev_tools.create_package")
+        shell("python -m dev_tools.create_package")
+
+
+def unlock_pi() -> None:
+    ssh("sudo mount -o rw,remount /")
 
 
 def upload_debug_launcher() -> None:
+    unlock_pi()
     ssh("sudo chmod +777 /home/pi/RevvyFramework")
+    ssh("sudo chmod +777 /home/pi/RevvyFramework/launch_revvy.py")
     upload_file("install/debug_launch_revvy.py", "/home/pi/RevvyFramework/launch_revvy.py")
-    ssh("chmod +x ~/RevvyFramework/launch_revvy.py")
 
 
 def upload_package_to_robot(dev_package: bool) -> None:
@@ -168,6 +182,7 @@ if __name__ == "__main__":
             "deploy",
             "full-deploy",  # Slow. Installs to versioned folder and installs dependencies.
             "test",
+            "hil-test",
             "run",
         ],
     )
@@ -205,7 +220,7 @@ if __name__ == "__main__":
         if not args.no_start:
             ssh("sudo systemctl start revvy")
 
-    elif args.action == "test":
+    elif args.action == "hil-test":
         build(config, dev_package=True)
         upload_debug_launcher()
         upload_package_to_robot(dev_package=True)
@@ -214,3 +229,9 @@ if __name__ == "__main__":
         ssh(
             "cd ~/RevvyFramework/user/packages/dev-pi-firmware/ && python3 -u -m tests.hil_tests.tests"
         )
+
+    elif args.action == "test":
+        print(green("Running unit tests"))
+        shell("cd tests && nose2 -B")
+        print(green("Running doctests"))
+        shell("cd revvy && nose2 -B")

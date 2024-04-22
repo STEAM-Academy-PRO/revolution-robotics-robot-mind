@@ -6,5 +6,7 @@
 #define COMM_HANDLER_COUNT  ((uint8_t) 11u)
 extern Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT];
 
+void CommHandlers_RequestJumpToApplication(void);
+
 #endif /* RRRC_COMM_HANDLERS_H_ */
 
