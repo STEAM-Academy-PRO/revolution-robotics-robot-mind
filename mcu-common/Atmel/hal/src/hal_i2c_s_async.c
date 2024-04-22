@@ -94,14 +94,9 @@ int32_t i2c_s_async_enable(struct i2c_s_async_descriptor *const descr)
 
 	rc = _i2c_s_async_enable(&descr->device);
 	if (rc == ERR_NONE) {
-        /* patch: we are interested in the PROC and AMATCH interrupts as well */
-// 		_i2c_s_async_set_irq_state(&descr->device, I2C_S_DEVICE_TX, true);
-// 		_i2c_s_async_set_irq_state(&descr->device, I2C_S_DEVICE_RX_COMPLETE, true);
-// 		_i2c_s_async_set_irq_state(&descr->device, I2C_S_DEVICE_ERROR, true);
-		hri_sercomi2cs_set_INTEN_ERROR_bit(descr->device.hw);
-        hri_sercomi2cs_set_INTEN_AMATCH_bit(descr->device.hw);
-		hri_sercomi2cs_set_INTEN_PREC_bit(descr->device.hw);
-		hri_sercomi2cs_set_INTEN_DRDY_bit(descr->device.hw);
+ 		_i2c_s_async_set_irq_state(&descr->device, I2C_S_DEVICE_TX, true);
+ 		_i2c_s_async_set_irq_state(&descr->device, I2C_S_DEVICE_RX_COMPLETE, true);
+ 		_i2c_s_async_set_irq_state(&descr->device, I2C_S_DEVICE_ERROR, true);
 	}
 	return rc;
 }
@@ -117,14 +112,9 @@ int32_t i2c_s_async_disable(struct i2c_s_async_descriptor *const descr)
 
 	rc = _i2c_s_async_disable(&descr->device);
 	if (rc == ERR_NONE) {
-    	/* patch: we are interested in the PROC and AMATCH interrupts as well */
-//		_i2c_s_async_set_irq_state(&descr->device, I2C_S_DEVICE_TX, false);
-//		_i2c_s_async_set_irq_state(&descr->device, I2C_S_DEVICE_RX_COMPLETE, false);
-//		_i2c_s_async_set_irq_state(&descr->device, I2C_S_DEVICE_ERROR, false);
-		hri_sercomi2cs_clear_INTEN_ERROR_bit(descr->device.hw);
-		hri_sercomi2cs_clear_INTEN_AMATCH_bit(descr->device.hw);
-		hri_sercomi2cs_clear_INTEN_PREC_bit(descr->device.hw);
-		hri_sercomi2cs_clear_INTEN_DRDY_bit(descr->device.hw);
+		_i2c_s_async_set_irq_state(&descr->device, I2C_S_DEVICE_TX, false);
+		_i2c_s_async_set_irq_state(&descr->device, I2C_S_DEVICE_RX_COMPLETE, false);
+		_i2c_s_async_set_irq_state(&descr->device, I2C_S_DEVICE_ERROR, false);
 	}
 	return rc;
 }

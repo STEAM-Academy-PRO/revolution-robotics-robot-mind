@@ -3,8 +3,11 @@
 
 /* Begin User Code Section: Declarations */
 #include "CommunicationManager.h"
+#include "CommonLibraries/log.h"
 
-static uint8_t responseBuffer[256];
+#define RESPONSE_PACKET_HEADER_SIZE  4u
+#define MAX_TX_PAYLOAD               255u
+static uint8_t responseBuffer[RESPONSE_PACKET_HEADER_SIZE + MAX_TX_PAYLOAD];
 
 static Comm_ResponseHeader_t defaultResponse =
 {
