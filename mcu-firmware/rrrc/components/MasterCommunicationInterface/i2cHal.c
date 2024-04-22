@@ -70,11 +70,6 @@ int32_t i2c_hal_init(void* hw, uint8_t address)
         /* will be overwritten in address match handler but we need a non-NULL value */
         descriptor.device.cb.stop_cb    = &i2c_hal_on_stop_rx;
 
-        hri_sercomi2cs_set_INTEN_ERROR_bit(descriptor.device.hw);
-        hri_sercomi2cs_set_INTEN_AMATCH_bit(descriptor.device.hw);
-        hri_sercomi2cs_set_INTEN_PREC_bit(descriptor.device.hw);
-        hri_sercomi2cs_set_INTEN_DRDY_bit(descriptor.device.hw);
-
         result = _i2c_s_async_enable(&descriptor.device);
     }
 
@@ -145,12 +140,13 @@ void sercom2_rx_done_cb(uint8_t data)
 void sercom2_tx_cb(void)
 {
     uint8_t byte = *descriptor.txBuffer;
-    _i2c_s_async_write_byte(&descriptor.device, byte);
 
     if (descriptor.txBuffer != descriptor.txBufferEnd)
     {
         ++descriptor.txBuffer;
     }
+
+    _i2c_s_async_write_byte(&descriptor.device, byte);
 }
 
 static void i2c_hal_on_stop_rx(const uint8_t dir)
