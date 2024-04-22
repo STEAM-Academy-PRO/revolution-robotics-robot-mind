@@ -42,7 +42,12 @@ int32_t i2c_hal_init(void* hw, uint8_t address)
                 | (0u << SERCOM_I2CS_CTRLA_SPEED_Pos)
                 | (0u << SERCOM_I2CS_CTRLA_SCLSM_Pos)
                 | (0u << SERCOM_I2CS_CTRLA_LOWTOUTEN_Pos),
-        .ctrl_b = SERCOM_I2CS_CTRLB_SMEN | SERCOM_I2CS_CTRLB_AMODE(0u),
+        .ctrl_b = (1u << SERCOM_I2CS_CTRLB_SMEN_Pos)
+                | (0u << SERCOM_I2CS_CTRLB_GCMD_Pos)
+                | (0u << SERCOM_I2CS_CTRLB_AACKEN_Pos)
+                | SERCOM_I2CS_CTRLB_CMD(0u)
+                | (0u << SERCOM_I2CS_CTRLB_ACKACT_Pos)
+                | SERCOM_I2CS_CTRLB_AMODE(0u),
         .address = (0u << SERCOM_I2CS_ADDR_GENCEN_Pos)
                  | (0u << SERCOM_I2CS_ADDR_TENBITEN_Pos)
                  | SERCOM_I2CS_ADDR_ADDRMASK(0u)
