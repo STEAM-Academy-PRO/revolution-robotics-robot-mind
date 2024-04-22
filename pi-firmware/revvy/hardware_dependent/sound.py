@@ -86,7 +86,7 @@ class SoundControlV1(SoundControlBase):
         self._run_command("gpio -g mode 13 alt0;gpio -g mode 22 out").wait()
 
     def _play_sound(self, sound: str, cb: Callable) -> Thread:
-        return self._run_command_with_callback(f"gpio write 3 1;mpg123 {sound}", cb)
+        return self._run_command_with_callback(f'gpio write 3 1;mpg123 "{sound}"', cb)
 
     def _disable_amp(self) -> None:
         self._run_command("gpio write 3 0").wait()
@@ -97,7 +97,7 @@ class SoundControlV2(SoundControlBase):
         self._run_command("gpio -g mode 13 alt0;gpio -g mode 22 out;gpio write 3 1").wait()
 
     def _play_sound(self, sound: str, cb: Callable) -> Thread:
-        return self._run_command_with_callback(f"gpio write 3 0;mpg123 {sound}", cb)
+        return self._run_command_with_callback(f'gpio write 3 0;mpg123 "{sound}"', cb)
 
     def _disable_amp(self) -> None:
         self._run_command("gpio write 3 1").wait()
