@@ -107,7 +107,7 @@ static inline uint16_t crc16_byte(uint16_t crcval, uint8_t byte)
     return (crc16_table[(byte ^ (crcval >> 8)) & 0xFFu] ^ (crcval << 8)) & 0xFFFFu;
 }
 
-static inline uint16_t crc32_byte(uint32_t crcval, uint8_t byte)
+static inline uint32_t crc32_byte(uint32_t crcval, uint8_t byte)
 {
     return crc32_table[(crcval ^ byte) & 0xFF] ^ (crcval >> 8);
 }
@@ -155,7 +155,7 @@ uint16_t CRC_Run_Calculate_CRC16(uint16_t init_value, ConstByteArray_t data)
 uint32_t CRC_Run_Calculate_CRC32(uint32_t init_value, ConstByteArray_t data)
 {
     /* Begin User Code Section: Calculate_CRC32:run Start */
-    uint16_t crc = init_value;
+    uint32_t crc = init_value;
     for (size_t i = 0u; i < data.count; i++)
     {
         crc = crc32_byte(crc, data.bytes[i]);

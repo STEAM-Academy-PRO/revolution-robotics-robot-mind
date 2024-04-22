@@ -4,7 +4,7 @@
 
 ## mcu-common
 
-Common hardware abstraction˛code used by mcu-bootloader and mcu-firmware
+Common hardware abstraction code used by mcu-bootloader and mcu-firmware
 
 ## mcu-bootloader
 

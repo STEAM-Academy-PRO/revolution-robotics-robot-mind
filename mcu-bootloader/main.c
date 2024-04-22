@@ -35,6 +35,9 @@ int main(void)
 {
     atmel_start_init();
 
+    // FIXME: we need to initialize CRC here because the generated runtime starts later.
+    CRC_Run_OnInit();
+
     StartupReason_t startupReason = FMP_CheckBootloaderModeRequest();
 
     if (startupReason == StartupReason_PowerUp || startupReason == StartupReason_BrownOutReset)
@@ -67,7 +70,22 @@ int main(void)
     {
         LOG_RAW("Checking firmware\n");
         /* TODO: debug bootloaders should look for empty header info and write it */
-        bool start_application = FMP_CheckTargetFirmware(false, 0u);
+
+        bool start_application = FMP_FlashHeaderValid();
+
+        if (!start_application) {
+            LOG_RAW("Invalid firmware header\n");
+        } else {
+            uint32_t calculated_crc = FMP_CalculateFirmwareCRC();
+            uint32_t recorded_crc = FMP_RecordedFirmwareCRC();
+
+            start_application = (calculated_crc == recorded_crc);
+
+            if (!start_application) {
+                LOG("Firmware CRC mismatch: calculated %X, recorded %X\n", calculated_crc, recorded_crc);
+            }
+        }
+
 #if DEBUG_SKIP_FW_INTEGRITY_CHECK
         if (!start_application)
         {
@@ -141,7 +159,8 @@ void MasterCommunicationInterface_Bootloader_RaiseEvent_OnTransmissionComplete(v
 {
     if (jump_to_application)
     {
-        FMT_JumpTargetFirmware();
+        /* Reset here - firmware will be loaded at the beginning of the bootloader execution */
+        NVIC_SystemReset();
     }
 }
 
