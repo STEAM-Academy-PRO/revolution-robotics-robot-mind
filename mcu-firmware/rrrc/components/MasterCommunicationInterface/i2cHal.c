@@ -141,12 +141,12 @@ void sercom2_tx_cb(void)
 {
     uint8_t byte = *descriptor.txBuffer;
 
+    _i2c_s_async_write_byte(&descriptor.device, byte);
+
     if (descriptor.txBuffer != descriptor.txBufferEnd)
     {
         ++descriptor.txBuffer;
     }
-
-    _i2c_s_async_write_byte(&descriptor.device, byte);
 }
 
 static void i2c_hal_on_stop_rx(const uint8_t dir)
