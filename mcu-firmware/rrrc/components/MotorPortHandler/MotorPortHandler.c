@@ -15,7 +15,7 @@
 
 #include <hal_gpio.h>
 #include <hal_ext_irq.h>
-#include "SEGGER_RTT.h"
+#include "CommonLibraries/log.h"
 
 /*
  * In 'DETECT MOTOR' mode how many calls to TestMotorOnPort is possible to run
@@ -26,7 +26,8 @@
 static const MotorLibrary_t* libraries[] =
 {
     &motor_library_dummy,
-    &motor_library_dc
+    &motor_library_dc,
+    &motor_library_dc_emulator,
 };
 
 static size_t motorPortCount = 0u;
@@ -81,8 +82,6 @@ void MotorPortHandler_Run_OnInit(MotorPort_t* ports, uint8_t portCount)
     }
 }
 
-extern Current_t MotorCurrentFilter_FilteredCurrent_array[6];
-extern int16_t MotorPortHandler_DriveStrength_array[6];
 #define TEST_MOTOR_ON_PORT_STATE_IDLING 0
 #define TEST_MOTOR_ON_PORT_STATE_IN_PROGRESS 1
 
@@ -292,7 +291,7 @@ AsyncResult_t MotorPortHandler_AsyncRunnable_TestMotorOnPort(AsyncCommand_t asyn
         }
 
 
-        SEGGER_RTT_printf(0, "TestMotorOnPort: start testing port_idx=%d\n", port_idx);
+        LOG("TestMotorOnPort: start testing port_idx=%d\n", port_idx);
         MotorDriver_8833_TestLoadStart(motor_driver_index, motor_driver_channel,
             test_power);
 
@@ -334,7 +333,7 @@ AsyncResult_t MotorPortHandler_AsyncRunnable_TestMotorOnPort(AsyncCommand_t asyn
         }
     }
 
-    SEGGER_RTT_printf(0, "TestMotorOnPort: testing done port_idx=%d detected=%d\n", port_idx, motor_detected);
+    LOG("TestMotorOnPort: testing done port_idx=%d detected=%d\n", port_idx, motor_detected);
     MotorDriver_8833_TestLoadStop(motor_driver_index, motor_driver_channel);
     test_motor_on_port_state = TEST_MOTOR_ON_PORT_STATE_IDLING;
 
@@ -345,6 +344,18 @@ AsyncResult_t MotorPortHandler_AsyncRunnable_TestMotorOnPort(AsyncCommand_t asyn
     /* Begin User Code Section: TestMotorOnPort:async_run End */
 
     /* End User Code Section: TestMotorOnPort:async_run End */
+}
+
+__attribute__((weak))
+void MotorPortHandler_Call_UpdateStatusSlotSize(size_t size)
+{
+    (void) size;
+    /* Begin User Code Section: UpdateStatusSlotSize:run Start */
+
+    /* End User Code Section: UpdateStatusSlotSize:run Start */
+    /* Begin User Code Section: UpdateStatusSlotSize:run End */
+
+    /* End User Code Section: UpdateStatusSlotSize:run End */
 }
 
 __attribute__((weak))
@@ -439,7 +450,7 @@ void MotorPortHandler_Read_DriveRequest(uint32_t index, DriveRequest_t* value)
         .request            = {
             .power = 0
         },
-        .positionBreakpoint = 0.0f
+        .positionBreakpoint = 0u
     };
     /* Begin User Code Section: DriveRequest:read End */
 

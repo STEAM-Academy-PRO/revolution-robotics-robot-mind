@@ -1,4 +1,5 @@
 import struct
+from threading import Lock
 import traceback
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -25,6 +26,9 @@ class Command(ABC, Generic[ReturnType]):
     def __init__(self, transport: RevvyTransport):
         self._transport = transport
         self._command_byte = self.command_id
+        # We can not differentiate between multiple calls to the same command, so we need this lock
+        # to only allow one command with the same ID at a time
+        self._command_lock = Lock()
 
         self._log = get_logger(f"{type(self).__name__} [id={hex(self._command_byte)}]")
 
@@ -49,7 +53,8 @@ class Command(ABC, Generic[ReturnType]):
 
         @type payload: bytes
         """
-        response = self._transport.send_command(self._command_byte, payload)
+        with self._command_lock:
+            response = self._transport.send_command(self._command_byte, payload)
 
         try:
             return self._process(response)
@@ -148,21 +153,6 @@ class SetBluetoothStatusCommand(ReturnlessCommand, Command):
     def __call__(self, status: int) -> None:
         # TODO: make this accept something meaningful
         return self._send(bytes([status]))
-
-
-class McuOperationMode(Enum):
-    APPLICATION = 0xAA
-    BOOTLOADER = 0xBB
-
-
-class ReadOperationModeCommand(ParameterlessCommand[McuOperationMode]):
-    @property
-    def command_id(self) -> int:
-        return 0x06
-
-    def parse_response(self, payload: bytes):
-        assert len(payload) == 1
-        return McuOperationMode(payload[0])
 
 
 class RebootToBootloaderCommand(ReturnlessCommand, ParameterlessCommand):
@@ -384,7 +374,7 @@ class McuStatusUpdater_ReadCommand(ParameterlessCommand[bytes]):
         return payload
 
 
-class ErrorMemory_ReadCount(ParameterlessCommand):
+class ErrorMemory_ReadCount(ParameterlessCommand[int]):
     @property
     def command_id(self) -> int:
         return 0x3D
@@ -394,7 +384,7 @@ class ErrorMemory_ReadCount(ParameterlessCommand):
         return int.from_bytes(payload, byteorder="little")
 
 
-class ErrorMemory_ReadErrors(Command):
+class ErrorMemory_ReadErrors(Command[list[bytes]]):
     @property
     def command_id(self) -> int:
         return 0x3E

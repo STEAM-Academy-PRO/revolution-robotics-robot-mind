@@ -1,10 +1,9 @@
-#include "utils/crc.h"
 #include "flash_mapping.h"
-#include "watchdog.h"
 #include "hri_rtc_d51.h"
 #include "hri_rstc_d51.h"
+#include "driver_init.h"
 
-#include "components/UpdateManager/UpdateManager.h"
+#include "generated_runtime.h"
 
 static const void * s_fw_data = (const void *) FLASH_FW_OFFSET;
 
@@ -12,14 +11,6 @@ static const void * s_fw_data = (const void *) FLASH_FW_OFFSET;
  * The "RTC" define is located in a MCU header file such as "samd51p19a.h"
  */
 static const void * s_rtc_module = (const void *) RTC;
-
-static void JumpTargetFirmware (uint32_t jump_addr) {
-    __asm__ (" mov   r1, %0        \n"
-             " ldr   r0, [r1, #4]  \n"
-             " ldr   sp, [r1]      \n"
-             " blx   r0"
-             : : "r" (jump_addr));
-}
 
 uint32_t FMP_ReadApplicationChecksum(void)
 {
@@ -82,49 +73,49 @@ StartupReason_t FMP_CheckBootloaderModeRequest(void) {
     return startupReason;
 }
 
-bool FMP_CheckTargetFirmware(bool check_expected_crc, uint32_t expected_crc) {
-
-    uint32_t crc32 = 0xFFFFFFFFu;
-
-    // Sanity check that the target firmware size fits the dedicated region
+bool FMP_FlashHeaderValid(void)
+{
     if (FLASH_HEADER->target_length > FLASH_AVAILABLE) {
         return false;
     }
-    // On request check that the stored CRC matches the expected
-    if (check_expected_crc && (FLASH_HEADER->target_checksum != expected_crc)) {
-        return false;
-    }
 
-    crc32 = CRC32_Calculate(crc32, s_fw_data, FLASH_HEADER->target_length);
+    return true;
+}
+
+uint32_t FMP_RecordedFirmwareCRC(void)
+{
+    return FLASH_HEADER->target_checksum;
+}
+
+uint32_t FMP_CalculateFirmwareCRC(void)
+{
+    uint32_t crc32 = CRC_Run_Calculate_CRC32(0xFFFFFFFFu, (ConstByteArray_t) {
+        .bytes = s_fw_data,
+        .count = FLASH_HEADER->target_length,
+    });
     crc32 ^= 0xFFFFFFFFu; // Final CRC bit inversion as per algo specification
+    return crc32;
+}
 
-    return (crc32 == FLASH_HEADER->target_checksum);
+static bool _is_region_empty(const uint32_t* ptr, size_t size) {
+    for (size_t i = 0u; i < size / 4u; i++)
+    {
+        if (ptr[i] != 0xFFFFFFFFu)
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool FMP_IsApplicationEmpty(void)
 {
-    const uint32_t* ptr = (const uint32_t*) FLASH_FW_OFFSET;
-    for (size_t i = 0u; i < FLASH_AVAILABLE / 4u; i++)
-    {
-        if (ptr[i] != 0xFFFFFFFFu)
-        {
-            return false;
-        }
-    }
-    return true;
+    return _is_region_empty((const uint32_t*) FLASH_ADDR, FLASH_AVAILABLE);
 }
 
 bool FMP_IsApplicationHeaderEmpty(void)
 {
-    const uint32_t* ptr = (const uint32_t*) FLASH_HDR_OFFSET;
-    for (size_t i = 0u; i < NVMCTRL_BLOCK_SIZE / 4u; i++)
-    {
-        if (ptr[i] != 0xFFFFFFFFu)
-        {
-            return false;
-        }
-    }
-    return true;
+    return _is_region_empty((const uint32_t*) FLASH_HDR_OFFSET, NVMCTRL_BLOCK_SIZE);
 }
 
 void FMP_FixApplicationHeader(void)
@@ -141,5 +132,10 @@ void FMP_FixApplicationHeader(void)
 void FMT_JumpTargetFirmware(void) {
     __disable_irq();
     watchdog_start();
-    JumpTargetFirmware(FLASH_ADDR + FLASH_FW_OFFSET);
+    size_t jump_addr = FLASH_ADDR + FLASH_FW_OFFSET;
+    __asm__ (" mov   r1, %0        \n"
+             " ldr   r0, [r1, #4]  \n"
+             " ldr   sp, [r1]      \n"
+             " blx   r0"
+             : : "r" (jump_addr));
 }

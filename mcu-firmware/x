@@ -1,0 +1,6 @@
+#!/bin/bash
+# Simple frontend for tools/x.py
+# Usage: ./x [args]
+
+./venv/bin/activate
+python3 -m tools.x $@

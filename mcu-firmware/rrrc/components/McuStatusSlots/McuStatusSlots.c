@@ -6,12 +6,8 @@
 #include <math.h>
 #include <string.h>
 
-// TODO: This component should now need to know about the status sizes. Allow port drivers to
-// configure a buffer size. The buffers should be owned by this component, which should be
-// responsible for keeping track of the size of the buffer and whether the buffer
-// needs to be reallocated if the size changes.
-#define MAX_MOTOR_STATUS_SIZE   11
-#define MAX_SENSOR_STATUS_SIZE  32
+#define SENSOR_PORT_COUNT   ((size_t) 4u)
+#define MOTOR_PORT_COUNT    ((size_t) 6u)
 
 #define STATUS_SLOT_BATTERY ((uint8_t) 10u)
 #define STATUS_SLOT_AXL     ((uint8_t) 11u)
@@ -20,42 +16,39 @@
 #define STATUS_SLOT_ORIENTATION ((uint8_t) 14u)
 
 typedef struct {
-    /** The buffer that hold the data. */
-    ByteArray_t array;
+    /** The buffer that hold the data. The buffer may be bigger than the actual data in it. */
+    ByteArray_t buffer;
     /** The actual number of bytes in the buffer. */
-    const uint8_t size;
+    uint8_t size;
     /** An ID that is used to detect if the value has changed. Incremented on write. */
     uint8_t version;
 } slot_t;
 
 #define MOTOR_SLOT(x)  (x)
-#define SENSOR_SLOT(x) (x + 6)
+#define SENSOR_SLOT(x) (x + MOTOR_PORT_COUNT)
 
-static uint8_t motor_status[6][MAX_MOTOR_STATUS_SIZE] = {0};
-static uint8_t sensor_status[4][MAX_SENSOR_STATUS_SIZE] = {0};
 static uint8_t battery_status[4];
 static uint8_t axl_status[6];
 static uint8_t gyro_status[6];
-static uint8_t yaw_status[8];
 static uint8_t reset_status[1];
 static uint8_t orientation_status[12];
 
 static slot_t slots[16] = {
-    { .array = { .bytes = motor_status[0], .count = 0u }, .size = ARRAY_SIZE(motor_status[0]), .version = 0u },
-    { .array = { .bytes = motor_status[1], .count = 0u }, .size = ARRAY_SIZE(motor_status[1]), .version = 0u },
-    { .array = { .bytes = motor_status[2], .count = 0u }, .size = ARRAY_SIZE(motor_status[2]), .version = 0u },
-    { .array = { .bytes = motor_status[3], .count = 0u }, .size = ARRAY_SIZE(motor_status[3]), .version = 0u },
-    { .array = { .bytes = motor_status[4], .count = 0u }, .size = ARRAY_SIZE(motor_status[4]), .version = 0u },
-    { .array = { .bytes = motor_status[5], .count = 0u }, .size = ARRAY_SIZE(motor_status[5]), .version = 0u },
-    { .array = { .bytes = sensor_status[0], .count = 0u }, .size = ARRAY_SIZE(sensor_status[0]), .version = 0u },
-    { .array = { .bytes = sensor_status[1], .count = 0u }, .size = ARRAY_SIZE(sensor_status[1]), .version = 0u },
-    { .array = { .bytes = sensor_status[2], .count = 0u }, .size = ARRAY_SIZE(sensor_status[2]), .version = 0u },
-    { .array = { .bytes = sensor_status[3], .count = 0u }, .size = ARRAY_SIZE(sensor_status[3]), .version = 0u },
-    { .array = { .bytes = battery_status, .count = 0u }, .size = ARRAY_SIZE(battery_status), .version = 0u },
-    { .array = { .bytes = axl_status,     .count = 0u }, .size = ARRAY_SIZE(axl_status),     .version = 0u },
-    { .array = { .bytes = gyro_status,    .count = 0u }, .size = ARRAY_SIZE(gyro_status),    .version = 0u },
-    { .array = { .bytes = reset_status,   .count = 1u }, .size = ARRAY_SIZE(reset_status),   .version = 0u },
-    { .array = { .bytes = orientation_status,   .count = 1u }, .size = ARRAY_SIZE(orientation_status),   .version = 0u }
+    { .buffer = { .bytes = NULL,               .count = 0u,                             }, .size = 0u, .version = 0u },
+    { .buffer = { .bytes = NULL,               .count = 0u,                             }, .size = 0u, .version = 0u },
+    { .buffer = { .bytes = NULL,               .count = 0u,                             }, .size = 0u, .version = 0u },
+    { .buffer = { .bytes = NULL,               .count = 0u,                             }, .size = 0u, .version = 0u },
+    { .buffer = { .bytes = NULL,               .count = 0u,                             }, .size = 0u, .version = 0u },
+    { .buffer = { .bytes = NULL,               .count = 0u,                             }, .size = 0u, .version = 0u },
+    { .buffer = { .bytes = NULL,               .count = 0u,                             }, .size = 0u, .version = 0u },
+    { .buffer = { .bytes = NULL,               .count = 0u,                             }, .size = 0u, .version = 0u },
+    { .buffer = { .bytes = NULL,               .count = 0u,                             }, .size = 0u, .version = 0u },
+    { .buffer = { .bytes = NULL,               .count = 0u,                             }, .size = 0u, .version = 0u },
+    { .buffer = { .bytes = battery_status,     .count = ARRAY_SIZE(battery_status),     }, .size = 0u, .version = 0u },
+    { .buffer = { .bytes = axl_status,         .count = ARRAY_SIZE(axl_status),         }, .size = 0u, .version = 0u },
+    { .buffer = { .bytes = gyro_status,        .count = ARRAY_SIZE(gyro_status),        }, .size = 0u, .version = 0u },
+    { .buffer = { .bytes = reset_status,       .count = ARRAY_SIZE(reset_status),       }, .size = 0u, .version = 0u },
+    { .buffer = { .bytes = orientation_status, .count = ARRAY_SIZE(orientation_status), }, .size = 0u, .version = 0u }
 };
 
 static bool compare_and_copy(uint8_t* pDst, const uint8_t* pSrc, size_t size)
@@ -81,27 +74,54 @@ static bool slot_has_data(const slot_t* slot)
 static void update_slot(uint8_t index, const uint8_t* data, uint8_t data_size)
 {
     slot_t* const slot = &slots[index];
-    ASSERT(data_size <= slot->size);
+    ASSERT(data_size <= slot->buffer.count);
 
     bool slot_changed = true;
     uint32_t primask = __get_PRIMASK();
     __disable_irq();
-    if (!slot_has_data(slot) || data_size != slot->array.count)
+    if (slot_has_data(slot) && data_size == slot->size)
     {
-        memcpy(slot->array.bytes, data, data_size);
-        slot->array.count = data_size;
+        slot_changed = !compare_and_copy(slot->buffer.bytes, data, slot->size);
     }
     else
     {
-        slot_changed = !compare_and_copy(slot->array.bytes, data, data_size);
+        memcpy(slot->buffer.bytes, data, data_size);
+        slot->size = data_size;
     }
 
     if (slot_changed)
     {
         slot->version = (slot->version + 1u) & 0x7Fu;
-        McuStatusSlots_Write_SlotData(index, (const SlotData_t) {.data = slot->array, .version = slot->version});
+        McuStatusSlots_Write_SlotData(index, (const SlotData_t) {
+            .data = (ByteArray_t) {
+                .bytes = slot->buffer.bytes,
+                .count = slot->size
+            },
+            .version = slot->version
+        });
     }
     __set_PRIMASK(primask);
+}
+
+static void _realloc_slot(slot_t* slot, size_t size)
+{
+    if (size > slot->buffer.count)
+    {
+        if (slot->buffer.bytes != NULL)
+        {
+            McuStatusSlots_Call_Free((void**) &slot->buffer.bytes);
+        }
+
+        uint8_t* new_buffer = (uint8_t*) McuStatusSlots_Call_Allocate(size);
+        ASSERT (new_buffer != NULL);
+
+        slot->buffer.bytes = new_buffer;
+        slot->buffer.count = size;
+    }
+
+    /* Clear slot data */
+    slot->size = 0u;
+    slot->version = 0xFFu;
 }
 /* End User Code Section: Declarations */
 
@@ -112,7 +132,7 @@ void McuStatusSlots_Run_Reset(void)
     __disable_irq();
     for (size_t i = 0u; i < ARRAY_SIZE(slots); i++)
     {
-        slots[i].array.count = 0u;
+        slots[i].size = 0u;
         slots[i].version = 0xFFu;
     }
     __set_PRIMASK(primask);
@@ -167,6 +187,32 @@ void McuStatusSlots_Run_Update(void)
     /* End User Code Section: Update:run End */
 }
 
+void McuStatusSlots_Run_ChangeSensorPortSlotSize(size_t size)
+{
+    /* Begin User Code Section: ChangeSensorPortSlotSize:run Start */
+    for (size_t i = 0u; i < SENSOR_PORT_COUNT; i++)
+    {
+        _realloc_slot(&slots[SENSOR_SLOT(i)], size);
+    }
+    /* End User Code Section: ChangeSensorPortSlotSize:run Start */
+    /* Begin User Code Section: ChangeSensorPortSlotSize:run End */
+
+    /* End User Code Section: ChangeSensorPortSlotSize:run End */
+}
+
+void McuStatusSlots_Run_ChangeMotorPortSlotSize(size_t size)
+{
+    /* Begin User Code Section: ChangeMotorPortSlotSize:run Start */
+    for (size_t i = 0u; i < MOTOR_PORT_COUNT; i++)
+    {
+        _realloc_slot(&slots[MOTOR_SLOT(i)], size);
+    }
+    /* End User Code Section: ChangeMotorPortSlotSize:run Start */
+    /* Begin User Code Section: ChangeMotorPortSlotSize:run End */
+
+    /* End User Code Section: ChangeMotorPortSlotSize:run End */
+}
+
 void McuStatusSlots_Run_UpdateSensorPort(uint8_t port, ByteArray_t data)
 {
     /* Begin User Code Section: UpdateSensorPort:run Start */
@@ -185,6 +231,31 @@ void McuStatusSlots_Run_UpdateMotorPort(uint8_t port, ByteArray_t data)
     /* Begin User Code Section: UpdateMotorPort:run End */
 
     /* End User Code Section: UpdateMotorPort:run End */
+}
+
+__attribute__((weak))
+void* McuStatusSlots_Call_Allocate(size_t size)
+{
+    (void) size;
+    /* Begin User Code Section: Allocate:run Start */
+
+    /* End User Code Section: Allocate:run Start */
+    /* Begin User Code Section: Allocate:run End */
+
+    /* End User Code Section: Allocate:run End */
+    return NULL;
+}
+
+__attribute__((weak))
+void McuStatusSlots_Call_Free(void** ptr)
+{
+    (void) ptr;
+    /* Begin User Code Section: Free:run Start */
+
+    /* End User Code Section: Free:run Start */
+    /* Begin User Code Section: Free:run End */
+
+    /* End User Code Section: Free:run End */
 }
 
 __attribute__((weak))

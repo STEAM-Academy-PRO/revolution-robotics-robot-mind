@@ -1,6 +1,7 @@
 ### Send and receive long messages via bluetooth.
 
 
+from enum import Enum
 import io
 from math import ceil
 import os
@@ -15,9 +16,10 @@ from contextlib import suppress
 from json import JSONDecodeError
 from typing import NamedTuple, Optional
 
+from revvy.utils.emitter import SimpleEventEmitter
 from revvy.utils.file_storage import StorageInterface, StorageError
 from revvy.utils.functions import split
-from revvy.utils.logger import get_logger
+from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.progress_indicator import ProgressIndicator
 
 from revvy.robot.led_ring import RingLed
@@ -30,11 +32,11 @@ from revvy.utils.reverse_map_constant_name import get_constant_name
 from revvy.utils.error_reporter import RobotErrorType, revvy_error_handler
 
 
-def hex2byte(h):
+def hex2byte(h: str) -> int:
     return int(h, 16)
 
 
-def hexdigest2bytes(hexdigest):
+def hexdigest2bytes(hexdigest: str) -> bytes:
     """
     >>> hexdigest2bytes("aabbcc")
     b'\\xaa\\xbb\\xcc'
@@ -46,7 +48,7 @@ def hexdigest2bytes(hexdigest):
     return bytes(map(hex2byte, split(hexdigest, 2)))
 
 
-def bytes2hexdigest(hash_bytes):
+def bytes2hexdigest(hash_bytes: bytes) -> str:
     """
     >>> bytes2hexdigest(b'\\xaa\\xbb\\xcc')
     'aabbcc'
@@ -58,7 +60,7 @@ def bytes2hexdigest(hash_bytes):
     return "".join("{0:0>2x}".format(byte) for byte in hash_bytes)
 
 
-class LongMessageStatus:
+class LongMessageStatus(Enum):
     UNUSED = 0
     UPLOAD = 1
     READY = 3
@@ -66,7 +68,7 @@ class LongMessageStatus:
 
 
 class LongMessageStatusInfo(NamedTuple):
-    status: int
+    status: LongMessageStatus
     md5: bytes
     length: int
 
@@ -77,23 +79,26 @@ ValidationErrorLongMessageStatusInfo = LongMessageStatusInfo(
 )
 
 
-class LongMessageType:
+class LongMessageType(Enum):
     FIRMWARE_DATA = 1
     FRAMEWORK_DATA = 2
     CONFIGURATION_DATA = 3
     TEST_KIT = 4
     ASSET_DATA = 5
-    MAX = 6
 
-    PermanentMessages = [FIRMWARE_DATA, FRAMEWORK_DATA, ASSET_DATA]
-
-    @staticmethod
-    def validate(long_message_type):
-        if not (0 < long_message_type < LongMessageType.MAX):
-            raise LongMessageError(f"Invalid long message type {long_message_type}")
+    @property
+    def filename(self) -> str:
+        return str(self.value)
 
 
-class MessageType:
+PERSISTED_MESSAGES = [
+    LongMessageType.FIRMWARE_DATA,
+    LongMessageType.FRAMEWORK_DATA,
+    LongMessageType.ASSET_DATA,
+]
+
+
+class MessageType(Enum):
     SELECT_LONG_MESSAGE_TYPE = 0
     INIT_TRANSFER = 1
     UPLOAD_MESSAGE = 2
@@ -107,7 +112,7 @@ class LongMessageError(Exception):
 class ReceivedLongMessage:
     """Helper class for building long messages"""
 
-    def __init__(self, message_type, md5: str, size=0):
+    def __init__(self, message_type: LongMessageType, md5: str, size=0):
         self.message_type = message_type
         self.md5 = md5
         self.total_chunks = size
@@ -141,20 +146,15 @@ class LongMessageStorage:
         self._temp_storage = temp_storage
         self._log = get_logger("LongMessageStorage")
 
-    def _get_storage(self, message_type):
-        return (
-            self._storage
-            if message_type in LongMessageType.PermanentMessages
-            else self._temp_storage
-        )
+    def _get_storage(self, message_type: LongMessageType) -> StorageInterface:
+        return self._storage if message_type in PERSISTED_MESSAGES else self._temp_storage
 
-    def read_status(self, long_message_type) -> LongMessageStatusInfo:
+    def read_status(self, long_message_type: LongMessageType) -> LongMessageStatusInfo:
         """Return status with triplet of (LongMessageStatus, md5-hexdigest, length). Last two fields might be None)."""
-        self._log("read_status")
-        LongMessageType.validate(long_message_type)
+        self._log(f"read_status {long_message_type.name}")
         try:
             storage = self._get_storage(long_message_type)
-            data = storage.read_metadata(long_message_type)
+            data = storage.read_metadata(long_message_type.filename)
             return LongMessageStatusInfo(
                 LongMessageStatus.READY, hexdigest2bytes(data["md5"]), data["length"]
             )
@@ -164,61 +164,51 @@ class LongMessageStorage:
 
     def set_long_message(self, message: ReceivedLongMessage):
         self._log("set_long_message")
-        LongMessageType.validate(message.message_type)
-        storage = self._get_storage(message.message_type)
-        storage.write(message.message_type, message.data, md5=message.md5)
 
-    def get_long_message(self, long_message_type):
+        storage = self._get_storage(message.message_type)
+        storage.write(message.message_type.filename, message.data, md5=message.md5)
+
+    def get_long_message(self, long_message_type: LongMessageType):
         self._log("get_long_message")
         storage = self._get_storage(long_message_type)
-        return storage.read(long_message_type)
+        return storage.read(long_message_type.filename)
 
 
-class LongMessageHandler:
-    """Implements the long message writer/status reader protocol"""
-
+class LongMessageHandlerStatus(Enum):
     STATUS_IDLE = 0
     STATUS_READ = 1
     STATUS_WRITE = 2
     STATUS_INVALID = 3
 
+
+class LongMessageHandler:
+    """Implements the long message writer/status reader protocol"""
+
     def __init__(self, long_message_storage: LongMessageStorage):
         self._long_message_storage = long_message_storage
         self._long_message_type = None
-        self._status = LongMessageHandler.STATUS_IDLE
+        self._status = LongMessageHandlerStatus.STATUS_IDLE
         self._current_message: Optional[ReceivedLongMessage] = None
-        self._message_updated_callback = None
-        self._upload_started_callback = None
-        self._upload_progress_callback = None
-        self._upload_finished_callback = None
+        self.on_message_updated = SimpleEventEmitter()
+        self.on_upload_started = SimpleEventEmitter()
+        self.on_upload_progress = SimpleEventEmitter()
+        self.on_upload_finished = SimpleEventEmitter()
         self._log = get_logger("LongMessageHandler")
-
-    def on_message_updated(self, callback):
-        self._message_updated_callback = callback
-
-    def on_upload_started(self, callback):
-        self._upload_started_callback = callback
-
-    def on_upload_progress(self, callback):
-        self._upload_progress_callback = callback
-
-    def on_upload_finished(self, callback):
-        self._upload_finished_callback = callback
 
     def read_status(self) -> LongMessageStatusInfo:
         # self._log("read_status")
 
-        if self._status == LongMessageHandler.STATUS_IDLE:
+        if self._status == LongMessageHandlerStatus.STATUS_IDLE:
             return UnusedLongMessageStatusInfo
 
-        if self._status == LongMessageHandler.STATUS_READ:
+        if self._status == LongMessageHandlerStatus.STATUS_READ:
+            assert self._long_message_type is not None
             return self._long_message_storage.read_status(self._long_message_type)
 
-        if self._status == LongMessageHandler.STATUS_INVALID:
-            self._log("read_status_invalid!")
+        if self._status == LongMessageHandlerStatus.STATUS_INVALID:
             return ValidationErrorLongMessageStatusInfo
 
-        assert self._status == LongMessageHandler.STATUS_WRITE
+        assert self._status == LongMessageHandlerStatus.STATUS_WRITE
         assert self._current_message is not None
         return LongMessageStatusInfo(
             LongMessageStatus.UPLOAD,
@@ -226,156 +216,162 @@ class LongMessageHandler:
             len(self._current_message.data),
         )
 
-    def select_long_message_type(self, long_message_type):
-        if self._status == LongMessageHandler.STATUS_WRITE:
-            upload_finished_callback = self._upload_finished_callback
-            if upload_finished_callback:
-                upload_finished_callback(self._current_message)
+    def select_long_message_type(self, raw_long_message_type: int):
+        try:
+            long_message_type = LongMessageType(raw_long_message_type)
+        except ValueError as e:
+            raise LongMessageError("Invalid long message type") from e
 
-        self._log(
-            f"select_long_message_type: {get_constant_name(long_message_type, LongMessageType)}"
-        )
-        LongMessageType.validate(long_message_type)
+        if self._status == LongMessageHandlerStatus.STATUS_WRITE:
+            self.on_upload_finished.trigger(self._current_message)
+
+        self._log(f"select_long_message_type: {long_message_type.name}")
+
         self._long_message_type = long_message_type
-        self._status = LongMessageHandler.STATUS_READ
+        self._status = LongMessageHandlerStatus.STATUS_READ
 
         self._current_message = None
 
-    def init_transfer(self, md5: str, size=0):
+    def init_transfer(self, md5: str, size: int = 0):
         self._log("init_transfer")
 
-        if self._status == LongMessageHandler.STATUS_WRITE:
-            upload_finished_callback = self._upload_finished_callback
-            if upload_finished_callback:
-                upload_finished_callback(self._current_message)
+        if self._status == LongMessageHandlerStatus.STATUS_WRITE:
+            self.on_upload_finished.trigger(self._current_message)
 
-        if self._status == LongMessageHandler.STATUS_IDLE:
+        if self._status == LongMessageHandlerStatus.STATUS_IDLE:
             raise LongMessageError(
                 "init-transfer needs to be called after select_long_message_type"
             )
 
-        self._status = LongMessageHandler.STATUS_WRITE
+        assert self._long_message_type is not None
+
+        self._status = LongMessageHandlerStatus.STATUS_WRITE
         self._current_message = ReceivedLongMessage(self._long_message_type, md5, size)
 
-        upload_started_callback = self._upload_started_callback
-        if upload_started_callback:
-            upload_started_callback(self._current_message)
+        self.on_upload_started.trigger(self._current_message)
 
-    def upload_message(self, data):
+    def upload_message(self, data: bytes):
         self._log(f"upload_message ({len(data)} bytes)")
 
-        if self._status != LongMessageHandler.STATUS_WRITE:
+        if self._status != LongMessageHandlerStatus.STATUS_WRITE:
             raise LongMessageError("init-transfer needs to be called before upload_message")
 
-        self._current_message.append_data(data)
-        upload_progress_callback = self._upload_progress_callback
-        if upload_progress_callback:
-            upload_progress_callback(self._current_message)
+        assert self._current_message is not None
 
-    def finalize_message(self):
+        self._current_message.append_data(data)
+        self.on_upload_progress.trigger(self._current_message)
+
+    def finalize_message(self) -> None:
         self._log("finalize_message")
 
-        if self._status == LongMessageHandler.STATUS_IDLE:
+        if self._status == LongMessageHandlerStatus.STATUS_IDLE:
             raise LongMessageError("init-transfer needs to be called before finalize_message")
 
-        updated_callback = self._message_updated_callback
-        upload_finished_callback = self._upload_finished_callback
-
-        if self._status == LongMessageHandler.STATUS_READ:
+        if self._status == LongMessageHandlerStatus.STATUS_READ:
             # shortcut that activates a message which is already on the robot
 
             # observer must take care of verifying that there is actually a message
-            if updated_callback:
-                if self._current_message is None:
-                    # load the stored message contents
-                    message = self._long_message_storage.get_long_message(self._long_message_type)
-                    info = self._long_message_storage.read_status(self._long_message_type)
-                    self._current_message = ReceivedLongMessage(
-                        self._long_message_type, bytes2hexdigest(info.md5), info.length
-                    )
-                    self._current_message.append_data(message)
+            if self._current_message is None:
+                assert self._long_message_type is not None
+                # load the stored message contents
+                message = self._long_message_storage.get_long_message(self._long_message_type)
+                info = self._long_message_storage.read_status(self._long_message_type)
+                self._current_message = ReceivedLongMessage(
+                    self._long_message_type, bytes2hexdigest(info.md5), info.length
+                )
+                self._current_message.append_data(message)
 
-                updated_callback(self._current_message)
+            self.on_message_updated.trigger(self._current_message)
 
-        elif self._status == LongMessageHandler.STATUS_WRITE:
-            if upload_finished_callback:
-                upload_finished_callback(self._current_message)
+        elif self._status == LongMessageHandlerStatus.STATUS_WRITE:
+            self.on_upload_finished.trigger(self._current_message)
+
+            assert self._current_message is not None
 
             if self._current_message.is_valid:
                 self._long_message_storage.set_long_message(self._current_message)
-                if updated_callback:
-                    updated_callback(self._current_message)
-                self._status = LongMessageHandler.STATUS_READ
+                self.on_message_updated.trigger(self._current_message)
+                self._status = LongMessageHandlerStatus.STATUS_READ
             else:
-                self._status = LongMessageHandler.STATUS_INVALID
+                self._log("read_status_invalid!")
+                self._status = LongMessageHandlerStatus.STATUS_INVALID
 
         else:
             # INVALID status, finalize does nothing
             pass
 
 
-class LongMessageProtocol:
+class LongMessageProtocolResult(Enum):
     RESULT_SUCCESS = 0
     RESULT_INVALID_ATTRIBUTE_LENGTH = 1
     RESULT_UNLIKELY_ERROR = 2
 
+
+class LongMessageProtocol:
     def __init__(self, handler: LongMessageHandler):
         self._handler = handler
+        self.log = get_logger("LongMessageProtocol")
 
-    def handle_read(self):
+    def handle_read(self) -> bytes:
         try:
             status = self._handler.read_status()
             if status.status in [LongMessageStatus.READY, LongMessageStatus.UPLOAD]:
                 # a byte, a 16byte string and an unsigned long packed into a big endian array
-                value = struct.pack(">b16sL", status.status, status.md5, status.length)
+                value = struct.pack(">b16sL", status.status.value, status.md5, status.length)
             else:
-                value = bytes((status.status,))
+                value = bytes((status.status.value,))
 
             return value
         except (IOError, TypeError, JSONDecodeError) as e:
             raise LongMessageError("Could not read long message") from e
 
-    def handle_write(self, header, data):
+    def handle_write(self, raw_header: int, data: bytes) -> LongMessageProtocolResult:
+        try:
+            header = MessageType(raw_header)
+        except ValueError:
+            self.log(f"Invalid message type: {raw_header}", LogLevel.ERROR)
+            return LongMessageProtocolResult.RESULT_UNLIKELY_ERROR
+
         if header == MessageType.SELECT_LONG_MESSAGE_TYPE:
             if len(data) == 1:
                 self._handler.select_long_message_type(data[0])
-                result = LongMessageProtocol.RESULT_SUCCESS
+                result = LongMessageProtocolResult.RESULT_SUCCESS
             else:
-                result = LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH
+                result = LongMessageProtocolResult.RESULT_INVALID_ATTRIBUTE_LENGTH
 
         elif header == MessageType.INIT_TRANSFER:
             if len(data) == 16:
                 self._handler.init_transfer(bytes2hexdigest(data), 0)
-                result = LongMessageProtocol.RESULT_SUCCESS
+                result = LongMessageProtocolResult.RESULT_SUCCESS
             elif len(data) == 20:
                 self._handler.init_transfer(
                     bytes2hexdigest(data[0:16]), int.from_bytes(data[16:20], byteorder="big")
                 )
-                result = LongMessageProtocol.RESULT_SUCCESS
+                result = LongMessageProtocolResult.RESULT_SUCCESS
             else:
-                result = LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH
+                result = LongMessageProtocolResult.RESULT_INVALID_ATTRIBUTE_LENGTH
 
         elif header == MessageType.UPLOAD_MESSAGE:
             if len(data) > 0:
                 self._handler.upload_message(data)
-                result = LongMessageProtocol.RESULT_SUCCESS
+                result = LongMessageProtocolResult.RESULT_SUCCESS
             else:
-                result = LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH
+                result = LongMessageProtocolResult.RESULT_INVALID_ATTRIBUTE_LENGTH
 
         elif header == MessageType.FINALIZE_MESSAGE:
             if len(data) == 0:
                 self._handler.finalize_message()
-                result = LongMessageProtocol.RESULT_SUCCESS
+                result = LongMessageProtocolResult.RESULT_SUCCESS
             else:
-                result = LongMessageProtocol.RESULT_INVALID_ATTRIBUTE_LENGTH
+                result = LongMessageProtocolResult.RESULT_INVALID_ATTRIBUTE_LENGTH
 
         else:
-            result = LongMessageProtocol.RESULT_UNLIKELY_ERROR
+            raise LongMessageError("Unreachable code")
 
         return result
 
 
-def extract_asset_longmessage(storage, asset_dir):
+def extract_asset_longmessage(storage: LongMessageStorage, asset_dir: str):
     """
     Extract the ASSET_DATA long message into a folder.
 
@@ -392,7 +388,7 @@ def extract_asset_longmessage(storage, asset_dir):
     if asset_status.status == LongMessageStatus.READY:
         with suppress(Exception):
             with open(os.path.join(asset_dir, ".hash"), "r") as asset_hash_file:
-                stored_hash = asset_hash_file.read()
+                stored_hash = hexdigest2bytes(asset_hash_file.read())
 
             if stored_hash == asset_status.md5:
                 return
@@ -401,11 +397,11 @@ def extract_asset_longmessage(storage, asset_dir):
             shutil.rmtree(asset_dir)
 
         message_data = storage.get_long_message(LongMessageType.ASSET_DATA)
-        with tarfile.open(fileobj=io.StringIO(message_data), mode="r|gz") as tar:
+        with tarfile.open(fileobj=io.BytesIO(message_data), mode="r|gz") as tar:
             tar.extractall(path=asset_dir)
 
         with open(os.path.join(asset_dir, ".hash"), "w") as asset_hash_file:
-            asset_hash_file.write(asset_status.md5)
+            asset_hash_file.write(bytes2hexdigest(asset_status.md5))
 
 
 # Moved from main file, cleanup pending.

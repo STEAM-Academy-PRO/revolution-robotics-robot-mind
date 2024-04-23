@@ -2,10 +2,13 @@ import hashlib
 import json
 import traceback
 from binascii import b2a_base64, a2b_base64
-from typing import List
+from typing import List, TypeVar
 
 
-def clip(x, min_x, max_x):
+IntOrFloat = TypeVar("IntOrFloat", int, float)
+
+
+def clip(x: IntOrFloat, min_x: IntOrFloat, max_x: IntOrFloat) -> IntOrFloat:
     """Constrain a number between two limits
 
     >>> clip(3, 1, 2)
@@ -23,7 +26,7 @@ def clip(x, min_x, max_x):
         return x
 
 
-def map_values(x, min_x, max_x, min_y, max_y):
+def map_values(x: float, min_x: float, max_x: float, min_y: float, max_y: float) -> float:
     """Scales a number from the input range of [min_x, max_x] to between [min_y, max_y]
 
     >>> map_values(0.5, 0, 1, 0, 900)
@@ -38,7 +41,7 @@ def map_values(x, min_x, max_x, min_y, max_y):
     return (x - min_x) * (full_scale_out / full_scale_in) + min_y
 
 
-def get_serial():
+def get_serial() -> str:
     """Extract serial from cpuinfo file"""
 
     cpu_serial = "0000000000000000"
@@ -95,7 +98,7 @@ def split(data, chunk_size):
     return (data[i : i + chunk_size] for i in range(0, len(data), chunk_size))
 
 
-def hex2rgb(hex_str):
+def hex2rgb(hex_str: str) -> int:
     """
     >>> '{0:X}'.format(hex2rgb("#aabbcc"))
     'AABBCC'
@@ -109,7 +112,7 @@ def hex2rgb(hex_str):
     return int(rgb, 16)
 
 
-def b64_encode_str(to_encode):
+def b64_encode_str(to_encode: str) -> str:
     """
     >>> b64_encode_str("hello")
     'aGVsbG8='
@@ -117,7 +120,7 @@ def b64_encode_str(to_encode):
     return b2a_base64(to_encode.encode("utf-8")).decode("utf-8").rstrip()
 
 
-def b64_decode_str(to_decode):
+def b64_decode_str(to_decode: str) -> str:
     """
     >>> b64_decode_str('aGVsbG8=')
     'hello'
@@ -151,6 +154,10 @@ def bits_to_bool_list(byte_list) -> List[bool]:
 
 
 def bytestr_hash(byte_str: bytes) -> str:
+    """
+    >>> bytestr_hash(b'hello')
+    '5d41402abc4b2a76b9719d911017c592'
+    """
     hash_fn = hashlib.md5()
     hash_fn.update(byte_str)
     return hash_fn.hexdigest()

@@ -53,7 +53,7 @@ SensorLibraryStatus_t DebugRTC_Update(SensorPort_t* sensorPort)
     if (!libdata->reading)
     {
         libdata->reading = true;
-        if (SensorPort_I2C_StartRegRead(sensorPort, I2C_ADDRESS, 0x00, &libdata->data, 1,&rxcomplete) == SensorPort_I2C_Error)
+        if (SensorPort_I2C_StartRegRead(sensorPort, I2C_ADDRESS, 0x00, &libdata->data, 1, &rxcomplete) == SensorPort_I2C_Error)
         {
             SensorPort_SetGreenLed(sensorPort, false);
             SensorPort_SetOrangeLed(sensorPort, false);

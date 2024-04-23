@@ -172,7 +172,7 @@ class TestLongMessageHandler(unittest.TestCase):
         mock_callback = Mock()
 
         handler = LongMessageHandler(storage)
-        handler.on_message_updated(mock_callback)
+        handler.on_message_updated.add(mock_callback)
 
         # message invalid
         for mt in self.known_message_types:
@@ -212,7 +212,7 @@ class TestLongMessageHandler(unittest.TestCase):
         mock_callback = Mock()
 
         handler = LongMessageHandler(storage)
-        handler.on_message_updated(mock_callback)
+        handler.on_message_updated.add(mock_callback)
 
         for mt in self.known_message_types:
             mock_callback.reset_mock()

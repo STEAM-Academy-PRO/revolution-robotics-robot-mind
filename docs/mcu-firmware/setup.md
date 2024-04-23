@@ -4,10 +4,10 @@ Setting up the C development environment
 Tools required
 --------------
 
- - git
- - ARM GCC, make
- - VS Code
- - python 3.7 or newer
+- git
+- ARM GCC, make
+- VS Code
+- python 3.7 or newer
 
 Set up compiler
 ---------------

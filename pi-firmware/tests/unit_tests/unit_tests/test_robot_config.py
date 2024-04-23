@@ -1,6 +1,6 @@
 import unittest
 
-from revvy.robot.configurations import Sensors, Motors
+from revvy.robot.configurations import Sensors, Motors, ccw_motor
 from revvy.scripting.builtin_scripts import drive_2sticks
 from revvy.utils.functions import b64_encode_str
 from revvy.robot_config import RobotConfig, ConfigError
@@ -322,12 +322,12 @@ class TestRobotConfig(unittest.TestCase):
         self.assertEqual(None, config.motors[1])
 
         # drivetrain left
-        self.assertEqual(Motors.RevvyMotor_CCW, config.motors[2])  # normal left
+        self.assertEqual(ccw_motor(Motors.RevvyMotor), config.motors[2])  # normal left
         self.assertEqual(Motors.RevvyMotor, config.motors[3])  # reversed left
 
         # drivetrain right
         self.assertEqual(Motors.RevvyMotor, config.motors[5])  # normal right
-        self.assertEqual(Motors.RevvyMotor_CCW, config.motors[6])  # reversed right
+        self.assertEqual(ccw_motor(Motors.RevvyMotor), config.motors[6])  # reversed right
 
         self.assertEqual(Motors.RevvyMotor, config.motors[4])  # motor, no 'side', no 'reversed'
 

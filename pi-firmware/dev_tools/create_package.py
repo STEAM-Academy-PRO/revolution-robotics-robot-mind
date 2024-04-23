@@ -45,7 +45,7 @@ if __name__ == "__main__":
     if args.dev:
         # Generate empty manifest to allow editing files, do not install requirements at every packing.
         manifest_source = []
-        package_sources.extend(["tests"])
+        package_sources.extend(["tests/", "dev_tools/"])
     else:
         manifest_source = ["data/", "install/requirements.txt", "revvy/", "revvy.py"]
 

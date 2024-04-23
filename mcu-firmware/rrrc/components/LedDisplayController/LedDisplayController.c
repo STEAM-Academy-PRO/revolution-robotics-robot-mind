@@ -3,8 +3,7 @@
 #include "utils_assert.h"
 
 /* Begin User Code Section: Declarations */
-#include "rrrc_indication.h"
-#include "libraries/functions.h"
+#include "CommonLibraries/functions.h"
 #include <math.h>
 
 #define MAIN_BATTERY_INDICATOR_LED  0
@@ -87,9 +86,13 @@ static bool _blink(uint32_t* timer, uint32_t on_time, uint32_t period)
 
 static void _clear_display(void)
 {
-    for (uint32_t i = 0u; i < 16u; i++)
+    for (uint32_t i = 0u; i < 4u; i++)
     {
-        LedDisplayController_Write_Leds(i, (rgb_t) LED_OFF);
+        LedDisplayController_Write_StatusLeds(i, (rgb_t) LED_OFF);
+    }
+    for (uint32_t i = 0u; i < 12u; i++)
+    {
+        LedDisplayController_Write_RingLeds(i, (rgb_t) LED_OFF);
     }
 }
 
@@ -230,29 +233,29 @@ void LedDisplayController_Run_Update(void)
     switch (current_display_mode)
     {
         case LedDisplayMode_Normal:
-            LedDisplayController_Write_Leds(MAIN_BATTERY_INDICATOR_LED, _display_main_battery());
-            LedDisplayController_Write_Leds(MOTOR_BATTERY_INDICATOR_LED, _display_motor_battery());
+            LedDisplayController_Write_StatusLeds(MAIN_BATTERY_INDICATOR_LED, _display_main_battery());
+            LedDisplayController_Write_StatusLeds(MOTOR_BATTERY_INDICATOR_LED, _display_motor_battery());
 
             switch (LedDisplayController_Read_BluetoothStatus())
             {
                 case BluetoothStatus_Inactive:
-                    LedDisplayController_Write_Leds(BLUETOOTH_INDICATOR_LED, BLE_NOT_INITIALIZED_COLOR);
+                    LedDisplayController_Write_StatusLeds(BLUETOOTH_INDICATOR_LED, BLE_NOT_INITIALIZED_COLOR);
                     _blink_timer = 0u;
                     break;
 
                 case BluetoothStatus_NotConnected:
                     if (_blink(&_blink_timer, BLUETOOTH_BLINK_LENGTH, BLUETOOTH_BLINK_PERIOD))
                     {
-                        LedDisplayController_Write_Leds(BLUETOOTH_INDICATOR_LED, BLE_ON_COLOR);
+                        LedDisplayController_Write_StatusLeds(BLUETOOTH_INDICATOR_LED, BLE_ON_COLOR);
                     }
                     else
                     {
-                        LedDisplayController_Write_Leds(BLUETOOTH_INDICATOR_LED, BLE_OFF_COLOR);
+                        LedDisplayController_Write_StatusLeds(BLUETOOTH_INDICATOR_LED, BLE_OFF_COLOR);
                     }
                     break;
 
                 case BluetoothStatus_Connected:
-                    LedDisplayController_Write_Leds(BLUETOOTH_INDICATOR_LED, BLE_ON_COLOR);
+                    LedDisplayController_Write_StatusLeds(BLUETOOTH_INDICATOR_LED, BLE_ON_COLOR);
                     _blink_timer = 0u;
                     break;
             }
@@ -260,53 +263,55 @@ void LedDisplayController_Run_Update(void)
             switch (LedDisplayController_Read_MasterStatus())
             {
                 case MasterStatus_Unknown:
-                    LedDisplayController_Write_Leds(STATUS_INDICATOR_LED, MASTER_UNKNOWN_COLOR);
-                    LedDisplayController_Write_Leds(BLUETOOTH_INDICATOR_LED, BLE_OFF_COLOR);
+                    LedDisplayController_Write_StatusLeds(STATUS_INDICATOR_LED, MASTER_UNKNOWN_COLOR);
+                    LedDisplayController_Write_StatusLeds(BLUETOOTH_INDICATOR_LED, BLE_OFF_COLOR);
                     break;
 
                 case MasterStatus_NotConfigured:
-                    LedDisplayController_Write_Leds(STATUS_INDICATOR_LED, MASTER_NOT_CONFIGURED_COLOR);
+                    LedDisplayController_Write_StatusLeds(STATUS_INDICATOR_LED, MASTER_NOT_CONFIGURED_COLOR);
                     break;
 
                 case MasterStatus_Operational:
-                    LedDisplayController_Write_Leds(STATUS_INDICATOR_LED, MASTER_OPERATIONAL_COLOR);
+                    LedDisplayController_Write_StatusLeds(STATUS_INDICATOR_LED, MASTER_OPERATIONAL_COLOR);
                     break;
 
                 case MasterStatus_Controlled:
-                    LedDisplayController_Write_Leds(STATUS_INDICATOR_LED, MASTER_CONTROLLED_COLOR);
+                    LedDisplayController_Write_StatusLeds(STATUS_INDICATOR_LED, MASTER_CONTROLLED_COLOR);
                     break;
 
                 case MasterStatus_Configuring:
-                    LedDisplayController_Write_Leds(STATUS_INDICATOR_LED, MASTER_CONFIGURING_COLOR);
+                    LedDisplayController_Write_StatusLeds(STATUS_INDICATOR_LED, MASTER_CONFIGURING_COLOR);
                     break;
 
                 case MasterStatus_Updating:
-                    LedDisplayController_Write_Leds(STATUS_INDICATOR_LED, MASTER_UPDATING_COLOR);
-                    LedDisplayController_Write_Leds(BLUETOOTH_INDICATOR_LED, BLE_OFF_COLOR);
+                    LedDisplayController_Write_StatusLeds(STATUS_INDICATOR_LED, MASTER_UPDATING_COLOR);
+                    LedDisplayController_Write_StatusLeds(BLUETOOTH_INDICATOR_LED, BLE_OFF_COLOR);
                     break;
             }
 
             /* apply ring led */
             for (uint32_t i = 0u; i < 12u; i++)
             {
-                LedDisplayController_Write_Leds(i + 4u, // only write ring leds, not status leds
-                    LedDisplayController_Read_RingLeds((i + 3u) % 12u)); // transform to move first led to 1 o'clock position
+                LedDisplayController_Write_RingLeds(
+                    i, // only write ring leds, not status leds
+                    LedDisplayController_Read_RingLedsIn(i)
+                );
             }
             break;
 
         case LedDisplayMode_MotorBatteryMissing:
             if (_blink(&_blink_timer, MOTOR_MISSING_BLINK_LENGTH, MOTOR_MISSING_BLINK_PERIOD))
             {
-                LedDisplayController_Write_Leds(MOTOR_BATTERY_INDICATOR_LED, (rgb_t) LED_RED);
+                LedDisplayController_Write_StatusLeds(MOTOR_BATTERY_INDICATOR_LED, (rgb_t) LED_RED);
             }
             else
             {
-                LedDisplayController_Write_Leds(MOTOR_BATTERY_INDICATOR_LED, (rgb_t) LED_OFF);
+                LedDisplayController_Write_StatusLeds(MOTOR_BATTERY_INDICATOR_LED, (rgb_t) LED_OFF);
             }
             break;
 
         case LedDisplayMode_LowBattery:
-            LedDisplayController_Write_Leds(MAIN_BATTERY_INDICATOR_LED, _display_main_battery());
+            LedDisplayController_Write_StatusLeds(MAIN_BATTERY_INDICATOR_LED, _display_main_battery());
             break;
     }
 
@@ -315,19 +320,6 @@ void LedDisplayController_Run_Update(void)
     /* Begin User Code Section: Update:run End */
 
     /* End User Code Section: Update:run End */
-}
-
-__attribute__((weak))
-void LedDisplayController_Write_Leds(uint32_t index, rgb_t value)
-{
-    (void) value;
-    ASSERT(index < 16);
-    /* Begin User Code Section: Leds:write Start */
-
-    /* End User Code Section: Leds:write Start */
-    /* Begin User Code Section: Leds:write End */
-
-    /* End User Code Section: Leds:write End */
 }
 
 __attribute__((weak))
@@ -340,6 +332,32 @@ void LedDisplayController_Write_MaxBrightness(uint8_t value)
     /* Begin User Code Section: MaxBrightness:write End */
 
     /* End User Code Section: MaxBrightness:write End */
+}
+
+__attribute__((weak))
+void LedDisplayController_Write_RingLeds(uint32_t index, rgb_t value)
+{
+    (void) value;
+    ASSERT(index < 12);
+    /* Begin User Code Section: RingLeds:write Start */
+
+    /* End User Code Section: RingLeds:write Start */
+    /* Begin User Code Section: RingLeds:write End */
+
+    /* End User Code Section: RingLeds:write End */
+}
+
+__attribute__((weak))
+void LedDisplayController_Write_StatusLeds(uint32_t index, rgb_t value)
+{
+    (void) value;
+    ASSERT(index < 4);
+    /* Begin User Code Section: StatusLeds:write Start */
+
+    /* End User Code Section: StatusLeds:write Start */
+    /* Begin User Code Section: StatusLeds:write End */
+
+    /* End User Code Section: StatusLeds:write End */
 }
 
 __attribute__((weak))
@@ -464,14 +482,14 @@ int16_t LedDisplayController_Read_MotorDriveValues(uint32_t index)
 }
 
 __attribute__((weak))
-rgb_t LedDisplayController_Read_RingLeds(uint32_t index)
+rgb_t LedDisplayController_Read_RingLedsIn(uint32_t index)
 {
     ASSERT(index < 12);
-    /* Begin User Code Section: RingLeds:read Start */
+    /* Begin User Code Section: RingLedsIn:read Start */
 
-    /* End User Code Section: RingLeds:read Start */
-    /* Begin User Code Section: RingLeds:read End */
+    /* End User Code Section: RingLedsIn:read Start */
+    /* Begin User Code Section: RingLedsIn:read End */
 
-    /* End User Code Section: RingLeds:read End */
+    /* End User Code Section: RingLedsIn:read End */
     return (rgb_t){0, 0, 0};
 }

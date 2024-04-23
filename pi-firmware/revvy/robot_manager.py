@@ -12,6 +12,8 @@ import time
 from threading import Event
 
 from revvy.mcu.rrrc_control import RevvyTransportBase
+from revvy.robot.ports.common import PortInstance
+from revvy.robot.ports.motors.base import MotorPortDriver
 from revvy.robot.robot import Robot
 from revvy.robot.remote_controller import (
     AutonomousModeRequest,
@@ -69,10 +71,10 @@ class RobotManager:
 
         self._sensor_data_subscriptions = DisposableArray()
 
-        self._remote_controller = rc
+        self.remote_controller = rc
         self._remote_controller_thread = create_remote_controller_thread(rcs)
 
-        self._robot_state = RobotStatePoller(self._robot, self._remote_controller)
+        self._robot_state = RobotStatePoller(self._robot, self.remote_controller)
 
         self._scripts = ScriptManager(self._robot)
         self._bg_controlled_scripts = ScriptManager(self._robot)
@@ -83,8 +85,6 @@ class RobotManager:
         self.exited = Event()
 
         self._session_id = 0
-
-        self.on_joystick_action = self._remote_controller.on_joystick_action
 
         self._robot_state.on(RobotEvent.FATAL_ERROR, lambda *args: self.exit(RevvyStatusCode.ERROR))
 
@@ -158,8 +158,7 @@ class RobotManager:
 
         callback(success, motors_result, sensors_result)
 
-    # Not sure if this is the right place for this. Maybe an autonomous handler should
-    # be linked with the robot's state handler.
+    # TODO: merge this into RemoteController. All other script kinds are handled there.
     def process_autonomous_requests(self) -> None:
         if self._autonomous == "ready":
             req = self.remote_controller.take_autonomous_requests()
@@ -183,10 +182,6 @@ class RobotManager:
     @property
     def robot(self) -> Robot:
         return self._robot
-
-    @property
-    def remote_controller(self) -> RemoteController:
-        return self._remote_controller
 
     def exit(self, status_code: RevvyStatusCode):
         self._log(f"exit requested with code {status_code}")
@@ -255,7 +250,7 @@ class RobotManager:
             scr.assign("RingLed", RingLed)
 
         self._remote_controller_thread.stop()
-        self._remote_controller.reset()
+        self.remote_controller.reset()
 
         for res in self._robot._resources.values():
             res.reset()
@@ -298,13 +293,12 @@ class RobotManager:
         for motor in self._robot.motors:
             driver = motor.configure(config.motors[motor.id])
 
-            # We used to send up power and speed too, but we do not seem to use it anywhere.
-            # Angle could however be sent back up.
-            # Note that we reduce the ID here, so we do not need that anywhere else.
-            # This way we have motors 0-5 in RobotState already. Just a simple array.
-            driver.on_status_changed.add(
-                lambda p: self._robot_state.set_motor_angle(p.id - 1, p.driver.pos)
-            )
+            # Listen to data changes and update the robot state with new motor angles.
+            def on_status_change(data: tuple[PortInstance[MotorPortDriver], int]):
+                port = data[0]
+                self._robot_state.set_motor_angle(port.id, port.driver.pos)
+
+            driver.on_status_changed.add(on_status_change)
 
         for motor_id in config.drivetrain.left:
             self._robot.drivetrain.add_left_motor(self._robot.motors[motor_id])
@@ -358,7 +352,7 @@ class RobotManager:
         for analog in config.controller.analog:
             script_handle = self._scripts.add_script(analog["script"], config)
             script_handle.on(ScriptEvent.ERROR, self._on_analog_script_error)
-            self._remote_controller.on_analog_values(analog["channels"], script_handle)
+            self.remote_controller.on_analog_values(analog["channels"], script_handle)
 
         # Set up all the bound buttons to run the stored scripts.
         for button, script in enumerate(config.controller.buttons):
@@ -369,7 +363,7 @@ class RobotManager:
                 )
                 script_handle = self._scripts.add_script(script, config)
                 script_handle.assign("list_slots", scriptvars)
-                self._remote_controller.link_button_to_runner(button, script_handle)
+                self.remote_controller.link_button_to_runner(button, script_handle)
 
                 script_handle.on(ScriptEvent.START, self._on_script_running)
                 script_handle.on(ScriptEvent.STOP, self._on_script_stopped)
@@ -405,7 +399,7 @@ class RobotManager:
         # with sending a status update.
         self.trigger(
             RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE,
-            self._remote_controller.background_control_state,
+            self.remote_controller.background_control_state,
         )
 
     def _on_script_running(self, script_handle: ScriptHandle, data=None):

@@ -50,13 +50,13 @@ class RevvyBLE:
 
         long_message_storage = LongMessageStorage(ble_storage, MemoryStorage())
         extract_asset_longmessage(long_message_storage, WRITEABLE_ASSETS_DIR)
-        self.long_message_handler = LongMessageHandler(long_message_storage)
+        long_message_handler = LongMessageHandler(long_message_storage)
 
         lmi = LongMessageImplementation(robot_manager, long_message_storage, WRITEABLE_ASSETS_DIR)
-        self.long_message_handler.on_upload_started(lmi.on_upload_started)
-        self.long_message_handler.on_upload_progress(lmi.on_upload_progress)
-        self.long_message_handler.on_upload_finished(lmi.on_transmission_finished)
-        self.long_message_handler.on_message_updated(lmi.on_message_updated)
+        long_message_handler.on_upload_started.add(lmi.on_upload_started)
+        long_message_handler.on_upload_progress.add(lmi.on_upload_progress)
+        long_message_handler.on_upload_finished.add(lmi.on_transmission_finished)
+        long_message_handler.on_message_updated.add(lmi.on_message_updated)
 
         ### -----------------------------------------------------
         ### Services
@@ -65,7 +65,7 @@ class RevvyBLE:
         self._dis = DeviceInformationService()
         self._bas = CustomBatteryService()
         self._live = LiveMessageService(robot_manager)
-        self._long = LongMessageService(self.long_message_handler)
+        self._long = LongMessageService(long_message_handler)
 
         self._named_services = {
             "device_information_service": self._dis,
@@ -217,26 +217,44 @@ class RevvyBLE:
     def start(self) -> None:
         """Switch interface on, start the robot."""
 
-        def status() -> int:
+        def service_status(service: str) -> int:
             bluetooth_status = subprocess.run(
-                ["/usr/sbin/service", "bluetooth", "status"], capture_output=True, check=False
+                ["/usr/bin/systemctl", "status", service],
+                capture_output=True,
+                check=False,
             )
 
-            self._log(f"Bluetooth status: {bluetooth_status.returncode}", LogLevel.DEBUG)
+            self._log(f"Bluetooth status: {bluetooth_status.returncode}", LogLevel.INFO)
 
             return bluetooth_status.returncode
 
-        if status() != 0:
+        # the old service descriptor contained a circular dependency, which means systemd
+        # started up dependencies in a different order than we expected. This caused the
+        # bluetooth service to not be started when we tried to start the revvy service.
+        with open("/etc/systemd/system/revvy.service", "r") as f:
+            is_old = "WantedBy=multi-user.target" in f.read()
+
+        if is_old:
+            service = "bluetooth.service"
+        else:
+            service = "bluetooth.target"
+
+        if service_status(service) != 0:
             self._log("Bluetooth service not running, waiting for it to start")
             stopwatch = Stopwatch()
             timeout = True
             while stopwatch.elapsed < 10:
-                if status() == 0:
+                if service_status(service) == 0:
                     timeout = False
-                    time.sleep(0.5)
                     break
             if timeout:
                 raise TimeoutError("Bluetooth service did not start in time, exiting")
+
+        if is_old:
+            # This is a bit longer than measured startup time of bluetooth.service. For some reason
+            # systemd immediately reports the service as started, but it takes a bit longer for the
+            # bluetooth functionality to be available.
+            time.sleep(1.5)
 
         self._bleno.start()
         self._robot_manager.robot_start()

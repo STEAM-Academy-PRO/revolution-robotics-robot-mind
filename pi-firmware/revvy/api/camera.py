@@ -20,7 +20,7 @@ class Camera:
         self._process = None
         self.stop()
 
-    def start(self):
+    def start(self) -> None:
         # Create a new thread that runs the function defined above
         self._thread = threading.Thread(target=self._run_bash_camera_script)
 
@@ -31,18 +31,18 @@ class Camera:
 
         log("Camera stream starting")
 
-    def stop(self):
+    def stop(self) -> None:
         self._stop()
         self._trigger(RobotEvent.CAMERA_STOPPED)
 
-    def _stop(self):
+    def _stop(self) -> None:
         try:
             kill_process = subprocess.Popen(["killall", "mjpg_streamer"])
             kill_process.wait()
         except Exception:
             pass
 
-    def _run_bash_camera_script(self):
+    def _run_bash_camera_script(self) -> None:
 
         log(STREAMER_COMMAND)
 
@@ -60,6 +60,8 @@ class Camera:
             shell=True,
             cwd=STREAMER_FOLDER,
         )
+
+        assert self._process.stdout is not None
 
         # Continuously read and print the output
         while True:

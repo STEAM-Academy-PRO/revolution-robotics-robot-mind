@@ -2,9 +2,9 @@
 #include "utils_assert.h"
 
 #include <stdbool.h>
-#include "SEGGER_RTT.h"
+#include "CommonLibraries/log.h"
 
-#include "comm_handlers.h"
+#include "runtime/comm_handlers.h"
 
 static bool _commandValid(const Comm_Command_t* command)
 {
@@ -27,14 +27,14 @@ static Comm_Status_t _handleOperation_GetResult(const Comm_Command_t* command, B
     Comm_Status_t resultStatus;
     if (communicationHandlers[command->header.command].GetResult == NULL)
     {
-        SEGGER_RTT_printf(0, "GetResult not implemented for command 0x%X\n", command->header.command);
+        LOG("GetResult not implemented for command 0x%X\n", command->header.command);
         resultStatus = Comm_Status_Error_InvalidOperation;
     }
     else
     {
         if (!communicationHandlers[command->header.command].ExecutionInProgress)
         {
-            SEGGER_RTT_printf(0, "GetResult called for command 0x%X that is not in progress\n", command->header.command);
+            LOG("GetResult called for command 0x%X that is not in progress\n", command->header.command);
             resultStatus = Comm_Status_Error_InvalidOperation;
         }
         else
@@ -61,7 +61,7 @@ static Comm_Status_t _handleOperation_Start(const Comm_Command_t* command, ByteA
     Comm_Status_t resultStatus;
     if (communicationHandlers[command->header.command].ExecutionInProgress)
     {
-        SEGGER_RTT_printf(0, "Start called for command 0x%X that is already in progress\n", command->header.command);
+        LOG("Start called for command 0x%X that is already in progress\n", command->header.command);
         resultStatus = Comm_Status_Error_InvalidOperation;
     }
     else
@@ -97,8 +97,7 @@ size_t Comm_Handle(const Comm_Command_t* command, Comm_Response_t* response, siz
 
     if (!_commandValid(command))
     {
-        SEGGER_RTT_printf(
-            0,
+        LOG(
             "Header CRC error. Command header = [0x%X 0x%X 0x%X]\n",
             command->header.operation,
             command->header.command,
@@ -108,8 +107,7 @@ size_t Comm_Handle(const Comm_Command_t* command, Comm_Response_t* response, siz
     }
     else if (!_payloadValid(command))
     {
-        SEGGER_RTT_printf(
-            0,
+        LOG(
             "Payload CRC error. Command header = [0x%X 0x%X 0x%X]\n",
             command->header.operation,
             command->header.command,
@@ -120,7 +118,7 @@ size_t Comm_Handle(const Comm_Command_t* command, Comm_Response_t* response, siz
     else if (command->header.command >= COMM_HANDLER_COUNT || communicationHandlers[command->header.command].Start == NULL)
     {
         /* unimplemented command */
-        SEGGER_RTT_printf(0, "Unknown command 0x%X\n", command->header.command);
+        LOG("Unknown command 0x%X\n", command->header.command);
         resultStatus = Comm_Status_Error_UnknownCommand;
     }
     else
@@ -133,18 +131,17 @@ size_t Comm_Handle(const Comm_Command_t* command, Comm_Response_t* response, siz
         {
             case Comm_Operation_Start:
                 resultStatus = _handleOperation_Start(command, responseArray, &payloadSize);
-                // SEGGER_RTT_printf(0, "Start 0x%X: %d\n", command->header.command, resultStatus);
+                // LOG("Start 0x%X: %d\n", command->header.command, resultStatus);
                 break;
 
             case Comm_Operation_GetResult:
                 resultStatus = _handleOperation_GetResult(command, responseArray, &payloadSize);
-                // SEGGER_RTT_printf(0, "GetResult 0x%X: %d\n", command->header.command, resultStatus);
+                // LOG("GetResult 0x%X: %d\n", command->header.command, resultStatus);
                 break;
 
             default:
                 resultStatus = Comm_Status_Error_UnknownOperation;
-                SEGGER_RTT_printf(
-                    0,
+                LOG(
                     "Unknown operation. Command header = [0x%X 0x%X 0x%X]\n",
                     command->header.operation,
                     command->header.command,
@@ -158,6 +155,11 @@ size_t Comm_Handle(const Comm_Command_t* command, Comm_Response_t* response, siz
     if (payloadSize > payloadBufferSize)
     {
         resultStatus = Comm_Status_Error_InternalError;
+    }
+
+    if (resultStatus != Comm_Status_Ok && resultStatus != Comm_Status_Pending)
+    {
+        LOG("Command 0x%X failed with status %d\n", command->header.command, resultStatus);
     }
 
     /* only certain responses may contain a payload */

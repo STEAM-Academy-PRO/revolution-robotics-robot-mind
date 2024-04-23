@@ -40,41 +40,40 @@ class MotorPortDriver(PortDriver):
 
     @property
     @abstractmethod
-    def status(self) -> MotorStatus:
-        pass
+    def status(self) -> MotorStatus: ...
 
     @property
     @abstractmethod
-    def speed(self):
-        pass
+    def active_request_id(self) -> int:
+        """Returns the request ID that was last read back from the MCU."""
 
     @property
     @abstractmethod
-    def pos(self):
-        pass
+    def speed(self) -> float: ...
 
     @property
     @abstractmethod
-    def power(self):
-        pass
+    def pos(
+        self,
+    ): ...  # TODO: decide on a return type - currently returns ticks, maybe, but should be rotations?
+
+    @property
+    @abstractmethod
+    def power(self) -> int: ...
 
     @abstractmethod
-    def set_speed(self, speed, power_limit=None):
-        pass
+    def set_speed(self, speed, power_limit=None): ...
 
     @abstractmethod
     def set_position(
         self, position: int, speed_limit=None, power_limit=None, pos_type="absolute"
-    ) -> Awaiter:
-        pass
+    ) -> Awaiter: ...
 
     @abstractmethod
-    def set_power(self, power):
-        pass
+    def set_power(self, power): ...
 
     @abstractmethod
-    def stop(self, action: int = MotorConstants.ACTION_RELEASE):
-        pass
+    def stop(self, action: int = MotorConstants.ACTION_RELEASE): ...
 
 
 class MotorPortHandler(PortHandler[MotorPortDriver]):
@@ -101,7 +100,11 @@ class NullMotor(MotorPortDriver):
         return MotorStatus.NORMAL
 
     @property
-    def speed(self):
+    def active_request_id(self) -> int:
+        return 0
+
+    @property
+    def speed(self) -> float:
         return 0
 
     @property

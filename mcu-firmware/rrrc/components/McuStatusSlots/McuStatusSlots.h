@@ -47,8 +47,12 @@ typedef struct {
 
 void McuStatusSlots_Run_Reset(void);
 void McuStatusSlots_Run_Update(void);
+void McuStatusSlots_Run_ChangeSensorPortSlotSize(size_t size);
+void McuStatusSlots_Run_ChangeMotorPortSlotSize(size_t size);
 void McuStatusSlots_Run_UpdateSensorPort(uint8_t port, ByteArray_t data);
 void McuStatusSlots_Run_UpdateMotorPort(uint8_t port, ByteArray_t data);
+void* McuStatusSlots_Call_Allocate(size_t size);
+void McuStatusSlots_Call_Free(void** ptr);
 void McuStatusSlots_Write_SlotData(uint32_t index, SlotData_t value);
 void McuStatusSlots_Read_Acceleration(IMU_RawSample_t* value);
 void McuStatusSlots_Read_AngularSpeeds(IMU_RawSample_t* value);

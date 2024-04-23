@@ -2,40 +2,43 @@
 This is the robot's Blockly API.
 Whatever code blockly generates, it compiles to python
 code that uses these functions.
-
-DANGER!!!!
-Do not delete any imports, even if they are not used,
-as the generated code MAY use it!
-
 """
 
-from abc import ABC, abstractmethod
-import struct
+from abc import ABC
+from math import floor
 import time
 import random
 
 from functools import partial
-from math import floor, sqrt
-from numbers import Number
 from enum import Enum
 
-from typing import TYPE_CHECKING, Callable, Generic, List, Optional, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Generic,
+    Iterator,
+    NamedTuple,
+    Optional,
+    TypeVar,
+    Union,
+)
 
+from revvy.robot.imu import IMU
 from revvy.robot.ports.sensors.simple import ColorSensorReading
 
 # # To have types, use this to avoid circular dependencies.
 if TYPE_CHECKING:
+    from revvy.robot.robot import Robot
     from revvy.scripting.runtime import ScriptHandle
     from revvy.robot_config import RobotConfig
     from revvy.robot.drivetrain import DifferentialDrivetrain
 
 
-from revvy.robot.configurations import Motors, Sensors
 from revvy.robot.led_ring import RingLed
 from revvy.robot.ports.motors.base import MotorConstants, MotorPortDriver
 from revvy.robot.ports.sensors.base import SensorPortDriver
 from revvy.robot.sound import Sound
-from revvy.scripting.resource import Resource
+from revvy.scripting.resource import BaseHandle, null_handle, Resource
 from revvy.scripting.color_functions import (
     ColorData,
     rgb_to_hsv_gray,
@@ -44,9 +47,9 @@ from revvy.scripting.color_functions import (
     color_name_to_rgb,
 )
 
+from revvy.utils.awaiter import Awaiter
 from revvy.utils.functions import hex2rgb
 from revvy.robot.ports.common import PortInstance
-
 from revvy.utils.functions import map_values
 from revvy.utils.logger import get_logger
 
@@ -95,9 +98,13 @@ class Wrapper(ABC):
     def __init__(self, script: "ScriptHandle", resource: Resource):
         self._resource = resource
         self._script = script
-        self._current_handle = None
+        self._current_handle: BaseHandle = null_handle
 
-    def try_take_resource(self, on_interrupted: Optional[Callable[[], None]] = None):
+    def try_take_resource(self, on_interrupted: Optional[Callable[[], None]] = None) -> BaseHandle:
+        """
+        Intended to be used in a with statement to automatically release the resource.
+        If the resource is not available, returns NullHandle which evaluates to False.
+        """
         if self._script.is_stop_requested:
             raise InterruptedError
 
@@ -108,7 +115,7 @@ class Wrapper(ABC):
         if handle:
 
             def _release_handle() -> None:
-                self._current_handle = None
+                self._current_handle = null_handle
 
             # lints ignored because pyright doesn't understand that if hand is true,
             # it's not a null_handle
@@ -123,10 +130,8 @@ class Wrapper(ABC):
         self.if_resource_available(lambda res: res.run_uninterruptable(callback))
 
     def if_resource_available(self, callback) -> None:
-        # If the resource is not available, try_take_resource returns None.
-        resource_ctx = self.try_take_resource()
-        if resource_ctx:
-            with resource_ctx as resource:
+        with self.try_take_resource() as resource:
+            if resource:
                 callback(resource)
 
     def force_release_resource(self) -> None:
@@ -158,7 +163,7 @@ class SensorPortWrapper(Wrapper):
         return self._sensor.driver.value
 
 
-def color_string_to_rgb(color_string: str):
+def color_string_to_rgb(color_string: str) -> Optional[int]:
     """Interface can accept colot_string in several formats
     this can be a hex value like #or actual color name like 'red' or 'black'"""
 
@@ -170,7 +175,7 @@ def color_string_to_rgb(color_string: str):
         return hex2rgb(color_string)
 
     # TODO: throw an exception?
-    print(f"Color string format not recognised: {color_string}")
+    log(f"Color string format not recognised: {color_string}")
     return None
 
 
@@ -183,17 +188,17 @@ class RingLedWrapper(Wrapper):
         self._user_leds = [0] * ring_led.count
 
     @property
-    def scenario(self):
+    def scenario(self) -> int:
         return self._ring_led.scenario
 
-    def start_animation(self, scenario):
+    def start_animation(self, scenario: int):
         self.using_resource(partial(self._ring_led.start_animation, scenario))
 
-    def set(self, leds: List[int], color):
-        rgb = color_string_to_rgb(color)
+    def set(self, leds: list[int], color):
+        rgb = color_string_to_rgb(color) or 0
 
         for idx in leds:
-            index = (idx - 1) % len(self._user_leds)
+            index = floor(idx - 1) % len(self._user_leds)
             self._user_leds[index] = rgb
 
         self.using_resource(partial(self._ring_led.display_user_frame, self._user_leds))
@@ -223,7 +228,7 @@ class MotorPortWrapper(Wrapper):
     def pos(self, val):
         self._motor.pos = val
 
-    def move(self, direction, amount, unit_amount, limit, unit_limit):
+    def move(self, direction, amount, unit_amount, limit, unit_limit) -> None:
         self._log("move")
 
         # convert complete rotations to degrees
@@ -231,7 +236,7 @@ class MotorPortWrapper(Wrapper):
             unit_amount = MotorConstants.UNIT_DEG
             amount *= 360
 
-        set_fns = {
+        move_motor_command_map = {
             MotorConstants.UNIT_DEG: {
                 MotorConstants.UNIT_SPEED_RPM: {
                     MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_position(
@@ -262,28 +267,39 @@ class MotorPortWrapper(Wrapper):
             },
         }
 
+        motor_control_command = move_motor_command_map[unit_amount][unit_limit][direction]
+
         awaiter = None
 
-        def _interrupted():
-            self._log("interrupted")
+        def _interrupted() -> None:
+            # When interrupted, always switch the motor power off before cancel,
+            # so that it also stops if the unit is time.
+            self._motor.driver.set_power(0)
             if awaiter:
                 awaiter.cancel()
 
         with self.try_take_resource(_interrupted) as resource:
             if resource:
                 self._log("start movement")
-                awaiter = resource.run_uninterruptable(set_fns[unit_amount][unit_limit][direction])
+                awaiter = resource.run_uninterruptable(motor_control_command)
 
                 if unit_amount == MotorConstants.UNIT_DEG:
                     # wait for movement to finish
-                    awaiter.wait()
+                    if awaiter:  # can be None if resource is interrupted by another script
+                        awaiter.wait()
 
                 elif unit_amount == MotorConstants.UNIT_SEC:
+                    # When moving unit is time, we set the motor to rotate "indefinitely"
+                    # as we did not implement that on the motor driver level.
+                    # This means, the resource.run_uninterruptable will not return
+                    # an awaiter, which means it would not be stopped when cancelled,
+                    # it has to be done manually.
                     self._script.sleep(amount)
+                    # Stop it after timeout.
                     resource.run_uninterruptable(partial(self._motor.driver.set_power, 0))
                 self._log("movement finished")
 
-    def spin(self, direction, rotation, unit_rotation):
+    def spin(self, direction: int, rotation: int, unit_rotation: int):
         # start moving depending on limits
         self._log("spin")
         set_speed_fns = {
@@ -299,21 +315,21 @@ class MotorPortWrapper(Wrapper):
 
         self.using_resource(set_speed_fns[unit_rotation][direction])
 
-    def stop(self, action):
+    def stop(self, action: int):
         self.using_resource(partial(self._motor.driver.stop, action))
 
 
 def wrap_async_method(owner: Wrapper, method):
     def _wrapper(*args, **kwargs) -> None:
+        awaiter: Optional[Awaiter] = None
+
         def _interrupted() -> None:
             """Cancels the awaiter if someone with higher priority takes over the resource."""
             if awaiter:
                 awaiter.cancel()
 
-        resource_outer = owner.try_take_resource(_interrupted)
-        # TODO: figure out when this can return something that is not a context manager
-        if resource_outer:
-            with resource_outer as resource:
+        with owner.try_take_resource(_interrupted) as resource:
+            if resource:
                 awaiter = method(*args, **kwargs)
                 if awaiter:
                     awaiter.wait()
@@ -323,9 +339,8 @@ def wrap_async_method(owner: Wrapper, method):
 
 def wrap_sync_method(owner: Wrapper, method):
     def _wrapper(*args, **kwargs) -> None:
-        resource_outer = owner.try_take_resource()
-        if resource_outer:
-            with resource_outer as resource:
+        with owner.try_take_resource() as resource:
+            if resource:
                 method(*args, **kwargs)
 
     return _wrapper
@@ -389,23 +404,11 @@ class SoundWrapper(Wrapper):
         self.if_resource_available(lambda _: self._play(name))
 
 
-class RelativeToLineState:
-    def __init__(self, front, rear, left, right):
-        self.front = front
-        self.rear = rear
-        self.left = left
-        self.right = right
-
-    def __eq__(self, obj):
-        if not isinstance(obj, RelativeToLineState):
-            return False
-
-        return (
-            self.front == obj.front
-            and self.rear == obj.rear
-            and self.left == obj.left
-            and self.right == obj.right
-        )
+class RelativeToLineState(NamedTuple):
+    front: int
+    rear: int
+    left: int
+    right: int
 
 
 on_line = RelativeToLineState(1, 1, 0, 0)
@@ -433,7 +436,9 @@ class LineDriver:
     SEARCH_LINE_FORWARD_MOTION = 0
     SEARCH_LINE_ROTATE_90 = 1
 
-    def __init__(self, drivetrain, color_reader, line_color):
+    def __init__(
+        self, drivetrain: "DriveTrainWrapper", color_reader: "RobotWrapper", line_color: str
+    ) -> None:
         self.__drivetrain = drivetrain
         self.__color_reader = color_reader
         self.__line_color = line_color
@@ -446,28 +451,27 @@ class LineDriver:
         self.__straight_speed_mult = 1.5
         self.__log = get_logger("LineDriver")
 
-    def read_rgb(self, channel: RGBChannelSensor):
+    def read_rgb(self, channel: RGBChannelSensor) -> str:
         sensors = self.__color_reader.read_rgb_sensor_data()
-        # returns ColorData.name
         return sensors[channel.value].name
 
     @property
-    def __rgb_front(self):
+    def __rgb_front(self) -> str:
         return self.read_rgb(RGBChannelSensor.FRONT)
 
     @property
-    def __rgb_left(self):
+    def __rgb_left(self) -> str:
         return self.read_rgb(RGBChannelSensor.LEFT)
 
     @property
-    def __rgb_right(self):
+    def __rgb_right(self) -> str:
         return self.read_rgb(RGBChannelSensor.RIGHT)
 
     @property
-    def __rgb_rear(self):
+    def __rgb_rear(self) -> str:
         return self.read_rgb(RGBChannelSensor.REAR)
 
-    def __go_inclined_forward(self, inclination):
+    def __go_inclined_forward(self, inclination) -> None:
         self.__log("INCLINED_FORWARD")
         speed_left = speed_right = self.__base_speed * self.__straight_speed_mult
         if inclination < 0:
@@ -476,27 +480,27 @@ class LineDriver:
             speed_right -= self.__base_speed * inclination
         self.__drivetrain.set_speeds(speed_left, speed_right)
 
-    def __turn_left(self):
+    def __turn_left(self) -> None:
         self.__log("TURN_LEFT")
         self.__drivetrain.set_speeds(self.__base_speed * -0.25, self.__base_speed)
 
-    def __turn_right(self):
+    def __turn_right(self) -> None:
         self.__log("TURN_RIGHT")
         self.__drivetrain.set_speeds(self.__base_speed, self.__base_speed * -0.25)
 
-    def __go_straight(self):
+    def __go_straight(self) -> None:
         self.__log("GO_STRAIGHT")
         speed = self.__base_speed * self.__straight_speed_mult
         self.__drivetrain.set_speeds(speed, speed)
 
-    def __stop(self):
+    def __stop(self) -> None:
         self.__log("STOP")
         self.__drivetrain.set_speeds(0, 0)
 
-    def stop(self):
+    def stop(self) -> None:
         self.__stop()
 
-    def search_line_start(self):
+    def search_line_start(self) -> None:
         self.__log("search_line_start")
         self.__state = LineDriver.SEARCH_LINE_ROTATE_90
         self.__search_line_motion_time = 0
@@ -504,7 +508,7 @@ class LineDriver:
 
     # Returns True if line is found,
     # False is line is not found
-    def search_line_update(self):
+    def search_line_update(self) -> bool:
         front_match = self.__rgb_front == self.__line_color
         rear_match = self.__rgb_rear == self.__line_color
         left_match = self.__rgb_left == self.__line_color
@@ -534,11 +538,11 @@ class LineDriver:
             self.__go_inclined_forward(-0.2)
         return False
 
-    def follow_line_start(self):
+    def follow_line_start(self) -> None:
         self.__log("follow_line_start:START")
         self.__turn_right()
 
-    def follow_line_update(self):
+    def follow_line_update(self) -> int:
         front_match = self.__rgb_front == self.__line_color
         rear_match = self.__rgb_rear == self.__line_color
         left_match = self.__rgb_left == self.__line_color
@@ -548,7 +552,7 @@ class LineDriver:
 
         # Function to debug line following algorithm. To use:
         # in __init__ enable self.__do_debug_stops and set logger's `off` to False
-        def debug_stop(current, sleep_sec):
+        def debug_stop(current, sleep_sec: float):
             if not self.__do_debug_stops:
                 return
 
@@ -640,7 +644,7 @@ class PortCollection(Generic[PortWrapper]):
     Used by blockly to access ports by mobile-configured names.
     """
 
-    def __init__(self, ports: List[PortWrapper]):
+    def __init__(self, ports: list[PortWrapper]):
         self._ports = ports
         self._alias_map: dict[str, int] = {}
 
@@ -660,62 +664,22 @@ class PortCollection(Generic[PortWrapper]):
         # access by (1-based) position
         return self._ports[item - 1]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[PortWrapper]:
         return self._ports.__iter__()
 
 
-class RobotInterface(ABC):
-    @abstractmethod
-    def time(self):
-        pass
-
-    @property
-    @abstractmethod
-    def motors(self) -> PortCollection:
-        pass
-
-    @property
-    @abstractmethod
-    def sensors(self) -> PortCollection:
-        pass
-
-    @property
-    @abstractmethod
-    def led(self):
-        pass
-
-    @property
-    @abstractmethod
-    def sound(self):
-        pass
-
-    @property
-    @abstractmethod
-    def drivetrain(self):
-        pass
-
-    @property
-    @abstractmethod
-    def imu(self):
-        pass
-
-    @abstractmethod
-    def play_tune(self, name):
-        pass
-
-
-# FIXME: do we need the base class?
-class RobotWrapper(RobotInterface):
+class RobotWrapper:
     """Wrapper class that exposes API to user-written scripts"""
 
     def __init__(
         self,
         script: "ScriptHandle",
-        robot: RobotInterface,
+        robot: "Robot",
         config: "RobotConfig",
         resources: dict,
     ):
         self._robot = robot
+        self.log = get_logger("RobotWrapper", base=script.log)
 
         motor_wrappers = [
             MotorPortWrapper(script, port, resources[f"motor_{port.id}"]) for port in robot.motors
@@ -739,10 +703,9 @@ class RobotWrapper(RobotInterface):
         # shorthand functions
         self.drive = self._drivetrain.drive
         self.turn = self._drivetrain.turn
-
         self.time = robot.time
 
-    def release_resources(self, none=None):
+    def release_resources(self, none=None) -> None:
         # Sensor wrappers
         for sensor in self._sensors:
             sensor.force_release_resource()
@@ -756,41 +719,38 @@ class RobotWrapper(RobotInterface):
         self._ring_led.force_release_resource()
         self._drivetrain.force_release_resource()
 
-    def time(self):
-        return self._robot.time
-
     @property
-    def robot(self):
+    def robot(self) -> "Robot":
         return self._robot
 
     @property
-    def motors(self):
+    def motors(self) -> PortCollection[MotorPortWrapper]:
         return self._motors
 
     @property
-    def sensors(self):
+    def sensors(self) -> PortCollection[SensorPortWrapper]:
         return self._sensors
 
     @property
-    def led(self):
+    def led(self) -> RingLedWrapper:
         return self._ring_led
 
     @property
-    def drivetrain(self):
+    def drivetrain(self) -> DriveTrainWrapper:
         return self._drivetrain
 
     @property
-    def imu(self):
+    def imu(self) -> IMU:
         return self._robot.imu
 
     @property
-    def sound(self):
+    def sound(self) -> SoundWrapper:
         return self._sound
 
-    def play_tune(self, name):
+    def play_tune(self, name: str):
         self._sound.play_tune(name)
 
-    def play_note(self):
+    def play_note(self) -> None:
         pass  # TODO
 
     def rotate_for_search(
@@ -840,7 +800,7 @@ class RobotWrapper(RobotInterface):
         time.sleep(0.2)
         return 0, base_color, background_color, None, None
 
-    def search_line(self, line_color):
+    def search_line(self, line_color: str) -> None:
         log(f"search_line:line_color={line_color}")
         line_driver = LineDriver(self._drivetrain, self, line_color)
         delta_seconds = 0.1
@@ -852,7 +812,7 @@ class RobotWrapper(RobotInterface):
         log("search_line end")
         time.sleep(2)
 
-    def follow_line(self, line_color, count_time=10000):
+    def follow_line(self, line_color: str, count_time=10000):
         line_driver = LineDriver(self._drivetrain, self, line_color)
         # interval is 10ms
         delta_seconds = 0.01
@@ -887,7 +847,7 @@ class RobotWrapper(RobotInterface):
             time.sleep(delta_seconds)
         line_driver.stop()
 
-    def debug_print_colors(self, colors: List[ColorData]):
+    def debug_print_colors(self, colors: list[ColorData]):
         for i, color in enumerate(colors):
             name = "noname"
             for channel in RGBChannelSensor:
@@ -898,7 +858,7 @@ class RobotWrapper(RobotInterface):
             v = int(color.value)
             log(f"{color.red},{color.green},{color.blue}->{h},{s},{v}:{name}")
 
-    def read_rgb_sensor_data(self) -> List[ColorData]:
+    def read_rgb_sensor_data(self) -> list[ColorData]:
         sensor_data: ColorSensorReading = self._sensors["color_sensor"].read()
 
         return [
@@ -908,7 +868,7 @@ class RobotWrapper(RobotInterface):
             rgb_to_hsv_gray(sensor_data.middle.r, sensor_data.middle.g, sensor_data.middle.b),
         ]
 
-    def get_color_by_user_channel(self, user_channel):
+    def get_color_by_user_channel(self, user_channel) -> ColorData:
         sensor_channel = user_to_sensor_channel(user_channel)
         if sensor_channel == RGBChannelSensor.UNDEFINED:
             return ColorDataUndefined

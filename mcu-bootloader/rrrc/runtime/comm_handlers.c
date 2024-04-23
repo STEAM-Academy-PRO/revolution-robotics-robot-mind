@@ -1,10 +1,12 @@
-#include "runtime.h"
+#include "rrrc/generated_runtime.h"
+#include "comm_handlers.h"
 
 #include "flash_mapping.h"
-#include "../utils/converter.h"
+#include "CommonLibraries/converter.h"
+#include "utils.h"
 
-#include <string.h> // memcpy
-#include "SEGGER_RTT.h"
+#include <string.h>
+#include "CommonLibraries/log.h"
 
 /* These constants are common between bootloader and application */
 #define OPERATION_MODE_BOOTLOADER   ((uint8_t) 0xBBu)
@@ -15,6 +17,7 @@ static Comm_Status_t InitializeUpdate_Start(ConstByteArray_t commandPayload, Byt
 static Comm_Status_t ProgramApplication_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 static Comm_Status_t FinalizeUpdate_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 static Comm_Status_t ReadApplicationCrc_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
+static Comm_Status_t VersionProvider_GetHardwareVersion_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount);
 
 /* These commands relate to BootloaderControl in pi-firmware/revvy/mcu/rrrc_control.py */
 Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT] =
@@ -33,7 +36,7 @@ static Comm_Status_t GetOperationMode_Start(ConstByteArray_t commandPayload, Byt
 {
     (void) commandPayload;
 
-    SEGGER_RTT_printf(0, "GetOperationMode\n");
+    LOG_RAW("GetOperationMode\n");
     response.bytes[0] = OPERATION_MODE_BOOTLOADER;
     *responseCount = 1u;
     return Comm_Status_Ok;
@@ -43,7 +46,7 @@ static Comm_Status_t ReadApplicationCrc_Start(ConstByteArray_t commandPayload, B
 {
     (void) commandPayload;
 
-    SEGGER_RTT_printf(0, "ReadApplicationCrc\n");
+    LOG_RAW("ReadApplicationCrc\n");
     uint32_t checksum = FMP_ReadApplicationChecksum();
     memcpy(&response.bytes[0], &checksum, 4u);
     *responseCount = 4u;
@@ -55,7 +58,7 @@ static Comm_Status_t InitializeUpdate_Start(ConstByteArray_t commandPayload, Byt
     (void) response;
     (void) responseCount;
 
-    SEGGER_RTT_printf(0, "InitializeUpdate\n");
+    LOG_RAW("InitializeUpdate\n");
     if (commandPayload.count != 8u)
     {
         return Comm_Status_Error_PayloadLengthError;
@@ -64,6 +67,8 @@ static Comm_Status_t InitializeUpdate_Start(ConstByteArray_t commandPayload, Byt
     /* check whether the image fits in flash memory */
     size_t firmware_size = get_uint32(&commandPayload.bytes[0]);
     uint32_t checksum = get_uint32(&commandPayload.bytes[4]);
+
+    // TODO: this should be an async server call. The operation takes long and the RPi may time out.
 
     if (!UpdateManager_Run_CheckImageFitsInFlash(firmware_size))
     {
@@ -80,8 +85,8 @@ static Comm_Status_t ProgramApplication_Start(ConstByteArray_t commandPayload, B
     (void) response;
     (void) responseCount;
 
-    SEGGER_RTT_printf(0, "ProgramApplication\n");
-    switch (UpdateManager_Run_Program(commandPayload.bytes, commandPayload.count))
+    LOG_RAW("ProgramApplication\n");
+    switch (UpdateManager_Run_WriteNextChunk(commandPayload))
     {
         case UpdateManager_Ok:
             return Comm_Status_Ok;
@@ -97,14 +102,48 @@ static Comm_Status_t FinalizeUpdate_Start(ConstByteArray_t commandPayload, ByteA
     (void) response;
     (void) responseCount;
 
-    SEGGER_RTT_printf(0, "FinalizeUpdate\n");
+    LOG_RAW("FinalizeUpdate\n");
     switch (UpdateManager_Run_Finalize())
     {
         case UpdateManager_Ok:
-            Runtime_RequestJumpToApplication();
+            CommHandlers_RequestJumpToApplication();
             return Comm_Status_Ok;
 
         default:
             return Comm_Status_Error_CommandError;
     }
+}
+
+static Comm_Status_t VersionProvider_GetHardwareVersion_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount)
+{
+    (void) commandPayload;
+
+    static const char* hw_version_strings[] =
+    {
+        "1.0.0",
+        "1.0.1",
+        "2.0.0"
+    };
+
+    LOG_RAW("GetHardwareVersion\n");
+    uint32_t hw = HARDWARE_VERSION;
+
+    if (hw < ARRAY_SIZE(hw_version_strings))
+    {
+        uint8_t len = strlen(hw_version_strings[hw]);
+        memcpy(response.bytes, hw_version_strings[hw], len);
+        *responseCount = len;
+
+        return Comm_Status_Ok;
+    }
+    else
+    {
+        return Comm_Status_Error_InternalError;
+    }
+}
+
+__attribute__((weak))
+void CommHandlers_RequestJumpToApplication(void)
+{
+
 }

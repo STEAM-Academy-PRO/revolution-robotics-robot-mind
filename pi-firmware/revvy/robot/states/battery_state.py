@@ -11,12 +11,12 @@ class BatteryState(Observable[BatteryStatus]):
     """Manage and smoothen battery state level values"""
 
     def __init__(self, throttle_interval: float):
-        # Battery gets checked every 5ms and it reads out a DAC value, which has plenty of noise.
-        # To smoothen that out, here is a 500 sized min calculator (~2.5sec), meaning: takes every 5ms measurement,
-        # puts it in an array, gets the min value, rounds it to disable flickering between values.
+        # The MCU reads battery every 100ms. Though the MCU provides us a filtered
+        # value, it may still be noisy when close to whole % values.
+        # To smoothen that out, we take the last 25 values (~2.5sec), and take the minimum.
         self._main = SmoothingObservable(
             0,
-            window_size=500,
+            window_size=25,
             throttle_interval=5,
             smoothening_function=lambda history: round(min(history)),
         )

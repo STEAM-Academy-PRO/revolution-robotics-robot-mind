@@ -2,7 +2,6 @@
 #define RINGLEDDISPLAY_PRIVATE_H_
 
 #include "RingLedDisplay.h"
-#include "rrrc_indication.h"
 #include "Scenario/scenario_handlers.h"
 
 

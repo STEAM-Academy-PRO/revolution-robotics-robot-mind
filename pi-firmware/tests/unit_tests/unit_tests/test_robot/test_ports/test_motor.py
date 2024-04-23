@@ -25,6 +25,10 @@ class TestDriver(MotorPortDriver):
         return MotorStatus.NORMAL
 
     @property
+    def active_request_id(self) -> int:
+        return 0
+
+    @property
     def speed(self):
         return 0
 

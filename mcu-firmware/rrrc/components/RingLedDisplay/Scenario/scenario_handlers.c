@@ -1,9 +1,10 @@
 #include "scenario_handlers.h"
 
-#include "libraries/functions.h"
+#include "CommonLibraries/functions.h"
 #include "../RingLedDisplay.h"
 #include <math.h>
 
+#define RING_LEDS_AMOUNT ((uint8_t) 12u)
 #define RING_LED_UPDATE_TIME ((uint32_t) 20u)
 
 typedef struct {

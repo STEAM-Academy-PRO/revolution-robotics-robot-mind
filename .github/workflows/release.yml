@@ -37,6 +37,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install dependencies
+        run: |
+          eval `ssh-agent -s`
+          ssh-add - <<< '${{ secrets.SSH_PRIVATE_KEY }}'
+          cd mcu-firmware
+          echo 'Upgrade pip' # default pip discards cglue's package
+          python -m pip install --upgrade pip
+          pip --version
+          echo 'Install pip requirements'
+          pip install -r tools/requirements.txt
+
       - name: Install compiler
         run: |
           cd /usr/share
@@ -48,7 +59,7 @@ jobs:
       - name: Build Release bootloader
         run: |
           cd mcu-bootloader
-          make config=release -j${{ env.CPU_COUNT }}
+          python -m tools.x build --ci --release
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -93,12 +104,7 @@ jobs:
       - name: Build Release firmware
         run: |
           cd mcu-firmware
-          python -m tools.gen_version
-          python -m tools.generate_makefile
-          # currently the generated runtime is checked in, so this is not needed
-          # cglue --generate --cglue-output=rrrc/generated_runtime
-          make all config=release -j${{ env.CPU_COUNT }}
-          python -m tools.prepare
+          python -m tools.x build --ci --release
 
       - name: Upload packagable artifacts
         uses: actions/upload-artifact@v4
@@ -130,11 +136,11 @@ jobs:
 
           # install dependencies
           pip install -r install/requirements.txt
-          pip install -r install/requirements_test.txt
+          pip install -r install/requirements_dev.txt
 
           # run checks
           # python -m dev_tools.precommit_pep8 --check-all
-          timeout 5m nose2 -B
+          timeout 5m python -m dev_tools.x test
 
   assemble-and-upload:
     permissions:

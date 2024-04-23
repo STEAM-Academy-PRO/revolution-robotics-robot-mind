@@ -198,6 +198,13 @@ int32_t _i2c_s_async_enable(struct _i2c_s_async_device *const device)
     ASSERT(device->cb.addrm_cb);
     ASSERT(device->cb.error_cb);
 
+	// Enable all interrupt requests
+	hri_sercomi2cs_set_INTEN_ERROR_bit(device->hw);
+	hri_sercomi2cs_set_INTEN_AMATCH_bit(device->hw);
+	hri_sercomi2cs_set_INTEN_PREC_bit(device->hw);
+	hri_sercomi2cs_set_INTEN_DRDY_bit(device->hw);
+
+	// Enable the peripheral
 	hri_sercomi2cs_set_CTRLA_ENABLE_bit(device->hw);
 
 	return ERR_NONE;
@@ -272,6 +279,14 @@ void _i2c_s_sync_write_byte(struct _i2c_s_sync_device *const device, const uint8
  */
 void _i2c_s_async_write_byte(struct _i2c_s_async_device *const device, const uint8_t data)
 {
+#if I2CS_DATA_DELAY > 0
+	// Delay writing the DATA register by a bit. I don't know why we need this, but I think
+	// there is a hardware race between short clock LOW states and writing the DATA register.
+	for (uint32_t i = 0; i < I2CS_DATA_DELAY; i++) {
+		__NOP();
+	}
+#endif
+
 	hri_sercomi2cs_write_DATA_reg(device->hw, data);
 }
 

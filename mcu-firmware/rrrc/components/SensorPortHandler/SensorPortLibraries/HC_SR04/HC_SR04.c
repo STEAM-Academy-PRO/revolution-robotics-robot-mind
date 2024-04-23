@@ -73,6 +73,8 @@ static uint32_t update_filtered_distance(SensorLibrary_HC_SR04_Data_t *sens_data
 
 SensorLibraryStatus_t HC_SR04_Load(SensorPort_t *sensorPort)
 {
+    SensorPortHandler_Call_UpdateStatusSlotSize(4u);
+
     SensorLibrary_HC_SR04_Data_t *libdata = SensorPortHandler_Call_Allocate(sizeof(SensorLibrary_HC_SR04_Data_t));
 
     libdata->start_time = 0u;

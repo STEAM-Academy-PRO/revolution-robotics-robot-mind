@@ -1,9 +1,10 @@
 """ Handles blockly and analog script running lifecycle """
 
 from enum import Enum
+from threading import Event
 import time
 
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 from revvy.utils.emitter import Emitter
 from revvy.utils.functions import str_to_func
 
@@ -71,15 +72,14 @@ class ScriptHandle(Emitter[ScriptEvent]):
         self.log("Error: default sleep called")
         raise Exception("Script not running")
 
-    def __init__(
-        self, owner: "ScriptManager", descriptor: ScriptDescriptor, name, global_variables: dict
-    ):
+    def __init__(self, owner: "ScriptManager", descriptor: ScriptDescriptor, name):
         super().__init__()
         self._owner = owner
-        self._globals = global_variables.copy()
+        # Copy globals from the owner. Variables assigned to the owner after this point will be
+        # propagated down, but variables assigned to this script will not be shared between scripts.
+        self._globals = owner._globals.copy()
         self._inputs = {}
         self.name = name
-        self._runnable = descriptor.runnable
         self.descriptor = descriptor
         self.sleep = self._prevent_incorrect_sleep
         self._thread = ThreadWrapper(self._run, name)
@@ -97,15 +97,15 @@ class ScriptHandle(Emitter[ScriptEvent]):
         self._thread.on_error(self._on_error)
 
         # TODO: this isn't needed if everything is typed right, we can remove it later
-        assert callable(self._runnable)
+        assert callable(self.descriptor.runnable)
 
         self.log("Created")
 
-    def _on_error(self, error):
+    def _on_error(self, error) -> None:
         self.trigger(ScriptEvent.ERROR, error)
 
     @property
-    def is_stop_requested(self):
+    def is_stop_requested(self) -> bool:
         return self._thread.state in [ThreadWrapperState.STOPPING, ThreadWrapperState.STOPPED]
 
     @property
@@ -116,13 +116,13 @@ class ScriptHandle(Emitter[ScriptEvent]):
     def priority(self) -> int:
         return self.descriptor.priority
 
-    def assign(self, name, value):
+    def assign(self, name: str, value):
         self._globals[name] = value
 
     def _run(self, ctx: ThreadContext):
         try:
             # script control interface
-            def _terminate():
+            def _terminate() -> None:
                 self.stop()
                 raise InterruptedError
 
@@ -136,7 +136,7 @@ class ScriptHandle(Emitter[ScriptEvent]):
             self.sleep = ctx.sleep
             self.log("Starting script")
             self.trigger(ScriptEvent.START)
-            self._runnable(Control=ctx, ctx=ctx, time=TimeWrapper(ctx), **self._inputs)
+            self.descriptor.runnable(Control=ctx, ctx=ctx, time=TimeWrapper(ctx), **self._inputs)
         except InterruptedError:
             self.log("Interrupted")
             raise
@@ -151,7 +151,7 @@ class ScriptHandle(Emitter[ScriptEvent]):
                 self.log(f"resetting_variable: {var}")
                 var.reset_value()
 
-    def start(self, **kwargs):
+    def start(self, **kwargs) -> Event:
         if not kwargs:
             self._inputs = self._globals
         else:
@@ -160,13 +160,14 @@ class ScriptHandle(Emitter[ScriptEvent]):
 
 
 class ScriptManager:
-    def __init__(self, robot: "Robot"):
+    def __init__(self, robot: "Robot", wrapper=RobotWrapper):
         self._robot = robot
-        self._globals = {}
+        self._globals: dict[str, Any] = {}
         self._scripts: dict[str, ScriptHandle] = {}
         self._log = get_logger("ScriptManager")
+        self._wrapper = wrapper
 
-    def reset(self):
+    def reset(self) -> None:
         self.stop_all_scripts()
         for script in self._scripts.values():
             script.cleanup()
@@ -176,7 +177,7 @@ class ScriptManager:
 
         self._log("stop all scripts and reset state")
 
-    def assign(self, name, value):
+    def assign(self, name: str, value):
         self._globals[name] = value
         for script in self._scripts.values():
             script.assign(name, value)
@@ -186,7 +187,6 @@ class ScriptManager:
         script: ScriptDescriptor,
         # tests don't pass a config, which is weird and probably wrong
         config: Optional["RobotConfig"] = None,
-        robot_wrapper_class=RobotWrapper,
     ):
         # TODO: This is a not a good place here: we should not need to check if a script
         # is running, when trying to override it, lifecycle should prevent this from
@@ -196,16 +196,19 @@ class ScriptManager:
             self._scripts[script.name].cleanup()
 
         self._log(f"New script: {script.name}")
-        script_handle = ScriptHandle(self, script, script.name, self._globals)
+        script_handle = ScriptHandle(self, script, script.name)
         try:
             # Note: Due to dependency injection, this is wrapped out.
             # FIXME the lint ignore shouldn't be there. Fix tests.
-            interface = robot_wrapper_class(
+            interface = self._wrapper(
                 script_handle, self._robot, config, self._robot.resources  # type: ignore tests pass a None and a mock wrapper
             )
             script_handle.on_stopping(interface.release_resources)
             script_handle.on_stopped(interface.release_resources)
+
+            # each script has their own RobotWrapper instance
             script_handle.assign("robot", interface)
+
             self._scripts[script.name] = script_handle
 
             return script_handle
@@ -213,11 +216,11 @@ class ScriptManager:
             script_handle.cleanup()
             raise
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str) -> ScriptHandle:
         return self._scripts[name]
 
     def stop_all_scripts(self, wait: bool = True):
-        events = []
+        events: list[Event] = []
         for script in self._scripts.values():
             events.append(script.stop())
 
@@ -225,14 +228,14 @@ class ScriptManager:
             for event in events:
                 event.wait()
 
-    def start_all_scripts(self):
+    def start_all_scripts(self) -> None:
         for script in self._scripts.values():
             script.start()
 
-    def pause_all_scripts(self):
+    def pause_all_scripts(self) -> None:
         for script in self._scripts.values():
             script.pause()
 
-    def resume_all_scripts(self):
+    def resume_all_scripts(self) -> None:
         for script in self._scripts.values():
             script.resume()

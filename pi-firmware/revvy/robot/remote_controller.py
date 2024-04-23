@@ -4,7 +4,7 @@ import time
 
 from threading import Event
 import traceback
-from typing import Callable, NamedTuple, Optional, List, Tuple, Type
+from typing import Callable, NamedTuple, Optional, Tuple
 from revvy.bluetooth.data_types import BackgroundControlState, TimerData
 from revvy.scripting.runtime import ScriptHandle
 from revvy.utils import error_reporter
@@ -29,7 +29,7 @@ class RemoteControllerCommand(NamedTuple):
     """Raw message coming through the ble interface"""
 
     analog: bytearray
-    buttons: List[bool]
+    buttons: list[bool]
     background_command: BleAutonomousCmd
     next_deadline: Optional[int]
 
@@ -58,7 +58,7 @@ class ButtonHandler:
     last_press_stopped_it: bool
 
 
-AnalogAction = Tuple[List[int], ScriptHandle]
+AnalogAction = Tuple[list[int], ScriptHandle]
 """ ([channel], callback) pairs"""
 
 
@@ -68,51 +68,43 @@ class RemoteController:
         self._background_control_state = BackgroundControlState.STOPPED
         self._control_button_pressed = AutonomousModeRequest.NONE
 
-        self._analogActions: List[AnalogAction] = []
+        self._analogActions: list[AnalogAction] = []
         # the last analog values, used to compare if a callback needs to be fired
         self._analogStates = bytearray()
 
-        self._button_handlers: List[ButtonHandler] = []
+        self._button_handlers: list[ButtonHandler] = []
 
-        self._processing = False
-        self._processing_time = 0.0
-        self._previous_time = None
+        self._global_timer_running = False
+        self._global_timer = 0.0
+        self._previous_global_timer_value = 0.0
 
-        # Joystick mode opposed to autonomous mode
-        # Difference matters for the processing_time (aka the 'global timer'),
-        # as for in simple joystick mode, processing time should not start until
-        # the user presses something on a joystick, therefore we have to
-        # know the difference in code
-        self._joystick_mode = False
+        self._joystick_mode_detected = False
+        """Whether user input was detected.
+
+        Difference matters for the processing_time (aka the 'global timer'),
+        as for in simple joystick mode, processing time should not start until
+        the user presses something on a joystick, therefore we have to
+        know the difference in code
+        """
 
         # Wait time is in the middle of integration, we have to have default
         # behavior for mobile versions that will have zeroes in deadline field
         # Previous expectation was 200ms
         self.next_message_deadline = DEFAULT_MESSAGE_DEADLINE
 
-    def on_joystick_action(self):
-        # This is a one shot action to detect first joystick input
-        # over one entire controller (play) session
-        if self._joystick_mode:
-            return
-        log("Joystick mode ON")
-        self._joystick_mode = True
-        self._processing = True
-        self._previous_time = time.time()
-
-    def reset_background_control_state(self):
+    def reset_background_control_state(self) -> None:
         self._background_control_state = BackgroundControlState.STOPPED
 
-    def reset(self):
+    def reset(self) -> None:
         self._analogActions.clear()
         self._analogStates.clear()
         self._button_handlers.clear()
 
-        self._processing = False
-        self._processing_time = 0.0
+        self._global_timer_running = False
+        self._global_timer = 0.0
         self._background_control_state = BackgroundControlState.STOPPED
-        self._previous_time = None
-        self._joystick_mode = False
+        self._previous_global_timer_value = None
+        self._joystick_mode_detected = False
 
     def process_background_command(self, cmd: BleAutonomousCmd):
         # TODO: (╯°□°）╯︵ ┻━┻
@@ -123,27 +115,27 @@ class RemoteController:
             log(f"start background program: {cmd}")
             self._background_control_state = BackgroundControlState.RUNNING
             self._control_button_pressed = AutonomousModeRequest.START
-            if not self._joystick_mode:
-                self._processing = True
-                self._processing_time = 0.0
-                self._previous_time = time.time()
+            if not self._joystick_mode_detected:
+                self._global_timer_running = True
+                self._global_timer = 0.0
+                self._previous_global_timer_value = time.time()
         elif cmd == BleAutonomousCmd.PAUSE:
             self._background_control_state = BackgroundControlState.PAUSED
             self._control_button_pressed = AutonomousModeRequest.PAUSE
             self.timer_increment()
-            self._processing = False
-            self._previous_time = None
+            self._global_timer_running = False
+            self._previous_global_timer_value = None
         elif cmd == BleAutonomousCmd.RESUME:
             self._background_control_state = BackgroundControlState.RUNNING
             self._control_button_pressed = AutonomousModeRequest.RESUME
-            self._processing = True
-            self._previous_time = time.time()
+            self._global_timer_running = True
+            self._previous_global_timer_value = time.time()
         elif cmd == BleAutonomousCmd.RESET:
             self._background_control_state = BackgroundControlState.STOPPED
             self._control_button_pressed = AutonomousModeRequest.STOP
-            self._processing = False
-            self._processing_time = 0.0
-            self._previous_time = None
+            self._global_timer_running = False
+            self._global_timer = 0.0
+            self._previous_global_timer_value = None
 
     def process_analog_command(self, analog_cmd: bytearray):
         """
@@ -168,7 +160,7 @@ class RemoteController:
                 # looks like an action was registered for an analog channel that we didn't receive
                 log(f'Skip analog handler for channels {", ".join(map(str, channels))}')
 
-    def run_button_script(self, button_pressed_list: List[bool]):
+    def run_button_script(self, button_pressed_list: list[bool]):
         """
         On the controller user binds blockly programs to the buttons.
         Here we iterate over the handlers and the button states, and if the button is pressed
@@ -226,6 +218,26 @@ class RemoteController:
         else:
             self.next_message_deadline = msg.next_deadline
 
+        # Global timer needs to be started only once.
+        # Check outside of the function to avoid the function call overhead
+        if not self._joystick_mode_detected:
+            # First user input action triggers global timer
+            self.start_timer_on_interaction(msg)
+
+    def start_timer_on_interaction(self, msg: RemoteControllerCommand):
+        # Currently hardcoded for the joystick X and Y middle position.
+        # FIXME: generalize if we support more input methods
+        joystick_xy_action = msg.analog[0] != 127 or msg.analog[1] != 127
+        joystick_button_action = any(msg.buttons)
+
+        if joystick_xy_action or joystick_button_action:
+            # This is a one shot action to detect first joystick input
+            # over one entire controller (play) session
+            log("Joystick mode ON")
+            self._joystick_mode_detected = True
+            self._global_timer_running = True
+            self._previous_global_timer_value = time.time()
+
     def link_button_to_runner(self, button_id, script_handle: ScriptHandle):
         log(f"registering callbacks for Button: {button_id}")
         log(script_handle.descriptor.source, LogLevel.DEBUG)
@@ -242,14 +254,14 @@ class RemoteController:
         self._analogActions.append((channels, action))
 
     def timer_increment(self) -> None:
-        if self._processing:
+        if self._global_timer_running:
             current_time = time.time()
-            self._processing_time += current_time - self._previous_time
-            self._previous_time = current_time
+            self._global_timer += current_time - self._previous_global_timer_value
+            self._previous_global_timer_value = current_time
 
     @property
     def processing_time(self) -> TimerData:
-        return TimerData(self._processing_time)
+        return TimerData(self._global_timer)
 
     @property
     def background_control_state(self) -> BackgroundControlState:
@@ -279,6 +291,12 @@ class RemoteControllerScheduler:
 
     def periodic_control_message_handler(self, message: RemoteControllerCommand):
         """This function is called by the ble interface to pass the received control message."""
+
+        # We want to block the BLE thread as little as possible. Therefore in this function we
+        # only swap the message and signal the controller thread that new data is available.
+        # The controller thread is waiting for the event to be set in `_wait_for_message`.
+        # Blocking the BLE thread may cause the Raspberry Pi Zero W2 to drop connection and the
+        # BLE interface to stop working.
         self._message = message
         self._data_ready_event.set()
 

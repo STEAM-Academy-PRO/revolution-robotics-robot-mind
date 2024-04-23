@@ -5,14 +5,15 @@
 
 #include <string.h>
 
-#include "SEGGER_RTT.h"
+#include "CommonLibraries/log.h"
 
 static TaskHandle_t xRRRC_Main_xTask;
 
-extern uint32_t _srtt;
-extern uint32_t _ertt;
-
 static void clear_rtt() {
+    #ifdef DEBUG_LOG
+    extern uint32_t _srtt;
+    extern uint32_t _ertt;
+
     // Try to detect if RTT is initialized. If not, clear the memory area
 
     static const char _aInitStr[] = "\0\0\0\0\0\0TTR REGGES"; // Reversed to avoid accidentally finding it in RAM
@@ -33,6 +34,7 @@ static void clear_rtt() {
             *pDest++ = 0;
         }
     }
+    #endif
 }
 
 /**
@@ -47,9 +49,9 @@ void ltoFunctionKeeper(void)
 int main(void)
 {
     clear_rtt();
-    SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_NO_BLOCK_SKIP);
 
-    SEGGER_RTT_WriteString(0, "Starting application\r\n");
+    LOG_INIT();
+    LOG_RAW("Starting application\n");
 
     RRRC_ProcessLogic_Init();
 
@@ -73,7 +75,7 @@ void assert_failed(const char *file, uint32_t line)
 
     if (!in_assert)
     {
-        SEGGER_RTT_printf(0, "Assertion failed: %s:%d\r\n", file, line);
+        LOG("Assertion failed: %s:%d\n", file, line);
         in_assert = true;
         ErrorInfo_t data = {
             .error_id = ERROR_ID_ASSERTION_FAILURE
@@ -136,7 +138,7 @@ static void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
     uint32_t dfsr = SCB->DFSR;
     uint32_t hfsr = SCB->HFSR;
 
-    SEGGER_RTT_printf(0, "HardFault (%x) at %x\n", psr, pc);
+    LOG("HardFault (%x) at %x\n", psr, pc);
     /* log the most important registers */
     ErrorInfo_t data = {
         .error_id = ERROR_ID_HARD_FAULT

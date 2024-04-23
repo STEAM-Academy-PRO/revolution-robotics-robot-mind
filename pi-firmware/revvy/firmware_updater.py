@@ -23,8 +23,7 @@ import time
 import traceback
 from contextlib import suppress
 from json import JSONDecodeError
-
-from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
+from typing import Optional
 
 from revvy.utils.file_storage import IntegrityError
 from revvy.utils.logger import get_logger
@@ -45,7 +44,9 @@ class McuUpdater:
         self._stopwatch = Stopwatch()
         self.is_bootloader_mode = self._is_in_bootloader_mode()
 
-        self.hw_version = self.read_hw_version()
+        hw_version = self.read_hw_version()
+        assert hw_version is not None, "Could not read hardware version, unable to proceed"
+        self.hw_version: Version = hw_version
 
         # Will populate it in finalize.
         self.fw_version = None
@@ -56,16 +57,19 @@ class McuUpdater:
     def _is_in_bootloader_mode(self) -> bool:
         """
         Tries to connect to the board and determine,
-        if it's in bootloader mode or application mode
+        if it's in bootloader mode or application mode.
+
+        This function uses arbitrary MCU commands that have no side effects. Connection is
+        determined by the success of the command.
         """
         self._stopwatch.reset()
         while self._stopwatch.elapsed < 10:
             with suppress(OSError):
-                self._application_controller.read_operation_mode()
+                self._application_controller.ping()
                 return False
 
             with suppress(OSError):
-                self._bootloader_controller.read_operation_mode()
+                self._bootloader_controller.get_hardware_version()
                 return True
 
             # log("Failed to read operation mode. Retrying")
@@ -73,14 +77,14 @@ class McuUpdater:
 
         raise TimeoutError("Could not connect to Board! Bailing.")
 
-    def read_hw_version(self):
+    def read_hw_version(self) -> Optional[Version]:
         """Reads the board's version through the i2c interface"""
         if self.is_bootloader_mode:
             return self._bootloader_controller.get_hardware_version()
         else:
             return self._application_controller.get_hardware_version()
 
-    def is_update_needed(self, bin_file_fw_version: Version, fw_crc):
+    def is_update_needed(self, bin_file_fw_version: Version, fw_crc: int):
         """
         Compare firmware version to the currently running one
         """
@@ -107,7 +111,7 @@ class McuUpdater:
             # in bootloader mode, probably no firmware, request update
             return True
 
-    def reboot_to_bootloader(self):
+    def reboot_to_bootloader(self) -> None:
         """
         Start the bootloader on the MCU
 
@@ -128,7 +132,7 @@ class McuUpdater:
 
         assert self.is_bootloader_mode
 
-    def upload_binary(self, checksum, data):
+    def upload_binary(self, checksum: int, data: bytes):
         """Send the firmware to the MCU through the transport layer."""
         self.reboot_to_bootloader()
 
@@ -148,14 +152,14 @@ class McuUpdater:
             self._bootloader_controller.send_firmware(chunk)
         log(f"Data transfer took {round(self._stopwatch.elapsed, 1)} seconds")
 
-    def finalize_and_start_application(self, was_update_needed):
+    def finalize_and_start_application(self, was_update_needed: bool):
         """
         Call finalize firmware on the board then reboot to application
         """
         try:
             self._bootloader_controller.finalize_update()
         except OSError:
-            # In this place, we expect an error because the bootloader reboots before responding.
+            # In this place, we ignore errors because the bootloader may reboot.
             pass
         except Exception:
             log(traceback.format_exc())
@@ -171,7 +175,7 @@ class McuUpdater:
         else:
             log(f"No update was needed, running FW version {self.fw_version}")
 
-    def update_global_version_info(self):
+    def update_global_version_info(self) -> None:
         VERSION.set(self.sw_version, self.hw_version, self.fw_version)
 
 
@@ -192,7 +196,7 @@ def read_firmware_bin_from_fs(fw_data: dict[str, str]) -> bytes:
     return firmware_binary
 
 
-def get_firmware_for_hw_version(fw_dir: str, hw_version: str) -> tuple[Version, bytes]:
+def get_firmware_for_hw_version(fw_dir: str, hw_version: Version) -> tuple[Version, bytes]:
     """MCU firmware version existing in the current package"""
     try:
         fw_metadata = read_json(os.path.join(fw_dir, "catalog.json"))

@@ -4,7 +4,7 @@
 
 /* Begin User Code Section: Declarations */
 #include <math.h>
-#include "libraries/functions.h"
+#include "CommonLibraries/functions.h"
 
 #define BATTERY_SMOOTHING_COEFF   ((float) 0.9f)
 #define BATTERY_LOW_DETECT_PERCENTAGE   ((uint8_t) 10u)

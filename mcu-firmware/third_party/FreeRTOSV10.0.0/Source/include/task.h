@@ -1566,14 +1566,14 @@ TaskHandle_t xTaskGetIdleTaskHandle(void) PRIVILEGED_FUNCTION;
 
                     if( ulStatsAsPercentage > 0UL )
                     {
-                        sprintf( pcWriteBuffer, "%s\t\t%lu\t\t%lu%%\r\n", pxTaskStatusArray[ x ].pcTaskName,
+                        sprintf( pcWriteBuffer, "%s\t\t%lu\t\t%lu%%\n", pxTaskStatusArray[ x ].pcTaskName,
  pxTaskStatusArray[ x ].ulRunTimeCounter, ulStatsAsPercentage );
                     }
                     else
                     {
                         // If the percentage is zero here then the task has
                         // consumed less than 1% of the total run time.
-                        sprintf( pcWriteBuffer, "%s\t\t%lu\t\t<1%%\r\n", pxTaskStatusArray[ x ].pcTaskName,
+                        sprintf( pcWriteBuffer, "%s\t\t%lu\t\t<1%%\n", pxTaskStatusArray[ x ].pcTaskName,
  pxTaskStatusArray[ x ].ulRunTimeCounter );
                     }
 

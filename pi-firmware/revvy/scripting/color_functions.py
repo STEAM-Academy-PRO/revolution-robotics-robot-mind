@@ -5,7 +5,8 @@ log = get_logger("ColorSensorFunctions")
 
 
 class ColorData:
-    def __init__(self, r, g, b, h, s, v, gray, name):
+    # FIXME: this seems incredibly redundant, we shouldn't need 2 color spaces
+    def __init__(self, r: int, g: int, b: int, h: int, s: int, v: int, gray: int, name: str):
         self.red = r
         self.green = g
         self.blue = b
@@ -105,24 +106,26 @@ def rgb_to_hsv_gray(red, green, blue) -> ColorData:
     return ColorData(red, green, blue, h, s, v, gray, name)
 
 
-def detect_line_background_colors(sensors_data):
-    res = [[], [], []]  # [H] [S] [V]
+def detect_line_background_colors(
+    sensors_data: list[ColorData],
+) -> tuple[int, int, str, str, int, list[int], list[str]]:  # WTF
+    channels = [[], [], []]  # [H] [S] [V]
     gray = []
     name = []
     rgb_val = []
     # print(sensors)
     for color_data in sensors_data:
-        res[0].append(color_data.hue)
-        res[1].append(color_data.saturation)
-        res[2].append(color_data.value)
+        channels[0].append(color_data.hue)
+        channels[1].append(color_data.saturation)
+        channels[2].append(color_data.value)
         gray.append(color_data.gray)
         name.append(color_data.name)
         rgb = (color_data.red, color_data.green, color_data.blue)
         rgb_val.append(rgb)
     # print(res)
     delta = []  # searching of most signed from H S V
-    for _ in res:
-        delta.append(max(_) - min(_))
+    for color_channel_samples in channels:
+        delta.append(max(color_channel_samples) - min(color_channel_samples))
     i = delta.index(max(delta))
     """next commented  is for using most heavy from H,S,V"""
     # maximum = max(res[i])
@@ -145,7 +148,7 @@ def detect_line_background_colors(sensors_data):
     background_name = name[gray.index(background)]
     line_name = name[gray.index(line)]
 
-    return line, background, line_name, background_name, i, tuple(gray), tuple(name)
+    return line, background, line_name, background_name, i, gray, name
 
 
 def search_lr(colors: tuple, color="", side=""):

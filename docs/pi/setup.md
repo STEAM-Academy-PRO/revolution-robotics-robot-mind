@@ -6,7 +6,7 @@ Set up the project
 - Active the virtual environment by running
   - Windows: `.\venv\Scripts\activate`
   - Linux: `source ./venv/bin/activate`
-- Install the required packages by running `pip install -r install/requirements_test.txt`
+- Install the required packages by running `pip install -r install/requirements_dev.txt`
 
 Recommended Dev Env
 -------------------
@@ -28,9 +28,9 @@ Debugging & Run
 
 - open a VSCode terminal
 - from this dir, run `./debug`
+  - This will not remember your password. Run `ssh-copy-id pi@raspberrypi.local` to do so.
+  - If you get loud complaints about changed fingerprints, run `ssh-keygen -R raspberrypi.local`
 - for attaching debugger, run `./debug 1`
 - When says: Waiting for debugger, hit `F5` - `Attach PI Debugger` in the main window
 - if it says: "client port not open" just wait for a few more seconds and try again
 - happy debugging!
-
-

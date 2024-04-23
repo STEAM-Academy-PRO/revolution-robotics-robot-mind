@@ -15,7 +15,7 @@
 #include "SensorPortLibraries/RGB/RGB.h"
 #include "SensorPortLibraries/DebugRTC/DebugRTC.h"
 
-#include "SEGGER_RTT.h"
+#include "CommonLibraries/log.h"
 
 static const SensorLibrary_t* libraries[] =
 {
@@ -141,7 +141,7 @@ void SensorPortHandler_Run_Configure(uint8_t port_idx, ByteArray_t configuration
     /* Begin User Code Section: Configure:run Start */
     if (port_idx >= sensorPortCount)
     {
-        SEGGER_RTT_printf(0, "SensorPort %d: Configure Input error\n", port_idx);
+        LOG("SensorPort %d: Configure Input error\n", port_idx);
         *result = false;
         return;
     }
@@ -190,7 +190,7 @@ AsyncResult_t SensorPortHandler_AsyncRunnable_SetPortType(AsyncCommand_t asyncCo
     /* Begin User Code Section: SetPortType:async_run Start */
     if (port_idx >= sensorPortCount || port_type >= ARRAY_SIZE(libraries))
     {
-        SEGGER_RTT_printf(0, "SensorPort %d: SetPortType(%d) Input error\n", port_idx, port_type);
+        LOG("SensorPort %d: SetPortType(%d) Input error\n", port_idx, port_type);
         *result = false;
         return AsyncResult_Ok;
     }
@@ -200,7 +200,7 @@ AsyncResult_t SensorPortHandler_AsyncRunnable_SetPortType(AsyncCommand_t asyncCo
     if (asyncCommand == AsyncCommand_Start)
     {
         ASSERT(port->portDriverState == PortDriverState_Loaded);
-        SEGGER_RTT_printf(0, "SensorPort %d: SetPortType(%d) Start\n", port_idx, port_type);
+        LOG("SensorPort %d: SetPortType(%d) Start\n", port_idx, port_type);
         port->portDriverState = PortDriverState_Unloading;
     }
 
@@ -213,7 +213,7 @@ AsyncResult_t SensorPortHandler_AsyncRunnable_SetPortType(AsyncCommand_t asyncCo
                     break;
 
                 case SensorLibraryUnloadStatus_Done:
-                    SEGGER_RTT_printf(0, "SensorPort %d: Unloaded", port->port_idx);
+                    LOG("SensorPort %d: Unloaded", port->port_idx);
                     port->portDriverState = PortDriverState_Unloaded;
                     break;
             }
@@ -227,7 +227,7 @@ AsyncResult_t SensorPortHandler_AsyncRunnable_SetPortType(AsyncCommand_t asyncCo
             port->library = libraries[port_type];
             port->library->Load(port);
 
-            SEGGER_RTT_printf(0, "SensorPort %d: SetPortType(%d) Done\n", port_idx, port_type);
+            LOG("SensorPort %d: SetPortType(%d) Done\n", port_idx, port_type);
             port->portDriverState = PortDriverState_Loaded;
 
             /* Driver initialization is done in Update and Configure */
@@ -298,6 +298,18 @@ uint8_t SensorPortHandler_Constant_PortCount(void)
 
     /* End User Code Section: PortCount:constant End */
     return 4;
+}
+
+__attribute__((weak))
+void SensorPortHandler_Call_UpdateStatusSlotSize(size_t size)
+{
+    (void) size;
+    /* Begin User Code Section: UpdateStatusSlotSize:run Start */
+
+    /* End User Code Section: UpdateStatusSlotSize:run Start */
+    /* Begin User Code Section: UpdateStatusSlotSize:run End */
+
+    /* End User Code Section: UpdateStatusSlotSize:run End */
 }
 
 __attribute__((weak))

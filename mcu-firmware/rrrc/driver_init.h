@@ -3,6 +3,8 @@
 
 #include "atmel_start_pins.h"
 
+#include <peripheral_clk_config.h>
+
 #include <hal_atomic.h>
 #include <hal_delay.h>
 #include <hal_gpio.h>

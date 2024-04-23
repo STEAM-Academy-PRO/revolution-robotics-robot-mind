@@ -9,15 +9,15 @@ class Variable(object):
         self.__value = None
         self.__is_set = False
 
-    def __get_string_description(self):
+    def __get_string_description(self) -> str:
         return 'Variable(script={},name="{}",value={},is_set={})'.format(
             self.__script, self.__name, self.__value, self.__is_set
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__get_string_description()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__get_string_description()
 
     def init(self, script, name, value):

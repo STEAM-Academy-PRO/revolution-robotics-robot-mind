@@ -62,7 +62,7 @@
                 "speed_limit": "float",
                 "request_type": "DriveRequest_RequestType_t",
                 "request": "DriveRequest_RequestValue_t",
-                "positionBreakpoint": "float"
+                "positionBreakpoint": "uint32_t"
             }
         },
         "Current_t": {
@@ -169,6 +169,12 @@
         "PortCount": {
             "port_type": "WriteData",
             "data_type": "uint8_t"
+        },
+        "UpdateStatusSlotSize": {
+            "port_type": "ServerCall",
+            "arguments": {
+                "size": "size_t"
+            }
         },
         "MaxAllowedCurrent": {
             "port_type": "WriteIndexedData",

@@ -1,13 +1,6 @@
-/*
- * ColorSensor.c
- *
- * Created: 2022. 03. 31. 12:48:20
- *  Author: Vladimir Yakovlev
- */
-
 #include "RGB.h"
 #include "utils.h"
-#include "libraries/color.h"
+#include "CommonLibraries/color.h"
 #include <hal_delay.h>
 #include <string.h>
 
@@ -340,6 +333,8 @@ static void i2c_txrx_complete(I2CMasterInstance_t* instance, size_t transferred)
             case SENS_STATE_OPERATIONAL:
                 RgbReadSensor(sensorPort);
                 break;
+            default:
+                ASSERT(0);
         }
     }
     else
@@ -360,7 +355,7 @@ static void RgbReadSensor(SensorPort_t* sensorPort)
         sRgbToRgb888(libdata);
         SensorPortHandler_Call_UpdatePortStatus(sensorPort->port_idx, (ByteArray_t){
             .bytes = (uint8_t*)&libdata->color[0],
-            .count = 4*sizeof(rgb_t)
+            .count = sizeof(rgb_t[4])
         });
         libdata->transfering = false;
         libdata->readcolor_sequence_idx = 0;
@@ -572,6 +567,8 @@ static void try_init_port(SensorPort_t* sensorPort)
 
 static SensorLibraryStatus_t ColorSensor_Load(SensorPort_t *sensorPort)
 {
+    SensorPortHandler_Call_UpdateStatusSlotSize(sizeof(rgb_t[4]));
+
     SensorLibrary_RGB_Data_t* libdata = SensorPortHandler_Call_Allocate(sizeof(SensorLibrary_RGB_Data_t));
     sensorPort->libraryData = libdata;
 

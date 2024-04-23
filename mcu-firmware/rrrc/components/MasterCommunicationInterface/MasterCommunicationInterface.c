@@ -12,7 +12,7 @@
 #include <peripheral_clk_config.h>
 #include <limits.h>
 #include "error_ids.h"
-#include "SEGGER_RTT.h"
+#include "CommonLibraries/log.h"
 
 static TaskHandle_t communicationTaskHandle;
 
@@ -59,7 +59,7 @@ static void CommunicationTask(void *user_data)
                 uint32_t bytesReceived = rxFlags & ~(TX_DONE | RX_BUFFER_OVERFLOW | RX_DONE);
                 if ((rxFlags & RX_BUFFER_OVERFLOW) != 0)
                 {
-                    SEGGER_RTT_printf(0, "Rx overflow: %d received\n", bytesReceived);
+                    LOG("Rx overflow: %d received\n", bytesReceived);
                     MasterCommunicationInterface_Run_SetResponse(config.rx_overflow_response);
                 }
                 else
@@ -105,11 +105,6 @@ void i2c_hal_tx_complete(void)
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     xTaskNotifyFromISR(communicationTaskHandle, TX_DONE, eSetBits, &xHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-}
-
-void sercom2_rx_done_cb(uint8_t data)
-{
-    i2c_hal_on_rx_done(data);
 }
 /* End User Code Section: Declarations */
 

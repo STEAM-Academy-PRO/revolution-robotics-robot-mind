@@ -15,12 +15,8 @@
     "sources": [
         "rrrc/driver_init.c",
         "rrrc/main.c",
-        "rrrc/generated_runtime.c",
         "rrrc/rrrc_worklogic.c",
         "rrrc/runtime/comm_handlers.c",
-        "rrrc/libraries/color.c",
-        "rrrc/libraries/converter.c",
-        "rrrc/libraries/functions.c",
         "rrrc/libraries/controller/pid.c",
         "rrrc/libraries/interpolation/interpolate_common.c",
         "rrrc/libraries/interpolation/linear_interpolate.c",
@@ -62,6 +58,9 @@
         "../mcu-common/SEGGER/RTT/SEGGER_RTT.c",
         "../mcu-common/SEGGER/RTT/SEGGER_RTT_printf.c",
         "../mcu-common/SEGGER/RTT/Syscalls/SEGGER_RTT_Syscalls_GCC.c",
+        "../mcu-common/CommonLibraries/color.c",
+        "../mcu-common/CommonLibraries/converter.c",
+        "../mcu-common/CommonLibraries/functions.c",
         "third_party/FreeRTOSV10.0.0/Source/croutine.c",
         "third_party/FreeRTOSV10.0.0/Source/event_groups.c",
         "third_party/FreeRTOSV10.0.0/Source/list.c",
@@ -75,7 +74,6 @@
     "includes": [
         ".",
         "rrrc",
-        "rrrc/runtime",
         "Config",
         "../mcu-common/Atmel/hal/include",
         "../mcu-common/Atmel/hal/utils/include",
@@ -98,6 +96,7 @@
         "../mcu-common/Atmel/samd51a/include",
         "../mcu-common/CMSIS/Include",
         "../mcu-common/SEGGER/RTT",
+        "../mcu-common",
         "third_party/FreeRTOSV10.0.0",
         "third_party/FreeRTOSV10.0.0/Source/include",
         "third_party/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM4F"
@@ -254,14 +253,15 @@
                 "IMUOrientationEstimator/OnInit",
                 "McuStatusSlots/Reset",
                 "McuStatusCollector/Reset",
-                "MotorDriver_8833/OnInit"
+                "MotorDriver_8833/OnInit",
+                "CRC/OnInit"
             ],
             "OnInitDone": [
                 [
                     "McuStatusCollector/EnableSlot",
                     {
                         "arguments": {
-                            "slot": 14
+                            "slot": 13
                         }
                     }
                 ]
@@ -408,447 +408,238 @@
                 "MasterStatusObserver/Update"
             ]
         },
-        "port_connections": [
-            {
-                "provider": "ProjectConfiguration/DeviceAddress",
-                "consumer": "MasterCommunicationInterface/DeviceAddress"
-            },
-            {
-                "provider": "HardwareCompatibilityChecker/OnIncompatibleHardware",
-                "consumer": "RestartManager/RebootToBootloader"
-            },
-            {
-                "provider": "CommunicationObserver/ErrorLimitReached",
-                "consumer": "RestartManager/Reset"
-            },
-            {
-                "provider": "CRC/Calculate_CRC7",
-                "consumer": "MasterCommunication/Calculate_CRC7"
-            },
-            {
-                "provider": "CRC/Calculate_CRC16",
-                "consumer": "MasterCommunication/Calculate_CRC16"
-            },
-            {
-                "provider": "MemoryAllocator/Allocate",
+        "port_connections": {
+            "ProjectConfiguration/DeviceAddress": "MasterCommunicationInterface/DeviceAddress",
+            "HardwareCompatibilityChecker/OnIncompatibleHardware": "RestartManager/RebootToBootloader",
+            "CommunicationObserver/ErrorLimitReached": "RestartManager/Reset",
+            "CRC/Calculate_CRC7": "MasterCommunication/Calculate_CRC7",
+            "CRC/Calculate_CRC16": "MasterCommunication/Calculate_CRC16",
+            "MemoryAllocator/Allocate": {
                 "consumers": [
                     "SensorPortHandler/Allocate",
-                    "MotorPortHandler/Allocate"
+                    "MotorPortHandler/Allocate",
+                    "McuStatusSlots/Allocate"
                 ]
             },
-            {
-                "provider": "MemoryAllocator/Free",
+            "MemoryAllocator/Free": {
                 "consumers": [
                     "SensorPortHandler/Free",
-                    "MotorPortHandler/Free"
+                    "MotorPortHandler/Free",
+                    "McuStatusSlots/Free"
                 ]
             },
-            {
-                "provider": "MasterCommunicationInterface/RxTimeout",
-                "consumer": "CommunicationObserver/OnMessageMissed"
-            },
-            {
-                "provider": "MasterCommunicationInterface/OnMessageReceived",
+            "MasterCommunicationInterface/RxTimeout": "CommunicationObserver/OnMessageMissed",
+            "MasterCommunicationInterface/OnMessageReceived": {
                 "consumers": [
                     "CommunicationObserver/OnMessageReceived",
                     "MasterCommunication/HandleCommand"
                 ]
             },
-            {
-                "provider": "ErrorStorage/Store",
+            "ErrorStorage/Store": {
                 "consumers": [
                     "IMU/LogError",
                     "MasterCommunicationInterface/LogError"
                 ]
             },
-            {
-                "provider": "ErrorStorage/NumberOfStoredErrors",
-                "consumer": "CommWrapper_ErrorStorage/NumberOfStoredErrors"
-            },
-            {
-                "provider": "ErrorStorage/Clear",
-                "consumer": "CommWrapper_ErrorStorage/ClearMemory"
-            },
-            {
-                "provider": "ErrorStorage/Read",
-                "consumer": [
-                    "CommWrapper_ErrorStorage/Read",
-                    {
-                        "arguments": {
-                            "data": "error"
-                        }
+            "ErrorStorage/NumberOfStoredErrors": "CommWrapper_ErrorStorage/NumberOfStoredErrors",
+            "ErrorStorage/Clear": "CommWrapper_ErrorStorage/ClearMemory",
+            "ErrorStorage/Read": [
+                "CommWrapper_ErrorStorage/Read",
+                {
+                    "arguments": {
+                        "data": "error"
                     }
-                ]
-            },
-            {
-                "provider": "ErrorStorage/Store",
-                "consumer": [
-                    "CommWrapper_ErrorStorage/Store",
-                    {
-                        "arguments": {
-                            "data": "error"
-                        }
-                    }
-                ]
-            },
-            {
-                "provider": "MasterCommunicationInterface/SetResponse",
-                "consumer": "MasterCommunication/SendResponse"
-            },
-            {
-                "provider": "HighResolutionTimer/GetTickCount",
-                "consumer": "SensorPortHandler/ReadCurrentTicks"
-            },
-            {
-                "provider": "HighResolutionTimer/ToMs",
-                "consumer": "SensorPortHandler/ConvertTicksToMs"
-            },
-            {
-                "provider": "CommunicationObserver/FirstMessageReceived",
+                }
+            ],
+            "MasterCommunicationInterface/SetResponse": "MasterCommunication/SendResponse",
+            "HighResolutionTimer/GetTickCount": "SensorPortHandler/ReadCurrentTicks",
+            "HighResolutionTimer/ToMs": "SensorPortHandler/ConvertTicksToMs",
+            "CommunicationObserver/FirstMessageReceived": {
                 "consumers": [
                     "CommWrapper_LedDisplay/Reset",
                     "RingLedDisplay/OnMasterStarted"
                 ]
             },
-            {
-                "provider": "RingLedDisplay/ScenarioCount",
-                "consumers": [
-                    "CommWrapper_LedDisplay/ScenarioCount"
-                ]
-            },
-            {
-                "provider": "MasterStatusObserver/EnableCommunicationObserver",
-                "consumer": "CommunicationObserver/IsEnabled"
-            },
-            {
+            "RingLedDisplay/ScenarioCount": "CommWrapper_LedDisplay/ScenarioCount",
+            "MasterStatusObserver/EnableCommunicationObserver": "CommunicationObserver/IsEnabled",
+            "angular_speeds_for_offset": {
                 "provider": "IMU/GyroscopeSample",
                 "consumer": "GyroscopeOffsetCompensator/AngularSpeeds",
                 "queue_length": 8
             },
-            {
+            "angular_speeds_for_movement_detection": {
                 "provider": "IMU/GyroscopeSample",
                 "consumer": "IMUMovementDetector/AngularSpeeds",
                 "queue_length": 8
             },
-            {
-                "provider": "GyroscopeOffsetCompensator/CompensatedAngularSpeeds",
+            "GyroscopeOffsetCompensator/CompensatedAngularSpeeds": {
                 "consumer": "IMUOrientationEstimator/AngularSpeeds",
                 "queue_length": 32
             },
-            {
-                "provider": "IMUMovementDetector/IsMoving",
+            "IMUMovementDetector/IsMoving": {
                 "consumer": "GyroscopeOffsetCompensator/IsMoving",
                 "init_value": "true"
             },
-            {
-                "provider": "IMU/AccelerometerSample",
+            "IMU/AccelerometerSample": {
                 "consumer": "IMUOrientationEstimator/Acceleration",
                 "queue_length": 32
             },
-            {
-                "provider": "IMU/SampleTime",
-                "consumer": "IMUOrientationEstimator/SampleTime"
-            },
-            {
-                "provider": "IMUOrientationEstimator/OrientationEulerDegrees",
-                "consumer": [
-                    "McuStatusSlots/YawAngle",
-                    {
-                        "member": "yaw"
-                    }
+            "IMU/SampleTime": "IMUOrientationEstimator/SampleTime",
+            "IMUOrientationEstimator/OrientationEulerDegrees": {
+                "consumers": [
+                    "McuStatusSlots/Orientation",
+                    [
+                        "McuStatusSlots/YawAngle",
+                        {
+                            "member": "yaw"
+                        }
+                    ]
                 ]
             },
-            {
-                "provider": "IMUOrientationEstimator/OrientationEulerDegrees",
-                "consumer": "McuStatusSlots/Orientation"
-            },
-            {
-                "provider": "ADC/MotorCurrent",
-                "consumer": "MotorCurrentFilter/RawCurrent"
-            },
-            {
-                "provider": "ADC/MainBatteryVoltage",
-                "consumer": "BatteryCalculator/MainBatteryVoltage"
-            },
-            {
-                "provider": "ADC/MotorBatteryVoltage",
-                "consumer": "BatteryCalculator/MotorBatteryVoltage"
-            },
-            {
-                "provider": "ADC/Sensor_ADC",
-                "consumer": "SensorPortHandler/AdcData"
-            },
-            {
-                "provider": "MotorCurrentFilter/FilteredCurrent",
+            "ADC/MotorCurrent": "MotorCurrentFilter/RawCurrent",
+            "ADC/MainBatteryVoltage": "BatteryCalculator/MainBatteryVoltage",
+            "ADC/MotorBatteryVoltage": "BatteryCalculator/MotorBatteryVoltage",
+            "ADC/Sensor_ADC": "SensorPortHandler/AdcData",
+            "MotorCurrentFilter/FilteredCurrent": {
                 "consumers": [
                     "MotorThermalModel/MotorCurrent",
                     "MotorDerating/MotorCurrent"
                 ]
             },
-            {
-                "provider": "MotorThermalModel/Temperature",
-                "consumer": "MotorDerating/MotorTemperature"
-            },
-            {
-                "provider": "ProjectConfiguration/MainBatteryParameters",
-                "consumer": "BatteryCalculator/MainBatteryParameters"
-            },
-            {
-                "provider": "ProjectConfiguration/MotorBatteryParameters",
-                "consumer": "BatteryCalculator/MotorBatteryParameters"
-            },
-            {
-                "provider": "ProjectConfiguration/MotorThermalParameters",
-                "consumer": "MotorThermalModel/ThermalParameters"
-            },
-            {
-                "provider": "ProjectConfiguration/MotorDeratingParameters",
-                "consumer": "MotorDerating/Parameters"
-            },
-            {
-                "provider": "ProjectConfiguration/ExpectedStartupTime",
+            "MotorThermalModel/Temperature": "MotorDerating/MotorTemperature",
+            "ProjectConfiguration/MainBatteryParameters": "BatteryCalculator/MainBatteryParameters",
+            "ProjectConfiguration/MotorBatteryParameters": "BatteryCalculator/MotorBatteryParameters",
+            "ProjectConfiguration/MotorThermalParameters": "MotorThermalModel/ThermalParameters",
+            "ProjectConfiguration/MotorDeratingParameters": "MotorDerating/Parameters",
+            "ProjectConfiguration/ExpectedStartupTime": {
                 "consumers": [
                     "RingLedDisplay/ExpectedStartupTime",
                     "MasterStatusObserver/ExpectedStartupTime"
                 ]
             },
-            {
-                "provider": "ProjectConfiguration/ExpectedUpdateTime",
-                "consumer": "MasterStatusObserver/UpdateTimeout"
-            },
-            {
-                "provider": "BluetoothStatusObserver/ConnectionStatus",
-                "consumer": "LedDisplayController/BluetoothStatus"
-            },
-            {
-                "provider": "BatteryCalculator/MainBatteryLevel",
+            "ProjectConfiguration/ExpectedUpdateTime": "MasterStatusObserver/UpdateTimeout",
+            "BluetoothStatusObserver/ConnectionStatus": "LedDisplayController/BluetoothStatus",
+            "BatteryCalculator/MainBatteryLevel": {
                 "consumers": [
                     "LedDisplayController/MainBatteryLevel",
                     "McuStatusSlots/MainBatteryLevel"
                 ]
             },
-            {
-                "provider": "BatteryCalculator/MainBatteryLow",
-                "consumer": "LedDisplayController/MainBatteryLow"
-            },
-            {
-                "provider": "BatteryCharger/ChargerState",
+            "BatteryCalculator/MainBatteryLow": "LedDisplayController/MainBatteryLow",
+            "BatteryCharger/ChargerState": {
                 "consumers": [
                     "LedDisplayController/MainBatteryStatus",
                     "McuStatusSlots/MainBatteryStatus"
                 ]
             },
-            {
-                "provider": "BatteryCalculator/MotorBatteryLevel",
+            "BatteryCalculator/MotorBatteryLevel": {
                 "consumers": [
                     "LedDisplayController/MotorBatteryLevel",
                     "McuStatusSlots/MotorBatteryLevel"
                 ]
             },
-            {
-                "provider": "BatteryCalculator/MotorBatteryPresent",
-                "consumer": "LedDisplayController/MotorBatteryPresent"
+            "BatteryCalculator/MotorBatteryPresent": {
+                "consumers": [
+                    "LedDisplayController/MotorBatteryPresent",
+                    "McuStatusSlots/MotorBatteryPresent"
+                ]
             },
-            {
-                "provider": "BatteryCalculator/MotorBatteryPresent",
-                "consumer": "McuStatusSlots/MotorBatteryPresent"
-            },
-            {
-                "provider": "LedDisplayController/Leds",
-                "consumer": "LEDController/Colors"
-            },
-            {
-                "provider": "LedDisplayController/MaxBrightness",
-                "consumer": "LEDController/MaxBrightness"
-            },
-            {
-                "provider": "RingLedDisplay/LedColor",
-                "consumer": "LedDisplayController/RingLeds"
-            },
-            {
-                "provider": "MasterStatusObserver/MasterStatus",
+            "RingLedDisplay/LedColor": "LedDisplayController/RingLedsIn",
+            "LedDisplayController/MaxBrightness": "LEDController/MaxBrightness",
+            "LedDisplayController/StatusLeds": "LEDController/StatusLED",
+            "LedDisplayController/RingLeds": "LEDController/RingLED",
+            "MasterStatusObserver/MasterStatus": {
                 "consumers": [
                     "LedDisplayController/MasterStatus",
                     "RingLedDisplay/MasterStatus"
                 ]
             },
-            {
-                "provider": "MotorPortHandler/DriveStrength",
+            "MotorPortHandler/DriveStrength": {
                 "consumers": [
                     "MotorDerating/ControlValue",
                     "LedDisplayController/MotorDriveValues"
                 ]
             },
-            {
-                "provider": "MotorPortHandler/MaxAllowedCurrent",
-                "consumer": "MotorDerating/MaxMotorCurrent"
-            },
-            {
-                "provider": "MotorDerating/RelativeMotorCurrent",
-                "consumer": "MotorPortHandler/RelativeMotorCurrent"
-            },
-            {
-                "provider": "MotorDerating/MaxPowerRatio",
-                "consumers": []
-            },
-            {
-                "provider": "IMU/RawAccelerometerSample",
-                "consumer": "McuStatusSlots/Acceleration"
-            },
-            {
-                "provider": "IMU/RawGyroscopeSample",
-                "consumer": "McuStatusSlots/AngularSpeeds"
-            },
-            {
-                "provider": "McuStatusSlots/SlotData",
+            "MotorPortHandler/MaxAllowedCurrent": "MotorDerating/MaxMotorCurrent",
+            "MotorDerating/RelativeMotorCurrent": "MotorPortHandler/RelativeMotorCurrent",
+            "IMU/RawAccelerometerSample": "McuStatusSlots/Acceleration",
+            "IMU/RawGyroscopeSample": "McuStatusSlots/AngularSpeeds",
+            "McuStatusSlots/SlotData": {
                 "consumer": "McuStatusCollector/SlotData",
                 "init_value": {
                     "version": "0xFFu"
                 }
             },
-            {
-                "provider": "McuStatusCollector/Reset",
-                "consumer": "CommWrapper_McuStatusCollector/ResetSlots"
-            },
-            {
-                "provider": "McuStatusCollector/EnableSlot",
-                "consumer": "CommWrapper_McuStatusCollector/EnableSlot"
-            },
-            {
-                "provider": "ConfigEventProvider/DispatchConfigEvent",
-                "consumer": "CommWrapper_McuStatusCollector/EnableSlot"
-            },
-            {
-                "provider": "ConfigEventProvider/OnConfigEventReceived",
-                "consumers": []
-            },
-            {
-                "provider": "McuStatusCollector/DisableSlot",
-                "consumer": "CommWrapper_McuStatusCollector/DisableSlot"
-            },
-            {
-                "provider": "McuStatusCollector/Read",
-                "consumer": "CommWrapper_McuStatusCollector/Read"
-            },
-            {
-                "provider": "McuStatusSlots/UpdateMotorPort",
-                "consumer": "MotorPortHandler/UpdatePortStatus"
-            },
-            {
-                "provider": "McuStatusSlots/UpdateSensorPort",
-                "consumer": "SensorPortHandler/UpdatePortStatus"
-            },
-            {
-                "provider": "CommWrapper_LedDisplay/UserFrame",
-                "consumer": "RingLedDisplay/UserColors"
-            },
-            {
-                "provider": "CommWrapper_LedDisplay/Scenario",
+            "McuStatusCollector/Reset": "CommWrapper_McuStatusCollector/ResetSlots",
+            "McuStatusCollector/EnableSlot": "CommWrapper_McuStatusCollector/EnableSlot",
+            "ConfigEventProvider/DispatchConfigEvent": "CommWrapper_McuStatusCollector/EnableSlot",
+            "McuStatusCollector/DisableSlot": "CommWrapper_McuStatusCollector/DisableSlot",
+            "McuStatusCollector/Read": "CommWrapper_McuStatusCollector/Read",
+            "McuStatusSlots/ChangeMotorPortSlotSize": "MotorPortHandler/UpdateStatusSlotSize",
+            "McuStatusSlots/UpdateMotorPort": "MotorPortHandler/UpdatePortStatus",
+            "McuStatusSlots/ChangeSensorPortSlotSize": "SensorPortHandler/UpdateStatusSlotSize",
+            "McuStatusSlots/UpdateSensorPort": "SensorPortHandler/UpdatePortStatus",
+            "CommWrapper_LedDisplay/UserFrame": "RingLedDisplay/UserColors",
+            "CommWrapper_LedDisplay/Scenario": {
                 "consumer": "RingLedDisplay/Scenario",
                 "init_value": "RingLedScenario_ColorWheel"
             },
-            {
-                "provider": "RingLedDisplay/ReadScenarioName",
-                "consumer": "CommWrapper_LedDisplay/ReadScenarioName"
-            },
-            {
-                "provider": "StartupReasonProvider/IsColdStart",
+            "RingLedDisplay/ReadScenarioName": "CommWrapper_LedDisplay/ReadScenarioName",
+            "StartupReasonProvider/IsColdStart": {
                 "consumers": [
                     "RingLedDisplay/WaitForMasterStartup",
                     "MasterStatusObserver/IsColdStart"
                 ]
             },
-            {
-                "provider": "SensorPortHandler/PortCount",
-                "consumer": "CommWrapper_SensorPorts/PortCount"
-            },
-            {
-                "provider": "SensorPortHandler/ReadPortTypes",
-                "consumer": "CommWrapper_SensorPorts/ReadPortTypes"
-            },
-            {
-                "provider": "SensorPortHandler/SetPortType",
+            "SensorPortHandler/PortCount": "CommWrapper_SensorPorts/PortCount",
+            "SensorPortHandler/ReadPortTypes": "CommWrapper_SensorPorts/ReadPortTypes",
+            "SensorPortHandler/SetPortType": {
                 "consumer": "CommWrapper_SensorPorts/SetPortType",
                 "update_on": "Runtime/20ms_offset4"
             },
-            {
-                "provider": "SensorPortHandler/Configure",
+            "SensorPortHandler/Configure": {
                 "consumer": "CommWrapper_SensorPorts/SetPortConfig",
                 "update_on": "Runtime/20ms_offset4"
             },
-            {
-                "provider": "SensorPortHandler/ReadSensorInfo",
-                "consumer": "CommWrapper_SensorPorts/ReadSensorInfo"
-            },
-            {
-                "provider": "SensorPortHandler/TestSensorOnPort",
+            "SensorPortHandler/ReadSensorInfo": "CommWrapper_SensorPorts/ReadSensorInfo",
+            "SensorPortHandler/TestSensorOnPort": {
                 "consumer": "CommWrapper_SensorPorts/TestSensorOnPort",
                 "update_on": "Runtime/20ms_offset4"
             },
-            {
-                "provider": "MotorPortHandler/PortCount",
-                "consumer": "CommWrapper_MotorPorts/PortCount"
-            },
-            {
-                "provider": "MotorPortHandler/ReadPortTypes",
-                "consumer": "CommWrapper_MotorPorts/ReadPortTypes"
-            },
-            {
-                "provider": "MotorPortHandler/SetPortType",
+            "MotorPortHandler/PortCount": "CommWrapper_MotorPorts/PortCount",
+            "MotorPortHandler/ReadPortTypes": "CommWrapper_MotorPorts/ReadPortTypes",
+            "MotorPortHandler/SetPortType": {
                 "consumer": "CommWrapper_MotorPorts/SetPortType",
                 "update_on": "Runtime/10ms_offset1"
             },
-            {
-                "provider": "MotorPortHandler/TestMotorOnPort",
+            "MotorPortHandler/TestMotorOnPort": {
                 "consumer": "CommWrapper_MotorPorts/TestMotorOnPort",
                 "update_on": "Runtime/10ms_offset1"
             },
-            {
-                "provider": "MotorPortHandler/Configure",
+            "MotorPortHandler/Configure": {
                 "consumer": "CommWrapper_MotorPorts/SetPortConfig",
                 "update_on": "Runtime/10ms_offset1"
             },
-            {
-                "provider": "CommWrapper_MotorPorts/DriveRequest",
-                "consumer": "MotorPortHandler/DriveRequest"
-            },
-            {
-                "provider": "MotorPortHandler/CreateDriveRequest",
-                "consumer": "CommWrapper_MotorPorts/CreateDriveRequest"
-            },
-            {
-                "provider": "VersionProvider/HardwareVersion",
+            "CommWrapper_MotorPorts/DriveRequest": "MotorPortHandler/DriveRequest",
+            "MotorPortHandler/CreateDriveRequest": "CommWrapper_MotorPorts/CreateDriveRequest",
+            "VersionProvider/HardwareVersion": {
                 "consumers": [
                     "ErrorStorage/HardwareVersion",
                     "HardwareCompatibilityChecker/HardwareVersion",
                     "CommWrapper_VersionProvider/HardwareVersion"
                 ]
             },
-            {
-                "provider": "VersionProvider/FirmwareVersion",
-                "consumer": "ErrorStorage/FirmwareVersion"
-            },
-            {
-                "provider": "VersionProvider/FirmwareVersionString",
-                "consumer": "CommWrapper_VersionProvider/FirmwareVersionString"
-            },
-            {
-                "provider": "MasterCommunicationInterface/OnTransmissionComplete",
+            "VersionProvider/FirmwareVersion": "ErrorStorage/FirmwareVersion",
+            "VersionProvider/FirmwareVersionString": "CommWrapper_VersionProvider/FirmwareVersionString",
+            "MasterCommunicationInterface/OnTransmissionComplete": {
                 "consumers": []
             },
-            {
-                "provider": "RestartManager/RebootToBootloader",
+            "RestartManager/RebootToBootloader": {
                 "consumer": "CommWrapper_Bootloader/RebootToBootloader",
                 "update_on": "MasterCommunicationInterface/OnTransmissionComplete"
             },
-            {
-                "provider": "ProjectConfiguration/MotorPortGpios",
-                "consumer": "MotorPortHandler/PortConfig"
-            },
-            {
-                "provider": "ADC/InitDoneISR",
-                "consumer": "MotorDriver_8833/StartISR"
-            }
-        ]
+            "ProjectConfiguration/MotorPortGpios": "MotorPortHandler/PortConfig",
+            "ADC/InitDoneISR": "MotorDriver_8833/StartISR"
+        }
     }
 }

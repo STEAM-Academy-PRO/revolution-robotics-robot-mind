@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from enum import Enum
 import struct
 from threading import Lock
@@ -76,7 +76,7 @@ class SetPowerCommand(MotorCommand):
 
 
 class SetSpeedCommand(MotorCommand):
-    def __init__(self, speed, power_limit=None):
+    def __init__(self, speed: float, power_limit: Optional[float] = None):
         REQUEST_SPEED = 1
         super().__init__(REQUEST_SPEED)
 
@@ -203,11 +203,11 @@ class DcMotorDriverConfig:
         )
 
 
-class DcMotorController(MotorPortDriver):
+class BaseDcMotorDriver(MotorPortDriver):
     """Generic driver for dc motors"""
 
-    def __init__(self, port: PortInstance[MotorPortDriver], port_config):
-        super().__init__(port, "DcMotor")
+    def __init__(self, port: PortInstance[MotorPortDriver], port_config, driver_name: str):
+        super().__init__(port, driver_name)
         self._port = port
         self._port_config = DcMotorDriverConfig(port_config)
 
@@ -217,7 +217,7 @@ class DcMotorController(MotorPortDriver):
         self._pos_offset = 0
 
         self._awaiter = None
-        self._status = MotorStatus.NORMAL
+        self._status = (0, MotorStatus.NORMAL)
 
         self._timeout = 0
         self._current_position_request: Optional[int] = None
@@ -237,7 +237,7 @@ class DcMotorController(MotorPortDriver):
         """
         return SetPowerCommand(power).command_to_port(self._port.id - 1)
 
-    def create_set_speed_command(self, speed, power_limit=None) -> bytes:
+    def create_set_speed_command(self, speed: float, power_limit: Optional[float] = None) -> bytes:
         """Create a command to set the regulated speed of the current motor.
 
         You can send the returned command (or multiple commands)
@@ -349,12 +349,18 @@ class DcMotorController(MotorPortDriver):
 
     @property
     def status(self) -> MotorStatus:
-        return self._status
+        return self._status[1]
+
+    @property
+    def active_request_id(self) -> int:
+        return self._status[0]
 
     def _update_motor_status(self, status: MotorStatus, request_id: int):
         with self._lock:
-            self._status = status
+            self._status = (request_id, status)
             awaiter = self._awaiter
+            # TODO: maybe the awaiter should be part of the motor port wrapper, similar to how
+            # drivetrain handles the motors
             if awaiter:
                 if self._current_position_request is not None:
                     if request_id != self._current_position_request:
@@ -376,7 +382,7 @@ class DcMotorController(MotorPortDriver):
             status, self._power, self._pos, self._speed, current_task = raw_status
 
             self._update_motor_status(MotorStatus(status), current_task)
-            self.on_status_changed.trigger(self._port)
+            self.on_status_changed.trigger((self._port, current_task))
         else:
             self.log(f"Received {len(data)} bytes of data instead of {MOTOR_PACKET_SIZE_BYTES}")
 
@@ -386,3 +392,13 @@ class DcMotorController(MotorPortDriver):
             self.set_speed(0)
         else:
             self.set_power(0)
+
+
+class DcMotorController(BaseDcMotorDriver):
+    def __init__(self, port: PortInstance[MotorPortDriver], port_config):
+        super().__init__(port, port_config, "DcMotor")
+
+
+class EmulatedDcMotorController(BaseDcMotorDriver):
+    def __init__(self, port: PortInstance[MotorPortDriver], port_config):
+        super().__init__(port, port_config, "DcMotorEmulator")

@@ -1,0 +1,194 @@
+{
+    "settings": {
+        "name": "RevvyBootloader",
+        "components_folder": [
+            "rrrc/components",
+            "../mcu-common/CommonComponents"
+        ],
+        "generated_runtime": "rrrc/generated_runtime",
+        "required_plugins": [
+            "ProjectConfigCompactor",
+            "BuiltinDataTypes",
+            "RuntimeEvents"
+        ]
+    },
+    "sources": [
+        "rrrc/main.c",
+        "rrrc/driver_init.c",
+        "rrrc/flash_mapping.c",
+        "rrrc/runtime/comm_handlers.c",
+        "../mcu-common/Atmel/hal/src/hal_atomic.c",
+        "../mcu-common/Atmel/hal/src/hal_cache.c",
+        "../mcu-common/Atmel/hal/src/hal_delay.c",
+        "../mcu-common/Atmel/hal/src/hal_flash.c",
+        "../mcu-common/Atmel/hal/src/hal_gpio.c",
+        "../mcu-common/Atmel/hal/src/hal_i2c_s_async.c",
+        "../mcu-common/Atmel/hal/src/hal_init.c",
+        "../mcu-common/Atmel/hal/src/hal_io.c",
+        "../mcu-common/Atmel/hal/src/hal_sleep.c",
+        "../mcu-common/Atmel/hal/utils/src/utils_syscalls.c",
+        "../mcu-common/Atmel/hpl/cmcc/hpl_cmcc.c",
+        "../mcu-common/Atmel/hpl/core/hpl_core_m4.c",
+        "../mcu-common/Atmel/hpl/core/hpl_init.c",
+        "../mcu-common/Atmel/hpl/dmac/hpl_dmac.c",
+        "../mcu-common/Atmel/hpl/gclk/hpl_gclk.c",
+        "../mcu-common/Atmel/hpl/mclk/hpl_mclk.c",
+        "../mcu-common/Atmel/hpl/nvmctrl/hpl_nvmctrl.c",
+        "../mcu-common/Atmel/hpl/osc32kctrl/hpl_osc32kctrl.c",
+        "../mcu-common/Atmel/hpl/oscctrl/hpl_oscctrl.c",
+        "../mcu-common/Atmel/hpl/pm/hpl_pm.c",
+        "../mcu-common/Atmel/hpl/ramecc/hpl_ramecc.c",
+        "../mcu-common/Atmel/hpl/sercom/hpl_sercom.c",
+        "../mcu-common/Atmel/Device_Startup/startup_samd51.c",
+        "../mcu-common/Atmel/Device_Startup/system_samd51.c",
+        "../mcu-common/Atmel/hal/src/hal_spi_m_dma.c",
+        "../mcu-common/Atmel/hal/src/hal_spi_m_sync.c",
+        "../mcu-common/SEGGER/RTT/SEGGER_RTT.c",
+        "../mcu-common/SEGGER/RTT/SEGGER_RTT_printf.c",
+        "../mcu-common/SEGGER/RTT/Syscalls/SEGGER_RTT_Syscalls_GCC.c",
+        "../mcu-common/CommonLibraries/color.c",
+        "../mcu-common/CommonLibraries/converter.c",
+        "../mcu-common/CommonLibraries/functions.c"
+    ],
+    "includes": [
+        ".",
+        "rrrc",
+        "Config",
+        "../mcu-common",
+        "../mcu-common/Atmel/hpl/nvmctrl",
+        "../mcu-common/Atmel/hpl/ramecc",
+        "../mcu-common/Atmel/hal/include",
+        "../mcu-common/Atmel/hal/utils/include",
+        "../mcu-common/Atmel/hpl/adc",
+        "../mcu-common/Atmel/hpl/cmcc",
+        "../mcu-common/Atmel/hpl/core",
+        "../mcu-common/Atmel/hpl/dmac",
+        "../mcu-common/Atmel/hpl/eic",
+        "../mcu-common/Atmel/hpl/gclk",
+        "../mcu-common/Atmel/hpl/mclk",
+        "../mcu-common/Atmel/hpl/osc32kctrl",
+        "../mcu-common/Atmel/hpl/oscctrl",
+        "../mcu-common/Atmel/hpl/pm",
+        "../mcu-common/Atmel/hpl/port",
+        "../mcu-common/Atmel/hpl/rtc",
+        "../mcu-common/Atmel/hpl/sercom",
+        "../mcu-common/Atmel/hpl/systick",
+        "../mcu-common/Atmel/hpl/tc",
+        "../mcu-common/Atmel/hri",
+        "../mcu-common/Atmel/samd51a/include",
+        "../mcu-common/CMSIS/Include",
+        "../mcu-common/SEGGER/RTT"
+    ],
+    "components": [
+        "CRC",
+        "LEDController",
+        "MasterCommunication",
+        "MasterCommunicationInterface_Bootloader",
+        "UpdateManager"
+    ],
+    "types": {
+        "const void*": {
+            "pass_semantic": "value",
+            "defined_in": "<stdio.h>",
+            "default_value": "NULL"
+        },
+        "uint8_t": {
+            "pass_semantic": "value",
+            "defined_in": "<stdint.h>",
+            "default_value": "0u"
+        },
+        "uint8_t*": {
+            "pass_semantic": "value",
+            "defined_in": "<stdint.h>",
+            "default_value": "NULL"
+        },
+        "const uint8_t*": {
+            "pass_semantic": "value",
+            "defined_in": "<stdint.h>",
+            "default_value": "NULL"
+        },
+        "uint16_t": {
+            "pass_semantic": "value",
+            "defined_in": "<stdint.h>",
+            "default_value": "0u"
+        },
+        "uint32_t": {
+            "pass_semantic": "value",
+            "defined_in": "<stdint.h>",
+            "default_value": "0u"
+        },
+        "int8_t": {
+            "pass_semantic": "value",
+            "defined_in": "<stdint.h>",
+            "default_value": "0"
+        },
+        "int16_t": {
+            "pass_semantic": "value",
+            "defined_in": "<stdint.h>",
+            "default_value": "0"
+        },
+        "int32_t": {
+            "pass_semantic": "value",
+            "defined_in": "<stdint.h>",
+            "default_value": "0"
+        },
+        "size_t": {
+            "pass_semantic": "value",
+            "defined_in": "<stdio.h>",
+            "default_value": "0u"
+        },
+        "ssize_t": {
+            "pass_semantic": "value",
+            "defined_in": "<stdio.h>",
+            "default_value": "0"
+        },
+        "bool": {
+            "pass_semantic": "value",
+            "defined_in": "<stdbool.h>",
+            "default_value": "false"
+        },
+        "float": {
+            "pass_semantic": "value",
+            "defined_in": "<float.h>",
+            "default_value": "0.0f"
+        },
+        "ByteArray_t": {
+            "type": "struct",
+            "pass_semantic": "value",
+            "fields": {
+                "bytes": "uint8_t*",
+                "count": "size_t"
+            }
+        },
+        "ConstByteArray_t": {
+            "type": "struct",
+            "pass_semantic": "value",
+            "fields": {
+                "bytes": "const uint8_t*",
+                "count": "size_t"
+            }
+        }
+    },
+    "runtime": {
+        "runnables": {
+            "OnInit": [
+                "MasterCommunication/OnInit",
+                "MasterCommunicationInterface_Bootloader/OnInit",
+                "LEDController/OnInit",
+                "CRC/OnInit"
+            ],
+            "OnInitDone": [],
+            "Loop": [
+                "MasterCommunicationInterface_Bootloader/Update",
+                "LEDController/Update"
+            ]
+        },
+        "port_connections": {
+            "MasterCommunicationInterface_Bootloader/SetResponse": "MasterCommunication/SendResponse",
+            "MasterCommunicationInterface_Bootloader/OnMessageReceived": "MasterCommunication/HandleCommand",
+            "CRC/Calculate_CRC7": "MasterCommunication/Calculate_CRC7",
+            "CRC/Calculate_CRC16": "MasterCommunication/Calculate_CRC16",
+            "CRC/Calculate_CRC32": "UpdateManager/Calculate_CRC32"
+        }
+    }
+}

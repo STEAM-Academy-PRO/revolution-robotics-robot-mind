@@ -1,0 +1,49 @@
+{
+    "name": "LEDController",
+    "version": "2.0.0",
+    "requires": {},
+    "source_files": [
+        "LEDController.c"
+    ],
+    "multiple_instances": false,
+    "instance_variables": {},
+    "types": {
+        "rgb_t": {
+            "defined_in": "\"CommonLibraries/color.h\"",
+            "default_value": "(rgb_t){0, 0, 0}"
+        }
+    },
+    "runnables": {
+        "OnInit": {},
+        "Update": {}
+    },
+    "ports": {
+        "StatusLEDs_Changed": {
+            "port_type": "ReadValue",
+            "default_value": "true",
+            "data_type": "bool"
+        },
+        "RingLEDs_Changed": {
+            "port_type": "ReadValue",
+            "default_value": "true",
+            "data_type": "bool"
+        },
+        "StatusLED": {
+            "port_type": "ReadIndexedValue",
+            "default_value": "(rgb_t) LED_MAGENTA",
+            "data_type": "rgb_t",
+            "count": 4
+        },
+        "RingLED": {
+            "port_type": "ReadIndexedValue",
+            "default_value": "(rgb_t) { 0, 0, 0 }",
+            "data_type": "rgb_t",
+            "count": 12
+        },
+        "MaxBrightness": {
+            "port_type": "ReadValue",
+            "default_value": "32u",
+            "data_type": "uint8_t"
+        }
+    }
+}

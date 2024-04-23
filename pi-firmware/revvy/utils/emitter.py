@@ -1,7 +1,7 @@
 """ Simple event emitter lib """
 
 from contextlib import suppress
-from typing import Callable, Dict, Generic, List, Literal, TypeVar, Union
+from typing import Callable, Dict, Generic, TypeVar
 
 from revvy.utils.logger import LogLevel, get_logger
 
@@ -13,27 +13,27 @@ log = get_logger("emitter", LogLevel.ERROR)
 class SimpleEventEmitter:
     """A simple event emitter that can be used to subscribe to an event source."""
 
-    def __init__(self):
-        self._callbacks: List[Callable] = []
+    def __init__(self) -> None:
+        self._callbacks: list[Callable] = []
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         return len(self._callbacks) == 0
 
-    def add(self, callback):
+    def add(self, callback: Callable):
         self._callbacks.append(callback)
 
-    def clear(self):
+    def clear(self) -> None:
         self._callbacks.clear()
 
-    def remove(self, callback):
+    def remove(self, callback: Callable):
         # do not raise an error if the callback is not in the list
         with suppress(ValueError):
             self._callbacks.remove(callback)
 
-    def __contains__(self, item):
+    def __contains__(self, item: Callable) -> bool:
         return item in self._callbacks
 
-    def trigger(self, *args, **kwargs):
+    def trigger(self, *args, **kwargs) -> None:
         for func in self._callbacks:
             func(*args, **kwargs)
 

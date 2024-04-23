@@ -117,8 +117,8 @@ class Awaiter:
         @param timeout:
         @return: True if the operation was finished by calling finish(), False if cancelled or timed out
         """
-        if self._signal.get() == AwaiterState.FINISHED:
-            return True
+        if self._signal.get() != AwaiterState.NONE:
+            return self._signal.get() == AwaiterState.FINISHED
 
         try:
             self._signal.wait(timeout)

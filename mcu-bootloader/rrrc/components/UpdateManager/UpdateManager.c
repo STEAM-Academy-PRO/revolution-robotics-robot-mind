@@ -1,9 +1,10 @@
 #include "UpdateManager.h"
-#include "utils/crc.h"
+#include "utils.h"
 
-#include "SEGGER_RTT.h"
+/* Begin User Code Section: Declarations */
+#include "CommonLibraries/log.h"
 
-#include "../../utils/functions.h"
+#include "CommonLibraries/functions.h"
 #include <math.h>
 
 static bool isInitialized = false;
@@ -51,15 +52,22 @@ static void _program_bytes(const uint8_t* pData, size_t dataSize)
         ++pData;
     }
 }
+/* End User Code Section: Declarations */
 
-bool UpdateManager_Run_CheckImageFitsInFlash(size_t size)
+bool UpdateManager_Run_CheckImageFitsInFlash(uint32_t image_size)
 {
-    return size <= FLASH_AVAILABLE;
+    /* Begin User Code Section: CheckImageFitsInFlash:run Start */
+    return image_size <= FLASH_AVAILABLE;
+    /* End User Code Section: CheckImageFitsInFlash:run Start */
+    /* Begin User Code Section: CheckImageFitsInFlash:run End */
+
+    /* End User Code Section: CheckImageFitsInFlash:run End */
 }
 
-void UpdateManager_Run_InitializeUpdate(size_t firmware_size, uint32_t checksum)
+void UpdateManager_Run_InitializeUpdate(uint32_t firmware_size, uint32_t checksum)
 {
-    SEGGER_RTT_WriteString(0, "Initializing update\r\n");
+    /* Begin User Code Section: InitializeUpdate:run Start */
+    LOG_RAW("Initializing update\n");
 
     isInitialized = true;
     expected_crc = checksum;
@@ -75,36 +83,46 @@ void UpdateManager_Run_InitializeUpdate(size_t firmware_size, uint32_t checksum)
         .target_length = firmware_size
     };
 
-    UpdateManager_Write_Progress(0u);
+    UpdateManager_RaiseEvent_ProgressChanged(0u);
 
     UpdateManager_Run_UpdateApplicationHeader(&header);
-    
+
     /* Initialize the write parameters and erase firmware block in flash memory */
     flash_erase(&FLASH_0, FLASH_FW_OFFSET, FLASH_AVAILABLE / NVMCTRL_PAGE_SIZE);
     _select_start_addr(FLASH_FW_OFFSET);
+    /* End User Code Section: InitializeUpdate:run Start */
+    /* Begin User Code Section: InitializeUpdate:run End */
+
+    /* End User Code Section: InitializeUpdate:run End */
 }
 
-UpdateManager_Status_t UpdateManager_Run_Program(const uint8_t* pData, size_t chunkSize)
+UpdateManager_Status_t UpdateManager_Run_WriteNextChunk(ConstByteArray_t data)
 {
+    /* Begin User Code Section: WriteNextChunk:run Start */
     if (!isInitialized)
     {
         return UpdateManager_Not_Initialized;
     }
 
     /* update checksum */
-    current_crc = CRC32_Calculate(current_crc, pData, chunkSize);
-    current_length += chunkSize;
-    
+    current_crc = UpdateManager_Call_Calculate_CRC32(current_crc, data);
+    current_length += data.count;
+
     /* program flash */
-    _program_bytes(pData, chunkSize);
-    
-    UpdateManager_Write_Progress(lroundf(map(current_length, 0, total_length, 0, 255)));
+    _program_bytes(data.bytes, data.count);
+
+    UpdateManager_RaiseEvent_ProgressChanged(lroundf(map(current_length, 0, total_length, 0, 255)));
 
     return UpdateManager_Ok;
+    /* End User Code Section: WriteNextChunk:run Start */
+    /* Begin User Code Section: WriteNextChunk:run End */
+
+    /* End User Code Section: WriteNextChunk:run End */
 }
 
 UpdateManager_Status_t UpdateManager_Run_Finalize(void)
 {
+    /* Begin User Code Section: Finalize:run Start */
     /* if not initialized, try to reboot to application */
     if (isInitialized)
     {
@@ -112,35 +130,83 @@ UpdateManager_Status_t UpdateManager_Run_Finalize(void)
 
         if (current_length != total_length)
         {
+            LOG("Firmware size mismatch: %u != %u\n", current_length, total_length);
             return UpdateManager_Error_ImageInvalid;
         }
-    
-        if (!FMP_CheckTargetFirmware(true, expected_crc))
+
+        bool crc_ok = FMP_FlashHeaderValid();
+
+        if (!crc_ok)
         {
+            LOG_RAW("Invalid firmware header\n");
+        }
+        else
+        {
+            uint32_t calculated_crc = FMP_CalculateFirmwareCRC();
+            uint32_t recorded_crc = FMP_RecordedFirmwareCRC();
+
+            if (recorded_crc != expected_crc)
+            {
+                LOG("Firmware checksum mismatch: recorded %X, expected %X\n", recorded_crc, expected_crc);
+                crc_ok = false;
+            }
+            else if (calculated_crc != expected_crc)
+            {
+                LOG("Firmware CRC mismatch: calculated %X, expected %X\n", calculated_crc, expected_crc);
+                crc_ok = false;
+            }
+        }
+
+        if (!crc_ok)
+        {
+            LOG("Firmware CRC mismatch: %X\n", expected_crc);
             return UpdateManager_Error_ImageInvalid;
         }
     }
 
-    /* Reset here - firmware will be loaded at the beginning of the bootloader execution */
-    NVIC_SystemReset();
-
-    /* this will not be reached */
+    /* End User Code Section: Finalize:run Start */
+    /* Begin User Code Section: Finalize:run End */
     return UpdateManager_Ok;
+    /* End User Code Section: Finalize:run End */
 }
 
 void UpdateManager_Run_UpdateApplicationHeader(const ApplicationFlashHeader_t* header)
 {
+    /* Begin User Code Section: UpdateApplicationHeader:run Start */
     /* Also erase the block that stores the firmware header and store the header */
     flash_erase(&FLASH_0, FLASH_HDR_OFFSET, NVMCTRL_BLOCK_SIZE / NVMCTRL_PAGE_SIZE);
 
     _select_start_addr(FLASH_HDR_OFFSET);
     _program_bytes((uint8_t*) header, sizeof(ApplicationFlashHeader_t));
     _flush();
+    /* End User Code Section: UpdateApplicationHeader:run Start */
+    /* Begin User Code Section: UpdateApplicationHeader:run End */
+
+    /* End User Code Section: UpdateApplicationHeader:run End */
 }
 
 __attribute__((weak))
-void UpdateManager_Write_Progress(uint8_t progress)
+void UpdateManager_RaiseEvent_ProgressChanged(uint8_t progress)
 {
     (void) progress;
-    /* nothing to do */
+    /* Begin User Code Section: ProgressChanged:run Start */
+
+    /* End User Code Section: ProgressChanged:run Start */
+    /* Begin User Code Section: ProgressChanged:run End */
+
+    /* End User Code Section: ProgressChanged:run End */
+}
+
+__attribute__((weak))
+uint32_t UpdateManager_Call_Calculate_CRC32(uint32_t init_value, ConstByteArray_t data)
+{
+    (void) data;
+    (void) init_value;
+    /* Begin User Code Section: Calculate_CRC32:run Start */
+
+    /* End User Code Section: Calculate_CRC32:run Start */
+    /* Begin User Code Section: Calculate_CRC32:run End */
+
+    /* End User Code Section: Calculate_CRC32:run End */
+    return 0u;
 }
