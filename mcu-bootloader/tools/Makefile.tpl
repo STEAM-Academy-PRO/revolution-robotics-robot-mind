@@ -63,8 +63,7 @@ RELEASE_COMPILE_FLAGS := \
 	-DDEBUG_LOG \
 	-DBOOTLOADER_VERSION=0 \
 	-DHARDWARE_VERSION=2 \
-	-DI2CS_DATA_DELAY=9 \
-	-O3 \
+	-O0 \
 	-g3
 
 ifeq ($(config), debug)
