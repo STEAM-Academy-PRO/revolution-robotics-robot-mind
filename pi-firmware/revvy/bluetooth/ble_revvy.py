@@ -232,9 +232,9 @@ class RevvyBLE:
         # started up dependencies in a different order than we expected. This caused the
         # bluetooth service to not be started when we tried to start the revvy service.
         with open("/etc/systemd/system/revvy.service", "r") as f:
-            is_old = "WantedBy=multi-user.target" in f.read()
+            is_old_image = "WantedBy=multi-user.target" in f.read()
 
-        if is_old:
+        if is_old_image:
             service = "bluetooth.service"
         else:
             service = "bluetooth.target"
@@ -250,7 +250,7 @@ class RevvyBLE:
             if timeout:
                 raise TimeoutError("Bluetooth service did not start in time, exiting")
 
-        if is_old or is_rpi_zero_2w():
+        if is_old_image or is_rpi_zero_2w():
             # On older images, the systemd services were not properly ordered, so we need to wait
             # for the bluetooth service to start. This wait is a bit longer than measured startup
             # time of bluetooth.service. For some reason systemd immediately reports the service as
