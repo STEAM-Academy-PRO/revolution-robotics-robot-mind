@@ -209,7 +209,7 @@ class ThreadWrapper:
     def on_error(self, callback: Callable):
         self._error_callbacks.add(callback)
 
-    def on_stop_requested(self, callback) -> None:
+    def on_stop_requested(self, callback: Callable):
         if self._state == ThreadWrapperState.STOPPING:
             callback()
         else:
