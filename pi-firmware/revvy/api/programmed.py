@@ -108,5 +108,6 @@ class ProgrammedRobotController:
         self.set_button_value(button, False)
 
     def press_button(self, button: int):
+        self.log(f"Pressing button {button}")
         self.hold_button(button)
         self.release_button(button)
