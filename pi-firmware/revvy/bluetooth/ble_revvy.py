@@ -232,9 +232,9 @@ class RevvyBLE:
         # started up dependencies in a different order than we expected. This caused the
         # bluetooth service to not be started when we tried to start the revvy service.
         with open("/etc/systemd/system/revvy.service", "r") as f:
-            is_old = "WantedBy=multi-user.target" in f.read()
+            is_old_image = "WantedBy=multi-user.target" in f.read()
 
-        if is_old:
+        if is_old_image:
             service = "bluetooth.service"
         else:
             service = "bluetooth.target"
@@ -250,10 +250,16 @@ class RevvyBLE:
             if timeout:
                 raise TimeoutError("Bluetooth service did not start in time, exiting")
 
-        if is_old:
-            # This is a bit longer than measured startup time of bluetooth.service. For some reason
-            # systemd immediately reports the service as started, but it takes a bit longer for the
-            # bluetooth functionality to be available.
+        if is_old_image or is_rpi_zero_2w():
+            # On older images, the systemd services were not properly ordered, so we need to wait
+            # for the bluetooth service to start. This wait is a bit longer than measured startup
+            # time of bluetooth.service. For some reason systemd immediately reports the service as
+            # started, but it takes a bit longer for the bluetooth functionality to be available.
+            #
+            # The Raspberry Pi Zero W2, the whole stack seems to be sensitive of the SD card,
+            # and delaying a bit more seems to help. It is also faster so we can tolerate the
+            # delay.
+            # Trying to use BLE immediately will result in an `OSError: [Errno 100] Network is down`
             time.sleep(1.5)
 
         self._bleno.start()
@@ -267,3 +273,9 @@ class RevvyBLE:
     def report_errors_in_queue(self, *args) -> None:
         while revvy_error_handler.has_error():
             self._live.report_error(revvy_error_handler.pop_error())
+
+
+def is_rpi_zero_2w() -> bool:
+    """Check if the device is a Raspberry Pi Zero 2 W"""
+    with open("/proc/cpuinfo") as f:
+        return "Raspberry Pi Zero 2 W" in f.read()
