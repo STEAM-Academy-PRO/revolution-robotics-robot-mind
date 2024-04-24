@@ -13,6 +13,24 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
 
 jobs:
+  label-if-release:
+    permissions:
+      pull-requests: write # add label
+
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.base.label, 'release')
+    steps:
+      - name: Set label
+        uses: actions/github-script@v4
+        with:
+          script: |
+            github.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['release']
+            })
+
   check-mcu-bootloader:
     permissions:
       contents: read # checkout
