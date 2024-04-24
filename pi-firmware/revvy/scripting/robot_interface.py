@@ -296,9 +296,15 @@ class MotorPortWrapper(Wrapper):
                     # This means, the resource.run_uninterruptable will not return
                     # an awaiter, which means it would not be stopped when cancelled,
                     # it has to be done manually.
-                    self._script.sleep(amount)
-                    # Stop it after timeout.
-                    resource.run_uninterruptable(partial(self._motor.driver.set_power, 0))
+                    try:
+                        self._script.sleep(amount)
+                        # Stop it after timeout.
+                    finally:
+                        # FIXME: while this finally solves the problem of the unstoppable
+                        # block, the exact mechanism of the bug is unknown. For some reason,
+                        # the script's "stop requested" callbacks either aren't called, or
+                        # they don't contain the function that would stop the motor.
+                        resource.run_uninterruptable(partial(self._motor.driver.set_power, 0))
                 self._log("movement finished")
 
     def spin(self, direction: int, rotation: int, unit_rotation: int):

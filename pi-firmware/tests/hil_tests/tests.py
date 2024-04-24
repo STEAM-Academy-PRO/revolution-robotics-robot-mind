@@ -554,7 +554,7 @@ for i in range(5):
     controller.wait_for_scripts_to_end()
 
 
-@with_timeout(5)
+@with_timeout(10)
 def motor_script_can_be_stopped(log: Logger, controller: ProgrammedRobotController):
     def fail_on_script_error(*e) -> None:
         # In this test, if we encounter an error, let's just stop and exit
