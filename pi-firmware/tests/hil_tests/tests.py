@@ -599,6 +599,60 @@ robot.motors["motor1"].move(direction=Motor.DIRECTION_FWD, amount=300, unit_amou
     controller.wait_for_scripts_to_end()
 
 
+def reconfigure_does_not_ignore_motor_command(log: Logger, controller: ProgrammedRobotController):
+    def fail_on_script_error(*e) -> None:
+        # In this test, if we encounter an error, let's just stop and exit
+        controller.robot_manager.exit(RevvyStatusCode.ERROR)
+
+    controller.robot_manager.on(RobotEvent.ERROR, fail_on_script_error)
+
+    config = RobotConfig()
+    config.add_motor(Motors.EmulatedRevvyMotor, "motor1")
+
+    config.process_script(
+        {
+            "assignments": {"buttons": [{"id": 1, "priority": 1}]},
+            "pythonCode": b64_encode_str(
+                """
+robot.motors["motor1"].spin(direction=Motor.DIRECTION_FWD, rotation=0, unit_rotation=Motor.UNIT_SPEED_PWR)
+"""
+            ),
+        },
+        0,
+    )
+
+    config.process_script(
+        {
+            "assignments": {"buttons": [{"id": 2, "priority": 1}]},
+            "pythonCode": b64_encode_str(
+                """
+robot.motors["motor1"].spin(direction=Motor.DIRECTION_FWD, rotation=50, unit_rotation=Motor.UNIT_SPEED_PWR)
+"""
+            ),
+        },
+        0,
+    )
+
+    controller.configure(config)
+
+    # Let's send a dummy command that triggers the bug but leaves PWM at 0
+    controller.press_button(1)
+    controller.wait_for_scripts_to_end()
+    time.sleep(0.2)
+
+    # Reconfigure
+    controller.configure(RobotConfig())
+    controller.configure(config)
+
+    # Try to spin the motor with some speed
+    controller.press_button(2)
+    controller.wait_for_scripts_to_end()
+    time.sleep(0.2)
+
+    driver = controller.robot_manager.robot.motors[1].driver
+    assert driver.power != 0, f"Power is expected to be != 0 but is {driver.power}"
+
+
 if __name__ == "__main__":
     run_test_scenarios(
         [
@@ -614,5 +668,6 @@ if __name__ == "__main__":
             trying_to_drive_without_drivetrain_motors_is_no_op,
             failing_to_take_resource_from_lower_prio_script_should_not_error,
             motor_script_can_be_stopped,
+            reconfigure_does_not_ignore_motor_command,
         ]
     )
