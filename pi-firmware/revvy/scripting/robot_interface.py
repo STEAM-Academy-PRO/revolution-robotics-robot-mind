@@ -106,6 +106,7 @@ class Wrapper(ABC):
         If the resource is not available, returns NullHandle which evaluates to False.
         """
         if self._script.is_stop_requested:
+            self._script.log("Trying to take resource but script is stopping")
             raise InterruptedError
 
         if self._current_handle:
@@ -117,7 +118,7 @@ class Wrapper(ABC):
             def _release_handle() -> None:
                 self._current_handle = null_handle
 
-            # lints ignored because pyright doesn't understand that if hand is true,
+            # lints ignored because pyright doesn't understand that if handle is true,
             # it's not a null_handle
             handle.on_interrupted.add(_release_handle)  # pyright: ignore
             handle.on_released.add(_release_handle)  # pyright: ignore
@@ -272,6 +273,7 @@ class MotorPortWrapper(Wrapper):
         awaiter = None
 
         def _interrupted() -> None:
+            self._log("Movement interrupted")
             # When interrupted, always switch the motor power off before cancel,
             # so that it also stops if the unit is time.
             self._motor.driver.set_power(0)
@@ -294,9 +296,15 @@ class MotorPortWrapper(Wrapper):
                     # This means, the resource.run_uninterruptable will not return
                     # an awaiter, which means it would not be stopped when cancelled,
                     # it has to be done manually.
-                    self._script.sleep(amount)
-                    # Stop it after timeout.
-                    resource.run_uninterruptable(partial(self._motor.driver.set_power, 0))
+                    try:
+                        self._script.sleep(amount)
+                        # Stop it after timeout.
+                    finally:
+                        # FIXME: while this finally solves the problem of the unstoppable
+                        # block, the exact mechanism of the bug is unknown. For some reason,
+                        # the script's "stop requested" callbacks either aren't called, or
+                        # they don't contain the function that would stop the motor.
+                        resource.run_uninterruptable(partial(self._motor.driver.set_power, 0))
                 self._log("movement finished")
 
     def spin(self, direction: int, rotation: int, unit_rotation: int):
@@ -711,8 +719,8 @@ class RobotWrapper:
             sensor.force_release_resource()
 
         # Motor wrappers
-        for sensor in self._motors:
-            sensor.force_release_resource()
+        for motor in self._motors:
+            motor.force_release_resource()
 
         # Others
         self._sound.force_release_resource()

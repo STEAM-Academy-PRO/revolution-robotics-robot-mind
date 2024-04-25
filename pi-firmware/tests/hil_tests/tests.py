@@ -554,7 +554,7 @@ for i in range(5):
     controller.wait_for_scripts_to_end()
 
 
-@with_timeout(5)
+@with_timeout(10)
 def motor_script_can_be_stopped(log: Logger, controller: ProgrammedRobotController):
     def fail_on_script_error(*e) -> None:
         # In this test, if we encounter an error, let's just stop and exit
@@ -579,11 +579,22 @@ robot.motors["motor1"].move(direction=Motor.DIRECTION_FWD, amount=300, unit_amou
 
     controller.configure(config)
 
-    controller.press_button(1)
-    time.sleep(0.5)
-    controller.press_button(1)
+    driver = controller.robot_manager.robot.motors[1].driver
 
-    assert controller.robot_manager.robot.motors[1].driver.power == 0
+    for i in range(5):
+        log(f"Iteration {i+1}")
+
+        log("Start")
+        controller.press_button(1)
+        time.sleep(0.5)
+        assert driver.power != 0, f"Power is expected to be > 0 but is {driver.power}"
+        assert driver.speed != 0, f"Speed is expected to be > 0 but is {driver.speed}"
+
+        log("Stop")
+        controller.press_button(1)
+        time.sleep(0.5)
+        assert driver.power == 0, f"Power is expected to be 0 but is {driver.power}"
+        assert driver.speed == 0, f"Speed is expected to be 0 but is {driver.speed}"
 
     controller.wait_for_scripts_to_end()
 
