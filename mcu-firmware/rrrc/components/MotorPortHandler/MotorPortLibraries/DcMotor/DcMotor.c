@@ -222,14 +222,13 @@ static void ignore_last_drive_request(MotorPort_t* motorPort)
 
 static void initialize_driver(MotorPort_t* motorPort, bool isEmulated)
 {
+    LOG("MotorPort %d: Initialize DC motor driver\n");
     MotorPortHandler_Call_UpdateStatusSlotSize(11u);
 
     MotorLibrary_Dc_Data_t* libdata = MotorPortHandler_Call_Allocate(sizeof(MotorLibrary_Dc_Data_t));
 
     libdata->isEmulated = isEmulated;
     emulator_reset(libdata);
-
-    libdata->currentRequest.version = 0u;
 
     pid_initialize(&libdata->positionController);
     pid_initialize(&libdata->speedController);
@@ -248,7 +247,6 @@ static void initialize_driver(MotorPort_t* motorPort, bool isEmulated)
     libdata->prevPosDiff = 0;
     libdata->currentSpeed = 0.0f;
     libdata->lastPosition = 0;
-    libdata->lastCreatedCommandVersion = 0u;
     libdata->minPositionDistance = UINT32_MAX;
     _reset_timeout(&libdata->minPositionTimeout);
 
@@ -269,7 +267,15 @@ static void initialize_driver(MotorPort_t* motorPort, bool isEmulated)
     MotorPort_SetGreenLed(motorPort, true);
 
     _reset_motor_status(motorPort);
+
+    // Initializes `currentRequest` to a dummy request that will be ignored by the driver.
+    // Also sets the version to the last created command version to make sure the driver
+    // will ignore the last command that was issued before configuration.
     ignore_last_drive_request(motorPort);
+
+    // Make sure we generate a request that will not get immediately ignored by
+    // the above call to `ignore_last_drive_request`.
+    libdata->lastCreatedCommandVersion = libdata->currentRequest.version;
 }
 
 MotorLibraryStatus_t DcMotor_Load(MotorPort_t* motorPort)
