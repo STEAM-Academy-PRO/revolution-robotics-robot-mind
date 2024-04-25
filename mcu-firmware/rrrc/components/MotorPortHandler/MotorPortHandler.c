@@ -195,6 +195,9 @@ void MotorPortHandler_Run_SetPortType(uint8_t port_idx, uint8_t port_type, bool*
     }
 
     MotorPort_t* configuredPort = &motorPorts[port_idx];
+
+    LOG("MotorPort %d: SetPortType(%d)\n", port_idx, port_type);
+
     const MotorLibrary_t* library = (const MotorLibrary_t*) configuredPort->library;
 
     library->Unload(configuredPort);
@@ -244,12 +247,16 @@ bool MotorPortHandler_Run_CreateDriveRequest(uint8_t port_idx, ConstByteArray_t 
     MotorPort_t* port = &motorPorts[port_idx];
     const MotorLibrary_t* library = (const MotorLibrary_t*) port->library;
 
+    LOG("MotorPort %d: CreateDriveRequest\n", port_idx);
+
     if (library->CreateDriveRequest(port, buffer.bytes, buffer.count, request) == MotorLibraryStatus_Ok)
     {
+        LOG("MotorPort %d: CreateDriveRequest: %d\n", port_idx, request->version);
         return true;
     }
     else
     {
+        LOG("MotorPort %d: CreateDriveRequest failed\n", port_idx);
         return false;
     }
     /* End User Code Section: CreateDriveRequest:run Start */
