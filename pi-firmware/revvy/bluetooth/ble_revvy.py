@@ -232,7 +232,10 @@ class RevvyBLE:
         # started up dependencies in a different order than we expected. This caused the
         # bluetooth service to not be started when we tried to start the revvy service.
         with open("/etc/systemd/system/revvy.service", "r") as f:
-            is_old_image = "WantedBy=multi-user.target" in f.read()
+            is_old_image = (
+                "Wants=bluetooth.target network.target sound.target hciuart.service dhcpcd.service systemd-logind.service dbus.service"
+                in f.read()
+            )
 
         if is_old_image:
             service = "bluetooth.service"
