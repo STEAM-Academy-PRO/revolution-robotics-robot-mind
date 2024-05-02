@@ -1,4 +1,3 @@
-from typing import List
 from revvy.bluetooth.data_types import ScriptVariables
 
 

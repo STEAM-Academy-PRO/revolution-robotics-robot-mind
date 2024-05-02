@@ -1,7 +1,7 @@
 """ Simple event emitter lib """
 
 from contextlib import suppress
-from typing import Callable, Dict, Generic, TypeVar
+from typing import Callable, Generic, TypeVar
 
 from revvy.utils.logger import LogLevel, get_logger
 
@@ -42,7 +42,7 @@ class Emitter(Generic[CustomEventType]):
     """Event emitter base class to inherit from."""
 
     def __init__(self) -> None:
-        self._events_handlers: Dict[CustomEventType, SimpleEventEmitter] = {}
+        self._events_handlers: dict[CustomEventType, SimpleEventEmitter] = {}
         self._all_handlers = SimpleEventEmitter()
 
     def on(self, event: CustomEventType, callback: Callable):

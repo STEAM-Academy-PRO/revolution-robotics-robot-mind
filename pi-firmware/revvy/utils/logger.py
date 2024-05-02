@@ -6,7 +6,7 @@ Configure it with log_config.json in the data/config directory.
 
 import os
 from threading import current_thread
-from typing import List, Optional, Union
+from typing import Optional, Union
 from revvy.utils.directories import WRITEABLE_DATA_DIR
 from revvy.utils.functions import read_json
 
@@ -130,7 +130,7 @@ def get_log_config() -> dict:
 
 
 def get_logger(
-    tag: Union[str, List[str]],
+    tag: Union[str, list[str]],
     default_log_level: Optional[int] = None,
     base: Optional[Logger] = None,
     logger_type=Logger,

@@ -15,7 +15,6 @@ import hashlib
 import time
 import traceback
 from json import JSONDecodeError
-from typing import List
 from version import Version
 
 
@@ -440,7 +439,7 @@ def wait_for_board_powered():
         amp_en = subprocess.check_output(["gpio", "read", AMP_EN_WIRINGPI_PIN])
 
 
-def start_newest_framework(skipped_versions: List[str]):
+def start_newest_framework(skipped_versions: list[str]):
     """Starts the newest framework version.
 
     Returns True if the script should terminate, False if it should continue.

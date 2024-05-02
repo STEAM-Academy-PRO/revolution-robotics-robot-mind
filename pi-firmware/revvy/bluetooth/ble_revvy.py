@@ -3,7 +3,6 @@
 import os
 import subprocess
 import time
-from typing import List
 from pybleno import Bleno, BlenoPrimaryService
 
 from revvy.bluetooth.services.battery import CustomBatteryService
@@ -157,7 +156,7 @@ class RevvyBLE:
         # log(f'program status update: {button_id} {status}')
         self._live.update_program_status(button_id, status)
 
-    def update_motor(self, ref, motor_angles: List[int]) -> None:
+    def update_motor(self, ref, motor_angles: list[int]) -> None:
         """Currently unused, as we are not doing anything with it in the app."""
         for angle, index in enumerate(motor_angles):
             self._live.update_motor(index, MotorData(0, 0, angle))

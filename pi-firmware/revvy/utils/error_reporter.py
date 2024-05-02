@@ -1,7 +1,7 @@
 from enum import IntEnum
 from threading import current_thread
 import traceback
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Optional
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.mcu_error import McuErrorReader
 
@@ -92,8 +92,8 @@ class ErrorHandler:
     """
 
     def __init__(self) -> None:
-        self._error_queue: List[RobotError] = []
-        self._error_map: Dict[int, RobotError] = {}
+        self._error_queue: list[RobotError] = []
+        self._error_map: dict[int, RobotError] = {}
         self._on_error_callback: Optional[Callable] = None
         # self.register_uncaught_exception_handler()
 

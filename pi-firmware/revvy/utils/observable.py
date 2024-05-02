@@ -10,7 +10,7 @@ import threading
 from time import time
 import traceback
 
-from typing import Generic, Optional, TypeVar, Callable, List
+from typing import Generic, Optional, TypeVar, Callable
 
 from revvy.utils.emitter import SimpleEventEmitter
 
@@ -80,12 +80,12 @@ class Observable(Generic[VariableType]):
         return self._data
 
 
-def simple_average(data_history: List[int]) -> int:
+def simple_average(data_history: list[int]) -> int:
     new_value = sum(data_history) / len(data_history)
     return round(new_value)
 
 
-def rounded_average(precision: float, data_history: List[float]) -> float:
+def rounded_average(precision: float, data_history: list[float]) -> float:
     new_value = sum(data_history) / len(data_history)
     return round(new_value * precision) / precision
 
@@ -104,7 +104,7 @@ class SmoothingObservable(Observable[VariableType]):
     def __init__(
         self,
         value,
-        smoothening_function: Callable[[List[VariableType]], VariableType],
+        smoothening_function: Callable[[list[VariableType]], VariableType],
         throttle_interval: Optional[float] = None,
         window_size=10,
     ):
