@@ -20,6 +20,11 @@ from revvy.utils.error_reporter import revvy_error_handler
 log = get_logger("revvy.py")
 
 if __name__ == "__main__":
+    if "--prime" in sys.argv:
+        # We just wanted to cache the imports, let's exit. This is used by the launcher when
+        # installing the default package, to improve its startup time.
+        sys.exit(0)
+
     # Is the script started with --debug?
     is_debug = "--debug" in sys.argv
     if not is_debug:
