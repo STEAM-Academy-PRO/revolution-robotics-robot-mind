@@ -12,8 +12,7 @@ from revvy.bluetooth.ble_revvy import RevvyBLE
 
 from revvy.utils.logger import get_logger
 from revvy.utils.directories import CURRENT_INSTALLATION_PATH
-
-from tools.check_manifest import check_manifest
+from revvy.utils.check_manifest import check_manifest
 
 # Load the error reporter and init the singleton that'll catch system errors.
 from revvy.utils.error_reporter import revvy_error_handler
