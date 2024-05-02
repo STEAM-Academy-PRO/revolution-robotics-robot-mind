@@ -4,7 +4,6 @@ Configure it with log_config.json in the data/config directory.
 @see: /docs/pi/configuration.md
 """
 
-import hashlib
 import os
 from threading import current_thread
 from typing import List, Optional, Union
