@@ -2,7 +2,6 @@
 
 """ Main entry point for the revvy service. """
 
-import argparse
 import sys
 import traceback
 from revvy.firmware_updater import update_firmware_if_needed
@@ -22,11 +21,9 @@ from revvy.utils.error_reporter import revvy_error_handler
 log = get_logger("revvy.py")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Revvy PI firmware")
-    parser.add_argument("--debug", action="store_true", help="Enable debug mode")
-    args = parser.parse_args()
-
-    if not args.debug:
+    # Is the script started with --debug?
+    is_debug = "--debug" in sys.argv
+    if not is_debug:
         revvy_error_handler.register_uncaught_exception_handler()
 
     log(f"pack: {CURRENT_INSTALLATION_PATH}")
@@ -51,7 +48,7 @@ if __name__ == "__main__":
     # Receives commands from the control interface, acts on the robot_manager.
     bluetooth_controller = RevvyBLE(robot_manager)
 
-    if args.debug:
+    if is_debug:
         from revvy.api.websocket import RobotWebSocketApi
 
         RobotWebSocketApi(robot_manager)

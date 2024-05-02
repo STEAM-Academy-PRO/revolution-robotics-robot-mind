@@ -1,5 +1,4 @@
 from enum import IntEnum
-import sys
 from threading import current_thread
 import traceback
 from typing import Callable, Dict, List, Optional
@@ -111,6 +110,8 @@ class ErrorHandler:
         log(log_message, LogLevel.ERROR)
 
     def register_uncaught_exception_handler(self) -> None:
+        import sys
+
         sys.excepthook = self.handle_uncaught_system_exception
         log("Uncaught exception handler registered")
 
