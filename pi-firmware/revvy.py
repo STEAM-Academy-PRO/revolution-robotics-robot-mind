@@ -57,7 +57,14 @@ if __name__ == "__main__":
         RobotWebSocketApi(robot_manager)
 
     try:
+        # Give visual indication to the user that something is happening
+        robot_manager.robot_start()
+
+        # Start up the wireless controller interface
         bluetooth_controller.start()
+
+        # Play a sound to indicate that the robot is ready
+        robot_manager._robot.play_tune("s_bootup")
 
         log("Press Enter to exit")
         input()

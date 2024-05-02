@@ -184,6 +184,7 @@ if __name__ == "__main__":
             "test",
             "hil-test",
             "run",
+            "reboot",
         ],
     )
     parser.add_argument("--release", help="Build in release mode", action="store_true")
@@ -235,3 +236,6 @@ if __name__ == "__main__":
         shell("cd tests && nose2 -B")
         print(green("Running doctests"))
         shell("cd revvy && nose2 -B")
+
+    elif args.action == "reboot":
+        ssh("sudo reboot")

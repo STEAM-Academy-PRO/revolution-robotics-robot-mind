@@ -266,7 +266,6 @@ class RevvyBLE:
             time.sleep(1.5)
 
         self._bleno.start()
-        self._robot_manager.robot_start()
 
     def stop(self) -> None:
         """Quit the program"""

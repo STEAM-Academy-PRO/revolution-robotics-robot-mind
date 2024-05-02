@@ -209,7 +209,6 @@ class RobotManager:
 
         self._log("Connection to MCU established")
         self._robot.status.robot_status = RobotStatus.NotConfigured
-        self._robot.play_tune("s_bootup")
 
     def on_connected(self, device_name) -> None:
         """When interface connects"""
