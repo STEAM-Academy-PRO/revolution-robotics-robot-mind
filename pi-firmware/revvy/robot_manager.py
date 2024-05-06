@@ -208,18 +208,18 @@ class RobotManager:
                 # I would add info on the main terminal screen.
 
         self._log("Connection to MCU established")
-        self._robot.status.robot_status = RobotStatus.NotConfigured
+        self._robot.status.update_robot_status(RobotStatus.NotConfigured)
 
     def on_connected(self, device_name) -> None:
         """When interface connects"""
         self._log(f"{device_name} device connected!")
-        self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
+        self._robot.status.update_controller_status(RemoteControllerStatus.ConnectedNoControl)
         self._robot.play_tune("s_connect")
 
     def on_disconnected(self) -> None:
         """Reset, play tune"""
         self._log("Device disconnected!")
-        self._robot.status.controller_status = RemoteControllerStatus.NotConnected
+        self._robot.status.update_controller_status(RemoteControllerStatus.NotConnected)
         self._robot.play_tune("s_disconnect")
         self.reset_configuration()
 
@@ -228,19 +228,19 @@ class RobotManager:
 
     def _on_controller_detected(self) -> None:
         self._log("Remote controller detected")
-        self._robot.status.controller_status = RemoteControllerStatus.Controlled
+        self._robot.status.update_controller_status(RemoteControllerStatus.Controlled)
 
     def _on_controller_lost(self) -> None:
         self._log("Remote controller lost")
         self.trigger(RobotEvent.CONTROLLER_LOST)
         if self._robot.status.controller_status != RemoteControllerStatus.NotConnected:
-            self._robot.status.controller_status = RemoteControllerStatus.ConnectedNoControl
+            self._robot.status.update_controller_status(RemoteControllerStatus.ConnectedNoControl)
             self.reset_configuration()
 
     def reset_configuration(self) -> None:
         """When RC disconnects"""
         self._log("RESET config")
-        self._robot.status.robot_status = RobotStatus.NotConfigured
+        self._robot.status.update_robot_status(RobotStatus.NotConfigured)
         self._log("RC stopped")
         self._scripts.stop_all_scripts()
         for scr in [self._scripts, self._bg_controlled_scripts]:
@@ -388,7 +388,7 @@ class RobotManager:
         if config.background_initial_state == "running":
             self._bg_controlled_scripts.start_all_scripts()
 
-        self._robot.status.robot_status = RobotStatus.Configured
+        self._robot.status.update_robot_status(RobotStatus.Configured)
 
         # Starts the listening for the messages.
         self._remote_controller_thread.start()
@@ -469,8 +469,8 @@ class RobotManager:
     def robot_stop(self) -> None:
         """On exiting let's reset all states."""
         self._robot_state.stop_polling_mcu()
-        self._robot.status.controller_status = RemoteControllerStatus.NotConnected
-        self._robot.status.robot_status = RobotStatus.Stopped
+        self._robot.status.update_controller_status(RemoteControllerStatus.NotConnected)
+        self._robot.status.update_robot_status(RobotStatus.Stopped)
         self._remote_controller_thread.exit()
         self.trigger(RobotEvent.STOPPED)
         self._scripts.reset()

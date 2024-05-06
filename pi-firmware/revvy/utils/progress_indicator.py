@@ -4,7 +4,7 @@ from revvy.robot.led_ring import RingLed
 from revvy.utils.functions import map_values
 
 
-def _progress(current, total, n_leds):
+def _progress(current: float, total: float, n_leds: int) -> tuple[int, int]:
     if total == 0:
         return 0, 0
 
@@ -30,7 +30,7 @@ class ProgressIndicator:
 
         self.show_indeterminate_loading_on_led_ring()
 
-    def update(self, progress):
+    def update(self, progress: float):
         full_leds, minor_progress = _progress(progress, self.end, 12)
         leds = [self._major_color if led < full_leds else 0 for led in range(12)]
         if self._minor_color != 0 and minor_progress >= 0:
@@ -38,5 +38,5 @@ class ProgressIndicator:
 
         self._led.display_user_frame(leds)
 
-    def show_indeterminate_loading_on_led_ring(self):
+    def show_indeterminate_loading_on_led_ring(self) -> None:
         self._led.start_animation(RingLed.ColorWheel)
