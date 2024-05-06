@@ -481,6 +481,7 @@ def install_updates(install_directory, dependencies: bool):
 
     for package, is_dev in sources:
         if has_update_package(DATA_DIRECTORY, package):
+            cleanup_invalid_installations(install_directory)
             install_update_package(install_directory, package, is_dev, dependencies)
 
 
@@ -519,6 +520,12 @@ def run_tests() -> int:
         return -1
 
 
+def is_rpi_zero_2w() -> bool:
+    """Check if the device is a Raspberry Pi Zero 2 W"""
+    with open("/proc/cpuinfo") as f:
+        return "Raspberry Pi Zero 2 W" in f.read()
+
+
 def main():
     """Runs revvy from directory.
 
@@ -547,12 +554,30 @@ def main():
         action="store_true",
     )
     parser.add_argument(
+        "--service",
+        help="The script has been started by a systemd service.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--early",
+        help="The service was started early during the boot process. If it is running on the Zero 2 W, exit.",
+        action="store_true",
+    )
+    parser.add_argument(
         "--test",
         help="Run test scripts",
         action="store_true",
     )
 
     args = parser.parse_args()
+
+    if args.service:
+        # ignore logs when running as a service
+        log = lambda msg: ...
+        # We delay starting the service on the Zero 2 W to give hciuart some time to initialize
+        is_zero_2w = is_rpi_zero_2w()
+        if (args.early and is_zero_2w) or (not args.early and not is_zero_2w):
+            return 0
 
     if args.test:
         if args.setup:
@@ -574,7 +599,6 @@ def main():
 
         print(f"Install directory: {install_directory}")
         print(f"Data directory: {DATA_DIRECTORY}")
-        cleanup_invalid_installations(install_directory)
         install_updates(install_directory, not args.skip_dependencies)
         print("--install-only flag is set, will not start framework")
         return 0
