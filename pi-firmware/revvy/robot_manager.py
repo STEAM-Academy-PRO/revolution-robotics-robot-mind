@@ -88,9 +88,6 @@ class RobotManager:
 
         self._robot_state.on(RobotEvent.FATAL_ERROR, lambda *args: self.exit(RevvyStatusCode.ERROR))
 
-        # Start reading status from the robot.
-        self._robot_state.start_polling_mcu()
-
         self.on = self._robot_state.on
         self.on_all = self._robot_state.on_all
         self.trigger = self._robot_state.trigger
@@ -198,6 +195,9 @@ class RobotManager:
         return self._status_code
 
     def robot_start(self) -> None:
+        # Start reading status from the robot.
+        self._robot_state.start_polling_mcu()
+
         if self._robot.status.robot_status == RobotStatus.StartingUp:
             self._log("Waiting for MCU")
 
