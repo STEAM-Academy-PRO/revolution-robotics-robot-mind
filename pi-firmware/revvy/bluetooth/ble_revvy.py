@@ -262,12 +262,12 @@ class RevvyBLE:
             # and delaying a bit more seems to help. It is also faster so we can tolerate the
             # delay.
             # Trying to use BLE immediately will result in an `OSError: [Errno 100] Network is down`
-            time.sleep(2.5)
+            time.sleep(3)
         else:
             # We previously had this sleep in the launcher, but it makes more sense to allow stuff
             # to load in the background while we wait for the bluetooth service to start.
             # Still, we can't start sooner than the bluetooth service is ready.
-            time.sleep(1)
+            time.sleep(1.5)
 
         self._bleno.start()
 
