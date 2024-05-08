@@ -559,11 +559,6 @@ def main():
         action="store_true",
     )
     parser.add_argument(
-        "--early",
-        help="The service was started early during the boot process. If it is running on the Zero 2 W, exit.",
-        action="store_true",
-    )
-    parser.add_argument(
         "--test",
         help="Run test scripts",
         action="store_true",
@@ -574,10 +569,6 @@ def main():
     if args.service:
         # ignore logs when running as a service
         log = lambda msg: ...
-        # We delay starting the service on the Zero 2 W to give hciuart some time to initialize
-        is_zero_2w = is_rpi_zero_2w()
-        if (args.early and is_zero_2w) or (not args.early and not is_zero_2w):
-            return 0
 
     if args.test:
         if args.setup:

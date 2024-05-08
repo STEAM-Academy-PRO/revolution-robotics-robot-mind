@@ -172,14 +172,10 @@ def build(config: str, dev_package: bool = False):
 
 
 def stop_service():
-    # only one of these will actually do something
     ssh("sudo systemctl stop revvy")
-    ssh("sudo systemctl stop revvy-early")
 
 
 def start_service():
-    # only one of these will actually do something
-    ssh("sudo systemctl start revvy-early")
     ssh("sudo systemctl start revvy")
 
 
