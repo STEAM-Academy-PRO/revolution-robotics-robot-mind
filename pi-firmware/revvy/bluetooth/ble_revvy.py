@@ -227,6 +227,19 @@ class RevvyBLE:
 
             return bluetooth_status.returncode
 
+        def hci_status() -> bool:
+            hci_process = subprocess.run(
+                ["/usr/bin/hciconfig", "hci0"],
+                capture_output=True,
+                check=False,
+            )
+            output = hci_process.stdout.__str__()
+            up = "UP RUNNING" in output
+
+            self._log(f"HCI status: {output}", LogLevel.INFO)
+
+            return up
+
         # the old service descriptor contained a circular dependency, which means systemd
         # started up dependencies in a different order than we expected. This caused the
         # bluetooth service to not be started when we tried to start the revvy service.
@@ -242,8 +255,16 @@ class RevvyBLE:
             if timeout:
                 raise TimeoutError("Bluetooth service did not start in time, exiting")
 
-        # We need to allow the bluetooth service to start up before we start advertising.
-        time.sleep(1.5)
+        if not hci_status():
+            self._log("Waiting for HCI interface")
+            stopwatch = Stopwatch()
+            timeout = True
+            while stopwatch.elapsed < 10:
+                if hci_status():
+                    timeout = False
+                    break
+            if timeout:
+                raise TimeoutError("HCI interface did not start in time, exiting")
 
         self._bleno.start()
 
