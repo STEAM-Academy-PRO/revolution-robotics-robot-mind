@@ -60,3 +60,9 @@ network={
 ```
 
 - place the SD card back into the brain, start the brain
+
+
+SD Card write protection
+------------------------
+
+[here](setup.md)

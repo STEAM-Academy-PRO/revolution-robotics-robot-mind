@@ -34,3 +34,20 @@ Debugging & Run
 - When says: Waiting for debugger, hit `F5` - `Attach PI Debugger` in the main window
 - if it says: "client port not open" just wait for a few more seconds and try again
 - happy debugging!
+
+SD Card write protection
+------------------------
+
+Remove default write protection:
+- ssh into the brain
+```bash
+# Temporary:
+sudo mount -o rw,remount /
+```
+
+```bash
+# Permanent
+sudo nano /etc/fstab
+
+# in the line of root (/) change `ro` to `rw`
+```
