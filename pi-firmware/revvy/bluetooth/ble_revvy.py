@@ -230,17 +230,7 @@ class RevvyBLE:
         # the old service descriptor contained a circular dependency, which means systemd
         # started up dependencies in a different order than we expected. This caused the
         # bluetooth service to not be started when we tried to start the revvy service.
-        with open("/etc/systemd/system/revvy.service", "r") as f:
-            is_old_image = (
-                "Wants=bluetooth.target network.target sound.target hciuart.service dhcpcd.service systemd-logind.service dbus.service"
-                in f.read()
-            )
-
-        if is_old_image:
-            service = "bluetooth.service"
-        else:
-            service = "bluetooth.target"
-
+        service = "bluetooth.service"
         if service_status(service) != 0:
             self._log("Bluetooth service not running, waiting for it to start")
             stopwatch = Stopwatch()
@@ -252,22 +242,8 @@ class RevvyBLE:
             if timeout:
                 raise TimeoutError("Bluetooth service did not start in time, exiting")
 
-        if is_old_image or is_rpi_zero_2w():
-            # On older images, the systemd services were not properly ordered, so we need to wait
-            # for the bluetooth service to start. This wait is a bit longer than measured startup
-            # time of bluetooth.service. For some reason systemd immediately reports the service as
-            # started, but it takes a bit longer for the bluetooth functionality to be available.
-            #
-            # The Raspberry Pi Zero W2, the whole stack seems to be sensitive of the SD card,
-            # and delaying a bit more seems to help. It is also faster so we can tolerate the
-            # delay.
-            # Trying to use BLE immediately will result in an `OSError: [Errno 100] Network is down`
-            time.sleep(3)
-        else:
-            # We previously had this sleep in the launcher, but it makes more sense to allow stuff
-            # to load in the background while we wait for the bluetooth service to start.
-            # Still, we can't start sooner than the bluetooth service is ready.
-            time.sleep(1.5)
+        # We need to allow the bluetooth service to start up before we start advertising.
+        time.sleep(1.5)
 
         self._bleno.start()
 
