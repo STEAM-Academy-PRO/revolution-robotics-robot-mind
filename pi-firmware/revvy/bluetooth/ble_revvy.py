@@ -3,6 +3,7 @@
 import os
 import subprocess
 import time
+from typing import Callable
 from pybleno import Bleno, BlenoPrimaryService
 
 from revvy.bluetooth.services.battery import CustomBatteryService
@@ -216,55 +217,39 @@ class RevvyBLE:
     def start(self) -> None:
         """Switch interface on, start the robot."""
 
-        def service_status(service: str) -> int:
+        def service_running() -> bool:
             bluetooth_status = subprocess.run(
-                ["/usr/bin/systemctl", "status", service],
+                ["/usr/bin/systemctl", "status", "bluetooth.service"],
                 capture_output=True,
                 check=False,
             )
 
-            self._log(f"Bluetooth status: {bluetooth_status.returncode}", LogLevel.INFO)
+            return bluetooth_status.returncode == 0
 
-            return bluetooth_status.returncode
-
-        def hci_status() -> bool:
+        def hci_up() -> bool:
             hci_process = subprocess.run(
                 ["/usr/bin/hciconfig", "hci0"],
                 capture_output=True,
                 check=False,
             )
             output = hci_process.stdout.__str__()
-            up = "UP RUNNING" in output
 
-            self._log(f"HCI status: {output}", LogLevel.INFO)
+            return "UP RUNNING" in output
 
-            return up
+        def wait_for(check: Callable, name: str):
+            if not check():
+                self._log(f"Waiting for {name}")
+                stopwatch = Stopwatch()
+                timeout = True
+                while stopwatch.elapsed < 10:
+                    if check():
+                        timeout = False
+                        break
+                if timeout:
+                    raise TimeoutError(f"{name} did not start in time, exiting")
 
-        # the old service descriptor contained a circular dependency, which means systemd
-        # started up dependencies in a different order than we expected. This caused the
-        # bluetooth service to not be started when we tried to start the revvy service.
-        service = "bluetooth.service"
-        if service_status(service) != 0:
-            self._log("Bluetooth service not running, waiting for it to start")
-            stopwatch = Stopwatch()
-            timeout = True
-            while stopwatch.elapsed < 10:
-                if service_status(service) == 0:
-                    timeout = False
-                    break
-            if timeout:
-                raise TimeoutError("Bluetooth service did not start in time, exiting")
-
-        if not hci_status():
-            self._log("Waiting for HCI interface")
-            stopwatch = Stopwatch()
-            timeout = True
-            while stopwatch.elapsed < 10:
-                if hci_status():
-                    timeout = False
-                    break
-            if timeout:
-                raise TimeoutError("HCI interface did not start in time, exiting")
+        wait_for(service_running, "Bluetooth service")
+        wait_for(hci_up, "HCI interface")
 
         self._bleno.start()
 
@@ -276,9 +261,3 @@ class RevvyBLE:
     def report_errors_in_queue(self, *args) -> None:
         while revvy_error_handler.has_error():
             self._live.report_error(revvy_error_handler.pop_error())
-
-
-def is_rpi_zero_2w() -> bool:
-    """Check if the device is a Raspberry Pi Zero 2 W"""
-    with open("/proc/cpuinfo") as f:
-        return "Raspberry Pi Zero 2 W" in f.read()
