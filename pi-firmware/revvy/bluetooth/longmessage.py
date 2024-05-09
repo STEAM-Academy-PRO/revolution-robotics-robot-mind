@@ -429,7 +429,7 @@ class LongMessageImplementation:
         else:
             self._progress = None
             # TODO: Is this the right place to change the robot's inner state?
-            self._robot_manager.robot.status.robot_status = RobotStatus.Configuring
+            self._robot_manager.robot.status.update_robot_status(RobotStatus.Configuring)
 
     def on_upload_progress(self, message: ReceivedLongMessage):
         """Indicate long message download progress"""
@@ -518,7 +518,7 @@ class LongMessageImplementation:
 
         elif message_type == LongMessageType.FRAMEWORK_DATA:
             # TODO: Eliminate calling robot status updates from the outside like this!
-            self._robot_manager.robot.status.robot_status = RobotStatus.Updating
+            self._robot_manager.robot.status.update_robot_status(RobotStatus.Updating)
             if self._progress is not None:
                 self._progress.show_indeterminate_loading_on_led_ring()
 

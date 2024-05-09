@@ -1,10 +1,9 @@
 """ Takes an array of N integers 0..3 and packs them into a struct. """
 
 import struct
-from typing import List
 
 
-def pack_2_bit_number_array_32(numbers: List[int]) -> bytearray:
+def pack_2_bit_number_array_32(numbers: list[int]) -> bytearray:
     """
     Returns 8 bytes, filled from the highest index with the 2-bit numbers from the input list.
     converts:  1 2 0 1 => REVERSE: 01 10 00 01 => \x49

@@ -217,8 +217,7 @@ class Robot:
         self._sound.reset_volume()
         self._robot_control.orientation_reset()
 
-        self._status.robot_status = RobotStatus.NotConfigured
-        self._status.update()
+        self._status.update_robot_status(RobotStatus.NotConfigured)
 
     def stop(self) -> None:
         self._sound.wait()

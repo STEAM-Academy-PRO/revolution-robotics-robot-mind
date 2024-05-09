@@ -177,6 +177,7 @@ jobs:
           # install dependencies
           pip install -r install/requirements.txt
           pip install -r install/requirements_dev.txt
+          pip install -r install/requirements_pi_dev.txt
 
           # check formatting
           black --check .

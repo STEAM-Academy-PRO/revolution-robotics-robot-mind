@@ -407,7 +407,7 @@ class Response(NamedTuple):
 class RevvyTransport:
     _transaction_mutex = Lock()  # Ensures that write-read pairs are not interrupted
     timeout = 5  # [seconds] how long the MCU is allowed to respond with "busy" or no response
-    retry = 100  # FIXME: 100 seems like an excessive value
+    retry = 50  # FIXME: 50 seems like an excessive value
     retry_sleep_threshold = 20  # FIXME: This is a hack to work around an RPi Zero v1 issue that may prevent firmware updates from succeedin.
 
     def __init__(self, transport: RevvyTransportInterface):

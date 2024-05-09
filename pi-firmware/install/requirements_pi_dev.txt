@@ -1,0 +1,5 @@
+# List of dependencies to be installed on the Raspberry, for development
+nose2==0.11.0
+mock==4.0.3
+websockets==12.0
+debugpy>=1.8.0

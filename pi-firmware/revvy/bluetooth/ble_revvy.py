@@ -3,7 +3,7 @@
 import os
 import subprocess
 import time
-from typing import List
+from typing import Callable
 from pybleno import Bleno, BlenoPrimaryService
 
 from revvy.bluetooth.services.battery import CustomBatteryService
@@ -157,7 +157,7 @@ class RevvyBLE:
         # log(f'program status update: {button_id} {status}')
         self._live.update_program_status(button_id, status)
 
-    def update_motor(self, ref, motor_angles: List[int]) -> None:
+    def update_motor(self, ref, motor_angles: list[int]) -> None:
         """Currently unused, as we are not doing anything with it in the app."""
         for angle, index in enumerate(motor_angles):
             self._live.update_motor(index, MotorData(0, 0, angle))
@@ -217,53 +217,41 @@ class RevvyBLE:
     def start(self) -> None:
         """Switch interface on, start the robot."""
 
-        def service_status(service: str) -> int:
+        def service_running() -> bool:
             bluetooth_status = subprocess.run(
-                ["/usr/bin/systemctl", "status", service],
+                ["/usr/bin/systemctl", "status", "bluetooth.service"],
                 capture_output=True,
                 check=False,
             )
 
-            self._log(f"Bluetooth status: {bluetooth_status.returncode}", LogLevel.INFO)
+            return bluetooth_status.returncode == 0
 
-            return bluetooth_status.returncode
+        def hci_up() -> bool:
+            hci_process = subprocess.run(
+                ["/usr/bin/hciconfig", "hci0"],
+                capture_output=True,
+                check=False,
+            )
+            output = hci_process.stdout.__str__()
 
-        # the old service descriptor contained a circular dependency, which means systemd
-        # started up dependencies in a different order than we expected. This caused the
-        # bluetooth service to not be started when we tried to start the revvy service.
-        with open("/etc/systemd/system/revvy.service", "r") as f:
-            is_old_image = "WantedBy=multi-user.target" in f.read()
+            return "UP RUNNING" in output
 
-        if is_old_image:
-            service = "bluetooth.service"
-        else:
-            service = "bluetooth.target"
+        def wait_for(check: Callable, name: str):
+            if not check():
+                self._log(f"Waiting for {name}")
+                stopwatch = Stopwatch()
+                timeout = True
+                while stopwatch.elapsed < 10:
+                    if check():
+                        timeout = False
+                        break
+                if timeout:
+                    raise TimeoutError(f"{name} did not start in time, exiting")
 
-        if service_status(service) != 0:
-            self._log("Bluetooth service not running, waiting for it to start")
-            stopwatch = Stopwatch()
-            timeout = True
-            while stopwatch.elapsed < 10:
-                if service_status(service) == 0:
-                    timeout = False
-                    break
-            if timeout:
-                raise TimeoutError("Bluetooth service did not start in time, exiting")
-
-        if is_old_image or is_rpi_zero_2w():
-            # On older images, the systemd services were not properly ordered, so we need to wait
-            # for the bluetooth service to start. This wait is a bit longer than measured startup
-            # time of bluetooth.service. For some reason systemd immediately reports the service as
-            # started, but it takes a bit longer for the bluetooth functionality to be available.
-            #
-            # The Raspberry Pi Zero W2, the whole stack seems to be sensitive of the SD card,
-            # and delaying a bit more seems to help. It is also faster so we can tolerate the
-            # delay.
-            # Trying to use BLE immediately will result in an `OSError: [Errno 100] Network is down`
-            time.sleep(1.5)
+        wait_for(service_running, "Bluetooth service")
+        wait_for(hci_up, "HCI interface")
 
         self._bleno.start()
-        self._robot_manager.robot_start()
 
     def stop(self) -> None:
         """Quit the program"""
@@ -273,9 +261,3 @@ class RevvyBLE:
     def report_errors_in_queue(self, *args) -> None:
         while revvy_error_handler.has_error():
             self._live.report_error(revvy_error_handler.pop_error())
-
-
-def is_rpi_zero_2w() -> bool:
-    """Check if the device is a Raspberry Pi Zero 2 W"""
-    with open("/proc/cpuinfo") as f:
-        return "Raspberry Pi Zero 2 W" in f.read()

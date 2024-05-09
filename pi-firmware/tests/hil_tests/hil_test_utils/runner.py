@@ -13,7 +13,7 @@ get_printing_logger = get_logger
 install_memory_logger()
 
 import sys
-from typing import Callable, List
+from typing import Callable
 
 from revvy.hardware_dependent.rrrc_transport_i2c import RevvyTransportI2C
 from revvy.mcu.rrrc_control import RevvyTransportBase
@@ -54,7 +54,7 @@ def run_scenario(
         return result == RevvyStatusCode.OK
 
 
-def run_test_scenarios(scenarios: List[Callable[[Logger, ProgrammedRobotController], None]]):
+def run_test_scenarios(scenarios: list[Callable[[Logger, ProgrammedRobotController], None]]):
     log = get_printing_logger("TestRunner")
 
     log(f"pack: {CURRENT_INSTALLATION_PATH}")
