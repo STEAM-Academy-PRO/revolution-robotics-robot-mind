@@ -2,7 +2,6 @@
 
 """ Main entry point for the revvy service. """
 
-import argparse
 import sys
 import traceback
 from revvy.firmware_updater import update_firmware_if_needed
@@ -13,8 +12,7 @@ from revvy.bluetooth.ble_revvy import RevvyBLE
 
 from revvy.utils.logger import get_logger
 from revvy.utils.directories import CURRENT_INSTALLATION_PATH
-
-from tools.check_manifest import check_manifest
+from revvy.utils.check_manifest import check_manifest
 
 # Load the error reporter and init the singleton that'll catch system errors.
 from revvy.utils.error_reporter import revvy_error_handler
@@ -22,11 +20,14 @@ from revvy.utils.error_reporter import revvy_error_handler
 log = get_logger("revvy.py")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Revvy PI firmware")
-    parser.add_argument("--debug", action="store_true", help="Enable debug mode")
-    args = parser.parse_args()
+    if "--prime" in sys.argv:
+        # We just wanted to cache the imports, let's exit. This is used by the launcher when
+        # installing the default package, to improve its startup time.
+        sys.exit(0)
 
-    if not args.debug:
+    # Is the script started with --debug?
+    is_debug = "--debug" in sys.argv
+    if not is_debug:
         revvy_error_handler.register_uncaught_exception_handler()
 
     log(f"pack: {CURRENT_INSTALLATION_PATH}")
@@ -51,13 +52,20 @@ if __name__ == "__main__":
     # Receives commands from the control interface, acts on the robot_manager.
     bluetooth_controller = RevvyBLE(robot_manager)
 
-    if args.debug:
+    if is_debug:
         from revvy.api.websocket import RobotWebSocketApi
 
         RobotWebSocketApi(robot_manager)
 
     try:
+        # Give visual indication to the user that something is happening
+        robot_manager.robot_start()
+
+        # Start up the wireless controller interface
         bluetooth_controller.start()
+
+        # Play a sound to indicate that the robot is ready
+        robot_manager._robot.play_tune("s_bootup")
 
         log("Press Enter to exit")
         input()

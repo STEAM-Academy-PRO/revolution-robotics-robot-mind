@@ -15,7 +15,6 @@ import hashlib
 import time
 import traceback
 from json import JSONDecodeError
-from typing import List
 from version import Version
 
 
@@ -440,16 +439,13 @@ def wait_for_board_powered():
         amp_en = subprocess.check_output(["gpio", "read", AMP_EN_WIRINGPI_PIN])
 
 
-def start_newest_framework(skipped_versions: List[str]):
+def start_newest_framework(skipped_versions: list[str]):
     """Starts the newest framework version.
 
     Returns True if the script should terminate, False if it should continue.
     """
 
     wait_for_board_powered()
-
-    # delay to wait hciuart device
-    time.sleep(1)
 
     print("Looking for firmware packages")
     path = select_newest_package(INSTALLED_PACKAGES_DIR, skipped_versions)
@@ -485,6 +481,7 @@ def install_updates(install_directory, dependencies: bool):
 
     for package, is_dev in sources:
         if has_update_package(DATA_DIRECTORY, package):
+            cleanup_invalid_installations(install_directory)
             install_update_package(install_directory, package, is_dev, dependencies)
 
 
@@ -551,12 +548,21 @@ def main():
         action="store_true",
     )
     parser.add_argument(
+        "--service",
+        help="The script has been started by a systemd service.",
+        action="store_true",
+    )
+    parser.add_argument(
         "--test",
         help="Run test scripts",
         action="store_true",
     )
 
     args = parser.parse_args()
+
+    if args.service:
+        # ignore logs when running as a service
+        log = lambda msg: ...
 
     if args.test:
         if args.setup:
@@ -578,7 +584,6 @@ def main():
 
         print(f"Install directory: {install_directory}")
         print(f"Data directory: {DATA_DIRECTORY}")
-        cleanup_invalid_installations(install_directory)
         install_updates(install_directory, not args.skip_dependencies)
         print("--install-only flag is set, will not start framework")
         return 0

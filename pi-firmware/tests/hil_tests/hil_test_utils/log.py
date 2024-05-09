@@ -2,7 +2,7 @@ from threading import current_thread
 from threading import Lock
 
 import sys
-from typing import List, Optional, Union
+from typing import Optional, Union
 from revvy.utils.logger import LogLevel, hash_to_color, LEVELS
 from revvy.utils.stopwatch import Stopwatch
 
@@ -44,7 +44,7 @@ def install_memory_logger() -> None:
     original_get_logger = module.get_logger
 
     def get_memory_logger(
-        tag: Union[str, List[str]],
+        tag: Union[str, list[str]],
         default_log_level: Optional[int] = None,
         base: Optional[BufferingLogger] = None,
     ):
@@ -62,7 +62,7 @@ def clear_logs() -> None:
         TEST_START_TIME.reset()
 
 
-def take_messages() -> List[str]:
+def take_messages() -> list[str]:
     with lock:
         # replace with empty list and return
         global messages

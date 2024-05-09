@@ -34,7 +34,7 @@ if __name__ == "__main__":
     package_sources = [
         "revvy/",
         "install/requirements.txt",
-        "install/requirements_dev.txt",
+        "install/requirements_pi_dev.txt",
         "data/",
         "revvy.py",
         "__init__.py",

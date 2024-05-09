@@ -1,6 +1,6 @@
 import abc
 from threading import Lock
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from revvy.utils.emitter import SimpleEventEmitter
 from revvy.utils.logger import get_logger, LogLevel
@@ -100,7 +100,7 @@ class Resource:
     Resources need to be bound to scripts before they can be accessed.
     """
 
-    def __init__(self, name: Union[str, List[str]] = "Resource"):
+    def __init__(self, name: Union[str, list[str]] = "Resource"):
         self._lock = Lock()
         self._log = get_logger(name, LogLevel.DEBUG)
         self._current_priority = -1

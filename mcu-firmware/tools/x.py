@@ -94,6 +94,7 @@ if __name__ == "__main__":
             "generate",
             "erase",
             "run",
+            "attach",
         ],
     )
     parser.add_argument("--release", help="Build in release mode", action="store_true")
@@ -118,4 +119,10 @@ if __name__ == "__main__":
         dir = "Release" if args.release else "Debug"
         shell(
             f"probe-rs run --chip atsamd51p19a Build/{dir}/mcu-firmware/rrrc_samd51.elf"
+        )
+
+    elif args.action == "attach":
+        dir = "Release" if args.release else "Debug"
+        shell(
+            f"probe-rs attach --chip atsamd51p19a Build/{dir}/mcu-firmware/rrrc_samd51.elf"
         )

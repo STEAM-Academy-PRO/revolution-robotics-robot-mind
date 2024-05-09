@@ -171,6 +171,14 @@ def build(config: str, dev_package: bool = False):
     create_py_package(dev_package)
 
 
+def stop_service():
+    ssh("sudo systemctl stop revvy")
+
+
+def start_service():
+    ssh("sudo systemctl start revvy")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="./x", description="Revvy build and deploy tool")
     parser.add_argument(
@@ -184,6 +192,7 @@ if __name__ == "__main__":
             "test",
             "hil-test",
             "run",
+            "reboot",
         ],
     )
     parser.add_argument("--release", help="Build in release mode", action="store_true")
@@ -200,31 +209,31 @@ if __name__ == "__main__":
         build(config)
         upload_debug_launcher()
         upload_package_to_robot(dev_package=True)
-        ssh("sudo systemctl stop revvy")
+        stop_service()
         ssh("~/RevvyFramework/launch_revvy.py --install-only --skip-dependencies")
         if not args.no_start:
-            ssh("sudo systemctl start revvy")
+            start_service()
 
     elif args.action == "run":
         build(config)
         upload_debug_launcher()
         upload_package_to_robot(dev_package=True)
-        ssh("sudo systemctl stop revvy")
+        stop_service()
         ssh("~/RevvyFramework/launch_revvy.py --skip-dependencies")
 
     elif args.action == "full-deploy":
         build(config)
         upload_package_to_robot(dev_package=False)
-        ssh("sudo systemctl stop revvy")
+        stop_service()
         ssh("~/RevvyFramework/launch_revvy.py --install-only")
         if not args.no_start:
-            ssh("sudo systemctl start revvy")
+            start_service()
 
     elif args.action == "hil-test":
         build(config, dev_package=True)
         upload_debug_launcher()
         upload_package_to_robot(dev_package=True)
-        ssh("sudo systemctl stop revvy")
+        stop_service()
         ssh("~/RevvyFramework/launch_revvy.py --install-only --skip-dependencies")
         ssh(
             "cd ~/RevvyFramework/user/packages/dev-pi-firmware/ && python3 -u -m tests.hil_tests.tests"
@@ -235,3 +244,6 @@ if __name__ == "__main__":
         shell("cd tests && nose2 -B")
         print(green("Running doctests"))
         shell("cd revvy && nose2 -B")
+
+    elif args.action == "reboot":
+        ssh("sudo reboot")

@@ -2,7 +2,7 @@ import hashlib
 import json
 import traceback
 from binascii import b2a_base64, a2b_base64
-from typing import List, TypeVar
+from typing import TypeVar
 
 
 IntOrFloat = TypeVar("IntOrFloat", int, float)
@@ -140,7 +140,7 @@ def is_bit_set(reg, bit) -> bool:
     return reg & (1 << bit) != 0
 
 
-def bits_to_bool_list(byte_list) -> List[bool]:
+def bits_to_bool_list(byte_list) -> list[bool]:
     """
     >>> bits_to_bool_list([0xFF])
     [True, True, True, True, True, True, True, True]

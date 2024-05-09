@@ -2,7 +2,7 @@ from abc import ABC
 from enum import Enum
 import struct
 from threading import Lock
-from typing import List, NamedTuple, Optional
+from typing import NamedTuple, Optional
 
 from revvy.robot.ports.common import PortInstance
 from revvy.robot.ports.motors.base import MotorConstants, MotorStatus, MotorPortDriver
@@ -167,7 +167,7 @@ class AccelerationLimitConfig:
 
 
 class LinearityConfig:
-    def __init__(self, config: List[tuple[float, int]]):
+    def __init__(self, config: list[tuple[float, int]]):
         self._points = config
 
     def __bytes__(self) -> bytes:

@@ -1,9 +1,6 @@
+# List of dependencies for the local development environment or CI
 nose2==0.11.0
 mock==4.0.3
-#flask=3.0.0
-#flask-cors=4.0.0
-websockets==12.0
-debugpy>=1.8.0
 pyright>=1.1
 black>=24
 paramiko>=3.4.0

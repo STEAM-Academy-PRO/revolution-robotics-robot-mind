@@ -48,7 +48,7 @@ class RobotStatusIndicator:
         self._master_led = None
         self._bluetooth_led = None
 
-    def _update_master_led(self):
+    def _update_master_led(self) -> None:
         led = RobotStatusIndicator.MasterLeds[self._robot_status]
         if led is None:
             return
@@ -59,33 +59,29 @@ class RobotStatusIndicator:
             self._master_led = led
             self._interface.set_master_status(led)
 
-    def _update_bluetooth_led(self):
+    def _update_bluetooth_led(self) -> None:
         led = RobotStatusIndicator.BluetoothLeds[self._controller_status]
         if led != self._bluetooth_led:
             self._bluetooth_led = led
             self._interface.set_bluetooth_connection_status(led)
 
-    def update(self):
-        self._update_master_led()
-        self._update_bluetooth_led()
-
     @property
-    def robot_status(self):
+    def robot_status(self) -> RobotStatus:
         return self._robot_status
 
-    @robot_status.setter
-    def robot_status(self, value):
-        self._log(f"Robot: {self._robot_status} -> {value}")
-        if self._robot_status != RobotStatus.Stopped:
-            self._robot_status = value
-            self._update_master_led()
+    def update_robot_status(self, value: RobotStatus):
+        if value != self._robot_status:
+            self._log(f"Robot: {self._robot_status} -> {value}")
+
+            if self._robot_status != RobotStatus.Stopped:
+                self._robot_status = value
+                self._update_master_led()
 
     @property
-    def controller_status(self):
+    def controller_status(self) -> RemoteControllerStatus:
         return self._controller_status
 
-    @controller_status.setter
-    def controller_status(self, value):
+    def update_controller_status(self, value: RemoteControllerStatus):
         if value != self._controller_status:
             self._log(f"Controller: {self._controller_status} -> {value}")
             self._controller_status = value
