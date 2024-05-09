@@ -520,12 +520,6 @@ def run_tests() -> int:
         return -1
 
 
-def is_rpi_zero_2w() -> bool:
-    """Check if the device is a Raspberry Pi Zero 2 W"""
-    with open("/proc/cpuinfo") as f:
-        return "Raspberry Pi Zero 2 W" in f.read()
-
-
 def main():
     """Runs revvy from directory.
 
