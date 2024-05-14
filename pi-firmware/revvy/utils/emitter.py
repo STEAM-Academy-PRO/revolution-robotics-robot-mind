@@ -1,7 +1,7 @@
 """ Simple event emitter lib """
 
 from contextlib import suppress
-from typing import Callable, Generic, TypeVar
+from typing import Any, Callable, Generic, TypeVar
 
 from revvy.utils.logger import LogLevel, get_logger
 

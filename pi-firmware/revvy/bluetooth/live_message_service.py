@@ -26,6 +26,7 @@ from revvy.bluetooth.data_types import (
     TimerData,
 )
 from revvy.robot.rc_message_parser import parse_control_message
+from revvy.robot.robot_events import ProgramStatusChange
 from revvy.robot_manager import RobotManager
 from revvy.scripting.runtime import ScriptEvent
 
@@ -199,10 +200,10 @@ class LiveMessageService(BlenoPrimaryService):
         if 0 < sensor_data.port_id <= len(self._sensor_characteristics):
             self._sensor_characteristics[sensor_data.port_id - 1].updateValue(sensor_data)
 
-    def update_program_status(self, button_id: int, status: ScriptEvent):
+    def update_program_status(self, emitter, change: ProgramStatusChange):
         """Update the status of a button-triggered script"""
 
-        self._program_status_characteristic.updateButtonStatus(button_id, status.value)
+        self._program_status_characteristic.updateButtonStatus(change.id, change.status.value)
 
     def update_motor(self, motor: int, data: MotorData):
         """Send back motor angle value to mobile."""
@@ -210,7 +211,7 @@ class LiveMessageService(BlenoPrimaryService):
         if 0 <= motor < len(self._motor_characteristics):
             self._motor_characteristics[motor].updateValue(data)
 
-    def update_session_id(self, value: int):
+    def update_session_id(self, emitter, value: int):
         """Send back session_id to mobile."""
         data = list(struct.pack("<I", value))
         # Maybe this was supposed to be used for detecting MCU reset in the mobile, but
@@ -222,11 +223,11 @@ class LiveMessageService(BlenoPrimaryService):
         # TODO: unused?
         self._gyro_characteristic.updateValue(data)
 
-    def update_orientation(self, data: GyroData):
+    def update_orientation(self, emitter, data: GyroData):
         """Send back orientation to mobile. Used to display the yaw of the robot"""
         self._orientation_characteristic.updateValue(data)
 
-    def update_timer(self, data: TimerData):
+    def update_timer(self, emitter, data: TimerData):
         """Send back timer tick to mobile."""
         self._timer_characteristic.updateValue(data)
 
@@ -234,14 +235,14 @@ class LiveMessageService(BlenoPrimaryService):
         log(f"Sending Error: {data}")
         self._error_reporting_characteristic.sendQueued(data.__bytes__(), on_ready)
 
-    def update_script_variables(self, script_variables: ScriptVariables):
+    def update_script_variables(self, emitter, script_variables: ScriptVariables):
         """
         In the mobile app, this data shows up when we track variables.
         By characteristic protocol - maximum slots in BLE message is 4.
         """
         self._read_variable_characteristic.updateValue(script_variables)
 
-    def update_state_control(self, state: BackgroundControlState):
+    def update_state_control(self, emitter, state: BackgroundControlState):
         """Send back the background programs' state."""
         log(f"state control update, {state}")
         self._background_program_control_characteristic.updateValue(state)
