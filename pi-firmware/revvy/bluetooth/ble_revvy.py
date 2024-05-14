@@ -60,8 +60,10 @@ class RevvyBLE:
         ### Services
         ### -----------------------------------------------------
 
+        initial_battery_state = self._robot_manager._robot_state._battery.get()
+
         self._dis = DeviceInformationService()
-        self._bas = CustomBatteryService()
+        self._bas = CustomBatteryService(initial_battery_state)
         self._live = LiveMessageService(robot_manager)
         self._long = LongMessageService(long_message_handler)
 
@@ -101,11 +103,6 @@ class RevvyBLE:
             RobotEvent.BATTERY_CHANGE,
             lambda ref, val: self._bas.characteristic("unified_battery_status").updateValue(val),
         )
-
-        # Initialize value - this could be prettier, not sure how yet.
-        initial_battery_state = self._robot_manager._robot_state._battery.get()
-        self._bas.characteristic("unified_battery_status").updateValue(initial_battery_state)
-
         self._robot_manager.on(RobotEvent.SENSOR_VALUE_CHANGE, self._live.update_sensor)
 
         # Only send up ORIENTATION changes, NO GYRO as we are not using that anywhere.

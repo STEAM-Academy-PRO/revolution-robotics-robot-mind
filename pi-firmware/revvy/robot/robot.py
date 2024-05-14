@@ -192,7 +192,7 @@ class Robot:
         self._ring_led.start_animation(RingLed.BreathingGreen)
         self._status_updater.reset()
 
-        def _process_battery_slot(data) -> None:
+        def _process_battery_slot(data: bytes):
             assert len(data) == 4
             main_status, main_percentage, motor_bat_present, motor_percentage = data
 
