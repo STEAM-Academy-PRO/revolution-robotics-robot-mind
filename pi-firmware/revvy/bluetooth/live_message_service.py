@@ -183,7 +183,7 @@ class LiveMessageService(BlenoPrimaryService):
             )
         )
 
-    def update_sensor(self, sensor_data: SensorData):
+    def update_sensor(self, emitter, sensor_data: SensorData):
         """Send back sensor value to mobile."""
         if 0 < sensor_data.port_id <= len(self._sensor_characteristics):
             self._sensor_characteristics[sensor_data.port_id - 1].updateValue(sensor_data)
