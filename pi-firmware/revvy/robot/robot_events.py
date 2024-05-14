@@ -40,9 +40,9 @@ class RobotEvent(Enum):
 
 
 class ProgramStatusChange(NamedTuple):
-    """Which program ID, what's the status of the program?"""
+    """Describes which button script has changed status, and includes the new status."""
 
-    id: Optional[int]
+    id: int
     status: ScriptEvent
 
 
