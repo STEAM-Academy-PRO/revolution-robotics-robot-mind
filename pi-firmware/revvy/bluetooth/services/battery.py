@@ -13,7 +13,7 @@ class UnifiedBatteryInfoCharacteristic(Characteristic):
             }
         )
 
-        self._value = initial
+        self._value = encode_battery(initial)
 
     def onReadRequest(self, offset, callback) -> None:
         if offset:
@@ -21,15 +21,11 @@ class UnifiedBatteryInfoCharacteristic(Characteristic):
         else:
             callback(
                 Characteristic.RESULT_SUCCESS,
-                [
-                    self._value.main,
-                    self._value.chargerStatus,
-                    self._value.motor,
-                    self._value.motor_battery_present,
-                ],
+                self._value,
             )
 
-    def updateValue(self, new_value: BatteryStatus) -> None:
+    def updateValue(self, battery: BatteryStatus) -> None:
+        new_value = encode_battery(battery)
         if new_value == self._value:
             return
 
@@ -38,6 +34,15 @@ class UnifiedBatteryInfoCharacteristic(Characteristic):
         update_notified_value = self.updateValueCallback
         if update_notified_value:
             update_notified_value(self._value)
+
+
+def encode_battery(battery: BatteryStatus) -> list[int]:
+    return [
+        battery.main,
+        battery.chargerStatus,
+        battery.motor,
+        battery.motor_battery_present,
+    ]
 
 
 class CustomBatteryService(BleService):
