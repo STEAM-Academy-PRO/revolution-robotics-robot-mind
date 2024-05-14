@@ -342,7 +342,7 @@ class LongMessageCharacteristic(Characteristic):
 
 
 class UnifiedBatteryInfoCharacteristic(Characteristic):
-    def __init__(self, uuid, description) -> None:
+    def __init__(self, uuid, description, initial: BatteryStatus) -> None:
         super().__init__(
             {
                 "uuid": uuid,
@@ -351,21 +351,23 @@ class UnifiedBatteryInfoCharacteristic(Characteristic):
             }
         )
 
-        self._value = [0, 0, 0, 0]
+        self._value = initial
 
     def onReadRequest(self, offset, callback) -> None:
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
         else:
-            callback(Characteristic.RESULT_SUCCESS, self._value)
+            callback(
+                Characteristic.RESULT_SUCCESS,
+                [
+                    self._value.main,
+                    self._value.chargerStatus,
+                    self._value.motor,
+                    self._value.motor_battery_present,
+                ],
+            )
 
-    def updateValue(self, battery_status: BatteryStatus) -> None:
-        new_value = [
-            round(battery_status.main),
-            battery_status.chargerStatus,
-            round(battery_status.motor),
-            battery_status.motor_battery_present,
-        ]
+    def updateValue(self, new_value: BatteryStatus) -> None:
         if new_value == self._value:
             return
 
