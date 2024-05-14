@@ -22,6 +22,13 @@ class SimpleEventEmitter:
     def add(self, callback: Callable):
         self._callbacks.append(callback)
 
+    def add_single_shot(self, callback: Callable):
+        def wrapper(*args, **kwargs) -> None:
+            self.remove(wrapper)
+            callback(*args, **kwargs)
+
+        self.add(wrapper)
+
     def clear(self) -> None:
         self._callbacks.clear()
 
