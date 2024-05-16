@@ -7,7 +7,7 @@
 
 static uint8_t config_buffer[128];
 
-#define SENSOR_PORT_IDX(x) (x - 1u)
+#define SENSOR_PORT_IDX(x) (x)
 
 #define TEST_SENSOR_ON_PORT_RESULT_ABSENT  0
 #define TEST_SENSOR_ON_PORT_RESULT_PRESENT 1

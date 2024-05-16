@@ -54,10 +54,10 @@ class MotorCommand(ABC, Serialize):
     def __init__(self, request_type: int):
         self.request_type = request_type
 
-    def command_to_port(self, port_idx) -> bytes:
+    def command_to_port(self, port: PortInstance["MotorPortDriver"]) -> bytes:
         command_data = [self.request_type, *self.__bytes__()]
 
-        header = ((len(command_data) << 3) & 0xF8) | port_idx
+        header = ((len(command_data) << 3) & 0xF8) | port.id
 
         return bytes([header, *command_data])
 
@@ -235,7 +235,7 @@ class BaseDcMotorDriver(MotorPortDriver):
         You can send the returned command (or multiple commands)
         using `interface.set_motor_port_control_value`
         """
-        return SetPowerCommand(power).command_to_port(self._port.id - 1)
+        return SetPowerCommand(power).command_to_port(self._port)
 
     def create_set_speed_command(self, speed: float, power_limit: Optional[float] = None) -> bytes:
         """Create a command to set the regulated speed of the current motor.
@@ -243,7 +243,7 @@ class BaseDcMotorDriver(MotorPortDriver):
         You can send the returned command (or multiple commands)
         using `interface.set_motor_port_control_value`
         """
-        return SetSpeedCommand(speed, power_limit).command_to_port(self._port.id - 1)
+        return SetSpeedCommand(speed, power_limit).command_to_port(self._port)
 
     def create_absolute_position_command(
         self, position, speed_limit=None, power_limit=None
@@ -257,7 +257,7 @@ class BaseDcMotorDriver(MotorPortDriver):
         """
         return SetPositionCommand(
             SetPositionCommand.REQUEST_ABSOLUTE, position, speed_limit, power_limit
-        ).command_to_port(self._port.id - 1)
+        ).command_to_port(self._port)
 
     def create_relative_position_command(
         self, position, speed_limit=None, power_limit=None
@@ -269,7 +269,7 @@ class BaseDcMotorDriver(MotorPortDriver):
         """
         return SetPositionCommand(
             SetPositionCommand.REQUEST_RELATIVE, position, speed_limit, power_limit
-        ).command_to_port(self._port.id - 1)
+        ).command_to_port(self._port)
 
     def _cancel_awaiter(self) -> None:
         awaiter, self._awaiter = self._awaiter, None

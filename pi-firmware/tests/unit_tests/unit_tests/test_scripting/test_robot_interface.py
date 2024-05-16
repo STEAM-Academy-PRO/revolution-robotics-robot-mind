@@ -66,15 +66,15 @@ class TestPortCollection(unittest.TestCase):
     def test_ports_can_be_accessed_by_id(self):
         pc = PortCollection([2, 3, 5])
 
-        self.assertEqual(2, pc[1])
-        self.assertEqual(3, pc[2])
-        self.assertEqual(5, pc[3])
+        self.assertEqual(2, pc[0])
+        self.assertEqual(3, pc[1])
+        self.assertEqual(5, pc[2])
         self.assertRaises(IndexError, lambda: pc[4])
 
     def test_ports_can_be_accessed_by_name(self):
         # named ports are indexed from 1
         pc = PortCollection([2, 3, 5])
-        pc.aliases.update({"foo": 1, "bar": 2, "baz": 3})
+        pc.aliases.update({"foo": 0, "bar": 1, "baz": 2})
 
         self.assertEqual(2, pc["foo"])
         self.assertEqual(3, pc["bar"])

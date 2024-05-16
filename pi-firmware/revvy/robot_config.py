@@ -13,11 +13,12 @@ log = get_logger("RobotConfig")
 
 
 class PortConfig:
-    """Configuration data for a set of ports, indexed by port id (1-based)."""
+    """Configuration data for a set of ports, indexed by port id."""
 
-    def __init__(self) -> None:
-        self._ports = {}  # id -> port config
+    def __init__(self, capacity: int) -> None:
+        self._ports: list[Optional[DriverConfig]] = [None] * capacity  # id -> port config
         self._port_names: dict[str, int] = {}  # name -> id
+        self._configured = 0
 
     @property
     def names(self) -> dict[str, int]:
@@ -25,10 +26,27 @@ class PortConfig:
 
     def __getitem__(self, item: int) -> Optional[DriverConfig]:
         """Returns a DriverConfig or None if the port is not configured"""
-        return self._ports.get(item)
+        try:
+            return self._ports[item]
+        except IndexError as e:
+            raise IndexError(f"Port index out of range: {item}") from e
 
-    def __setitem__(self, item: int, value: Optional[DriverConfig]):
-        self._ports[item] = value
+    def len(self) -> int:
+        return self._configured
+
+    def add(self, item: Optional[DriverConfig], alias: str):
+        if len(self._ports) == self._configured:
+            raise IndexError(f"Can not add more than {len(self._ports)} ports")
+
+        id = self._configured
+
+        if item is not None:
+            if alias in self.names:
+                raise KeyError(f"Port name already exists: {alias}")
+            self.names[alias] = id
+            self._ports[id] = item
+
+        self._configured += 1
 
 
 class RemoteControlConfig:
@@ -192,24 +210,13 @@ class RobotConfig:
             self.background_scripts.append(script_desc)
 
     def add_motor(self, config: Optional[DriverConfig], alias: str):
-        i = len(self.motors._ports) + 1
-
-        if config is not None:
-            self.motors.names[alias] = i
-
-        self.motors[i] = config
+        self.motors.add(config, alias)
 
     def add_sensor(self, config: Optional[DriverConfig], alias: str):
-        i = len(self.sensors._ports) + 1
-
-        if config is not None:
-            self.sensors.names[alias] = i
-
-        self.sensors[i] = config
+        self.sensors.add(config, alias)
 
     def add_motor_from_json(self, motor: Optional[dict]):
-        i = len(self.motors._ports) + 1
-
+        i = self.motors.len()
         if not motor:
             motor = {"type": 0}
 
@@ -232,13 +239,13 @@ class RobotConfig:
         else:
             motor_type = MOTOR_TYPES[motor["type"]]
 
-        self.add_motor(motor_type, motor.get("name", f"motor{i}"))
+        self.add_motor(motor_type, motor.get("name", f"motor{i+1}"))
 
     def add_sensor_from_json(self, sensor: Optional[dict]):
-        i = len(self.sensors._ports) + 1
+        i = self.sensors.len()
 
         if not sensor:
-            sensor = {"type": 0, "name": f"sensor{i}"}
+            sensor = {"type": 0, "name": f"sensor{i+1}"}
 
         SENSOR_TYPES = [
             None,
@@ -248,7 +255,7 @@ class RobotConfig:
             Sensors.SofteqCS,
         ]
 
-        self.add_sensor(SENSOR_TYPES[sensor["type"]], sensor.get("name", f"motor{i}"))
+        self.add_sensor(SENSOR_TYPES[sensor["type"]], sensor.get("name", f"motor{i+1}"))
 
     @staticmethod
     def from_string(config_string: str) -> "RobotConfig":
@@ -299,8 +306,8 @@ class RobotConfig:
         return config
 
     def __init__(self) -> None:
-        self.motors = PortConfig()
-        self.sensors = PortConfig()
+        self.motors = PortConfig(6)
+        self.sensors = PortConfig(4)
         self.drivetrain = DrivetrainConfig()
         self.controller = RemoteControlConfig()
         self.background_scripts = []

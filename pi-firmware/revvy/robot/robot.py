@@ -84,11 +84,11 @@ class Robot:
 
         self._motor_ports = MotorPortHandler(self._robot_control)
         for port in self._motor_ports:
-            port.on_config_changed.add(partial(_set_updater, StatusSlot.motor_slot(port.id - 1)))
+            port.on_config_changed.add(partial(_set_updater, StatusSlot.motor_slot(port.id)))
 
         self._sensor_ports = SensorPortHandler(self._robot_control)
         for port in self._sensor_ports:
-            port.on_config_changed.add(partial(_set_updater, StatusSlot.sensor_slot(port.id - 1)))
+            port.on_config_changed.add(partial(_set_updater, StatusSlot.sensor_slot(port.id)))
 
         self._drivetrain = DifferentialDrivetrain(self._robot_control, self._imu)
 

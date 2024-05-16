@@ -30,19 +30,18 @@ class TestSensorPortHandler(unittest.TestCase):
 
         self.assertEqual(4, ports.port_count)
 
-    def test_motor_ports_are_indexed_from_one(self):
+    def test_motor_ports_are_indexed_from_zero(self):
         mock_control = Mock()
         mock_control.get_sensor_port_amount = Mock(return_value=4)
         mock_control.get_sensor_port_types = Mock(return_value={"NotConfigured": 0})
 
         ports = SensorPortHandler(mock_control)
 
-        self.assertRaises(IndexError, lambda: ports[0])
+        self.assertIs(PortInstance, type(ports[0]))
         self.assertIs(PortInstance, type(ports[1]))
         self.assertIs(PortInstance, type(ports[2]))
         self.assertIs(PortInstance, type(ports[3]))
-        self.assertIs(PortInstance, type(ports[4]))
-        self.assertRaises(IndexError, lambda: ports[5])
+        self.assertRaises(IndexError, lambda: ports[4])
 
     def test_configure_raises_error_if_driver_is_not_supported_in_mcu(self):
         mock_control = Mock()
