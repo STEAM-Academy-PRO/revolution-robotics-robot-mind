@@ -9,7 +9,6 @@ from revvy.bluetooth.services.battery import CustomBatteryService
 from revvy.bluetooth.services.device_information import DeviceInformationService
 from revvy.bluetooth.services.long_message import LongMessageService
 from revvy.robot.robot_events import RobotEvent
-from revvy.scripting.runtime import ScriptEvent
 
 from revvy.utils.device_name import get_device_name
 from revvy.utils.directories import BLE_STORAGE_DIR, WRITEABLE_ASSETS_DIR
@@ -61,8 +60,10 @@ class RevvyBLE:
         ### Services
         ### -----------------------------------------------------
 
+        initial_battery_state = self._robot_manager._robot_state._battery.get()
+
         self._dis = DeviceInformationService()
-        self._bas = CustomBatteryService()
+        self._bas = CustomBatteryService(initial_battery_state)
         self._live = LiveMessageService(robot_manager)
         self._long = LongMessageService(long_message_handler)
 
@@ -102,57 +103,21 @@ class RevvyBLE:
             RobotEvent.BATTERY_CHANGE,
             lambda ref, val: self._bas.characteristic("unified_battery_status").updateValue(val),
         )
-
-        # Initialize value - this could be prettier, not sure how yet.
-        initial_battery_state = self._robot_manager._robot_state._battery.get()
-        self._log(f"initial battery state {initial_battery_state}")
-        self._bas.characteristic("unified_battery_status").updateValue(initial_battery_state)
-
-        self._robot_manager.on(
-            RobotEvent.SENSOR_VALUE_CHANGE,
-            lambda ref, sensor_reading: self._live.update_sensor(sensor_reading),
-        )
+        self._robot_manager.on(RobotEvent.SENSOR_VALUE_CHANGE, self._live.update_sensor)
 
         # Only send up ORIENTATION changes, NO GYRO as we are not using that anywhere.
-        self._robot_manager.on(
-            RobotEvent.ORIENTATION_CHANGE,
-            lambda ref, vector_orientation: self._live.update_orientation(vector_orientation),
-        )
-
+        self._robot_manager.on(RobotEvent.ORIENTATION_CHANGE, self._live.update_orientation)
         self._robot_manager.on(RobotEvent.DISCONNECT, self.disconnect)
-
+        self._robot_manager.on(RobotEvent.SESSION_ID_CHANGE, self._live.update_session_id)
         self._robot_manager.on(
-            RobotEvent.SESSION_ID_CHANGE, lambda ref, val: self._live.update_session_id(val)
+            RobotEvent.SCRIPT_VARIABLE_CHANGE, self._live.update_script_variables
         )
-
+        self._robot_manager.on(RobotEvent.PROGRAM_STATUS_CHANGE, self._live.update_program_status)
         self._robot_manager.on(
-            RobotEvent.SCRIPT_VARIABLE_CHANGE,
-            lambda ref, variables: self._live.update_script_variables(variables),
+            RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE, self._live.update_state_control
         )
-
-        self._robot_manager.on(
-            RobotEvent.PROGRAM_STATUS_CHANGE,
-            lambda ref, script_status_change: self.update_program_status(
-                script_status_change.id, script_status_change.status
-            ),
-        )
-
-        self._robot_manager.on(
-            RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE,
-            lambda ref, background_script_status_change: self._live.update_state_control(
-                background_script_status_change
-            ),
-        )
-
-        self._robot_manager.on(
-            RobotEvent.TIMER_TICK, lambda ref, timer_value: self._live.update_timer(timer_value)
-        )
-
+        self._robot_manager.on(RobotEvent.TIMER_TICK, self._live.update_timer)
         self._robot_manager.on(RobotEvent.ERROR, self.report_errors_in_queue)
-
-    def update_program_status(self, button_id, status: ScriptEvent):
-        # log(f'program status update: {button_id} {status}')
-        self._live.update_program_status(button_id, status)
 
     def _on_connected(self, c) -> None:
         """On new INCOMING connection, update the callback interfaces."""
@@ -165,7 +130,7 @@ class RevvyBLE:
         self._log("BLE interface disconnected!")
         self._robot_manager.on_disconnected()
 
-    def disconnect(self) -> None:
+    def disconnect(self, *args) -> None:
         """When robot wants to disconnect."""
         self._bleno.disconnect()
 

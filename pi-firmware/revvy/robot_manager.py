@@ -357,9 +357,9 @@ class RobotManager:
                 script_handle.assign("list_slots", scriptvars)
                 self.remote_controller.link_button_to_runner(button, script_handle)
 
-                script_handle.on(ScriptEvent.START, self._on_script_running)
-                script_handle.on(ScriptEvent.STOP, self._on_script_stopped)
-                script_handle.on(ScriptEvent.ERROR, self._on_script_error)
+                script_handle.on(ScriptEvent.START, self._on_button_script_running)
+                script_handle.on(ScriptEvent.STOP, self._on_button_script_stopped)
+                script_handle.on(ScriptEvent.ERROR, self._on_button_script_error)
 
         self._autonomous = config.background_initial_state
 
@@ -394,21 +394,14 @@ class RobotManager:
             self.remote_controller.background_control_state,
         )
 
-    def _on_script_running(self, script_handle: ScriptHandle, data=None):
-        """When script started, notify phone app."""
-        self.trigger(
-            RobotEvent.PROGRAM_STATUS_CHANGE,
-            ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.START),
-        )
-
     def _show_script_error(self, script_handle: ScriptHandle, exception: Exception):
         """
         Blocks thread for 2 seconds!
         On code execution error, do send visible signals
         to the user about the code being broken.
         """
-        self._log(f"ERROR in userscript: {script_handle.descriptor.name}", LogLevel.ERROR)
-        self._log(f"ERROR:  {str(exception)}", LogLevel.ERROR)
+        self._log(f"ERROR in user script: {script_handle.descriptor.name}", LogLevel.ERROR)
+        self._log(f"ERROR: {str(exception)}", LogLevel.ERROR)
         self._log(
             f"Source that caused the error: \n\n{script_handle.descriptor.source}\n", LogLevel.ERROR
         )
@@ -419,7 +412,7 @@ class RobotManager:
         self._robot.sound.play_tune_blocking("s_bug")
         self._robot.led.start_animation(RingLed.Off)
 
-    def _on_analog_script_error(self, *args):
+    def _on_analog_script_error(self, script_handle: ScriptHandle, exception: Exception):
         """Analog script errors run in separate thread, report them as System errors."""
         revvy_error_handler.report_error(RobotErrorType.SYSTEM, traceback.format_exc())
 
@@ -434,30 +427,33 @@ class RobotManager:
         # Do it at the and as it's blocking.
         self._show_script_error(script_handle, exception)
 
-    def _on_script_error(self, script_handle: ScriptHandle, exception: Exception):
+    def _report_button_script_state_change(self, script_handle: ScriptHandle, state: ScriptEvent):
+        assert script_handle.descriptor.ref_id is not None
+        self.trigger(
+            RobotEvent.PROGRAM_STATUS_CHANGE,
+            ProgramStatusChange(script_handle.descriptor.ref_id, state),
+        )
+
+    def _on_button_script_running(self, script_handle: ScriptHandle, data):
+        """When script started, notify phone app."""
+        self._report_button_script_state_change(script_handle, ScriptEvent.START)
+
+    def _on_button_script_error(self, script_handle: ScriptHandle, exception: Exception):
         """
         Handle runner script errors gracefully, and type out what caused it to bail!
         These are user scripts, so we should consider sending them back via Bluetooth
         """
-        self.trigger(
-            RobotEvent.PROGRAM_STATUS_CHANGE,
-            ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.ERROR),
-        )
+        self._report_button_script_state_change(script_handle, ScriptEvent.ERROR)
 
         revvy_error_handler.report_error(
             RobotErrorType.BLOCKLY_BUTTON, traceback.format_exc(), script_handle.descriptor.ref_id
         )
 
-        # Do it at the and as it's blocking.
+        # Do it at the end as it's blocking.
         self._show_script_error(script_handle, exception)
 
-    def _on_script_stopped(self, script_handle: ScriptHandle, data=None):
-        """If we want to send back script status stopped change, this is the place."""
-        # self._log(f'script: {script.name}')
-        self.trigger(
-            RobotEvent.PROGRAM_STATUS_CHANGE,
-            ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.STOP),
-        )
+    def _on_button_script_stopped(self, script_handle: ScriptHandle, data):
+        self._report_button_script_state_change(script_handle, ScriptEvent.STOP)
 
     def robot_stop(self) -> None:
         """On exiting let's reset all states."""

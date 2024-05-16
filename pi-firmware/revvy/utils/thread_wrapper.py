@@ -58,7 +58,7 @@ class ThreadWrapper:
 
     def _thread_func(self) -> None:
         try:
-            ctx = ThreadContext(self, self._stop_event, self._pause_flag)
+            ctx = ThreadContext(self)
             while self._wait_for_start():
                 try:
                     self._enter_started()
@@ -132,7 +132,7 @@ class ThreadWrapper:
                 if self._state == ThreadWrapperState.STOPPING:
                     self._log("thread is stopping when start is called")
                     # Defer start until the thread is stopped
-                    self.on_stopped(lambda: _start(self))
+                    self.on_stopped(lambda: _start(self), once=True)
                     return self._thread_running_event
 
             _start(self)
@@ -203,8 +203,11 @@ class ThreadWrapper:
 
             self._log("exited")
 
-    def on_stopped(self, callback: Callable):
-        self._stopped_callbacks.add(callback)
+    def on_stopped(self, callback: Callable, once: bool = False):
+        if once:
+            self._stopped_callbacks.add_single_shot(callback)
+        else:
+            self._stopped_callbacks.add(callback)
 
     def on_error(self, callback: Callable):
         self._error_callbacks.add(callback)
@@ -228,22 +231,26 @@ class ThreadWrapper:
 
 
 class ThreadContext:
-    def __init__(self, thread: ThreadWrapper, stop_event: Event, pause_event: Event):
-        self._stop_event = stop_event
-        self._pause_event = pause_event
+    """Context object passed to the thread function that runs in the thread wrapper."""
 
-        self.stop = thread.stop
-        self.on_stopped = thread.on_stop_requested
+    def __init__(self, thread: ThreadWrapper):
+        self._thread = thread
+
+    def stop(self) -> Event:
+        return self._thread.stop()
+
+    def on_stopped(self, callback: Callable) -> None:
+        self._thread.on_stop_requested(callback)
 
     def sleep(self, s: float):
         """A custom sleep function that can be interrupted by stop()"""
-        if self._stop_event.wait(s):
+        if self._thread._stop_event.wait(s):
             raise InterruptedError
-        self._pause_event.wait()
+        self._thread._pause_flag.wait()
 
     @property
     def stop_requested(self) -> bool:
-        return self._stop_event.is_set()
+        return self._thread._stop_event.is_set()
 
 
 def periodic(fn: Callable, period: float, name: str = "PeriodicThread") -> ThreadWrapper:
