@@ -96,7 +96,6 @@ export function connectToRobot() {
         switch (data.event) {
             case 'orientation_change': break
             case 'program_status_change': break
-            case 'motor_change': break
             case 'battery_change': break
             case 'version_info': break
             case 'camera_started': break

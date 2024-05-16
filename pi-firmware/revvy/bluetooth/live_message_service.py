@@ -7,7 +7,6 @@ from pybleno import BlenoPrimaryService
 from revvy.bluetooth.ble_characteristics import (
     GyroCharacteristic,
     MobileToBrainFunctionCharacteristic,
-    MotorCharacteristic,
     ProgramStatusCharacteristic,
     ReadVariableCharacteristic,
     BackgroundProgramControlCharacteristic,
@@ -18,7 +17,6 @@ from revvy.bluetooth.ble_characteristics import (
 )
 from revvy.bluetooth.queue_characteristic import QueueCharacteristic
 from revvy.bluetooth.data_types import (
-    MotorData,
     BackgroundControlState,
     GyroData,
     ScriptVariables,
@@ -77,15 +75,6 @@ class LiveMessageService(BlenoPrimaryService):
             SensorCharacteristic("9ace575c-0b70-4ed5-96f1-979a8eadbc6b", b"Sensor 4"),
         ]
 
-        self._motor_characteristics = [
-            MotorCharacteristic("4bdfb409-93cc-433a-83bd-7f4f8e7eaf54", b"Motor 1"),
-            MotorCharacteristic("454885b9-c9d1-4988-9893-a0437d5e6e9f", b"Motor 2"),
-            MotorCharacteristic("00fcd93b-0c3c-4940-aac1-b4c21fac3420", b"Motor 3"),
-            MotorCharacteristic("49aaeaa4-bb74-4f84-aa8f-acf46e5cf922", b"Motor 4"),
-            MotorCharacteristic("ceea8e45-5ff9-4325-be13-48cf40c0e0c3", b"Motor 5"),
-            MotorCharacteristic("8e4c474f-188e-4d2a-910a-cf66f674f569", b"Motor 6"),
-        ]
-
         self._mobile_to_brain = MobileToBrainFunctionCharacteristic(
             "7486bec3-bb6b-4abd-a9ca-20adc281a0a4",
             20,
@@ -107,7 +96,6 @@ class LiveMessageService(BlenoPrimaryService):
                     self._mobile_to_brain,
                     self._validate_config_characteristic,
                     *self._sensor_characteristics,
-                    *self._motor_characteristics,
                     self._gyro_characteristic,
                     self._orientation_characteristic,
                     self._read_variable_characteristic,
@@ -203,12 +191,6 @@ class LiveMessageService(BlenoPrimaryService):
         """Update the status of a button-triggered script"""
 
         self._program_status_characteristic.updateButtonStatus(button_id, status.value)
-
-    def update_motor(self, motor: int, data: MotorData):
-        """Send back motor angle value to mobile."""
-        # TODO: unused?
-        if 0 <= motor < len(self._motor_characteristics):
-            self._motor_characteristics[motor].updateValue(data)
 
     def update_session_id(self, value: int):
         """Send back session_id to mobile."""

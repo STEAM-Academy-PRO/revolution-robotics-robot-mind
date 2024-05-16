@@ -2,7 +2,6 @@
 
 import os
 import subprocess
-import time
 from typing import Callable
 from pybleno import Bleno, BlenoPrimaryService
 
@@ -14,7 +13,7 @@ from revvy.scripting.runtime import ScriptEvent
 
 from revvy.utils.device_name import get_device_name
 from revvy.utils.directories import BLE_STORAGE_DIR, WRITEABLE_ASSETS_DIR
-from revvy.utils.logger import LogLevel, get_logger
+from revvy.utils.logger import get_logger
 from revvy.utils.file_storage import FileStorage, MemoryStorage
 
 from revvy.robot_manager import RobotManager
@@ -22,7 +21,7 @@ from revvy.robot_manager import RobotManager
 from revvy.bluetooth.longmessage import LongMessageHandler, LongMessageStorage
 from revvy.bluetooth.longmessage import extract_asset_longmessage, LongMessageImplementation
 
-from revvy.bluetooth.live_message_service import LiveMessageService, MotorData
+from revvy.bluetooth.live_message_service import LiveMessageService
 
 from revvy.utils.error_reporter import revvy_error_handler
 from revvy.utils.stopwatch import Stopwatch
@@ -149,18 +148,11 @@ class RevvyBLE:
             RobotEvent.TIMER_TICK, lambda ref, timer_value: self._live.update_timer(timer_value)
         )
 
-        self._robot_manager.on(RobotEvent.MOTOR_CHANGE, self.update_motor)
-
         self._robot_manager.on(RobotEvent.ERROR, self.report_errors_in_queue)
 
     def update_program_status(self, button_id, status: ScriptEvent):
         # log(f'program status update: {button_id} {status}')
         self._live.update_program_status(button_id, status)
-
-    def update_motor(self, ref, motor_angles: list[int]) -> None:
-        """Currently unused, as we are not doing anything with it in the app."""
-        for angle, index in enumerate(motor_angles):
-            self._live.update_motor(index, MotorData(0, 0, angle))
 
     def _on_connected(self, c) -> None:
         """On new INCOMING connection, update the callback interfaces."""

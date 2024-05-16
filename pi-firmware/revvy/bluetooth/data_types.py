@@ -10,16 +10,6 @@ from revvy.utils.math.floor0 import floor0
 from revvy.utils.serialize import Serialize
 
 
-class MotorData:
-    def __init__(self, speed, position, power):
-        self.position = position
-        self.speed = speed
-        self.power = power
-
-    def __bytes__(self) -> bytes:
-        return struct.pack(">flb", self.speed, self.position, self.power)
-
-
 class GyroData:
     """A 3D vector"""
 

@@ -68,7 +68,7 @@ class SoundControlBase(abc.ABC):
     def set_volume(self, volume: int):
         self._log(f"Setting volume to {volume}")
         volume = clip(volume, 0, 100)
-        self._run_command(["amixer", "sset", "Master", f"{volume}%"])
+        self._run_command(["amixer", "sset", "PCM", f"{volume}%"])
 
     def reset_volume(self) -> None:
         self.set_volume(self._default_volume)
