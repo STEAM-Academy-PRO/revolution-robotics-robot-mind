@@ -4,16 +4,8 @@
         {
             "label": "remote-debug-launcher",
             "type": "shell",
-            "command": "./debug",
+            "command": "./x debug",
             "problemMatcher": [],
-            "args": ["1"]
-        },
-        {
-            "label": "remote-launcher",
-            "type": "shell",
-            "command": "./debug",
-            "problemMatcher": [],
-            "args": []
         }
     ]
 }

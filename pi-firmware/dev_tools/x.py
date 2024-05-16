@@ -173,6 +173,7 @@ def build(config: str, dev_package: bool = False):
 
 def stop_service():
     ssh("sudo systemctl stop revvy")
+    ssh("sudo killall python3")
 
 
 def start_service():
@@ -187,6 +188,7 @@ if __name__ == "__main__":
         choices=[
             # list commands here
             "build",
+            "debug",
             "deploy",
             "full-deploy",  # Slow. Installs to versioned folder and installs dependencies.
             "test",
@@ -220,6 +222,16 @@ if __name__ == "__main__":
         upload_package_to_robot(dev_package=True)
         stop_service()
         ssh("~/RevvyFramework/launch_revvy.py --skip-dependencies")
+
+    elif args.action == "debug":
+        build(config)
+        upload_debug_launcher()
+        upload_package_to_robot(dev_package=True)
+        stop_service()
+        ssh("~/RevvyFramework/launch_revvy.py --install-only --skip-dependencies")
+        ssh(
+            "python3 -u -m debugpy --listen 0.0.0.0:5678 --wait-for-client ~/RevvyFramework/user/packages/dev-pi-firmware/revvy.py --debug >/dev/null 2>&1 &"
+        )
 
     elif args.action == "full-deploy":
         build(config)
