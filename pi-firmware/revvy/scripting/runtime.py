@@ -96,9 +96,6 @@ class ScriptHandle(Emitter[ScriptEvent]):
 
         self._thread.on_error(self._on_error)
 
-        # TODO: this isn't needed if everything is typed right, we can remove it later
-        assert callable(self.descriptor.runnable)
-
         self.log("Created")
 
     def _on_error(self, error) -> None:
