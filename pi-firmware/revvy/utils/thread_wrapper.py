@@ -17,11 +17,25 @@ class ThreadWrapperState(Enum):
     EXITED = 4
 
 
+class EmitterWithDefaultHandler(SimpleEventEmitter):
+    """Event emitter that has a default handler that is called when no other handler is present."""
+
+    def __init__(self, default_handler: Callable):
+        super().__init__()
+        self._default_handler = default_handler
+
+    def trigger(self, *args, **kwargs) -> None:
+        if self.is_empty():
+            self._default_handler(*args, **kwargs)
+        else:
+            super().trigger(*args, **kwargs)
+
+
 class ThreadWrapper:
     """
     Helper class to enable stopping/restarting threads from the outside
-    Threads are not automatically stopped (as it is not possible), but a stop request can be read using the
-    context object that is passed to the thread function
+    Threads are not automatically stopped (as it is not possible), but a stop request can be read
+    using the context object that is passed to the thread function.
     """
 
     def __init__(self, func, name: str = "WorkerThread"):
@@ -33,7 +47,7 @@ class ThreadWrapper:
         self._func = func
         self._stopped_callbacks = SimpleEventEmitter()
         self._stop_requested_callbacks = SimpleEventEmitter()
-        self._error_callbacks = SimpleEventEmitter()
+        self._error_callbacks = EmitterWithDefaultHandler(self._report_error)
         self._pause_flag = Event()
         self._pause_flag.set()  # when set, the code can run
         self._control = Event()  # used to wake up thread function when it is stopped
@@ -47,6 +61,11 @@ class ThreadWrapper:
         self._is_exiting = False
         self._thread = Thread(target=self._thread_func, args=(), name=name)
         self._thread.start()
+
+    def _report_error(self, exc: Exception) -> None:
+        formatted = traceback.format_exc()
+        self._log(f"Unhandled: {formatted}", LogLevel.ERROR)
+        revvy_error_handler.report_error(RobotErrorType.SYSTEM, formatted)
 
     def _wait_for_start(self) -> bool:
         """Wait for the thread to be started. Returns False if the thread is exiting."""
@@ -65,16 +84,7 @@ class ThreadWrapper:
                 except InterruptedError:
                     self._log("interrupted")
                 except Exception as e:
-                    # If there are error handlers registered, do not log the error,
-                    # as it's caught and handled already.
-                    if not self._error_callbacks.is_empty():
-                        self._error_callbacks.trigger(e)
-                    else:
-                        # If we are not handling it, do report.
-                        self._log("Unhandled: " + traceback.format_exc(), LogLevel.ERROR)
-                        revvy_error_handler.report_error(
-                            RobotErrorType.SYSTEM, traceback.format_exc()
-                        )
+                    self._error_callbacks.trigger(e)
 
                 finally:
                     self._enter_stopped()
@@ -193,7 +203,7 @@ class ThreadWrapper:
     def on_stopped(self, callback: Callable):
         self._stopped_callbacks.add(callback)
 
-    def on_error(self, callback: Callable):
+    def on_error(self, callback: Callable[[Exception], None]):
         self._error_callbacks.add(callback)
 
     def on_stop_requested(self, callback: Callable):

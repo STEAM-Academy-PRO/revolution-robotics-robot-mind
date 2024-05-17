@@ -98,7 +98,7 @@ class ScriptHandle(Emitter[ScriptEvent]):
 
         self.log("Created")
 
-    def _on_error(self, error) -> None:
+    def _on_error(self, error: Exception):
         self.trigger(ScriptEvent.ERROR, error)
 
     @property
