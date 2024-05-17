@@ -1,8 +1,7 @@
 """ Standardized Robot Events to all """
 
 from enum import Enum
-from typing import NamedTuple, Optional
-from revvy.bluetooth.data_types import SensorData
+from typing import NamedTuple
 
 from revvy.scripting.runtime import ScriptEvent
 
