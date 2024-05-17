@@ -15,7 +15,6 @@ class ThreadWrapperState(Enum):
     RUNNING = 2
     STOPPING = 3
     EXITED = 4
-    PAUSED = 5
 
 
 class ThreadWrapper:
@@ -147,7 +146,6 @@ class ThreadWrapper:
             if self._state not in [
                 ThreadWrapperState.STARTING,
                 ThreadWrapperState.RUNNING,
-                ThreadWrapperState.PAUSED,
             ]:
                 self._log(
                     f"Stop called but thread is not in a running state. Currently in state: {self._state}"
