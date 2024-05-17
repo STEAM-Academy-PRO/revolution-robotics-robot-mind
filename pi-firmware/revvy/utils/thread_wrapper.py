@@ -190,11 +190,8 @@ class ThreadWrapper:
 
             self._log("exited")
 
-    def on_stopped(self, callback: Callable, once: bool = False):
-        if once:
-            self._stopped_callbacks.add_single_shot(callback)
-        else:
-            self._stopped_callbacks.add(callback)
+    def on_stopped(self, callback: Callable):
+        self._stopped_callbacks.add(callback)
 
     def on_error(self, callback: Callable):
         self._error_callbacks.add(callback)
