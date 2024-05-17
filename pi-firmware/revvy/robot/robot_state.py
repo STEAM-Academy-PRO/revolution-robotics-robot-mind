@@ -8,14 +8,13 @@ It polls the MCU for updates in any states.
 
 """
 
-import copy
 import traceback
 from revvy.bluetooth.data_types import BackgroundControlState, GyroData, ScriptVariables, TimerData
 from revvy.mcu.rrrc_transport import TransportException
 from revvy.robot.remote_controller import RemoteController
 
 from revvy.robot.robot_events import RobotEvent
-from revvy.robot.states.battery_state import BatteryState
+from revvy.robot.filters.battery import BatteryState
 from revvy.utils.emitter import Emitter
 from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.observable import Observable
