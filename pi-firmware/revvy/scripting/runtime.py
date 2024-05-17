@@ -96,12 +96,9 @@ class ScriptHandle(Emitter[ScriptEvent]):
 
         self._thread.on_error(self._on_error)
 
-        # TODO: this isn't needed if everything is typed right, we can remove it later
-        assert callable(self.descriptor.runnable)
-
         self.log("Created")
 
-    def _on_error(self, error) -> None:
+    def _on_error(self, error: Exception):
         self.trigger(ScriptEvent.ERROR, error)
 
     @property
@@ -151,12 +148,13 @@ class ScriptHandle(Emitter[ScriptEvent]):
                 self.log(f"resetting_variable: {var}")
                 var.reset_value()
 
-    def start(self, **kwargs) -> Event:
+    def start(self, **kwargs) -> None:
         if not kwargs:
             self._inputs = self._globals
         else:
             self._inputs = {**self._globals, **kwargs}
-        return self._thread.start()
+
+        self._thread.start()
 
 
 class ScriptManager:

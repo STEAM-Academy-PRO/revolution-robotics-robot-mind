@@ -328,7 +328,7 @@ while not ctx.stop_requested:
         sm["test"].on_stopped(lambda *args: cont.set())
 
         # first call, make sure the script runs
-        sm["test"].start().wait()
+        sm["test"].start()
         if not cont.wait(2):
             self.fail()
 
@@ -407,7 +407,7 @@ while not ctx.stop_requested:
         sm["test"].on_stopped(lambda *args: cont.set())
 
         # first call, make sure the script runs
-        sm["test"].start().wait()
+        sm["test"].start()
         if not cont.wait(2):
             self.fail("Script.on_stopped handler was not called")
 
