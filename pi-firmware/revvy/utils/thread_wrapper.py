@@ -2,7 +2,7 @@ from enum import Enum
 import time
 from threading import Event, Thread, Lock, RLock
 import traceback
-from typing import Callable
+from typing import Callable, Optional
 from revvy.utils.error_reporter import RobotErrorType, revvy_error_handler
 from revvy.utils.emitter import SimpleEventEmitter
 
@@ -106,38 +106,25 @@ class ThreadWrapper:
     def is_running(self) -> bool:
         return self._thread_running_event.is_set()
 
-    def start(self) -> Event:
-        """
-        Only allows one instance of the script to run.
-        If the thread is stopping, it's going to restart it right after.
+    def wait_for_running(self, timeout: Optional[float] = None) -> bool:
+        return self._thread_running_event.wait(timeout)
 
-        :return: the event that is set when the thread actually starts running.
-        """
+    def start(self) -> None:
+        """Starts the thread if it is not already running. Does nothing if the thread is already running."""
         assert self._state != ThreadWrapperState.EXITED, "thread has already exited"
         assert not self._is_exiting, "can not start an exiting thread"
 
-        def _start(thread: "ThreadWrapper"):
-            if thread._is_exiting:
-                return
-            thread._log("starting")
-            thread._thread_stopped_event.clear()
-            thread._state = ThreadWrapperState.STARTING
-            thread._control.set()
-
         with self._interface_lock:
             with self._lock:
-                if self._state in [ThreadWrapperState.STARTING, ThreadWrapperState.RUNNING]:
-                    return self._thread_running_event
+                if self._state != ThreadWrapperState.STOPPED:
+                    return
 
-                if self._state == ThreadWrapperState.STOPPING:
-                    self._log("thread is stopping when start is called")
-                    # Defer start until the thread is stopped
-                    self.on_stopped(lambda: _start(self), once=True)
-                    return self._thread_running_event
-
-            _start(self)
-
-            return self._thread_running_event
+            if self._is_exiting:
+                return
+            self._log("starting")
+            self._thread_stopped_event.clear()
+            self._state = ThreadWrapperState.STARTING
+            self._control.set()
 
     def stop(self) -> Event:
         """If the thread is already stopped or stopping, does nothing."""
@@ -157,12 +144,14 @@ class ThreadWrapper:
 
     def do_stop(self) -> Event:
         with self._interface_lock:
-            if self._state in [
-                ThreadWrapperState.STOPPING,
-                ThreadWrapperState.STOPPED,
-                ThreadWrapperState.EXITED,
+            if self._state not in [
+                ThreadWrapperState.STARTING,
+                ThreadWrapperState.RUNNING,
+                ThreadWrapperState.PAUSED,
             ]:
-                self._log(f"stop already called. Currently in state: {self._state}")
+                self._log(
+                    f"Stop called but thread is not in a running state. Currently in state: {self._state}"
+                )
             else:
                 self._log("stopping")
 
