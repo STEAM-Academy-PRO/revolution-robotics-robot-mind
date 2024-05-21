@@ -118,6 +118,7 @@ class RevvyBLE:
         )
         self._robot_manager.on(RobotEvent.TIMER_TICK, self._live.update_timer)
         self._robot_manager.on(RobotEvent.ERROR, self.report_errors_in_queue)
+        self._robot_manager.on(RobotEvent.SESSION_ID_CHANGE, self._live.reset)
 
     def _on_connected(self, c) -> None:
         """On new INCOMING connection, update the callback interfaces."""

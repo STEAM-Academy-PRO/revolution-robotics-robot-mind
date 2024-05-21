@@ -129,6 +129,9 @@ class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
             }
         )
 
+    def resetValue(self) -> None:
+        self._update_value([])
+
     def onReadRequest(self, offset, callback) -> None:
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
@@ -138,6 +141,9 @@ class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
     def updateValue(self, value: DataType) -> None:
         if isinstance(value, Serialize):
             value = value.__bytes__()
+        self._update_value(value)
+
+    def _update_value(self, value: bytes) -> None:
         self._value = value
 
         update_notified_value = self.updateValueCallback
@@ -174,6 +180,10 @@ class ProgramStatusCharacteristic(BrainToMobileCharacteristic[ProgramStatusColle
     def __init__(self, uuid, description: bytes) -> None:
         super().__init__(uuid, description)
         self._data = ProgramStatusCollection()
+
+    def resetValue(self) -> None:
+        self._data = ProgramStatusCollection()
+        self.updateValue(self._data)
 
     def updateButtonStatus(self, button_id: int, status: int) -> None:
         self._data.update_button_value(button_id, status)

@@ -108,6 +108,14 @@ class LiveMessageService(BlenoPrimaryService):
             }
         )
 
+    def reset(self, *args) -> None:
+        """Reset BLE characteristic values to prevent reading back old values in a new session."""
+        self._read_variable_characteristic.resetValue()
+        self._background_program_control_characteristic.updateValue([])
+        self._program_status_characteristic.resetValue()
+        for sensor in self._sensor_characteristics:
+            sensor.resetValue()
+
     def validate_config_callback(self, data: bytes) -> bool:
         # FIXME: Currently unused
         motor_bitmask, sensor0, sensor1, sensor2, sensor3, motor_load_power, threshold = (
