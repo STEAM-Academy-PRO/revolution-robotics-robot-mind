@@ -168,9 +168,13 @@ class LongMessageStorage:
         storage.write(message.message_type.filename, message.data, md5=message.md5)
 
     def get_long_message(self, long_message_type: LongMessageType):
-        self._log("get_long_message")
-        storage = self._get_storage(long_message_type)
-        return storage.read(long_message_type.filename)
+        try:
+            self._log("get_long_message")
+            storage = self._get_storage(long_message_type)
+            return storage.read(long_message_type.filename)
+        except Exception as e:
+            self._log(f"get_long_message failed: {e}")
+            return bytes()
 
 
 class LongMessageHandlerStatus(Enum):
@@ -297,7 +301,7 @@ class LongMessageHandler:
 
         else:
             # INVALID status, finalize does nothing
-            pass
+            self._log("finalize_message called in invalid state", LogLevel.WARNING)
 
 
 class LongMessageProtocolResult(Enum):

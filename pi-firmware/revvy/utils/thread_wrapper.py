@@ -96,10 +96,10 @@ class ThreadWrapper:
             self._stop_event.clear()
             self._state = ThreadWrapperState.RUNNING
             self._thread_running_event.set()
-        self._log("thread started")
+        self._log("thread started", LogLevel.DEBUG)
 
     def _enter_stopped(self) -> None:
-        self._log("stopped")
+        self._log("stopped", LogLevel.DEBUG)
         with self._lock:
             self._state = ThreadWrapperState.STOPPED
             self._thread_running_event.clear()
@@ -130,7 +130,7 @@ class ThreadWrapper:
 
             if self._is_exiting:
                 return
-            self._log("starting")
+            self._log("starting", LogLevel.DEBUG)
             self._thread_stopped_event.clear()
             self._state = ThreadWrapperState.STARTING
             self._control.set()
@@ -198,7 +198,7 @@ class ThreadWrapper:
             # thread will see STOPPED state and will exit
             self._control.set()
 
-            self._log("exited")
+            self._log("exited", LogLevel.DEBUG)
 
     def on_stopped(self, callback: Callable):
         self._stopped_callbacks.add(callback)
