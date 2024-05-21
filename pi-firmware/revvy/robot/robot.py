@@ -219,6 +219,7 @@ class Robot:
         self._sensor_ports.reset()
         self._sound.reset_volume()
         self._robot_control.orientation_reset()
+        self._script_variables.reset()
 
         self._status.update_robot_status(RobotStatus.NotConfigured)
 

@@ -247,9 +247,8 @@ class RobotManager:
 
     def reset_configuration(self) -> None:
         """When RC disconnects"""
-        self._log("RESET config")
+        self._log("Reset robot config")
         self._robot.status.update_robot_status(RobotStatus.NotConfigured)
-        self._log("RC stopped")
         self._scripts.stop_all_scripts()
         for scr in [self._scripts, self._bg_controlled_scripts]:
             scr.reset()
@@ -283,8 +282,6 @@ class RobotManager:
         self._session_id += 1
         self.trigger(RobotEvent.SESSION_ID_CHANGE, self._session_id)
         log(f"New Configuration with session ID: {self._session_id}")
-
-        self._robot.script_variables.reset()
 
         # Initialize variable slots from config
         scriptvars = []
