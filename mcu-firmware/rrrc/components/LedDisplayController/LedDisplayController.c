@@ -18,7 +18,7 @@
 #define CHARGING_BLINK_LENGTH     10
 
 #define MOTOR_MISSING_BLINK_PERIOD    50
-#define MOTOR_MISSING_BLINK_LENGTH    15
+#define MOTOR_MISSING_BLINK_LENGTH    30
 
 #define BLE_ON_COLOR                (rgb_t) LED_CYAN
 #define BLE_OFF_COLOR               (rgb_t) LED_OFF
@@ -33,14 +33,15 @@
 
 typedef enum {
     LedDisplayMode_LowBattery,
-    LedDisplayMode_MotorBatteryMissing,
     LedDisplayMode_Normal,
 } LedDisplayMode_t;
 
 static uint32_t _motor_battery_feedback;
 static LedDisplayMode_t _previous_display_mode;
 static uint32_t _charging_blink_timer;
-static uint32_t _blink_timer;
+static uint32_t _ble_blink_timer;
+static uint32_t _motor_blink_timer;
+static bool _motor_battery_blinking;
 
 /**
  * Returns whether any of the motors are active
@@ -102,21 +103,6 @@ static LedDisplayMode_t _get_display_mode(void)
     {
         return LedDisplayMode_LowBattery;
     }
-    else
-    {
-        if (_motors_active() && !LedDisplayController_Read_MotorBatteryPresent())
-        {
-            return LedDisplayMode_MotorBatteryMissing;
-        }
-        else if (_previous_display_mode == LedDisplayMode_MotorBatteryMissing)
-        {
-            /* force at least one period */
-            if (_blink_timer != 0u)
-            {
-                return LedDisplayMode_MotorBatteryMissing;
-            }
-        }
-    }
 
     return LedDisplayMode_Normal;
 }
@@ -160,7 +146,34 @@ static rgb_t _display_main_battery(void)
 
 static rgb_t _display_motor_battery(void)
 {
-    if (!LedDisplayController_Read_MotorBatteryPresent())
+    bool battery_present = LedDisplayController_Read_MotorBatteryPresent();
+    bool motor_battery_should_blink = _motors_active() && !battery_present;
+
+    if (motor_battery_should_blink && !_motor_battery_blinking)
+    {
+        _motor_battery_blinking = true;
+        _motor_blink_timer = 0u;
+    }
+
+    if (_motor_battery_blinking)
+    {
+        bool blink = _blink(&_motor_blink_timer, MOTOR_MISSING_BLINK_LENGTH, MOTOR_MISSING_BLINK_PERIOD);
+        if (!motor_battery_should_blink && _motor_blink_timer == 0u)
+        {
+            _motor_battery_blinking = false;
+        }
+
+        if (blink)
+        {
+            return (rgb_t) LED_RED;
+        }
+        else
+        {
+            return (rgb_t) LED_OFF;
+        }
+    }
+
+    if (!battery_present)
     {
         return (rgb_t) LED_OFF;
     }
@@ -181,6 +194,13 @@ void LedDisplayController_Run_OnInit(void)
     /* Begin User Code Section: OnInit:run Start */
     _motor_battery_feedback = 0u;
     _previous_display_mode = LedDisplayMode_Normal;
+
+    _charging_blink_timer = 0u;
+    _ble_blink_timer = 0u;
+    _motor_blink_timer = 0u;
+
+    _motor_battery_blinking = false;
+
     LedDisplayController_Write_MaxBrightness(LedDisplayController_Read_DefaultBrightness());
     /* End User Code Section: OnInit:run Start */
     /* Begin User Code Section: OnInit:run End */
@@ -217,15 +237,8 @@ void LedDisplayController_Run_Update(void)
                 LedDisplayController_Write_MaxBrightness(LedDisplayController_Read_LowBatteryBrightness());
                 break;
 
-            case LedDisplayMode_MotorBatteryMissing:
-                _clear_display();
-                _blink_timer = 0u;
-                break;
-
             case LedDisplayMode_Normal:
                 _clear_display();
-                _charging_blink_timer = CHARGING_BLINK_PERIOD / 2u;
-                _blink_timer = 0u;
                 break;
         }
     }
@@ -240,11 +253,11 @@ void LedDisplayController_Run_Update(void)
             {
                 case BluetoothStatus_Inactive:
                     LedDisplayController_Write_StatusLeds(BLUETOOTH_INDICATOR_LED, BLE_NOT_INITIALIZED_COLOR);
-                    _blink_timer = 0u;
+                    _ble_blink_timer = 0u;
                     break;
 
                 case BluetoothStatus_NotConnected:
-                    if (_blink(&_blink_timer, BLUETOOTH_BLINK_LENGTH, BLUETOOTH_BLINK_PERIOD))
+                    if (_blink(&_ble_blink_timer, BLUETOOTH_BLINK_LENGTH, BLUETOOTH_BLINK_PERIOD))
                     {
                         LedDisplayController_Write_StatusLeds(BLUETOOTH_INDICATOR_LED, BLE_ON_COLOR);
                     }
@@ -256,7 +269,7 @@ void LedDisplayController_Run_Update(void)
 
                 case BluetoothStatus_Connected:
                     LedDisplayController_Write_StatusLeds(BLUETOOTH_INDICATOR_LED, BLE_ON_COLOR);
-                    _blink_timer = 0u;
+                    _ble_blink_timer = 0u;
                     break;
             }
 
@@ -296,17 +309,6 @@ void LedDisplayController_Run_Update(void)
                     i, // only write ring leds, not status leds
                     LedDisplayController_Read_RingLedsIn(i)
                 );
-            }
-            break;
-
-        case LedDisplayMode_MotorBatteryMissing:
-            if (_blink(&_blink_timer, MOTOR_MISSING_BLINK_LENGTH, MOTOR_MISSING_BLINK_PERIOD))
-            {
-                LedDisplayController_Write_StatusLeds(MOTOR_BATTERY_INDICATOR_LED, (rgb_t) LED_RED);
-            }
-            else
-            {
-                LedDisplayController_Write_StatusLeds(MOTOR_BATTERY_INDICATOR_LED, (rgb_t) LED_OFF);
             }
             break;
 
