@@ -28,7 +28,6 @@ from revvy.robot_manager import RevvyStatusCode, RobotManager
 from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
 
 from revvy.scripting.runtime import ScriptDescriptor, ScriptEvent
-from revvy.utils.reverse_map_constant_name import get_constant_name
 from revvy.utils.error_reporter import RobotErrorType, revvy_error_handler
 
 
@@ -169,9 +168,13 @@ class LongMessageStorage:
         storage.write(message.message_type.filename, message.data, md5=message.md5)
 
     def get_long_message(self, long_message_type: LongMessageType):
-        self._log("get_long_message")
-        storage = self._get_storage(long_message_type)
-        return storage.read(long_message_type.filename)
+        try:
+            self._log("get_long_message")
+            storage = self._get_storage(long_message_type)
+            return storage.read(long_message_type.filename)
+        except Exception as e:
+            self._log(f"get_long_message failed: {e}")
+            return bytes()
 
 
 class LongMessageHandlerStatus(Enum):
@@ -298,7 +301,7 @@ class LongMessageHandler:
 
         else:
             # INVALID status, finalize does nothing
-            pass
+            self._log("finalize_message called in invalid state", LogLevel.WARNING)
 
 
 class LongMessageProtocolResult(Enum):
@@ -472,7 +475,7 @@ class LongMessageImplementation:
         """
         message_type = message.message_type
 
-        self._log(f"Received message: {get_constant_name(message_type, LongMessageType)}")
+        self._log(f"Received message: {message_type.name}")
 
         # On the configuration screen, when selecting a sensor, there is a TEST button
         # on the right panel's bottom left, right next to DONE button. that is very hard to notice.

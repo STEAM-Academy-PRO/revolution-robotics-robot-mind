@@ -376,6 +376,6 @@ class DifferentialDrivetrain:
             if self._controller is not None:
                 awaiter = self._controller.awaiter
             else:
-                awaiter = Awaiter.from_state(AwaiterState.FINISHED)
+                awaiter = Awaiter(AwaiterState.FINISHED)
 
             return awaiter

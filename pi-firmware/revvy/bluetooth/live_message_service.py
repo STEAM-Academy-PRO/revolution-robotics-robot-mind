@@ -7,7 +7,6 @@ from pybleno import BlenoPrimaryService
 from revvy.bluetooth.ble_characteristics import (
     GyroCharacteristic,
     MobileToBrainFunctionCharacteristic,
-    MotorCharacteristic,
     ProgramStatusCharacteristic,
     ReadVariableCharacteristic,
     BackgroundProgramControlCharacteristic,
@@ -18,7 +17,6 @@ from revvy.bluetooth.ble_characteristics import (
 )
 from revvy.bluetooth.queue_characteristic import QueueCharacteristic
 from revvy.bluetooth.data_types import (
-    MotorData,
     BackgroundControlState,
     GyroData,
     ScriptVariables,
@@ -26,6 +24,7 @@ from revvy.bluetooth.data_types import (
     TimerData,
 )
 from revvy.robot.rc_message_parser import parse_control_message
+from revvy.robot.robot_events import ProgramStatusChange
 from revvy.robot_manager import RobotManager
 from revvy.scripting.runtime import ScriptEvent
 
@@ -77,15 +76,6 @@ class LiveMessageService(BlenoPrimaryService):
             SensorCharacteristic("9ace575c-0b70-4ed5-96f1-979a8eadbc6b", b"Sensor 4"),
         ]
 
-        self._motor_characteristics = [
-            MotorCharacteristic("4bdfb409-93cc-433a-83bd-7f4f8e7eaf54", b"Motor 1"),
-            MotorCharacteristic("454885b9-c9d1-4988-9893-a0437d5e6e9f", b"Motor 2"),
-            MotorCharacteristic("00fcd93b-0c3c-4940-aac1-b4c21fac3420", b"Motor 3"),
-            MotorCharacteristic("49aaeaa4-bb74-4f84-aa8f-acf46e5cf922", b"Motor 4"),
-            MotorCharacteristic("ceea8e45-5ff9-4325-be13-48cf40c0e0c3", b"Motor 5"),
-            MotorCharacteristic("8e4c474f-188e-4d2a-910a-cf66f674f569", b"Motor 6"),
-        ]
-
         self._mobile_to_brain = MobileToBrainFunctionCharacteristic(
             "7486bec3-bb6b-4abd-a9ca-20adc281a0a4",
             20,
@@ -107,7 +97,6 @@ class LiveMessageService(BlenoPrimaryService):
                     self._mobile_to_brain,
                     self._validate_config_characteristic,
                     *self._sensor_characteristics,
-                    *self._motor_characteristics,
                     self._gyro_characteristic,
                     self._orientation_characteristic,
                     self._read_variable_characteristic,
@@ -118,6 +107,14 @@ class LiveMessageService(BlenoPrimaryService):
                 ],
             }
         )
+
+    def reset(self, *args) -> None:
+        """Reset BLE characteristic values to prevent reading back old values in a new session."""
+        self._read_variable_characteristic.resetValue()
+        self._background_program_control_characteristic.updateValue([])
+        self._program_status_characteristic.resetValue()
+        for sensor in self._sensor_characteristics:
+            sensor.resetValue()
 
     def validate_config_callback(self, data: bytes) -> bool:
         # FIXME: Currently unused
@@ -194,23 +191,19 @@ class LiveMessageService(BlenoPrimaryService):
             )
         )
 
-    def update_sensor(self, sensor_data: SensorData):
+    def update_sensor(self, emitter, sensor_data: SensorData):
         """Send back sensor value to mobile."""
-        if 0 < sensor_data.port_id <= len(self._sensor_characteristics):
-            self._sensor_characteristics[sensor_data.port_id - 1].updateValue(sensor_data)
+        try:
+            self._sensor_characteristics[sensor_data.port_id].updateValue(sensor_data)
+        except IndexError as e:
+            log(f"Sensor data update failed: {e}")
 
-    def update_program_status(self, button_id: int, status: ScriptEvent):
+    def update_program_status(self, emitter, change: ProgramStatusChange):
         """Update the status of a button-triggered script"""
 
-        self._program_status_characteristic.updateButtonStatus(button_id, status.value)
+        self._program_status_characteristic.updateButtonStatus(change.id, change.status.value)
 
-    def update_motor(self, motor: int, data: MotorData):
-        """Send back motor angle value to mobile."""
-        # TODO: unused?
-        if 0 <= motor < len(self._motor_characteristics):
-            self._motor_characteristics[motor].updateValue(data)
-
-    def update_session_id(self, value: int):
+    def update_session_id(self, emitter, value: int):
         """Send back session_id to mobile."""
         data = list(struct.pack("<I", value))
         # Maybe this was supposed to be used for detecting MCU reset in the mobile, but
@@ -222,11 +215,11 @@ class LiveMessageService(BlenoPrimaryService):
         # TODO: unused?
         self._gyro_characteristic.updateValue(data)
 
-    def update_orientation(self, data: GyroData):
+    def update_orientation(self, emitter, data: GyroData):
         """Send back orientation to mobile. Used to display the yaw of the robot"""
         self._orientation_characteristic.updateValue(data)
 
-    def update_timer(self, data: TimerData):
+    def update_timer(self, emitter, data: TimerData):
         """Send back timer tick to mobile."""
         self._timer_characteristic.updateValue(data)
 
@@ -234,14 +227,14 @@ class LiveMessageService(BlenoPrimaryService):
         log(f"Sending Error: {data}")
         self._error_reporting_characteristic.sendQueued(data.__bytes__(), on_ready)
 
-    def update_script_variables(self, script_variables: ScriptVariables):
+    def update_script_variables(self, emitter, script_variables: ScriptVariables):
         """
         In the mobile app, this data shows up when we track variables.
         By characteristic protocol - maximum slots in BLE message is 4.
         """
         self._read_variable_characteristic.updateValue(script_variables)
 
-    def update_state_control(self, state: BackgroundControlState):
+    def update_state_control(self, emitter, state: BackgroundControlState):
         """Send back the background programs' state."""
         log(f"state control update, {state}")
         self._background_program_control_characteristic.updateValue(state)

@@ -319,27 +319,27 @@ class TestRobotConfig(unittest.TestCase):
 
         config = RobotConfig.from_string(json)
 
-        self.assertEqual(None, config.motors[1])
+        self.assertEqual(None, config.motors[0])
 
         # drivetrain left
-        self.assertEqual(ccw_motor(Motors.RevvyMotor), config.motors[2])  # normal left
-        self.assertEqual(Motors.RevvyMotor, config.motors[3])  # reversed left
+        self.assertEqual(ccw_motor(Motors.RevvyMotor), config.motors[1])  # normal left
+        self.assertEqual(Motors.RevvyMotor, config.motors[2])  # reversed left
 
         # drivetrain right
-        self.assertEqual(Motors.RevvyMotor, config.motors[5])  # normal right
-        self.assertEqual(ccw_motor(Motors.RevvyMotor), config.motors[6])  # reversed right
+        self.assertEqual(Motors.RevvyMotor, config.motors[4])  # normal right
+        self.assertEqual(ccw_motor(Motors.RevvyMotor), config.motors[5])  # reversed right
 
-        self.assertEqual(Motors.RevvyMotor, config.motors[4])  # motor, no 'side', no 'reversed'
+        self.assertEqual(Motors.RevvyMotor, config.motors[3])  # motor, no 'side', no 'reversed'
 
-        self.assertListEqual([2, 3], config.drivetrain.left)
-        self.assertListEqual([5, 6], config.drivetrain.right)
+        self.assertListEqual([1, 2], config.drivetrain.left)
+        self.assertListEqual([4, 5], config.drivetrain.right)
 
         self.assertNotIn("M1", config.motors.names)  # not configured port does not have name
-        self.assertEqual(2, config.motors.names["M2"])
-        self.assertEqual(3, config.motors.names["M3"])
-        self.assertEqual(4, config.motors.names["M4"])
-        self.assertEqual(5, config.motors.names["M5"])
-        self.assertEqual(6, config.motors.names["M6"])
+        self.assertEqual(1, config.motors.names["M2"])
+        self.assertEqual(2, config.motors.names["M3"])
+        self.assertEqual(3, config.motors.names["M4"])
+        self.assertEqual(4, config.motors.names["M5"])
+        self.assertEqual(5, config.motors.names["M6"])
 
     def test_motor_side_and_reversed_is_ignored_for_normal_motors(self):
         json = """
@@ -377,10 +377,10 @@ class TestRobotConfig(unittest.TestCase):
 
         config = RobotConfig.from_string(json)
 
+        self.assertEqual(Motors.RevvyMotor, config.motors[0])
         self.assertEqual(Motors.RevvyMotor, config.motors[1])
         self.assertEqual(Motors.RevvyMotor, config.motors[2])
         self.assertEqual(Motors.RevvyMotor, config.motors[3])
-        self.assertEqual(Motors.RevvyMotor, config.motors[4])
 
     def test_empty_or_null_motors_are_not_configured(self):
         json = """
@@ -406,10 +406,10 @@ class TestRobotConfig(unittest.TestCase):
 
         config = RobotConfig.from_string(json)
 
-        self.assertEqual(Motors.RevvyMotor, config.motors[1])
+        self.assertEqual(Motors.RevvyMotor, config.motors[0])
+        self.assertEqual(None, config.motors[1])
         self.assertEqual(None, config.motors[2])
-        self.assertEqual(None, config.motors[3])
-        self.assertEqual(Motors.RevvyMotor, config.motors[4])
+        self.assertEqual(Motors.RevvyMotor, config.motors[3])
 
     def test_sensors_are_parsed_as_list_of_sensors(self):
         json = """
@@ -439,13 +439,13 @@ class TestRobotConfig(unittest.TestCase):
 
         config = RobotConfig.from_string(json)
 
-        self.assertEqual(Sensors.Ultrasonic, config.sensors[1])
-        self.assertEqual(Sensors.BumperSwitch, config.sensors[2])
+        self.assertEqual(Sensors.Ultrasonic, config.sensors[0])
+        self.assertEqual(Sensors.BumperSwitch, config.sensors[1])
+        self.assertEqual(None, config.sensors[2])
         self.assertEqual(None, config.sensors[3])
-        self.assertEqual(None, config.sensors[4])
 
-        self.assertEqual(1, config.sensors.names["S1"])
-        self.assertEqual(2, config.sensors.names["S2"])
+        self.assertEqual(0, config.sensors.names["S1"])
+        self.assertEqual(1, config.sensors.names["S2"])
         # not configured ports does not have names
         self.assertNotIn("S3", config.sensors.names)
         self.assertNotIn("S4", config.sensors.names)
@@ -472,10 +472,10 @@ class TestRobotConfig(unittest.TestCase):
 
         config = RobotConfig.from_string(json)
 
-        self.assertEqual(Sensors.Ultrasonic, config.sensors[1])
+        self.assertEqual(Sensors.Ultrasonic, config.sensors[0])
+        self.assertEqual(None, config.sensors[1])
         self.assertEqual(None, config.sensors[2])
-        self.assertEqual(None, config.sensors[3])
-        self.assertEqual(Sensors.BumperSwitch, config.sensors[4])
+        self.assertEqual(Sensors.BumperSwitch, config.sensors[3])
 
     def test_type0_objects_dont_require_additional_keys(self):
         json = """

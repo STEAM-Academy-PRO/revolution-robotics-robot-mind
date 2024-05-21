@@ -23,7 +23,8 @@ class TestThreadWrapper(unittest.TestCase):
 
     def test_waiting_for_a_stopped_thread_to_stop_does_nothing(self):
         tw = ThreadWrapper(lambda ctx: None)
-        tw.start().wait()
+        tw.start()
+        tw.wait_for_running()
         tw.stop().wait()
         tw.stop().wait()
         tw.exit()
@@ -38,7 +39,8 @@ class TestThreadWrapper(unittest.TestCase):
             mock()
 
         tw = ThreadWrapper(test_fn)
-        tw.start().wait()
+        tw.start()
+        tw.wait_for_running()
         tw.exit()
 
         self.assertEqual(1, mock.call_count)
@@ -128,7 +130,8 @@ class TestThreadWrapper(unittest.TestCase):
     def test_sleep_on_context_is_interrupted_when_thread_is_stopped(self):
         tw = ThreadWrapper(lambda ctx: ctx.sleep(10000))
         start_time = time.time()
-        tw.start().wait()
+        tw.start()
+        tw.wait_for_running()
         tw.exit()
         self.assertLess(time.time() - start_time, 2)
 
@@ -147,7 +150,9 @@ class TestThreadWrapper(unittest.TestCase):
                         evt.set
                     )  # set callback first to verify it will be called after clear
                     evt.clear()
-                    if not tw.start().wait(2):
+
+                    tw.start()
+                    if not tw.wait_for_running(2):
                         self.fail("Thread was not started properly")
 
                     if not evt.wait(2):
@@ -179,34 +184,6 @@ class TestThreadWrapper(unittest.TestCase):
 
         tw.exit()
         self.assertRaises(AssertionError, tw.start)
-
-    def test_starting_a_stopping_thread_restarts(self):
-        allow_stop = Event()
-
-        def thread_func(ctx):
-            try:
-                while not ctx.stop_requested:
-                    ctx.sleep(0.1)
-            except InterruptedError:
-                pass
-            finally:
-                print("Waiting for allow_stop event")
-                allow_stop.wait(2)
-                allow_stop.clear()
-                print("allow_stop event set")
-
-        tw = ThreadWrapper(thread_func)
-        tw.start().wait()
-        tw.stop()
-        tw.start()
-        self.assertEqual(ThreadWrapperState.STOPPING, tw.state)
-        allow_stop.set()
-
-        time.sleep(0.1)
-        self.assertEqual(ThreadWrapperState.RUNNING, tw.state)
-
-        allow_stop.set()
-        tw.exit()
 
     def test_stopping_a_starting_thread_stops_thread(self):
         mock = Mock()

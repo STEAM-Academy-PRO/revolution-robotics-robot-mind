@@ -8,7 +8,6 @@ from typing import Generic, TypeVar
 from pybleno import Characteristic, Descriptor
 from revvy.bluetooth.data_types import (
     GyroData,
-    MotorData,
     ProgramStatusCollection,
     ScriptVariables,
     TimerData,
@@ -21,7 +20,6 @@ from revvy.bluetooth.longmessage import (
 )
 from revvy.robot.robot import BatteryStatus
 
-from revvy.utils.device_name import get_device_name, set_device_name
 from revvy.utils.logger import get_logger
 from revvy.utils.serialize import Serialize
 
@@ -120,7 +118,7 @@ DataType = TypeVar("DataType", bound=Serialize)
 
 class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
     def __init__(self, uuid, description: bytes) -> None:
-        self._value = []
+        self._value = bytes()
         super().__init__(
             {
                 "uuid": uuid,
@@ -131,6 +129,9 @@ class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
             }
         )
 
+    def resetValue(self) -> None:
+        self._update_value(bytes())
+
     def onReadRequest(self, offset, callback) -> None:
         if offset:
             callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
@@ -140,6 +141,9 @@ class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
     def updateValue(self, value: DataType) -> None:
         if isinstance(value, Serialize):
             value = value.__bytes__()
+        self._update_value(value)
+
+    def _update_value(self, value: bytes) -> None:
         self._value = value
 
         update_notified_value = self.updateValueCallback
@@ -152,14 +156,10 @@ class StateControlCharacteristic(BackgroundProgramControlCharacteristic):
 
 
 class SensorCharacteristic(BrainToMobileCharacteristic):
-    def updateValue(self, value) -> None:
+    def updateValue(self, value: Serialize) -> None:
+        valueBytes = value.__bytes__()
         # FIXME: prefix with data length is probably unnecessary
-        value = value.__bytes__()
-        super().updateValue([len(value), *value])
-
-
-class MotorCharacteristic(BrainToMobileCharacteristic[MotorData]):
-    pass
+        super().updateValue(bytes([len(valueBytes), *valueBytes]))
 
 
 class GyroCharacteristic(BrainToMobileCharacteristic[GyroData]):
@@ -181,6 +181,10 @@ class ProgramStatusCharacteristic(BrainToMobileCharacteristic[ProgramStatusColle
         super().__init__(uuid, description)
         self._data = ProgramStatusCollection()
 
+    def resetValue(self) -> None:
+        self._data = ProgramStatusCollection()
+        self.updateValue(self._data)
+
     def updateButtonStatus(self, button_id: int, status: int) -> None:
         self._data.update_button_value(button_id, status)
         self.updateValue(self._data)
@@ -190,67 +194,6 @@ class ProgramStatusCharacteristic(BrainToMobileCharacteristic[ProgramStatusColle
 class ReadOnlyCharacteristic(Characteristic):
     def __init__(self, uuid, value) -> None:
         super().__init__({"uuid": uuid, "properties": ["read"], "value": value})
-
-
-# These are standard BLE characteristics, so we don't set a custom descriptor string for them
-class SerialNumberCharacteristic(ReadOnlyCharacteristic):
-    def __init__(self, serial: str) -> None:
-        super().__init__("2A25", serial.encode())
-
-
-class ManufacturerNameCharacteristic(ReadOnlyCharacteristic):
-    def __init__(self, name: bytes) -> None:
-        super().__init__("2A29", name)
-
-
-class ModelNumberCharacteristic(ReadOnlyCharacteristic):
-    def __init__(self, model_no: bytes) -> None:
-        super().__init__("2A24", model_no)
-
-
-class VersionCharacteristic(Characteristic):
-    version_max_length = 20
-
-    # FIXME
-    def __init__(self, uuid, version_info) -> None:
-        super().__init__({"uuid": uuid, "properties": ["read"], "value": version_info.encode()})
-        self._version = []
-
-    def onReadRequest(self, offset, callback) -> None:
-        if offset:
-            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
-        else:
-            callback(Characteristic.RESULT_SUCCESS, self._version)
-
-    def updateValue(self, version) -> None:
-        if len(version) > self.version_max_length:
-            version = version[: self.version_max_length]
-        self._version = version.encode("utf-8")
-
-
-class SystemIdCharacteristic(Characteristic):
-    def __init__(self) -> None:
-        super().__init__({"uuid": "2A23", "properties": ["read", "write"]})
-
-    def onReadRequest(self, offset, callback) -> None:
-        if offset:
-            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
-        else:
-            callback(Characteristic.RESULT_SUCCESS, get_device_name().encode("utf-8"))
-
-    def onWriteRequest(self, data: bytes, offset, withoutResponse, callback) -> None:
-        if offset:
-            callback(Characteristic.RESULT_ATTR_NOT_LONG)
-        else:
-            try:
-                name = data.decode("ascii")
-                if 0 < len(name) <= 15:
-                    set_device_name(name)
-                    callback(Characteristic.RESULT_SUCCESS)
-                else:
-                    callback(Characteristic.RESULT_UNLIKELY_ERROR)
-            except UnicodeDecodeError:
-                callback(Characteristic.RESULT_UNLIKELY_ERROR)
 
 
 class MobileToBrainFunctionCharacteristic(Characteristic):
@@ -339,38 +282,3 @@ class LongMessageCharacteristic(Characteristic):
             log(traceback.format_exc())
         finally:
             callback(result)
-
-
-class UnifiedBatteryInfoCharacteristic(Characteristic):
-    def __init__(self, uuid, description) -> None:
-        super().__init__(
-            {
-                "uuid": uuid,
-                "properties": ["read", "notify"],
-                "descriptors": [Descriptor({"uuid": "2901", "value": description})],
-            }
-        )
-
-        self._value = [0, 0, 0, 0]
-
-    def onReadRequest(self, offset, callback) -> None:
-        if offset:
-            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
-        else:
-            callback(Characteristic.RESULT_SUCCESS, self._value)
-
-    def updateValue(self, battery_status: BatteryStatus) -> None:
-        new_value = [
-            round(battery_status.main),
-            battery_status.chargerStatus,
-            round(battery_status.motor),
-            battery_status.motor_battery_present,
-        ]
-        if new_value == self._value:
-            return
-
-        self._value = new_value
-
-        update_notified_value = self.updateValueCallback
-        if update_notified_value:
-            update_notified_value(self._value)

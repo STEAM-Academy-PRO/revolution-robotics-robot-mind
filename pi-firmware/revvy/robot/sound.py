@@ -25,7 +25,7 @@ class Sound:
         # Users can upload their own sounds in the writeable assets folder.
         self._assets.add_source(WRITEABLE_ASSETS_DIR)
 
-        self._get_sound_path = self._assets.category_loader("sounds")
+        self._sounds = self._assets.category("sounds")
         self.set_volume = sound_interface.set_volume
         self.reset_volume = sound_interface.reset_volume
 
@@ -53,10 +53,10 @@ class Sound:
         """
         try:
             key, self._key = self._key, self._key + 1
-            sound_file = self._get_sound_path(name)
+
             # TODO: we should return a less ad-hoc sound handle here. Working with the thread
             # and the finished callback directly is not ideal.
-            player_thread = self._sound.play_sound(sound_file, partial(self._finished, key))
+            player_thread = self._sound.play_sound(self._sounds[name], partial(self._finished, key))
             if player_thread:
                 self._playing[key] = (player_thread, callback)
                 return True

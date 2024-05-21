@@ -66,7 +66,7 @@ class PortHandler(Generic[DriverType]):
     """
     This class represents a port type (motor or sensor) and includes all ports of the same type.
 
-    The class acts as a 1-based array so that users can index into it to get a specific port, or
+    The class acts as an array so that users can index into it to get a specific port, or
     iterate over all ports.
     """
 
@@ -94,19 +94,16 @@ class PortHandler(Generic[DriverType]):
         self._port_count = amount
         self._ports = [
             PortInstance(i, name, interface, default_driver, supported, set_port_type)
-            for i in range(1, amount + 1)
+            for i in range(amount)
         ]
 
     def __getitem__(self, port_idx: int) -> "PortInstance[DriverType]":
-        """
-        Returns the port with the given index. We index ports from 1 so they correspond
-        to port numbers on the Robot's enclosure.
-        """
+        """Returns the port with the given index."""
 
-        if port_idx < 1 or port_idx > self._port_count:
-            raise IndexError(f"Port index out of range: {port_idx}")
-
-        return self._ports[port_idx - 1]
+        try:
+            return self._ports[port_idx]
+        except IndexError as e:
+            raise IndexError(f"Port index out of range: {port_idx}") from e
 
     def __iter__(self) -> Iterator["PortInstance[DriverType]"]:
         return self._ports.__iter__()

@@ -6,32 +6,32 @@
     "configurations": [
         {
             "name": "Deploy and Debug on PI",
-            "type": "python",
+            "type": "debugpy",
             "request": "attach",
             "connect": {
-              "host": "${config:target}",
-              "port": 5678
+                "host": "${config:target}",
+                "port": 5678
             },
             "preLaunchTask": "remote-debug-launcher",
             "pathMappings": [
                 {
                     "localRoot": "${workspaceFolder}",
-                    "remoteRoot": "."
+                    "remoteRoot": "~/RevvyFramework/user/packages/dev-pi-firmware"
                 }
             ]
         },
         {
             "name": "Attach Debug on PI",
-            "type": "python",
+            "type": "debugpy",
             "request": "attach",
             "connect": {
-              "host": "${config:target}",
-              "port": 5678
+                "host": "${config:target}",
+                "port": 5678
             },
             "pathMappings": [
                 {
                     "localRoot": "${workspaceFolder}",
-                    "remoteRoot": "."
+                    "remoteRoot": "~/RevvyFramework/user/packages/dev-pi-firmware"
                 }
             ]
         }

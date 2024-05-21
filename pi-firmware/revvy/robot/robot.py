@@ -1,7 +1,8 @@
 from functools import partial
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 import time
 
+from ..mcu.rrrc_control import RevvyControl
 from revvy.hardware_dependent.sound import SoundControlV1, SoundControlV2
 from revvy.mcu.commands import TestSensorOnPortResult
 from revvy.mcu.rrrc_control import RevvyTransportBase
@@ -13,7 +14,7 @@ from revvy.robot.ports.motors.base import MotorPortHandler
 from revvy.robot.ports.sensors.base import SensorPortHandler
 from revvy.robot.sound import Sound
 from revvy.robot.status import RobotStatusIndicator, RobotStatus
-from revvy.robot.status_updater import McuStatusUpdater
+from revvy.robot.status_updater import McuStatusUpdater, StatusSlot
 from revvy.scripting.resource import Resource
 from revvy.utils.logger import get_logger
 from revvy.utils.stopwatch import Stopwatch
@@ -28,7 +29,7 @@ SENSOR_ON_PORT_RGB = 4
 SENSOR_ON_PORT_UNKNOWN = 0xFF
 
 
-def to_sensor_type_index(expected_sensor):
+def to_sensor_type_index(expected_sensor) -> Optional[int]:
     if expected_sensor == SENSOR_ON_PORT_BUTTON:
         return 1
     if expected_sensor == SENSOR_ON_PORT_DISTANCE:
@@ -75,20 +76,20 @@ class Robot:
 
         self._imu = IMU()
 
-        def _set_updater(slot_name, port: PortInstance[PortDriver], config):
+        def _set_updater(slot: StatusSlot, port: PortInstance[PortDriver], config):
             """Controls reading a port's status information from the MCU."""
             if config is None:
-                self._status_updater.disable_slot(slot_name)
+                self._status_updater.disable_slot(slot)
             else:
-                self._status_updater.enable_slot(slot_name, port.driver.update_status)
+                self._status_updater.enable_slot(slot, port.driver.update_status)
 
         self._motor_ports = MotorPortHandler(self._robot_control)
         for port in self._motor_ports:
-            port.on_config_changed.add(partial(_set_updater, f"motor_{port.id}"))
+            port.on_config_changed.add(partial(_set_updater, StatusSlot.motor_slot(port.id)))
 
         self._sensor_ports = SensorPortHandler(self._robot_control)
         for port in self._sensor_ports:
-            port.on_config_changed.add(partial(_set_updater, f"sensor_{port.id}"))
+            port.on_config_changed.add(partial(_set_updater, StatusSlot.sensor_slot(port.id)))
 
         self._drivetrain = DifferentialDrivetrain(self._robot_control, self._imu)
 
@@ -120,7 +121,7 @@ class Robot:
         raise TimeoutError("Could not connect to Board! Bailing.")
 
     @property
-    def resources(self):
+    def resources(self) -> dict[str, Resource]:
         return self._resources
 
     @property
@@ -128,11 +129,11 @@ class Robot:
         return self._script_variables
 
     @property
-    def robot_control(self):
+    def robot_control(self) -> RevvyControl:
         return self._robot_control
 
     @property
-    def battery(self):
+    def battery(self) -> BatteryStatus:
         return self._battery
 
     @property
@@ -192,7 +193,7 @@ class Robot:
         self._ring_led.start_animation(RingLed.BreathingGreen)
         self._status_updater.reset()
 
-        def _process_battery_slot(data) -> None:
+        def _process_battery_slot(data: bytes):
             assert len(data) == 4
             main_status, main_percentage, motor_bat_present, motor_percentage = data
 
@@ -203,19 +204,22 @@ class Robot:
                 motor=motor_percentage,
             )
 
-        self._status_updater.enable_slot("battery", _process_battery_slot)
-        self._status_updater.enable_slot("axl", self._imu.update_axl_data)
-        self._status_updater.enable_slot("gyro", self._imu.update_gyro_data)
-        self._status_updater.enable_slot("orientation", self._imu.update_orientation_data)
+        self._status_updater.enable_slot(StatusSlot.BATTERY, _process_battery_slot)
+        self._status_updater.enable_slot(StatusSlot.ACCELEROMETER, self._imu.update_axl_data)
+        self._status_updater.enable_slot(StatusSlot.GYROSCOPE, self._imu.update_gyro_data)
+        self._status_updater.enable_slot(StatusSlot.ORIENTATION, self._imu.update_orientation_data)
 
         # TODO: do something useful with the reset signal
-        self._status_updater.enable_slot("reset", lambda _: self._log("MCU reset detected"))
+        self._status_updater.enable_slot(
+            StatusSlot.RESET, lambda _: self._log("MCU reset detected")
+        )
 
         self._drivetrain.reset()
         self._motor_ports.reset()
         self._sensor_ports.reset()
         self._sound.reset_volume()
         self._robot_control.orientation_reset()
+        self._script_variables.reset()
 
         self._status.update_robot_status(RobotStatus.NotConfigured)
 

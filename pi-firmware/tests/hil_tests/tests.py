@@ -157,8 +157,8 @@ def motors_dont_cause_errors(log: Logger, controller: ProgrammedRobotController)
     config.add_motor(None, "motor5")
     config.add_motor(None, "motor6")
 
-    config.drivetrain.left.append(1)
-    config.drivetrain.right.append(2)
+    config.drivetrain.left.append(0)
+    config.drivetrain.right.append(1)
 
     config.process_script(
         {
@@ -254,7 +254,7 @@ def missing_motor_does_not_block_script(log: Logger, controller: ProgrammedRobot
     config.add_motor(None, "motor5")
     config.add_motor(None, "motor6")
 
-    config.drivetrain.left.append(1)
+    config.drivetrain.left.append(0)
 
     config.process_script(
         {
@@ -329,8 +329,8 @@ def trying_to_access_uncofigured_motor_raises_error(
     config.add_motor(None, "motor5")
     config.add_motor(None, "motor6")
 
-    config.drivetrain.left.append(1)
-    config.drivetrain.right.append(2)
+    config.drivetrain.left.append(0)
+    config.drivetrain.right.append(1)
 
     config.process_script(
         {
@@ -530,7 +530,7 @@ def move_does_not_block_forever(log: Logger, controller: ProgrammedRobotControll
     config = RobotConfig()
     config.add_motor(Motors.EmulatedRevvyMotor, "motor1")
 
-    config.drivetrain.left.append(1)
+    config.drivetrain.left.append(0)
 
     config.process_script(
         {
@@ -579,7 +579,7 @@ robot.motors["motor1"].move(direction=Motor.DIRECTION_FWD, amount=300, unit_amou
 
     controller.configure(config)
 
-    driver = controller.robot_manager.robot.motors[1].driver
+    driver = controller.robot_manager.robot.motors[0].driver
 
     for i in range(5):
         log(f"Iteration {i+1}")
@@ -649,7 +649,7 @@ robot.motors["motor1"].spin(direction=Motor.DIRECTION_FWD, rotation=50, unit_rot
     controller.wait_for_scripts_to_end()
     time.sleep(0.2)
 
-    driver = controller.robot_manager.robot.motors[1].driver
+    driver = controller.robot_manager.robot.motors[0].driver
     assert driver.power != 0, f"Power is expected to be != 0 but is {driver.power}"
 
 

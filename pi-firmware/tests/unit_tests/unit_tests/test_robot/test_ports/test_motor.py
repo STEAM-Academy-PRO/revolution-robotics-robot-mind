@@ -46,7 +46,7 @@ class TestDriver(MotorPortDriver):
     def set_position(
         self, position: int, speed_limit=None, power_limit=None, pos_type="absolute"
     ) -> Awaiter:
-        return Awaiter.from_state(AwaiterState.FINISHED)
+        return Awaiter(AwaiterState.FINISHED)
 
     def set_power(self, power):
         pass
@@ -71,21 +71,20 @@ class TestMotorPortHandler(unittest.TestCase):
 
         self.assertEqual(6, ports.port_count)
 
-    def test_motor_ports_are_indexed_from_one(self):
+    def test_motor_ports_are_indexed_from_zero(self):
         mock_control = Mock()
         mock_control.get_motor_port_amount = Mock(return_value=6)
         mock_control.get_motor_port_types = Mock(return_value={"NotConfigured": 0})
 
         ports = MotorPortHandler(mock_control)
 
-        self.assertRaises(IndexError, lambda: ports[0])
+        self.assertIs(PortInstance, type(ports[0]))
         self.assertIs(PortInstance, type(ports[1]))
         self.assertIs(PortInstance, type(ports[2]))
         self.assertIs(PortInstance, type(ports[3]))
         self.assertIs(PortInstance, type(ports[4]))
         self.assertIs(PortInstance, type(ports[5]))
-        self.assertIs(PortInstance, type(ports[6]))
-        self.assertRaises(IndexError, lambda: ports[7])
+        self.assertRaises(IndexError, lambda: ports[6])
 
     def test_configure_raises_error_if_driver_is_not_supported_in_mcu(self):
         mock_control = Mock()
@@ -111,7 +110,7 @@ class TestDcMotorDriver(unittest.TestCase):
     def create_port():
 
         port = Mock()
-        port.id = 3
+        port.id = 2
         port._supported = {"NotConfigured": 0, "DcMotor": 1}
         port.interface = Mock()
         port.interface.set_motor_port_config = Mock()
@@ -130,7 +129,7 @@ class TestDcMotorDriver(unittest.TestCase):
         self.assertEqual(1, port.interface.set_motor_port_config.call_count)
         (passed_port_id, passed_config) = port.interface.set_motor_port_config.call_args[0]
 
-        self.assertEqual(3, passed_port_id)
+        self.assertEqual(2, passed_port_id)
 
         configs = 4 + (20 + 20 + 5) + 20 + 4 + 4 + 4
         linearity_table = 6 * 8

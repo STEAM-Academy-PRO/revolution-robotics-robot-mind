@@ -127,14 +127,14 @@ int main(void)
         case StartupReason_PowerUp:
             // We did not find any loadable application. Display an angry red light on the
             // bottom-most ring LED to indicate this.
-            ringLeds[2] = (rgb_t) LED_RED;
+            ringLeds[5] = (rgb_t) LED_RED;
             break;
 
         case StartupReason_WatchdogReset:
             // The application is most likely inoperable. Display an angry red light on the
             // top and bottom ring LED to indicate this.
-            ringLeds[2] = (rgb_t) LED_RED;
-            ringLeds[8] = (rgb_t) LED_RED;
+            ringLeds[5] = (rgb_t) LED_RED;
+            ringLeds[11] = (rgb_t) LED_RED;
             break;
     }
 

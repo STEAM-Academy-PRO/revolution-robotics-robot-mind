@@ -60,10 +60,6 @@ class AwaiterState(Enum):
 class Awaiter:
     """A flag that one piece of code can set/cancel and another can wait for it to be set."""
 
-    @classmethod
-    def from_state(cls, state):
-        return cls(state)
-
     def __init__(self, initial_state: AwaiterState = AwaiterState.NONE):
         self._lock = Lock()
         self._signal = WaitableValue(initial_state)

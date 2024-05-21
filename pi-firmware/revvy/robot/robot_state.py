@@ -8,14 +8,13 @@ It polls the MCU for updates in any states.
 
 """
 
-import copy
 import traceback
 from revvy.bluetooth.data_types import BackgroundControlState, GyroData, ScriptVariables, TimerData
 from revvy.mcu.rrrc_transport import TransportException
 from revvy.robot.remote_controller import RemoteController
 
 from revvy.robot.robot_events import RobotEvent
-from revvy.robot.states.battery_state import BatteryState
+from revvy.robot.filters.battery import BatteryState
 from revvy.utils.emitter import Emitter
 from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.observable import Observable
@@ -47,7 +46,6 @@ class RobotStatePoller(Emitter[RobotEvent]):
             BackgroundControlState.STOPPED, throttle_interval=0.1
         )
         self._timer = Observable(TimerData(0), throttle_interval=1)
-        self._motor_angles = Observable([0] * 6, throttle_interval=0.1)
 
     def start_polling_mcu(self) -> None:
         """Starts a new thread that runs every 5ms to check on MCU status."""
@@ -62,21 +60,10 @@ class RobotStatePoller(Emitter[RobotEvent]):
             lambda data: self.trigger(RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE, data)
         )
         self._timer.subscribe(lambda data: self.trigger(RobotEvent.TIMER_TICK, data))
-        self._motor_angles.subscribe(lambda data: self.trigger(RobotEvent.MOTOR_CHANGE, data))
 
         self._robot.reset()
 
         self._status_update_thread.start()
-
-    def set_motor_angle(self, idx: int, angle: int):
-        """
-        We update this from robot manager.
-        @param idx: 1-6
-        """
-        angles = copy.deepcopy(self._motor_angles.get())
-        # Mind the index offset! Here we have 0-5
-        angles[idx - 1] = angle
-        self._motor_angles.set(angles)
 
     def stop_polling_mcu(self) -> None:
         """Exits the thread."""

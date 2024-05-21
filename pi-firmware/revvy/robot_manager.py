@@ -10,10 +10,11 @@ import signal
 import traceback
 import time
 from threading import Event
+from typing import Optional
 
 from revvy.mcu.rrrc_control import RevvyTransportBase
 from revvy.robot.ports.common import PortInstance
-from revvy.robot.ports.motors.base import MotorPortDriver
+from revvy.robot.ports.sensors.simple import BumperSwitch, ColorSensor, Hcsr04
 from revvy.robot.robot import Robot
 from revvy.robot.remote_controller import (
     AutonomousModeRequest,
@@ -25,15 +26,24 @@ from revvy.robot.remote_controller import create_remote_controller_thread
 from revvy.robot.led_ring import RingLed
 from revvy.robot.robot_events import ProgramStatusChange, RobotEvent
 from revvy.robot.robot_state import RobotStatePoller
-from revvy.robot.states.sensor_states import create_sensor_data_wrapper
+from revvy.robot.filters.sensor_data import (
+    ButtonSensorDataFilter,
+    ColorSensorDataFilter,
+    SensorDataFilter,
+    UltrasonicSensorDataFilter,
+)
 from revvy.robot.status import RobotStatus, RemoteControllerStatus
 from revvy.robot_config import RobotConfig, empty_robot_config
 from revvy.scripting.robot_interface import MotorConstants
 from revvy.scripting.runtime import ScriptEvent, ScriptHandle, ScriptManager
 from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.stopwatch import Stopwatch
-from revvy.utils.subscription import DisposableArray
 from revvy.utils.error_reporter import RobotErrorType, revvy_error_handler
+from revvy.bluetooth.data_types import (
+    BumperSensorData,
+    ColorSensorData,
+    UltrasonicSensorData,
+)
 
 
 class RevvyStatusCode(enum.IntEnum):
@@ -68,8 +78,6 @@ class RobotManager:
         rcs.on_controller_detected(self._on_controller_detected)
         rcs.on_controller_lost(self._on_controller_lost)
         self._remote_controller_scheduler = rcs
-
-        self._sensor_data_subscriptions = DisposableArray()
 
         self.remote_controller = rc
         self._remote_controller_thread = create_remote_controller_thread(rcs)
@@ -116,7 +124,7 @@ class RobotManager:
         )
 
     # TODO: not used.
-    def validate_config(self, motors, sensors, motor_load_power, threshold, callback):  # -> Any:
+    def validate_config(self, motors, sensors, motor_load_power, threshold, callback) -> None:
         self._log(
             "validate req: motors={}, sensors={},pwr:{},sen:{}".format(
                 motors, sensors, motor_load_power, threshold
@@ -239,9 +247,8 @@ class RobotManager:
 
     def reset_configuration(self) -> None:
         """When RC disconnects"""
-        self._log("RESET config")
+        self._log("Reset robot config")
         self._robot.status.update_robot_status(RobotStatus.NotConfigured)
-        self._log("RC stopped")
         self._scripts.stop_all_scripts()
         for scr in [self._scripts, self._bg_controlled_scripts]:
             scr.reset()
@@ -276,28 +283,20 @@ class RobotManager:
         self.trigger(RobotEvent.SESSION_ID_CHANGE, self._session_id)
         log(f"New Configuration with session ID: {self._session_id}")
 
-        self._robot.script_variables.reset()
-
         # Initialize variable slots from config
         scriptvars = []
         for varconf in config.controller.variable_slots:
-            slot_idx = varconf["slot"]
-            v = self._robot.script_variables.variables[slot_idx]
-            v.init(varconf["script"], varconf["variable"], 0.0)
+            v = self._robot.script_variables.slot(varconf["slot"])
+            v.bind(varconf["script"], varconf["variable"])
             scriptvars.append(v)
 
         self._bg_controlled_scripts.assign("list_slots", scriptvars)
 
         # set up motors
-        for motor in self._robot.motors:
-            driver = motor.configure(config.motors[motor.id])
-
-            # Listen to data changes and update the robot state with new motor angles.
-            def on_status_change(data: tuple[PortInstance[MotorPortDriver], int]):
-                port = data[0]
-                self._robot_state.set_motor_angle(port.id, port.driver.pos)
-
-            driver.on_status_changed.add(on_status_change)
+        for motor_port in self._robot.motors:
+            motor_config = config.motors[motor_port.id]
+            log(f"Configuring motor {motor_port.id} {motor_config}", LogLevel.DEBUG)
+            motor_port.configure(motor_config)
 
         for motor_id in config.drivetrain.left:
             self._robot.drivetrain.add_left_motor(self._robot.motors[motor_id])
@@ -305,47 +304,19 @@ class RobotManager:
         for motor_id in config.drivetrain.right:
             self._robot.drivetrain.add_right_motor(self._robot.motors[motor_id])
 
-        # Dispose sensor reading subscriptions.
-        self._sensor_data_subscriptions.dispose()
-
-        # Re-configure sensors, subscribe to their data's changes.
+        # configure sensors, attach filters to their data change.
         for sensor_port in self._robot.sensors:
-            log(f"Configuring sensor {sensor_port.id} {config.sensors[sensor_port.id]}")
-            # Code smell: Instead of creating a new sensor object, we just
-            # configure one. I'd prefer re-initializing the Sensor object.
-            # not sure if it ditches the references.
-
-            # Some of this is defined in the config parser some in the sensor code
-            # making it pretty hard to debug.
-            # It links the types IN the config already, super hard to figure out where
-            # the actual sending down to MCU happens. I want to believe that there is a reason
-            # but loosing hope.
-            # sensor_port is actually a port_instance, but how it actually changes the behavior
-            # is a huge black hole.
-            # I would prefer to create SensorPort classes in here, the configuration part, handle
-            # the emitting, data-cleaning, event-smoothening/throttling and everything under one roof
-            # because it DEPENDS what kind of a sensor it is how to clean the signal.
-
             sensor_config = config.sensors[sensor_port.id]
+            log(f"Configuring sensor {sensor_port.id} {sensor_config}", LogLevel.DEBUG)
 
             sensor_port.configure(sensor_config)
 
-            # Empty sensors do not need a data wrapper subscription.
-            if sensor_config:
-                # Create a data wrapper that exposes sensor data to the mobile app.
-                sensor_data_wrapper_subscription = create_sensor_data_wrapper(
-                    sensor_port,
-                    sensor_config,
-                    lambda event_data: self.trigger(RobotEvent.SENSOR_VALUE_CHANGE, event_data),
-                )
+            # Create a data wrapper that exposes sensor data to the mobile app.
+            filter = self._create_sensor_data_filter(sensor_port)
 
-                if sensor_data_wrapper_subscription is not None:
-                    self._sensor_data_subscriptions.add(sensor_data_wrapper_subscription)
-
-            # Also, I'd love to see all the robot status changes WITHIN the robot in one place,
-            # most probably in the robot object.
-            # sensor_port.on_status_changed.add(lambda p:
-            #  self.trigger(RobotEvent.SENSOR_VALUE_CHANGE, SensorEventData(p.id, p.raw_value)))
+            if filter:
+                # Pipe the data changes into the filter.
+                sensor_port.driver.on_status_changed.add(filter.update)
 
         # set up remote controller
         for analog in config.controller.analog:
@@ -364,9 +335,9 @@ class RobotManager:
                 script_handle.assign("list_slots", scriptvars)
                 self.remote_controller.link_button_to_runner(button, script_handle)
 
-                script_handle.on(ScriptEvent.START, self._on_script_running)
-                script_handle.on(ScriptEvent.STOP, self._on_script_stopped)
-                script_handle.on(ScriptEvent.ERROR, self._on_script_error)
+                script_handle.on(ScriptEvent.START, self._on_button_script_running)
+                script_handle.on(ScriptEvent.STOP, self._on_button_script_stopped)
+                script_handle.on(ScriptEvent.ERROR, self._on_button_script_error)
 
         self._autonomous = config.background_initial_state
 
@@ -401,12 +372,49 @@ class RobotManager:
             self.remote_controller.background_control_state,
         )
 
-    def _on_script_running(self, script_handle: ScriptHandle, data=None):
-        """When script started, notify phone app."""
-        self.trigger(
-            RobotEvent.PROGRAM_STATUS_CHANGE,
-            ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.START),
-        )
+    def _create_sensor_data_filter(
+        self,
+        sensor_port: PortInstance,
+    ) -> Optional[SensorDataFilter]:
+        """
+        Create wrappers that smooth and throttle sensor reading
+        so their output is more suitable for BLE.
+        """
+
+        # Currently our sensors send data with too-high sampling rates so these
+        # serve as an extra data layer over the sensor port readings to debounce/throttle
+        # the surfacing values.
+        #
+        # Ideally, we'll dig down into the bottoms of the drivers and clean the
+        # data there and only surface it when it's actually good and reliable.
+        # Until now, here is a wrapper.
+
+        if isinstance(sensor_port.driver, Hcsr04):
+            self._log(f"ultrasonic on port {sensor_port.id}")
+            return UltrasonicSensorDataFilter(
+                lambda value: self.trigger(
+                    RobotEvent.SENSOR_VALUE_CHANGE,
+                    UltrasonicSensorData(sensor_port.id, value),
+                )
+            )
+
+        elif isinstance(sensor_port.driver, BumperSwitch):
+            self._log(f"button {sensor_port.id}")
+            return ButtonSensorDataFilter(
+                lambda value: self.trigger(
+                    RobotEvent.SENSOR_VALUE_CHANGE,
+                    BumperSensorData(sensor_port.id, value),
+                )
+            )
+
+        elif isinstance(sensor_port.driver, ColorSensor):
+            self._log(f"color sensor {sensor_port.id}")
+            return ColorSensorDataFilter(
+                lambda value: self.trigger(
+                    RobotEvent.SENSOR_VALUE_CHANGE,
+                    ColorSensorData(sensor_port.id, value),
+                )
+            )
 
     def _show_script_error(self, script_handle: ScriptHandle, exception: Exception):
         """
@@ -414,8 +422,8 @@ class RobotManager:
         On code execution error, do send visible signals
         to the user about the code being broken.
         """
-        self._log(f"ERROR in userscript: {script_handle.descriptor.name}", LogLevel.ERROR)
-        self._log(f"ERROR:  {str(exception)}", LogLevel.ERROR)
+        self._log(f"ERROR in user script: {script_handle.descriptor.name}", LogLevel.ERROR)
+        self._log(f"ERROR: {str(exception)}", LogLevel.ERROR)
         self._log(
             f"Source that caused the error: \n\n{script_handle.descriptor.source}\n", LogLevel.ERROR
         )
@@ -426,7 +434,7 @@ class RobotManager:
         self._robot.sound.play_tune_blocking("s_bug")
         self._robot.led.start_animation(RingLed.Off)
 
-    def _on_analog_script_error(self, *args):
+    def _on_analog_script_error(self, script_handle: ScriptHandle, exception: Exception):
         """Analog script errors run in separate thread, report them as System errors."""
         revvy_error_handler.report_error(RobotErrorType.SYSTEM, traceback.format_exc())
 
@@ -441,30 +449,33 @@ class RobotManager:
         # Do it at the and as it's blocking.
         self._show_script_error(script_handle, exception)
 
-    def _on_script_error(self, script_handle: ScriptHandle, exception: Exception):
+    def _report_button_script_state_change(self, script_handle: ScriptHandle, state: ScriptEvent):
+        assert script_handle.descriptor.ref_id is not None
+        self.trigger(
+            RobotEvent.PROGRAM_STATUS_CHANGE,
+            ProgramStatusChange(script_handle.descriptor.ref_id, state),
+        )
+
+    def _on_button_script_running(self, script_handle: ScriptHandle, data):
+        """When script started, notify phone app."""
+        self._report_button_script_state_change(script_handle, ScriptEvent.START)
+
+    def _on_button_script_error(self, script_handle: ScriptHandle, exception: Exception):
         """
         Handle runner script errors gracefully, and type out what caused it to bail!
         These are user scripts, so we should consider sending them back via Bluetooth
         """
-        self.trigger(
-            RobotEvent.PROGRAM_STATUS_CHANGE,
-            ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.ERROR),
-        )
+        self._report_button_script_state_change(script_handle, ScriptEvent.ERROR)
 
         revvy_error_handler.report_error(
             RobotErrorType.BLOCKLY_BUTTON, traceback.format_exc(), script_handle.descriptor.ref_id
         )
 
-        # Do it at the and as it's blocking.
+        # Do it at the end as it's blocking.
         self._show_script_error(script_handle, exception)
 
-    def _on_script_stopped(self, script_handle: ScriptHandle, data=None):
-        """If we want to send back script status stopped change, this is the place."""
-        # self._log(f'script: {script.name}')
-        self.trigger(
-            RobotEvent.PROGRAM_STATUS_CHANGE,
-            ProgramStatusChange(script_handle.descriptor.ref_id, ScriptEvent.STOP),
-        )
+    def _on_button_script_stopped(self, script_handle: ScriptHandle, data):
+        self._report_button_script_state_change(script_handle, ScriptEvent.STOP)
 
     def robot_stop(self) -> None:
         """On exiting let's reset all states."""

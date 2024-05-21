@@ -41,10 +41,12 @@ class Command(ABC, Generic[ReturnType]):
         if response.status == ResponseStatus.Ok:
             return self.parse_response(response.payload)
         elif response.status == ResponseStatus.Error_UnknownCommand:
-            raise UnknownCommandError(f"Command not implemented on MCU: {hex(self._command_byte)}")
+            raise UnknownCommandError(
+                f"{self.__class__.__name__} not implemented on MCU: {hex(self._command_byte)}"
+            )
         else:
             raise ValueError(
-                f'Command status: "{response.status}" with payload: {repr(response.payload)}'
+                f'{self.__class__.__name__} failed with status: "{response.status}" with payload: {repr(response.payload)}'
             )
 
     def _send(self, payload: bytes = b"") -> ReturnType:
