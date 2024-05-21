@@ -35,9 +35,5 @@ class Assets:
             self._log(f"Skip loading assets from {path} due to unexpected error", LogLevel.WARNING)
             self._log(traceback.format_exc(), LogLevel.DEBUG)
 
-    def get_asset_file(self, category, name):
-        return self._files[category][name]
-
-    def category_loader(self, category):
-        files = self._files[category]
-        return lambda file: files[file]
+    def category(self, category: str) -> dict[str, str]:
+        return self._files[category]

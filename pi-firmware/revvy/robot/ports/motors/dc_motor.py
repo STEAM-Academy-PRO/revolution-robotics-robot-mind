@@ -279,7 +279,7 @@ class BaseDcMotorDriver(MotorPortDriver):
             awaiter.cancel()
 
     @property
-    def speed(self):
+    def speed(self) -> int:
         return self._speed
 
     @property
@@ -287,7 +287,7 @@ class BaseDcMotorDriver(MotorPortDriver):
         return self._pos + self._pos_offset
 
     @pos.setter
-    def pos(self, val):
+    def pos(self, val: int):
         self._pos_offset = val - self._pos
         self.log(f"setting position offset to {self._pos_offset}")
 

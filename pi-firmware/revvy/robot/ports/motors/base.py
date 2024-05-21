@@ -109,11 +109,11 @@ class NullMotor(MotorPortDriver):
         return 0
 
     @property
-    def pos(self):
+    def pos(self) -> int:
         return 0
 
     @property
-    def power(self):
+    def power(self) -> int:
         return 0
 
     def set_speed(self, speed, power_limit=None):

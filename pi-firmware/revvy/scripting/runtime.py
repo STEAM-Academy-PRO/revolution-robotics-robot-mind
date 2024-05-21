@@ -12,6 +12,7 @@ from revvy.utils.functions import str_to_func
 if TYPE_CHECKING:
     from revvy.robot.robot import Robot
     from revvy.robot_config import RobotConfig
+    from revvy.scripting.variables import Variable
 
 from revvy.utils.logger import get_logger
 from revvy.utils.thread_wrapper import ThreadContext, ThreadWrapper, ThreadWrapperState
@@ -143,10 +144,10 @@ class ScriptHandle(Emitter[ScriptEvent]):
             self.sleep = self._prevent_incorrect_sleep
 
     def reset_variables(self, *args) -> None:
-        if "list_slots" in self._globals:
-            for var in self._globals["list_slots"]:
-                self.log(f"resetting_variable: {var}")
-                var.reset_value()
+        variables: list["Variable"] = self._globals.get("list_slots", [])
+        for var in variables:
+            self.log(f"resetting_variable: {var}")
+            var.reset_value()
 
     def start(self, **kwargs) -> None:
         if not kwargs:

@@ -124,7 +124,7 @@ class RobotManager:
         )
 
     # TODO: not used.
-    def validate_config(self, motors, sensors, motor_load_power, threshold, callback):  # -> Any:
+    def validate_config(self, motors, sensors, motor_load_power, threshold, callback) -> None:
         self._log(
             "validate req: motors={}, sensors={},pwr:{},sen:{}".format(
                 motors, sensors, motor_load_power, threshold
@@ -289,9 +289,8 @@ class RobotManager:
         # Initialize variable slots from config
         scriptvars = []
         for varconf in config.controller.variable_slots:
-            slot_idx = varconf["slot"]
-            v = self._robot.script_variables.variables[slot_idx]
-            v.init(varconf["script"], varconf["variable"], 0.0)
+            v = self._robot.script_variables.slot(varconf["slot"])
+            v.bind(varconf["script"], varconf["variable"])
             scriptvars.append(v)
 
         self._bg_controlled_scripts.assign("list_slots", scriptvars)

@@ -1,12 +1,7 @@
-import struct
-import time
-
 from math import sqrt, sin, cos, pi, atan2
 
-from revvy.scripting.robot_interface import DriveTrainWrapper, SensorPortWrapper
 
-
-def stick_controller(x, y):
+def stick_controller(x: float, y: float) -> tuple[float, float]:
     """Two wheel speeds are controlled independently, just pass through
 
     >>> stick_controller(0, 0)
@@ -19,7 +14,7 @@ def stick_controller(x, y):
     return x, y
 
 
-def joystick(x, y):
+def joystick(x: float, y: float) -> tuple[float, float]:
     """Calculate control vector length and angle based on touch (x, y) coordinates
 
     >>> joystick(0, 0)

@@ -2,8 +2,10 @@ import hashlib
 import json
 import traceback
 from binascii import b2a_base64, a2b_base64
-from typing import TypeVar
+from typing import Callable, TypeVar, TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from revvy.scripting.variables import Variable
 
 IntOrFloat = TypeVar("IntOrFloat", int, float)
 
@@ -173,7 +175,7 @@ def read_json(filename: str):
         return json.load(f)
 
 
-def str_to_func(code, script_id=None):
+def str_to_func(code: str, script_id=None) -> Callable:
     """Take python code as string and create a callable functions
     The function arguments will be injected into the code as global variables
 
@@ -183,23 +185,21 @@ def str_to_func(code, script_id=None):
     Called with something
     """
 
-    def wrapper(**kwargs):
+    def wrapper(**kwargs) -> None:
         kwargs["script_id"] = script_id
 
-        list_slots = kwargs.get("list_slots", [])
+        # This list is assembled in `robot_configure`. The mobile app will
+        # send a list of variables that we should track.
+        # This list is then passed to both background as well as button scripts.
+        variable_slots: list["Variable"] = kwargs.get("list_slots", [])
 
-        def ReportVariableChanged(name, value, scr_id=script_id, ls=list_slots):
-            for variable_slot in ls:
-                if variable_slot.get_script() == scr_id:
-                    if variable_slot.get_name() == name:
+        def ReportVariableChanged(name: str, value):
+            # When a variable is changed, update the value in the variable_slots.
+            for variable_slot in variable_slots:
+                if variable_slot.script == script_id:
+                    if variable_slot.name == name:
                         variable_slot.set_value(value)
                         return
-            # This is technically not needed to log out, as if we do not get the
-            # variable list from the app, it will not have the list.
-            # This is however I think is VERY backwards: we should send back ALL
-            # the variables if they change, and eventually make it much easier to
-            # track them on the phone's UI.
-            # print(f'ReportVariableChanged: variable "{name}" not found')
 
         kwargs["ReportVariableChanged"] = ReportVariableChanged
 
