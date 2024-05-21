@@ -222,7 +222,7 @@ class MotorPortWrapper(Wrapper):
         self._motor = motor
 
     @property
-    def pos(self):
+    def pos(self) -> int:
         return self._motor.driver.pos
 
     @pos.setter

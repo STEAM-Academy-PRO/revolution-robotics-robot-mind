@@ -11,7 +11,7 @@ class Assets:
         self._log = get_logger("Assets")
         self._files = defaultdict(dict)
 
-    def add_source(self, path):
+    def add_source(self, path: str):
         """
         Add a new folder to the asset sources
 
@@ -21,7 +21,7 @@ class Assets:
         try:
             manifest = read_json(assets_json)
             self._log(f"Loading assets from {path}")
-            files = manifest["files"]
+            files: dict[str, dict[str, str]] = manifest["files"]
             for category, assets in files.items():
                 for asset_name, asset_path in assets.items():
                     if asset_name in self._files[category]:

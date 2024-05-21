@@ -283,7 +283,7 @@ class BaseDcMotorDriver(MotorPortDriver):
         return self._speed
 
     @property
-    def pos(self):
+    def pos(self) -> int:
         return self._pos + self._pos_offset
 
     @pos.setter

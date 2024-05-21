@@ -55,7 +55,8 @@ class MotorPortDriver(PortDriver):
     @abstractmethod
     def pos(
         self,
-    ): ...  # TODO: decide on a return type - currently returns ticks, maybe, but should be rotations?
+    ) -> int:
+        """Returns the current position of the motor in degrees."""
 
     @property
     @abstractmethod
@@ -121,7 +122,7 @@ class NullMotor(MotorPortDriver):
     def set_position(
         self, position: int, speed_limit=None, power_limit=None, pos_type="absolute"
     ) -> Awaiter:
-        return Awaiter.from_state(AwaiterState.FINISHED)
+        return Awaiter(AwaiterState.FINISHED)
 
     def set_power(self, power):
         pass

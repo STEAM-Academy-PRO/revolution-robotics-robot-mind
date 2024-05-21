@@ -80,7 +80,7 @@ def retry(fn, retries: int = 5, error_handler=None):
     return False
 
 
-def split(data, chunk_size):
+def split(data, chunk_size: int):
     """
     >>> list(split([], 5))
     []
