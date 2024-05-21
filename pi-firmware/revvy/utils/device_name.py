@@ -7,14 +7,16 @@ from revvy.utils.functions import get_serial
 serial = get_serial()
 device_storage = FileStorage(WRITEABLE_DATA_DIR)
 
+# By default, the device's name is its serial number.
+device_name = serial
 try:
     # Overwrite it, if we have something set in the device-name file.
-    device_name = device_storage.read("device-name").decode("ascii")
+    custom_device_name = device_storage.read("device-name").decode("ascii")
 
-    if 0 == len(device_name) or len(device_name) > 15:
-        device_name = f"Revvy_{serial}"
+    if 0 < len(custom_device_name) <= 15:
+        device_name = custom_device_name
 except Exception:
-    device_name = f"Revvy_{serial}"
+    pass
 
 
 def get_device_name() -> str:
