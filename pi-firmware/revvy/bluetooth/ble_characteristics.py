@@ -118,7 +118,7 @@ DataType = TypeVar("DataType", bound=Serialize)
 
 class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
     def __init__(self, uuid, description: bytes) -> None:
-        self._value = []
+        self._value = bytes()
         super().__init__(
             {
                 "uuid": uuid,
@@ -130,7 +130,7 @@ class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
         )
 
     def resetValue(self) -> None:
-        self._update_value([])
+        self._update_value(bytes())
 
     def onReadRequest(self, offset, callback) -> None:
         if offset:
@@ -156,10 +156,10 @@ class StateControlCharacteristic(BackgroundProgramControlCharacteristic):
 
 
 class SensorCharacteristic(BrainToMobileCharacteristic):
-    def updateValue(self, value) -> None:
-        # FIXME: prefix with data length is probably unnecessary
+    def updateValue(self, value: Serialize) -> None:
         value = value.__bytes__()
-        super().updateValue([len(value), *value])
+        # FIXME: prefix with data length is probably unnecessary
+        super().updateValue(bytes([len(value), *value]))
 
 
 class GyroCharacteristic(BrainToMobileCharacteristic[GyroData]):
