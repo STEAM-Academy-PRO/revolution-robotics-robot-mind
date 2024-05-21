@@ -66,7 +66,7 @@ class VariableSlot(object):
         return f"VariableSlot({str(self._variables)})"
 
     def values(self) -> ScriptVariables:
-        return ScriptVariables([var.value() for var in self._variables])
+        return ScriptVariables([var.value for var in self._variables])
 
     def reset(self) -> None:
         self._variables = [Variable()] * len(self._variables)
