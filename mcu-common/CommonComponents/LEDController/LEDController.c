@@ -78,7 +78,11 @@ static void update_frame(void)
 
     for (uint32_t i = 0u; i < RING_LEDS_AMOUNT; i++)
     {
-        write_led_color(STATUS_LEDS_AMOUNT + i, LEDController_Read_RingLED(i));
+        // Physically the first LED is at 4 o'clock. We need to rotate the ring LEDs by 3 to align
+        // the first LED to 1 o'clock, which is in line with the app.
+        // Note that it might be unintuitive, but + 3u is actually a counter-clockwise rotation,
+        // because for LED position 0 we take the value at position 3, etc.
+        write_led_color(STATUS_LEDS_AMOUNT + i, LEDController_Read_RingLED((i + 3u) % RING_LEDS_AMOUNT));
     }
 }
 
