@@ -46,6 +46,7 @@ jobs:
         with:
           filters: |
             mcu-bootloader:
+              - mcu-common/**
               - mcu-bootloader/**
               - .github/workflows/pr.yml
 
@@ -105,6 +106,7 @@ jobs:
         with:
           filters: |
             mcu-firmware:
+              - mcu-common/**
               - mcu-firmware/**
               - pi-firmware/**
               - .github/workflows/pr.yml
@@ -208,6 +210,7 @@ jobs:
           filters: |
             any-source:
               - pi-firmware/**
+              - mcu-common/**
               - mcu-firmware/**
               - .github/workflows/pr.yml
 
