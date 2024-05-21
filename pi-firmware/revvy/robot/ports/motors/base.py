@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
+from typing import Optional
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import DriverConfig, PortHandler, PortDriver, PortInstance
 
@@ -30,6 +31,11 @@ class MotorStatus(Enum):
     NORMAL = 0
     BLOCKED = 1
     GOAL_REACHED = 2
+
+
+class MotorPositionKind(Enum):
+    RELATIVE = 0
+    ABSOLUTE = 1
 
 
 class MotorPortDriver(PortDriver):
@@ -63,15 +69,19 @@ class MotorPortDriver(PortDriver):
     def power(self) -> int: ...
 
     @abstractmethod
-    def set_speed(self, speed, power_limit=None): ...
+    def set_speed(self, speed: float, power_limit: Optional[float] = None): ...
 
     @abstractmethod
     def set_position(
-        self, position: int, speed_limit=None, power_limit=None, pos_type="absolute"
+        self,
+        position: int,
+        speed_limit=None,
+        power_limit=None,
+        pos_type: MotorPositionKind = MotorPositionKind.ABSOLUTE,
     ) -> Awaiter: ...
 
     @abstractmethod
-    def set_power(self, power): ...
+    def set_power(self, power: int): ...
 
     @abstractmethod
     def stop(self, action: int = MotorConstants.ACTION_RELEASE): ...
@@ -116,11 +126,15 @@ class NullMotor(MotorPortDriver):
     def power(self) -> int:
         return 0
 
-    def set_speed(self, speed, power_limit=None):
+    def set_speed(self, speed: float, power_limit: Optional[float] = None):
         pass
 
     def set_position(
-        self, position: int, speed_limit=None, power_limit=None, pos_type="absolute"
+        self,
+        position: int,
+        speed_limit: Optional[float] = None,
+        power_limit: Optional[float] = None,
+        pos_type=MotorPositionKind.ABSOLUTE,
     ) -> Awaiter:
         return Awaiter(AwaiterState.FINISHED)
 

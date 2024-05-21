@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
 
 from revvy.robot.led_ring import RingLed
-from revvy.robot.ports.motors.base import MotorConstants, MotorPortDriver
+from revvy.robot.ports.motors.base import MotorConstants, MotorPortDriver, MotorPositionKind
 from revvy.robot.ports.sensors.base import SensorPortDriver
 from revvy.robot.sound import Sound
 from revvy.scripting.resource import BaseHandle, null_handle, Resource
@@ -220,10 +220,16 @@ class MotorPortWrapper(Wrapper):
         super().__init__(script, resource)
         self._log = get_logger(["MotorPortWrapper", f"{motor.id}"], base=script.log)
         self._motor = motor
+        self._pos_offset = 0
 
     @property
     def pos(self) -> int:
-        return self._motor.driver.pos
+        return self._motor.driver.pos + self._pos_offset
+
+    @pos.setter
+    def pos(self, val: int):
+        self._pos_offset = val - self._motor.driver.pos
+        self._log(f"setting position offset to {self._pos_offset}")
 
     @pos.setter
     def pos(self, val):
@@ -241,18 +247,18 @@ class MotorPortWrapper(Wrapper):
             MotorConstants.UNIT_DEG: {
                 MotorConstants.UNIT_SPEED_RPM: {
                     MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_position(
-                        amount, speed_limit=limit, pos_type="relative"
+                        amount, speed_limit=limit, pos_type=MotorPositionKind.RELATIVE
                     ),
                     MotorConstants.DIRECTION_BACK: lambda: self._motor.driver.set_position(
-                        -amount, speed_limit=limit, pos_type="relative"
+                        -amount, speed_limit=limit, pos_type=MotorPositionKind.RELATIVE
                     ),
                 },
                 MotorConstants.UNIT_SPEED_PWR: {
                     MotorConstants.DIRECTION_FWD: lambda: self._motor.driver.set_position(
-                        amount, power_limit=limit, pos_type="relative"
+                        amount, power_limit=limit, pos_type=MotorPositionKind.RELATIVE
                     ),
                     MotorConstants.DIRECTION_BACK: lambda: self._motor.driver.set_position(
-                        -amount, power_limit=limit, pos_type="relative"
+                        -amount, power_limit=limit, pos_type=MotorPositionKind.RELATIVE
                     ),
                 },
             },

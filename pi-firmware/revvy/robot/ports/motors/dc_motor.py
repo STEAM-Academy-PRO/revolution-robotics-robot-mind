@@ -5,7 +5,12 @@ from threading import Lock
 from typing import NamedTuple, Optional
 
 from revvy.robot.ports.common import PortInstance
-from revvy.robot.ports.motors.base import MotorConstants, MotorStatus, MotorPortDriver
+from revvy.robot.ports.motors.base import (
+    MotorConstants,
+    MotorPositionKind,
+    MotorStatus,
+    MotorPortDriver,
+)
 from revvy.utils.awaiter import Awaiter
 from revvy.utils.functions import clip
 from revvy.utils.logger import LogLevel
@@ -101,7 +106,13 @@ class SetPositionCommand(MotorCommand):
     REQUEST_ABSOLUTE = 2
     REQUEST_RELATIVE = 3
 
-    def __init__(self, request_type: int, position, speed_limit=None, power_limit=None):
+    def __init__(
+        self,
+        request_type: int,
+        position,
+        speed_limit: Optional[float] = None,
+        power_limit: Optional[float] = None,
+    ):
         super().__init__(request_type)
         self.position = int(position)
         self.speed_limit = speed_limit
@@ -214,7 +225,6 @@ class BaseDcMotorDriver(MotorPortDriver):
         self._pos = 0
         self._speed = 0
         self._power = 0
-        self._pos_offset = 0
 
         self._awaiter = None
         self._status = (0, MotorStatus.NORMAL)
@@ -229,7 +239,7 @@ class BaseDcMotorDriver(MotorPortDriver):
     # TODO: explain the arguments' units
     # TODO: remove these in favour of "Command to ports" API? Keep in mind that drivetrain
     # sends multiple commands in one go.
-    def create_set_power_command(self, power) -> bytes:
+    def create_set_power_command(self, power: int) -> bytes:
         """Create a command to set the motor power of the current motor.
 
         You can send the returned command (or multiple commands)
@@ -246,11 +256,11 @@ class BaseDcMotorDriver(MotorPortDriver):
         return SetSpeedCommand(speed, power_limit).command_to_port(self._port)
 
     def create_absolute_position_command(
-        self, position, speed_limit=None, power_limit=None
+        self, position, speed_limit: Optional[float] = None, power_limit: Optional[float] = None
     ) -> bytes:
         """Create a command to set the regulated position of the current motor.
 
-        The position is measured in degrees, counted from when the port is configured.
+        The position is measured in degrees. The motor assumes position 0 when configured.
 
         You can send the returned command (or multiple commands)
         using `interface.set_motor_port_control_value`
@@ -260,7 +270,7 @@ class BaseDcMotorDriver(MotorPortDriver):
         ).command_to_port(self._port)
 
     def create_relative_position_command(
-        self, position, speed_limit=None, power_limit=None
+        self, position, speed_limit: Optional[float] = None, power_limit: Optional[float] = None
     ) -> bytes:
         """Create a command to turn the current motor. The turning angle is relative to the current position.
 
@@ -284,24 +294,19 @@ class BaseDcMotorDriver(MotorPortDriver):
 
     @property
     def pos(self) -> int:
-        return self._pos + self._pos_offset
-
-    @pos.setter
-    def pos(self, val: int):
-        self._pos_offset = val - self._pos
-        self.log(f"setting position offset to {self._pos_offset}")
+        return self._pos
 
     @property
     def power(self):
         return self._power
 
-    def set_power(self, power) -> None:
+    def set_power(self, power: int) -> None:
         self._cancel_awaiter()
         self.log("set_power")
 
         self._port.interface.set_motor_port_control_value(self.create_set_power_command(power))
 
-    def set_speed(self, speed, power_limit=None) -> None:
+    def set_speed(self, speed: float, power_limit: Optional[float] = None) -> None:
         self._cancel_awaiter()
         self.log("set_speed")
 
@@ -310,7 +315,11 @@ class BaseDcMotorDriver(MotorPortDriver):
         )
 
     def set_position(
-        self, position: int, speed_limit=None, power_limit=None, pos_type="absolute"
+        self,
+        position: int,
+        speed_limit=None,
+        power_limit=None,
+        pos_type: MotorPositionKind = MotorPositionKind.ABSOLUTE,
     ) -> Awaiter:
         """
         @param position: measured in degrees, depending on pos_type
@@ -331,13 +340,10 @@ class BaseDcMotorDriver(MotorPortDriver):
         awaiter.on_finished(_finished)
         awaiter.on_cancelled(_canceled)
 
-        if pos_type == "absolute":
-            position -= self._pos_offset
+        if pos_type == MotorPositionKind.ABSOLUTE:
             command = self.create_absolute_position_command(position, speed_limit, power_limit)
-        elif pos_type == "relative":
-            command = self.create_relative_position_command(position, speed_limit, power_limit)
         else:
-            raise ValueError(f"Invalid pos_type {pos_type}")
+            command = self.create_relative_position_command(position, speed_limit, power_limit)
 
         with self._lock:
             self._awaiter = awaiter
