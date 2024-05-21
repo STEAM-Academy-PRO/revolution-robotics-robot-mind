@@ -297,7 +297,7 @@ class LongMessageHandler:
 
         else:
             # INVALID status, finalize does nothing
-            pass
+            self._log("finalize_message called in invalid state", LogLevel.WARNING)
 
 
 class LongMessageProtocolResult(Enum):
