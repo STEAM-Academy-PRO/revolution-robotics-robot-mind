@@ -157,9 +157,9 @@ class StateControlCharacteristic(BackgroundProgramControlCharacteristic):
 
 class SensorCharacteristic(BrainToMobileCharacteristic):
     def updateValue(self, value: Serialize) -> None:
-        value = value.__bytes__()
+        valueBytes = value.__bytes__()
         # FIXME: prefix with data length is probably unnecessary
-        super().updateValue(bytes([len(value), *value]))
+        super().updateValue(bytes([len(valueBytes), *valueBytes]))
 
 
 class GyroCharacteristic(BrainToMobileCharacteristic[GyroData]):
