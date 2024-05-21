@@ -196,7 +196,7 @@ class Version:
 manifest = None
 
 
-def read_manifest():
+def read_manifest() -> None:
     global manifest
     manifest = read_json(os.path.join(CURRENT_INSTALLATION_PATH, "manifest.json"))
 

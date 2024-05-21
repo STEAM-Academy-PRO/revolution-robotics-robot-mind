@@ -46,7 +46,7 @@ class TestDriver(MotorPortDriver):
     def set_position(
         self, position: int, speed_limit=None, power_limit=None, pos_type="absolute"
     ) -> Awaiter:
-        return Awaiter.from_state(AwaiterState.FINISHED)
+        return Awaiter(AwaiterState.FINISHED)
 
     def set_power(self, power):
         pass

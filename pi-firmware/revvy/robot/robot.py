@@ -1,7 +1,8 @@
 from functools import partial
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 import time
 
+from ..mcu.rrrc_control import RevvyControl
 from revvy.hardware_dependent.sound import SoundControlV1, SoundControlV2
 from revvy.mcu.commands import TestSensorOnPortResult
 from revvy.mcu.rrrc_control import RevvyTransportBase
@@ -28,7 +29,7 @@ SENSOR_ON_PORT_RGB = 4
 SENSOR_ON_PORT_UNKNOWN = 0xFF
 
 
-def to_sensor_type_index(expected_sensor):
+def to_sensor_type_index(expected_sensor) -> Optional[int]:
     if expected_sensor == SENSOR_ON_PORT_BUTTON:
         return 1
     if expected_sensor == SENSOR_ON_PORT_DISTANCE:
@@ -120,7 +121,7 @@ class Robot:
         raise TimeoutError("Could not connect to Board! Bailing.")
 
     @property
-    def resources(self):
+    def resources(self) -> dict[str, Resource]:
         return self._resources
 
     @property
@@ -128,11 +129,11 @@ class Robot:
         return self._script_variables
 
     @property
-    def robot_control(self):
+    def robot_control(self) -> RevvyControl:
         return self._robot_control
 
     @property
-    def battery(self):
+    def battery(self) -> BatteryStatus:
         return self._battery
 
     @property

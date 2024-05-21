@@ -17,10 +17,10 @@ class BaseHandle(abc.ABC):
     def __bool__(self) -> bool: ...
 
     @abc.abstractmethod
-    def interrupt(self): ...
+    def interrupt(self) -> None: ...
 
     @abc.abstractmethod
-    def release(self): ...
+    def release(self) -> None: ...
 
     @abc.abstractmethod
     def run_uninterruptable(
@@ -38,10 +38,10 @@ class NullHandle(BaseHandle):
     def __bool__(self) -> bool:
         return False
 
-    def interrupt(self):
+    def interrupt(self) -> None:
         pass
 
-    def release(self):
+    def release(self) -> None:
         pass
 
     def run_uninterruptable(self, callback) -> Optional[Any]:

@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
+from typing import Optional
 from revvy.mcu.rrrc_control import RevvyControl
 from revvy.robot.ports.common import DriverConfig, PortHandler, PortDriver, PortInstance
 
@@ -32,6 +33,11 @@ class MotorStatus(Enum):
     GOAL_REACHED = 2
 
 
+class MotorPositionKind(Enum):
+    RELATIVE = 0
+    ABSOLUTE = 1
+
+
 class MotorPortDriver(PortDriver):
     def __init__(self, port: PortInstance, driver_name: str):
         super().__init__(port, driver_name, "Motor")
@@ -55,22 +61,27 @@ class MotorPortDriver(PortDriver):
     @abstractmethod
     def pos(
         self,
-    ): ...  # TODO: decide on a return type - currently returns ticks, maybe, but should be rotations?
+    ) -> int:
+        """Returns the current position of the motor in degrees."""
 
     @property
     @abstractmethod
     def power(self) -> int: ...
 
     @abstractmethod
-    def set_speed(self, speed, power_limit=None): ...
+    def set_speed(self, speed: float, power_limit: Optional[float] = None): ...
 
     @abstractmethod
     def set_position(
-        self, position: int, speed_limit=None, power_limit=None, pos_type="absolute"
+        self,
+        position: int,
+        speed_limit=None,
+        power_limit=None,
+        pos_type: MotorPositionKind = MotorPositionKind.ABSOLUTE,
     ) -> Awaiter: ...
 
     @abstractmethod
-    def set_power(self, power): ...
+    def set_power(self, power: int): ...
 
     @abstractmethod
     def stop(self, action: int = MotorConstants.ACTION_RELEASE): ...
@@ -108,20 +119,24 @@ class NullMotor(MotorPortDriver):
         return 0
 
     @property
-    def pos(self):
+    def pos(self) -> int:
         return 0
 
     @property
-    def power(self):
+    def power(self) -> int:
         return 0
 
-    def set_speed(self, speed, power_limit=None):
+    def set_speed(self, speed: float, power_limit: Optional[float] = None):
         pass
 
     def set_position(
-        self, position: int, speed_limit=None, power_limit=None, pos_type="absolute"
+        self,
+        position: int,
+        speed_limit: Optional[float] = None,
+        power_limit: Optional[float] = None,
+        pos_type=MotorPositionKind.ABSOLUTE,
     ) -> Awaiter:
-        return Awaiter.from_state(AwaiterState.FINISHED)
+        return Awaiter(AwaiterState.FINISHED)
 
     def set_power(self, power):
         pass

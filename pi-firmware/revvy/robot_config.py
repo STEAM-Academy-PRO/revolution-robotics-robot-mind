@@ -142,7 +142,7 @@ class DrivetrainConfig:
 
 class RobotConfig:
     @staticmethod
-    def create_runnable(script: str, script_num: int):
+    def create_runnable(script: dict, script_num: int):
         script_name = json_get_field_optional(
             script, ["builtinScriptName", "builtinscriptname"], value_type=str
         )
@@ -169,11 +169,11 @@ class RobotConfig:
 
         return str_to_func(script_source_code, script_num), script_source_code
 
-    def process_script(self, script, script_idx):
+    def process_script(self, script: dict, script_idx: int):
         log(f"Processing script #{script_idx}")
         runnable, source = RobotConfig.create_runnable(script, script_idx)
 
-        assignments = script["assignments"]
+        assignments: dict = script["assignments"]
         # script names are mostly relevant for logging
         for analog_assignment in assignments.setdefault("analog", []):
             script_name = make_analog_script_name(analog_assignment, script_idx)

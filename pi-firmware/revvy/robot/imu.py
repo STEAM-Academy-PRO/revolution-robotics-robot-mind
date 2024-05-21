@@ -14,7 +14,7 @@ class Vector3D(NamedTuple):
     z: float
 
     @staticmethod
-    def deserialize(data):
+    def deserialize(data: bytes) -> "Vector3D":
         return Vector3D(*vec3d_format.unpack(data))
 
     def __mul__(self, value) -> "Vector3D":
@@ -29,7 +29,7 @@ class Orientation3D(NamedTuple):
     yaw: float
 
     @staticmethod
-    def deserialize(data):
+    def deserialize(data: bytes) -> "Orientation3D":
         return Orientation3D(*orientation3d_format.unpack(data))
 
 

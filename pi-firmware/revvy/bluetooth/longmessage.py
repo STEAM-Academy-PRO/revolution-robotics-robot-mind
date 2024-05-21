@@ -28,7 +28,6 @@ from revvy.robot_manager import RevvyStatusCode, RobotManager
 from revvy.robot_config import empty_robot_config, RobotConfig, ConfigError
 
 from revvy.scripting.runtime import ScriptDescriptor, ScriptEvent
-from revvy.utils.reverse_map_constant_name import get_constant_name
 from revvy.utils.error_reporter import RobotErrorType, revvy_error_handler
 
 
@@ -472,7 +471,7 @@ class LongMessageImplementation:
         """
         message_type = message.message_type
 
-        self._log(f"Received message: {get_constant_name(message_type, LongMessageType)}")
+        self._log(f"Received message: {message_type.name}")
 
         # On the configuration screen, when selecting a sensor, there is a TEST button
         # on the right panel's bottom left, right next to DONE button. that is very hard to notice.
