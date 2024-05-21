@@ -298,7 +298,7 @@ class RobotManager:
         # set up motors
         for motor_port in self._robot.motors:
             motor_config = config.motors[motor_port.id]
-            log(f"Configuring motor {motor_port.id} {motor_config}")
+            log(f"Configuring motor {motor_port.id} {motor_config}", LogLevel.DEBUG)
             motor_port.configure(motor_config)
 
         for motor_id in config.drivetrain.left:
@@ -310,7 +310,7 @@ class RobotManager:
         # configure sensors, attach filters to their data change.
         for sensor_port in self._robot.sensors:
             sensor_config = config.sensors[sensor_port.id]
-            log(f"Configuring sensor {sensor_port.id} {sensor_config}")
+            log(f"Configuring sensor {sensor_port.id} {sensor_config}", LogLevel.DEBUG)
 
             sensor_port.configure(sensor_config)
 
