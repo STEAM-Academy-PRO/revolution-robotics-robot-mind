@@ -5,21 +5,19 @@
 # Twitter: https://twitter.com/wkeenan
 
 
-
-HCIPY_HCI_CMD_STRUCT_HEADER =  "<BHB"
+HCIPY_HCI_CMD_STRUCT_HEADER = "<BHB"
 HCIPY_HCI_FILTER_STRUCT = "<LLLH"
 
 # HCI ioctl Commands:
-HCIDEVUP = 0x400448c9  # 201
-HCIDEVDOWN = 0x400448ca  # 202
-HCIGETDEVINFO = -2147202861 #0x800448d3L  # _IOR(ord('H'), 211, 4)
+HCIDEVUP = 0x400448C9  # 201
+HCIDEVDOWN = 0x400448CA  # 202
+HCIGETDEVINFO = -2147202861  # 0x800448d3L  # _IOR(ord('H'), 211, 4)
 
 
 # HCI Status
 
 HCI_SUCCESS = 0x00
 HCI_OE_USER_ENDED_CONNECTION = 0x13
-
 
 
 # HCI Parameters
@@ -30,7 +28,7 @@ LE_RANDOM_ADDRESS = 0x01
 # Types of bluetooth scan
 
 SCAN_TYPE_PASSIVE = 0x00
-SCAN_TYPE_ACTIVE  = 0x01
+SCAN_TYPE_ACTIVE = 0x01
 SCAN_FILTER_DUPLICATES = 0x01
 SCAN_DISABLE = 0x00
 SCAN_ENABLE = 0x01
@@ -44,9 +42,15 @@ ADV_NONCONN_IND = 0x03
 ADV_SCAN_RSP = 0x04
 
 FILTER_POLICY_NO_WHITELIST = 0x00  # Allow Scan Request from Any, Connect Request from Any
-FILTER_POLICY_SCAN_WHITELIST = 0x01  # Allow Scan Request from White List Only, Connect Request from Any
-FILTER_POLICY_CONN_WHITELIST = 0x02  # Allow Scan Request from Any, Connect Request from White List Only
-FILTER_POLICY_SCAN_AND_CONN_WHITELIST = 0x03  # Allow Scan Request from White List Only, Connect Request from White List Only
+FILTER_POLICY_SCAN_WHITELIST = (
+    0x01  # Allow Scan Request from White List Only, Connect Request from Any
+)
+FILTER_POLICY_CONN_WHITELIST = (
+    0x02  # Allow Scan Request from Any, Connect Request from White List Only
+)
+FILTER_POLICY_SCAN_AND_CONN_WHITELIST = (
+    0x03  # Allow Scan Request from White List Only, Connect Request from White List Only
+)
 
 
 # From bluetootchsocket.cpp
@@ -55,11 +59,11 @@ HCI_COMMAND_PKT = 0x01
 HCI_ACLDATA_PKT = 0x02
 HCI_EVENT_PKT = 0x04
 
-EVT_CMD_COMPLETE = 0x0e
-EVT_CMD_STATUS = 0x0f
+EVT_CMD_COMPLETE = 0x0E
+EVT_CMD_STATUS = 0x0F
 
 
-LE_META_EVENT = 0x3E                # Core_4.2.pdf section: 7.7.65 LE Meta Event
+LE_META_EVENT = 0x3E  # Core_4.2.pdf section: 7.7.65 LE Meta Event
 
 
 # sub-events of LE_META_EVENT
@@ -69,7 +73,7 @@ EVT_LE_ADVERTISING_REPORT = 0x02
 EVT_LE_CONN_UPDATE_COMPLETE = 0x03
 EVT_LE_READ_REMOTE_USED_FEATURES_COMPLETE = 0x04
 EVT_DISCONN_COMPLETE = 0x05
-EVT_LE_META_EVENT = 0x3e
+EVT_LE_META_EVENT = 0x3E
 
 
 ATT_CID = 0x0004
