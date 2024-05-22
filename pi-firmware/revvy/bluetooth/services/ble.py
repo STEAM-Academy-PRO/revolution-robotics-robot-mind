@@ -1,4 +1,4 @@
-from pybleno import BlenoPrimaryService
+from revvy.bluetooth.pybleno import BlenoPrimaryService
 
 
 class BleService(BlenoPrimaryService):

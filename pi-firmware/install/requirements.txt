@@ -1,5 +1,4 @@
 # List of dependencies to be installed on the Raspberry
 wheel>=0.34.2
-pybleno==0.11
 smbus2>=0.4.1
 wiringpi>=2.60.1

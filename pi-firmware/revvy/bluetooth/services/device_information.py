@@ -1,10 +1,10 @@
 """ Device communication related services """
 
 from revvy.bluetooth.ble_characteristics import ReadOnlyCharacteristic
+from revvy.bluetooth.pybleno import Characteristic
 from revvy.bluetooth.services.ble import BleService
 from revvy.utils.functions import get_serial
 from revvy.utils.version import VERSION
-from pybleno import Characteristic
 from revvy.utils.device_name import get_device_name, set_device_name
 
 

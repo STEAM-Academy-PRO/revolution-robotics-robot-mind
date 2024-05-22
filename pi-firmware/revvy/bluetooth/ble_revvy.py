@@ -3,8 +3,8 @@
 import os
 import subprocess
 from typing import Callable
-from pybleno import Bleno, BlenoPrimaryService
 
+from revvy.bluetooth.pybleno import Bleno, BlenoPrimaryService
 from revvy.bluetooth.services.battery import CustomBatteryService
 from revvy.bluetooth.services.device_information import DeviceInformationService
 from revvy.bluetooth.services.long_message import LongMessageService
@@ -160,8 +160,8 @@ class RevvyBLE:
     def _on_advertising_start(self, error) -> None:
         """Callback of self._bleno.startAdvertising"""
 
-        def _result(result) -> str:
-            return f"error {result}" if result else "success"
+        def _result(error) -> str:
+            return f"error {error}" if error else "success"
 
         self._log(f"on -> advertisingStart: {_result(error)}")
 

@@ -9,7 +9,7 @@
 
 from functools import partial
 from typing import Callable, Optional
-from pybleno import Characteristic, Descriptor
+from revvy.bluetooth.pybleno import Characteristic, Descriptor
 
 from revvy.utils.logger import get_logger
 

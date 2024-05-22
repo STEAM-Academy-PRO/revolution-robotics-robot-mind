@@ -5,7 +5,7 @@ import struct
 import traceback
 from typing import Generic, TypeVar
 
-from pybleno import Characteristic, Descriptor
+from revvy.bluetooth.pybleno import Characteristic, Descriptor
 from revvy.bluetooth.data_types import (
     GyroData,
     ProgramStatusCollection,

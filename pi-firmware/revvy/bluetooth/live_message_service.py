@@ -3,7 +3,7 @@
 import struct
 from typing import Callable, Optional
 
-from pybleno import BlenoPrimaryService
+from revvy.bluetooth.pybleno import BlenoPrimaryService
 from revvy.bluetooth.ble_characteristics import (
     GyroCharacteristic,
     MobileToBrainFunctionCharacteristic,

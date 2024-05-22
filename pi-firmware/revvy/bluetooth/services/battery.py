@@ -1,6 +1,6 @@
 from revvy.bluetooth.services.ble import BleService
+from revvy.bluetooth.pybleno import Characteristic, Descriptor
 from revvy.robot.robot import BatteryStatus
-from pybleno import Characteristic, Descriptor
 
 
 class UnifiedBatteryInfoCharacteristic(Characteristic):

@@ -1,8 +1,8 @@
 """ Subscribe to the long messages coming via Bluetooth. """
 
-from pybleno import BlenoPrimaryService
 from revvy.bluetooth.ble_characteristics import LongMessageCharacteristic
 from revvy.bluetooth.longmessage import LongMessageHandler
+from revvy.bluetooth.pybleno import BlenoPrimaryService
 
 
 class LongMessageService(BlenoPrimaryService):
