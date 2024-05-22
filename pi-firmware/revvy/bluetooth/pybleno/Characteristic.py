@@ -1,54 +1,54 @@
-from .hci_socket import Emit
+from .hci_socket.Emit import Emit
 from . import UuidUtil
 
 
-class Characteristic(dict):
+class Characteristic(dict, Emit):
     RESULT_SUCCESS = 0x00
     RESULT_INVALID_OFFSET = 0x07
-    RESULT_ATTR_NOT_LONG = 0x0b
-    RESULT_INVALID_ATTRIBUTE_LENGTH = 0x0d
-    RESULT_UNLIKELY_ERROR = 0x0e
+    RESULT_ATTR_NOT_LONG = 0x0B
+    RESULT_INVALID_ATTRIBUTE_LENGTH = 0x0D
+    RESULT_UNLIKELY_ERROR = 0x0E
 
     def __init__(self, options=None):
         super(Characteristic, self).__init__()
         if options is None:
             options = {}
-        self['uuid'] = UuidUtil.removeDashes(options['uuid'])
-        self['properties'] = options['properties'] if 'properties' in options else []
-        self['secure'] = options['secure'] if 'secure' in options else []
-        self['value'] = options['value'] if 'value' in options else None
-        self['descriptors'] = options['descriptors'] if 'descriptors' in options else []
+        self["uuid"] = UuidUtil.removeDashes(options["uuid"])
+        self["properties"] = options["properties"] if "properties" in options else []
+        self["secure"] = options["secure"] if "secure" in options else []
+        self["value"] = options["value"] if "value" in options else None
+        self["descriptors"] = options["descriptors"] if "descriptors" in options else []
 
         self.maxValueSize = None
         self.updateValueCallback = None
 
-        if self['value'] and (len(self['properties']) != 1 or self['properties'][0] != 'read'):
-            raise Exception('Characteristics with value can be read only!')
+        if self["value"] and (len(self["properties"]) != 1 or self["properties"][0] != "read"):
+            raise Exception("Characteristics with value can be read only!")
 
-        if 'onReadRequest' in options:
-            self.onReadRequest = options['onReadRequest']
+        if "onReadRequest" in options:
+            self.onReadRequest = options["onReadRequest"]
 
-        if 'onWriteRequest' in options:
-            self.onWriteRequest = options['onWriteRequest']
+        if "onWriteRequest" in options:
+            self.onWriteRequest = options["onWriteRequest"]
 
-        if 'onSubscribe' in options:
-            self.onSubscribe = options['onSubscribe']
+        if "onSubscribe" in options:
+            self.onSubscribe = options["onSubscribe"]
 
-        if 'onUnsubscribe' in options:
-            self.onUnsubscribe = options['onUnsubscribe']
+        if "onUnsubscribe" in options:
+            self.onUnsubscribe = options["onUnsubscribe"]
 
-        if 'onNotify' in options:
-            self.onNotify = options['onNotify']
+        if "onNotify" in options:
+            self.onNotify = options["onNotify"]
 
-        if 'onIndicate' in options:
-            self.onIndicate = options['onIndicate']
+        if "onIndicate" in options:
+            self.onIndicate = options["onIndicate"]
 
-        self.on('readRequest', self.onReadRequest)
-        self.on('writeRequest', self.onWriteRequest)
-        self.on('subscribe', self.onSubscribe)
-        self.on('unsubscribe', self.onUnsubscribe)
-        self.on('notify', self.onNotify)
-        self.on('indicate', self.onIndicate)
+        self.on("readRequest", self.onReadRequest)
+        self.on("writeRequest", self.onWriteRequest)
+        self.on("subscribe", self.onSubscribe)
+        self.on("unsubscribe", self.onUnsubscribe)
+        self.on("notify", self.onNotify)
+        self.on("indicate", self.onIndicate)
 
     def onReadRequest(self, offset, callback):
         callback(self.RESULT_UNLIKELY_ERROR, None)
@@ -120,6 +120,3 @@ class Characteristic(dict):
 
     def __unicode__(self):
         return unicode(repr(self.__dict__))
-
-
-Emit.Patch(Characteristic)

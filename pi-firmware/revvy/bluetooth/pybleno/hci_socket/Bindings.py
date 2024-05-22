@@ -1,5 +1,5 @@
 import platform
-from . import Emit
+from .Emit import Emit
 
 from .Hci import Hci
 from .Gap import Gap
@@ -7,8 +7,9 @@ from .Gatt import Gatt
 from .AclStream import AclStream
 
 
-class BlenoBindings:
+class BlenoBindings(Emit):
     def __init__(self):
+        super().__init__()
         self._state = None
 
         self._advertising = False
@@ -44,7 +45,7 @@ class BlenoBindings:
     def setServices(self, services):
         self._gatt.setServices(services)
 
-        self.emit('servicesSet', [])
+        self.emit("servicesSet", [])
 
     def disconnect(self):
         if self._handle:
@@ -62,24 +63,24 @@ class BlenoBindings:
         # process.on('SIGINT', self.onSigIntBinded)
         # process.on('exit', self.onExit)
 
-        self._gap.on('advertisingStart', self.onAdvertisingStart)
-        self._gap.on('advertisingStop', self.onAdvertisingStop)
+        self._gap.on("advertisingStart", self.onAdvertisingStart)
+        self._gap.on("advertisingStop", self.onAdvertisingStop)
 
-        self._gatt.on('mtuChange', self.onMtuChange)
+        self._gatt.on("mtuChange", self.onMtuChange)
 
-        self._hci.on('stateChange', self.onStateChange)
-        self._hci.on('addressChange', self.onAddressChange)
-        self._hci.on('readLocalVersion', self.onReadLocalVersion)
+        self._hci.on("stateChange", self.onStateChange)
+        self._hci.on("addressChange", self.onAddressChange)
+        self._hci.on("readLocalVersion", self.onReadLocalVersion)
 
-        self._hci.on('leConnComplete', self.onLeConnComplete)
-        self._hci.on('leConnUpdateComplete', self.onLeConnUpdateComplete)
-        self._hci.on('rssiRead', self.onRssiRead)
-        self._hci.on('disconnComplete', self.onDisconnComplete)
-        self._hci.on('encryptChange', self.onEncryptChange)
-        self._hci.on('leLtkNegReply', self.onLeLtkNegReply)
-        self._hci.on('aclDataPkt', self.onAclDataPkt)
+        self._hci.on("leConnComplete", self.onLeConnComplete)
+        self._hci.on("leConnUpdateComplete", self.onLeConnUpdateComplete)
+        self._hci.on("rssiRead", self.onRssiRead)
+        self._hci.on("disconnComplete", self.onDisconnComplete)
+        self._hci.on("encryptChange", self.onEncryptChange)
+        self._hci.on("leLtkNegReply", self.onLeLtkNegReply)
+        self._hci.on("aclDataPkt", self.onAclDataPkt)
 
-        self.emit('platform', [platform.system()])
+        self.emit("platform", [platform.system()])
 
         self._hci.init()
 
@@ -89,53 +90,67 @@ class BlenoBindings:
 
         self._state = state
 
-        if state == 'unauthorized':
-            print('bleno warning: adapter state unauthorized, please run as root or with sudo')
-            print('               or see README for information on running without root/sudo:')
-            print('               https://github.com/sandeepmistry/bleno#running-on-linux')
-        elif state == 'unsupported':
-            print('bleno warning: adapter does not support Bluetooth Low Energy (BLE, Bluetooth Smart).')
-            print('               Try to run with environment variable:')
-            print('               [sudo] BLENO_HCI_DEVICE_ID=x node ...')
+        if state == "unauthorized":
+            print("bleno warning: adapter state unauthorized, please run as root or with sudo")
+            print("               or see README for information on running without root/sudo:")
+            print("               https://github.com/sandeepmistry/bleno#running-on-linux")
+        elif state == "unsupported":
+            print(
+                "bleno warning: adapter does not support Bluetooth Low Energy (BLE, Bluetooth Smart)."
+            )
+            print("               Try to run with environment variable:")
+            print("               [sudo] BLENO_HCI_DEVICE_ID=x node ...")
 
-        self.emit('stateChange', [state])
+        self.emit("stateChange", [state])
 
     def onAddressChange(self, address):
-        self.emit('addressChange', [address])
+        self.emit("addressChange", [address])
 
     def onReadLocalVersion(self, hciVer, hciRev, lmpVer, manufacturer, lmpSubVer):
-        if (manufacturer == 2):
+        if manufacturer == 2:
             # Intel Corporation
             self._gatt.maxMtu = 23
-        elif (manufacturer == 93):
+        elif manufacturer == 93:
             # Realtek Semiconductor Corporation
             self._gatt.maxMtu = 23
 
     def onAdvertisingStart(self, error):
-        self.emit('advertisingStart', [error])
+        self.emit("advertisingStart", [error])
 
     def onAdvertisingStop(self):
-        self.emit('advertisingStop', [])
+        self.emit("advertisingStop", [])
 
-    def onLeConnComplete(self, status, handle, role, addressType, address, interval, latency, supervisionTimeout,
-                         masterClockAccuracy):
-        if (role != 1):
+    def onLeConnComplete(
+        self,
+        status,
+        handle,
+        role,
+        addressType,
+        address,
+        interval,
+        latency,
+        supervisionTimeout,
+        masterClockAccuracy,
+    ):
+        if role != 1:
             # not slave, ignore
             return
 
         self._address = address
         self._handle = handle
-        self._aclStream = AclStream(self._hci, handle, self._hci.addressType, self._hci.address, addressType, address)
+        self._aclStream = AclStream(
+            self._hci, handle, self._hci.addressType, self._hci.address, addressType, address
+        )
         self._gatt.setAclStream(self._aclStream)
 
-        self.emit('accept', [address])
+        self.emit("accept", [address])
 
     def onLeConnUpdateComplete(self, status, handle, interval, latency, supervisionTimeout):
         # no-op
         pass
 
     def onDisconnComplete(self, handle, reason):
-        if (self._aclStream):
+        if self._aclStream:
             self._aclStream.push(None, None)
 
         address = self._address
@@ -144,29 +159,26 @@ class BlenoBindings:
         self._handle = None
         self._aclStream = None
 
-        if (address):
-            self.emit('disconnect', [address])  # TODO: use reason
+        if address:
+            self.emit("disconnect", [address])  # TODO: use reason
 
-        if (self._advertising):
+        if self._advertising:
             self._gap.restartAdvertising()
 
     def onEncryptChange(self, handle, encrypt):
-        if (self._handle == handle and self._aclStream):
+        if self._handle == handle and self._aclStream:
             self._aclStream.pushEncrypt(encrypt)
 
     def onLeLtkNegReply(self, handle):
-        if (self._handle == handle and self._aclStream):
+        if self._handle == handle and self._aclStream:
             self._aclStream.pushLtkNegReply()
 
     def onMtuChange(self, mtu):
-        self.emit('mtuChange', [mtu])
+        self.emit("mtuChange", [mtu])
 
     def onRssiRead(self, handle, rssi):
-        self.emit('rssiUpdate', [rssi])
+        self.emit("rssiUpdate", [rssi])
 
     def onAclDataPkt(self, handle, cid, data):
-        if (self._handle == handle and self._aclStream):
+        if self._handle == handle and self._aclStream:
             self._aclStream.push(cid, data)
-
-
-Emit.Patch(BlenoBindings)

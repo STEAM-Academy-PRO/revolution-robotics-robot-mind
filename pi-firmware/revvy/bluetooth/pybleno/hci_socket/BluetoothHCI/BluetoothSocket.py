@@ -11,8 +11,6 @@ import os
 import array
 
 
-from ctypes import *
-
 from .BDAddr import *
 
 

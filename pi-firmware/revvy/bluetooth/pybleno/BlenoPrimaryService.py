@@ -1,19 +1,16 @@
 from . import UuidUtil
 import json
-from .hci_socket import Emit
+from .hci_socket.Emit import Emit
 
 
-class BlenoPrimaryService(dict):
+class BlenoPrimaryService(dict, Emit):
     def __init__(self, options):
         super(BlenoPrimaryService, self).__init__()
-        self['uuid'] = UuidUtil.removeDashes(options['uuid'])
-        self['characteristics'] = options['characteristics'] if 'characteristics' in options else []
+        self["uuid"] = UuidUtil.removeDashes(options["uuid"])
+        self["characteristics"] = options["characteristics"] if "characteristics" in options else []
 
     def __str__(self):
-        return json.dumps({
-            'uuid':            self['uuid'],
-            'characteristics': self['characteristics']
-        })
+        return json.dumps({"uuid": self["uuid"], "characteristics": self["characteristics"]})
 
     def __setitem__(self, key, item):
         self.__dict__[key] = item
@@ -65,6 +62,3 @@ class BlenoPrimaryService(dict):
 
     def __unicode__(self):
         return unicode(repr(self.__dict__))
-
-
-Emit.Patch(BlenoPrimaryService)
