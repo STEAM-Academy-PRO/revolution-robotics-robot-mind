@@ -1,4 +1,3 @@
-from typing import Optional
 from .Emit import Emit
 from . import Hci
 from .Smp import Smp
@@ -16,7 +15,7 @@ class AclStream(Emit):
         self._smp = Smp(self, localAddressType, localAddress, remoteAddressType, remoteAddress)
 
     def write(self, cid: int, data):
-        self._hci.writeAclDataPkt(self._handle, cid, data)
+        self._hci.queueAclDataPkt(self._handle, cid, data)
 
     def push(self, cid, data) -> None:
         if data:
