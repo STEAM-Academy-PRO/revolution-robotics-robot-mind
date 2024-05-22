@@ -69,6 +69,7 @@ ATT_CID = 0x0004
 class Gatt(Emit):
     def __init__(self) -> None:
         super().__init__()
+
         self.maxMtu = 256
         self._mtu = 23
         self._preparedWriteRequest = None
@@ -374,12 +375,10 @@ class Gatt(Emit):
                 uuid.reverse()
                 for j in range(0, len(uuid)):
                     response[2 + i * lengthPerInfo + 2 + j] = uuid[j]
-        else:
-            response = self.errorResponse(
-                ATT_OP_FIND_INFO_REQ, startHandle, ATT_ECODE_ATTR_NOT_FOUND
-            )
 
-        return response
+            return response
+
+        return self.errorResponse(ATT_OP_FIND_INFO_REQ, startHandle, ATT_ECODE_ATTR_NOT_FOUND)
 
     def handleFindByTypeRequest(self, request) -> array.array:
         startHandle = readUInt16LE(request, 1)
@@ -421,12 +420,10 @@ class Gatt(Emit):
 
                 writeUInt16LE(response, handle["start"], 1 + i * lengthPerHandle)
                 writeUInt16LE(response, handle["end"], 1 + i * lengthPerHandle + 2)
-        else:
-            response = self.errorResponse(
-                ATT_OP_FIND_BY_TYPE_REQ, startHandle, ATT_ECODE_ATTR_NOT_FOUND
-            )
 
-        return response
+            return response
+
+        return self.errorResponse(ATT_OP_FIND_BY_TYPE_REQ, startHandle, ATT_ECODE_ATTR_NOT_FOUND)
 
     def handleReadByGroupRequest(self, request) -> array.array:
         startHandle = readUInt16LE(request, 1)
@@ -481,16 +478,14 @@ class Gatt(Emit):
                     serviceUuid.reverse()
                     for j in range(0, len(serviceUuid)):
                         response[2 + i * lengthPerService + 4 + j] = serviceUuid[j]
-            else:
-                response = self.errorResponse(
-                    ATT_OP_READ_BY_GROUP_REQ, startHandle, ATT_ECODE_ATTR_NOT_FOUND
-                )
-        else:
-            response = self.errorResponse(
-                ATT_OP_READ_BY_GROUP_REQ, startHandle, ATT_ECODE_UNSUPP_GRP_TYPE
+
+                return response
+
+            return self.errorResponse(
+                ATT_OP_READ_BY_GROUP_REQ, startHandle, ATT_ECODE_ATTR_NOT_FOUND
             )
 
-        return response
+        return self.errorResponse(ATT_OP_READ_BY_GROUP_REQ, startHandle, ATT_ECODE_UNSUPP_GRP_TYPE)
 
     def handleReadByTypeRequest(self, request: bytearray) -> Optional[array.array]:  # ?
         response = None
