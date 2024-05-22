@@ -11,7 +11,6 @@ from .HciStatus import *
 class Hci(Emit):
     def __init__(self) -> None:
         super().__init__()
-        self._events = {}
 
         self._socket = BluetoothHCI(auto_start=False)
         self._isDevUp = None
@@ -57,7 +56,8 @@ class Hci(Emit):
         self.leReadBufferSize()
 
     def resetBuffers(self) -> None:
-        self._handleAclsInProgress = {}
+        self._mainHandle = None
+        self._handleAclsInProgress: dict[int, int] = {}
         self._handleBuffers = {}
         self._aclOutQueue = []
 
@@ -449,6 +449,9 @@ class Hci(Emit):
             if subEventType == EVT_DISCONN_COMPLETE:
                 handle = readUInt16LE(data, 4)
 
+                if handle != self._mainHandle:
+                    return
+
                 reason = readUInt8(data, 6)
 
                 # debug('\t\thandle = ' + handle)
@@ -463,6 +466,7 @@ class Hci(Emit):
                 # Controller for the returned Handle have been flushed, and that the
                 # corresponding data buffers have been freed.
                 del self._handleAclsInProgress[handle]
+                self._mainHandle = None
                 aclOutQueue = []
                 discarded = 0
                 for pkt in self._aclOutQueue:
@@ -693,6 +697,7 @@ class Hci(Emit):
         # debug('\t\t\tsupervision timeout = ' + supervisionTimeout)
         # debug('\t\t\tmaster clock accuracy = ' + masterClockAccuracy)
 
+        self._mainHandle = handle
         self._handleAclsInProgress[handle] = 0
 
         self.emit(
