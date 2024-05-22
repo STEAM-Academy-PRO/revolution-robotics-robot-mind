@@ -825,7 +825,8 @@ class Gatt(Emit):
                                     "subscribe", [self._mtu - 3, updateValueCallback]
                                 )
                         else:
-                            handleAttribute.emit("unsubscribe", [])
+                            if hasattr(handleAttribute, "emit"):
+                                handleAttribute.emit("unsubscribe", [])
 
                         result = ATT_ECODE_SUCCESS
 
