@@ -1,16 +1,16 @@
 import platform
 import array
+
+from revvy.bluetooth.pybleno.hci_socket import HciStatus
 from . import Hci
 from .Emit import Emit
 from .Io import *
 
 isLinux = platform.system() == "Linux"
-isIntelEdison = False  # isLinux && (os.release().indexOf('edison') !== -1)
-isYocto = False  # isLinux && (os.release().indexOf('yocto') !== -1)
 
 
 class Gap(Emit):
-    def __init__(self, hci):
+    def __init__(self, hci: Hci) -> None:
         super().__init__()
         self._hci = hci
 
@@ -23,7 +23,7 @@ class Gap(Emit):
         self._hci.on("leScanResponseDataSet", self.onHciLeScanResponseDataSet)
         self._hci.on("leAdvertiseEnableSet", self.onHciLeAdvertiseEnableSet)
 
-    def startAdvertising(self, name, serviceUuids):
+    def startAdvertising(self, name, serviceUuids) -> None:
         # debug('startAdvertising: name = ' + name + ', serviceUuids = ' + JSON.stringify(serviceUuids, null, 2))
 
         advertisementDataLength = 3
@@ -103,7 +103,7 @@ class Gap(Emit):
 
         self.startAdvertisingWithEIRData(advertisementData, scanData)
 
-    def startAdvertisingIBeacon(self, data):
+    def startAdvertisingIBeacon(self, data) -> None:
         # debug('startAdvertisingIBeacon: data = ' + data.toString('hex'))
 
         dataLength = len(data)
@@ -131,7 +131,7 @@ class Gap(Emit):
 
         self.startAdvertisingWithEIRData(advertisementData, scanData)
 
-    def startAdvertisingWithEIRData(self, advertisementData, scanData):
+    def startAdvertisingWithEIRData(self, advertisementData, scanData) -> None:
         advertisementData = advertisementData or array.array("B", [0] * 0)
         scanData = scanData or array.array("B", [0] * 0)
 
@@ -149,48 +149,47 @@ class Gap(Emit):
         else:
             self._advertiseState = "starting"
 
-            if isIntelEdison or isYocto:
-                # // work around for Intel Edison
-                # debug('skipping first set of scan response and advertisement data')
-                pass
-            else:
-                self._hci.setScanResponseData(scanData)
-                self._hci.setAdvertisingData(advertisementData)
+            self._hci.setScanResponseData(scanData)
+            self._hci.setAdvertisingData(advertisementData)
 
             self._hci.setAdvertiseEnable(True)
             self._hci.setScanResponseData(scanData)
             self._hci.setAdvertisingData(advertisementData)
 
-    def restartAdvertising(self):
+    def restartAdvertising(self) -> None:
         self._advertiseState = "restarting"
 
         self._hci.setAdvertiseEnable(True)
 
-    def stopAdvertising(self):
+    def stopAdvertising(self) -> None:
         self._advertiseState = "stopping"
 
         self._hci.setAdvertiseEnable(False)
 
-    def onHciError(self, error):
+    def onHciError(self, error) -> None:
         pass
 
-    def onHciLeAdvertisingParametersSet(self, status):
+    def onHciLeAdvertisingParametersSet(self, status) -> None:
         pass
 
-    def onHciLeAdvertisingDataSet(self, status):
+    def onHciLeAdvertisingDataSet(self, status) -> None:
         pass
 
-    def onHciLeScanResponseDataSet(self, status):
+    def onHciLeScanResponseDataSet(self, status) -> None:
         pass
 
-    def onHciLeAdvertiseEnableSet(self, status):
+    def onHciLeAdvertiseEnableSet(self, status) -> None:
         if self._advertiseState == "starting":
             self._advertiseState = "started"
 
-            error = None
-
             if status:
-                error = Exception(Hci.STATUS_MAPPER[status] or ("Unknown (" + status + ")"))
+                try:
+                    error = HciStatus.STATUS_MAPPER[status]
+                except:
+                    error = f"Unknown ({status})"
+                error = Exception(error)
+            else:
+                error = None
 
             self.emit("advertisingStart", [error])
         elif self._advertiseState == "stopping":

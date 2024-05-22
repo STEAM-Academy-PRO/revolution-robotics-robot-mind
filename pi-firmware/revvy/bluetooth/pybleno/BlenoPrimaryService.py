@@ -1,64 +1,66 @@
+from typing import Any
 from . import UuidUtil
 import json
 from .hci_socket.Emit import Emit
 
 
-class BlenoPrimaryService(dict, Emit):
-    def __init__(self, options):
-        super(BlenoPrimaryService, self).__init__()
+class BlenoPrimaryService(Emit):
+    def __init__(self, options: dict[str, Any]) -> None:
+        super().__init__()
+        self._dict = {}
         self["uuid"] = UuidUtil.removeDashes(options["uuid"])
-        self["characteristics"] = options["characteristics"] if "characteristics" in options else []
+        self["characteristics"] = options.get("characteristics", [])
 
-    def __str__(self):
+    def __str__(self) -> str:
         return json.dumps({"uuid": self["uuid"], "characteristics": self["characteristics"]})
 
-    def __setitem__(self, key, item):
-        self.__dict__[key] = item
+    def __setitem__(self, key, item) -> None:
+        self._dict[key] = item
 
-    def __getitem__(self, key):
-        return self.__dict__[key]
+    def __getitem__(self, key: str):
+        return self._dict[key]
 
     def __repr__(self):
-        return repr(self.__dict__)
+        return repr(self._dict)
 
-    def __len__(self):
-        return len(self.__dict__)
+    def __len__(self) -> int:
+        return len(self._dict)
 
-    def __delitem__(self, key):
-        del self.__dict__[key]
+    def __delitem__(self, key) -> None:
+        del self._dict[key]
 
     def clear(self):
-        return self.__dict__.clear()
+        return self._dict.clear()
 
     def copy(self):
-        return self.__dict__.copy()
+        return self._dict.copy()
 
     def has_key(self, k):
-        return k in self.__dict__
+        return k in self._dict
 
     def update(self, *args, **kwargs):
-        return self.__dict__.update(*args, **kwargs)
+        return self._dict.update(*args, **kwargs)
 
     def keys(self):
-        return self.__dict__.keys()
+        return self._dict.keys()
 
     def values(self):
-        return self.__dict__.values()
+        return self._dict.values()
 
     def items(self):
-        return self.__dict__.items()
+        return self._dict.items()
 
     def pop(self, *args):
-        return self.__dict__.pop(*args)
+        return self._dict.pop(*args)
 
     def __cmp__(self, dict_):
-        return self.__cmp__(self.__dict__, dict_)
+        return self.__cmp__(self._dict, dict_)
 
     def __contains__(self, item):
-        return item in self.__dict__
+        return item in self._dict
 
     def __iter__(self):
-        return iter(self.__dict__)
+        return iter(self._dict)
 
     def __unicode__(self):
-        return unicode(repr(self.__dict__))
+        return unicode(repr(self._dict))

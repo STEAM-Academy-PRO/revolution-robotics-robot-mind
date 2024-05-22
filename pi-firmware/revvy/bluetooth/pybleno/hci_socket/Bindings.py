@@ -1,4 +1,5 @@
 import platform
+from typing import Optional
 from .Emit import Emit
 
 from .Hci import Hci
@@ -8,7 +9,7 @@ from .AclStream import AclStream
 
 
 class BlenoBindings(Emit):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._state = None
 
@@ -20,44 +21,44 @@ class BlenoBindings(Emit):
 
         self._address = None
         self._handle = None
-        self._aclStream = None
+        self._aclStream: Optional[AclStream] = None
 
-    def startAdvertising(self, name, serviceUuids):
+    def startAdvertising(self, name, serviceUuids) -> None:
         self._advertising = True
 
         self._gap.startAdvertising(name, serviceUuids)
 
-    def startAdvertisingIBeacon(self, data):
+    def startAdvertisingIBeacon(self, data) -> None:
         self._advertising = True
 
         self._gap.startAdvertisingIBeacon(data)
 
-    def startAdvertisingWithEIRData(self, advertisementData, scanData):
+    def startAdvertisingWithEIRData(self, advertisementData, scanData) -> None:
         self._advertising = True
 
         self._gap.startAdvertisingWithEIRData(advertisementData, scanData)
 
-    def stopAdvertising(self):
+    def stopAdvertising(self) -> None:
         self._advertising = False
 
         self._gap.stopAdvertising()
 
-    def setServices(self, services):
+    def setServices(self, services) -> None:
         self._gatt.setServices(services)
 
         self.emit("servicesSet", [])
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         if self._handle:
             # debug('disconnect by server')
 
             self._hci.disconnect(self._handle)
 
-    def updateRssi(self):
+    def updateRssi(self) -> None:
         if self._handle:
             self._hci.readRssi(self._handle)
 
-    def init(self):
+    def init(self) -> None:
         # self.onSigIntBinded = this.onSigInt
 
         # process.on('SIGINT', self.onSigIntBinded)
@@ -84,7 +85,7 @@ class BlenoBindings(Emit):
 
         self._hci.init()
 
-    def onStateChange(self, state):
+    def onStateChange(self, state) -> None:
         if self._state == state:
             return
 
@@ -103,10 +104,10 @@ class BlenoBindings(Emit):
 
         self.emit("stateChange", [state])
 
-    def onAddressChange(self, address):
+    def onAddressChange(self, address) -> None:
         self.emit("addressChange", [address])
 
-    def onReadLocalVersion(self, hciVer, hciRev, lmpVer, manufacturer, lmpSubVer):
+    def onReadLocalVersion(self, hciVer, hciRev, lmpVer, manufacturer, lmpSubVer) -> None:
         if manufacturer == 2:
             # Intel Corporation
             self._gatt.maxMtu = 23
@@ -114,10 +115,10 @@ class BlenoBindings(Emit):
             # Realtek Semiconductor Corporation
             self._gatt.maxMtu = 23
 
-    def onAdvertisingStart(self, error):
+    def onAdvertisingStart(self, error) -> None:
         self.emit("advertisingStart", [error])
 
-    def onAdvertisingStop(self):
+    def onAdvertisingStop(self) -> None:
         self.emit("advertisingStop", [])
 
     def onLeConnComplete(
@@ -131,7 +132,7 @@ class BlenoBindings(Emit):
         latency,
         supervisionTimeout,
         masterClockAccuracy,
-    ):
+    ) -> None:
         if role != 1:
             # not slave, ignore
             return
@@ -145,11 +146,11 @@ class BlenoBindings(Emit):
 
         self.emit("accept", [address])
 
-    def onLeConnUpdateComplete(self, status, handle, interval, latency, supervisionTimeout):
+    def onLeConnUpdateComplete(self, status, handle, interval, latency, supervisionTimeout) -> None:
         # no-op
         pass
 
-    def onDisconnComplete(self, handle, reason):
+    def onDisconnComplete(self, handle, reason) -> None:
         if self._aclStream:
             self._aclStream.push(None, None)
 
@@ -165,20 +166,20 @@ class BlenoBindings(Emit):
         if self._advertising:
             self._gap.restartAdvertising()
 
-    def onEncryptChange(self, handle, encrypt):
+    def onEncryptChange(self, handle, encrypt) -> None:
         if self._handle == handle and self._aclStream:
             self._aclStream.pushEncrypt(encrypt)
 
-    def onLeLtkNegReply(self, handle):
+    def onLeLtkNegReply(self, handle) -> None:
         if self._handle == handle and self._aclStream:
             self._aclStream.pushLtkNegReply()
 
-    def onMtuChange(self, mtu):
+    def onMtuChange(self, mtu) -> None:
         self.emit("mtuChange", [mtu])
 
-    def onRssiRead(self, handle, rssi):
+    def onRssiRead(self, handle, rssi) -> None:
         self.emit("rssiUpdate", [rssi])
 
-    def onAclDataPkt(self, handle, cid, data):
+    def onAclDataPkt(self, handle, cid, data) -> None:
         if self._handle == handle and self._aclStream:
             self._aclStream.push(cid, data)

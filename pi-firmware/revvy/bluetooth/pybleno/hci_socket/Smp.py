@@ -1,3 +1,4 @@
+from revvy.bluetooth.pybleno.hci_socket import AclStream
 from .Emit import Emit
 import array
 from .Io import *
@@ -16,7 +17,9 @@ SMP_UNSPECIFIED = 0x08
 
 
 class Smp(Emit):
-    def __init__(self, aclStream, localAddressType, localAddress, remoteAddressType, remoteAddress):
+    def __init__(
+        self, aclStream: AclStream, localAddressType, localAddress, remoteAddressType, remoteAddress
+    ):
         super().__init__()
         self._aclStream = aclStream
 
@@ -37,7 +40,7 @@ class Smp(Emit):
         self._aclStream.on("ltkNegReply", self.onAclStreamLtkNegReply)
         self._aclStream.on("end", self.onAclStreamEnd)
 
-    def onAclStreamData(self, cid, data):
+    def onAclStreamData(self, cid, data) -> None:
         if cid != SMP_CID:
             return
 
@@ -52,29 +55,27 @@ class Smp(Emit):
         elif SMP_PAIRING_FAILED == code:
             self.handlePairingFailed(data)
 
-    def onAclStreamEncryptChange(self, encrypted):
-        if encrypted:
-            if self._stk and self._diversifier and self._random:
-                self.write(Buffer.concat([array.array("B", [SMP_ENCRYPT_INFO]), self._stk]))
+    def onAclStreamEncryptChange(self, encrypted) -> None:
+        if not encrypted:
+            return
 
-                self.write(
-                    Buffer.concat(
-                        [array.array("B", [SMP_MASTER_IDENT]), self._diversifier, self._random]
-                    )
-                )
+        # if self._stk and self._diversifier and self._random:
+        #     self.write(array.array("B", [SMP_ENCRYPT_INFO, *self._stk]))
+        #
+        #     self.write(array.array("B", [SMP_MASTER_IDENT, *self._diversifier, *self._random]))
 
-    def onAclStreamLtkNegReply(self):
+    def onAclStreamLtkNegReply(self) -> None:
         self.write(array.array("B", [SMP_PAIRING_FAILED, SMP_UNSPECIFIED]))
 
         self.emit("fail", [])
 
-    def onAclStreamEnd(self):
+    def onAclStreamEnd(self) -> None:
         self._aclStream.off("data", self.onAclStreamData)
         self._aclStream.off("encryptChange", self.onAclStreamEncryptChange)
         self._aclStream.off("ltkNegReply", self.onAclStreamLtkNegReply)
         self._aclStream.off("end", self.onAclStreamEnd)
 
-    def handlePairingRequest(self, data):
+    def handlePairingRequest(self, data) -> None:
         self._preq = data
 
         self._pres = array.array(
@@ -92,47 +93,58 @@ class Smp(Emit):
 
         self.write(self._pres)
 
-    def handlePairingConfirm(self, data):
+    def handlePairingConfirm(self, data) -> None:
         self._pcnf = data
 
         self._tk = array.array("B", [0] * 16)
-        self._r = crypto.r()
+        # self._r = crypto.r()
 
-        # TODO: port this...
-        # self.write(Buffer.concat([
-        # new Buffer([SMP_PAIRING_CONFIRM]),
-        #     crypto.c1(self._tk, self._r, self._pres, self._preq, self._iat, self._ia, self._rat, self._ra)
-        # ]))
+        # self.write(
+        #     array.array(
+        #         "B",
+        #         [
+        #             SMP_PAIRING_CONFIRM,
+        #             *crypto.c1(
+        #                 self._tk,
+        #                 self._r,
+        #                 self._pres,
+        #                 self._preq,
+        #                 self._iat,
+        #                 self._ia,
+        #                 self._rat,
+        #                 self._ra,
+        #             ),
+        #         ],
+        #     )
+        # )
 
-    def handlePairingRandom(self, data):
+    def handlePairingRandom(self, data) -> None:
         r = data[1:]
 
-        pcnf = Buffer.concat(
-            [
-                array.array("B", [SMP_PAIRING_CONFIRM]),
-                crypto.c1(
-                    self._tk, r, self._pres, self._preq, self._iat, self._ia, self._rat, self._ra
-                ),
-            ]
-        )
+        # pcnf = [
+        #     SMP_PAIRING_CONFIRM,
+        #     *crypto.c1(
+        #         self._tk, r, self._pres, self._preq, self._iat, self._ia, self._rat, self._ra
+        #     ),
+        # ]
+        #
+        # if self._pcnf.toString("hex") == pcnf.toString("hex"):
+        #     self._diversifier = array.array("B", [0] * 2)
+        #     self._random = array.array("B", [0] * 8)
+        #     self._stk = crypto.s1(self._tk, self._r, r)
+        #
+        #     mgmt.addLongTermKey(
+        #         self._ia, self._iat, 0, 0, self._diversifier, self._random, self._stk
+        #     )
+        #
+        #     self.write(array.array("B", [SMP_PAIRING_RANDOM, *self._r]))
+        # else:
+        #     self.write(array.array("B", [SMP_PAIRING_FAILED, SMP_PAIRING_CONFIRM]))
+        #
+        #     self.emit("fail", [])
 
-        if self._pcnf.toString("hex") == pcnf.toString("hex"):
-            self._diversifier = array.array("B", [0] * 2)
-            self._random = array.array("B", [0] * 8)
-            self._stk = crypto.s1(self._tk, self._r, r)
-
-            mgmt.addLongTermKey(
-                self._ia, self._iat, 0, 0, self._diversifier, self._random, self._stk
-            )
-
-            self.write(Buffer.concat([array.array("B", [SMP_PAIRING_RANDOM]), self._r]))
-        else:
-            self.write(array.array("B", [SMP_PAIRING_FAILED, SMP_PAIRING_CONFIRM]))
-
-            self.emit("fail", [])
-
-    def handlePairingFailed(self, data):
+    def handlePairingFailed(self, data) -> None:
         self.emit("fail", [])
 
-    def write(self, data):
+    def write(self, data) -> None:
         self._aclStream.write(SMP_CID, data)
