@@ -1,5 +1,6 @@
 import math
 import time
+from typing import Any, NamedTuple
 from .emit import Emit
 from .BluetoothHCI import *
 
@@ -50,9 +51,9 @@ class Hci(Emit):
     #         pass
 
     def resetBuffers(self) -> None:
-        self._handleAclsInProgress = {}
+        self._handleAclsInProgress: dict[int, int] = {}
         self._handleBuffers = {}
-        self._aclOutQueue = []
+        self._aclOutQueue: list[Packet] = []
 
     def setSocketFilter(self) -> None:
         typeMask = (1 << HCI_EVENT_PKT) | (1 << HCI_ACLDATA_PKT)
@@ -381,9 +382,9 @@ class Hci(Emit):
                 del self._handleAclsInProgress[handle]
                 aclOutQueue = []
                 discarded = 0
-                for i in self._aclOutQueue:
-                    if self._aclOutQueue[i]["handle"] != handle:
-                        aclOutQueue.append(self._aclOutQueue[i])
+                for pkt in self._aclOutQueue:
+                    if pkt.handle != handle:
+                        aclOutQueue.append(pkt)
                     else:
                         discarded += 1
 
@@ -725,6 +726,7 @@ class Hci(Emit):
 
     def queueAclDataPkt(self, handle, cid, data) -> None:
         hf = handle | ACL_START_NO_FLUSH << 12
+        # l2cap pdu may be fragmented on hci level
         pkt = array.array("B", [0] * (4 + len(data)))
 
         # header
@@ -745,7 +747,7 @@ class Hci(Emit):
             writeUInt16LE(pkt, len(frag), 3)
             copy(frag, pkt, 5)
 
-            self._aclOutQueue.append({"handle": handle, "pkt": pkt, "fragId": fragId})
+            self._aclOutQueue.append(Packet(handle=handle, pkt=pkt, fragId=fragId))
 
             fragId += 1
 
@@ -753,8 +755,8 @@ class Hci(Emit):
 
     def pushAclOutQueue(self) -> None:
         inProgress = 0
-        for handle in self._handleAclsInProgress:
-            inProgress += self._handleAclsInProgress[handle]
+        for count in self._handleAclsInProgress:
+            inProgress += count
 
         while inProgress < self._aclMaxInProgress and len(self._aclOutQueue):
             inProgress = inProgress + 1
@@ -767,7 +769,7 @@ class Hci(Emit):
 
     def writeOneAclDataPkt(self) -> None:
         pkt = self._aclOutQueue.pop(0)
-        self._handleAclsInProgress[pkt["handle"]] += 1
+        self._handleAclsInProgress[pkt.handle] += 1
         # debug(
         #     "write acl data pkt frag "
         #     + pkt.fragId
@@ -776,4 +778,10 @@ class Hci(Emit):
         #     + " - writing: "
         #     + pkt.pkt.toString("hex")
         # )
-        self._socket.write(pkt["pkt"])
+        self._socket.write(pkt.pkt)
+
+
+class Packet(NamedTuple):
+    handle: int
+    pkt: array.array
+    fragId: int
