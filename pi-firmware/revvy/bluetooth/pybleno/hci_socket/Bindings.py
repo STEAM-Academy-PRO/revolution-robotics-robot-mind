@@ -92,12 +92,12 @@ class BlenoBindings(Emit):
         self._state = state
 
         if state == "unauthorized":
-            print("bleno warning: adapter state unauthorized, please run as root or with sudo")
+            print("Bleno warning: adapter state unauthorized, please run as root or with sudo")
             print("               or see README for information on running without root/sudo:")
             print("               https://github.com/sandeepmistry/bleno#running-on-linux")
         elif state == "unsupported":
             print(
-                "bleno warning: adapter does not support Bluetooth Low Energy (BLE, Bluetooth Smart)."
+                "Bleno warning: adapter does not support Bluetooth Low Energy (BLE, Bluetooth Smart)."
             )
             print("               Try to run with environment variable:")
             print("               [sudo] BLENO_HCI_DEVICE_ID=x node ...")

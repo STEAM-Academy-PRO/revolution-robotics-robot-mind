@@ -144,8 +144,8 @@ class Bleno(Emit):
         # debug('advertisingStart: ' + error);
         if error:
             self.emit("advertisingStartError", [error])
-
-        self.emit("advertisingStart", [error])
+        else:
+            self.emit("advertisingStart", [error])
 
     def stopAdvertising(self, callback=None) -> None:
         if callback:
