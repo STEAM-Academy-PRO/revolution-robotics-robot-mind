@@ -1,3 +1,4 @@
+from typing import Any
 from .hci_socket.emit import Emit
 from . import UuidUtil
 
@@ -9,39 +10,21 @@ class Characteristic(Emit):
     RESULT_INVALID_ATTRIBUTE_LENGTH = 0x0D
     RESULT_UNLIKELY_ERROR = 0x0E
 
-    def __init__(self, options=None) -> None:
+    def __init__(self, options: dict[str, Any] = {}) -> None:
         super().__init__()
-        if options is None:
-            options = {}
+        self._dict = {}
+
         self["uuid"] = UuidUtil.removeDashes(options["uuid"])
-        self["properties"] = options["properties"] if "properties" in options else []
-        self["secure"] = options["secure"] if "secure" in options else []
-        self["value"] = options["value"] if "value" in options else None
-        self["descriptors"] = options["descriptors"] if "descriptors" in options else []
+        self["properties"] = options.get("properties", [])
+        self["secure"] = options.get("secure", [])
+        self["value"] = options.get("value", None)
+        self["descriptors"] = options.get("descriptors", [])
 
         self.maxValueSize = None
         self.updateValueCallback = None
 
         if self["value"] and (len(self["properties"]) != 1 or self["properties"][0] != "read"):
             raise Exception("Characteristics with value can be read only!")
-
-        if "onReadRequest" in options:
-            self.onReadRequest = options["onReadRequest"]
-
-        if "onWriteRequest" in options:
-            self.onWriteRequest = options["onWriteRequest"]
-
-        if "onSubscribe" in options:
-            self.onSubscribe = options["onSubscribe"]
-
-        if "onUnsubscribe" in options:
-            self.onUnsubscribe = options["onUnsubscribe"]
-
-        if "onNotify" in options:
-            self.onNotify = options["onNotify"]
-
-        if "onIndicate" in options:
-            self.onIndicate = options["onIndicate"]
 
         self.on("readRequest", self.onReadRequest)
         self.on("writeRequest", self.onWriteRequest)
@@ -71,52 +54,52 @@ class Characteristic(Emit):
         pass
 
     def __setitem__(self, key, item) -> None:
-        self.__dict__[key] = item
+        self._dict[key] = item
 
     def __getitem__(self, key):
-        return self.__dict__[key]
+        return self._dict[key]
 
     def __repr__(self):
-        return repr(self.__dict__)
+        return repr(self._dict)
 
     def __len__(self):
-        return len(self.__dict__)
+        return len(self._dict)
 
     def __delitem__(self, key) -> None:
-        del self.__dict__[key]
+        del self._dict[key]
 
     def clear(self):
-        return self.__dict__.clear()
+        return self._dict.clear()
 
     def copy(self):
-        return self.__dict__.copy()
+        return self._dict.copy()
 
     def has_key(self, k):
-        return k in self.__dict__
+        return k in self._dict
 
     def update(self, *args, **kwargs):
-        return self.__dict__.update(*args, **kwargs)
+        return self._dict.update(*args, **kwargs)
 
     def keys(self):
-        return self.__dict__.keys()
+        return self._dict.keys()
 
     def values(self):
-        return self.__dict__.values()
+        return self._dict.values()
 
     def items(self):
-        return self.__dict__.items()
+        return self._dict.items()
 
     def pop(self, *args):
-        return self.__dict__.pop(*args)
+        return self._dict.pop(*args)
 
     def __cmp__(self, dict_):
-        return self.__dict__.__cmp__(dict_)
+        return self._dict.__cmp__(dict_)
 
     def __contains__(self, item):
-        return item in self.__dict__
+        return item in self._dict
 
     def __iter__(self):
-        return iter(self.__dict__)
+        return iter(self._dict)
 
     def __unicode__(self):
-        return unicode(repr(self.__dict__))
+        return unicode(repr(self._dict))

@@ -1,2 +1,2 @@
-def removeDashes(uuid):
-    return uuid.replace('-', '')
+def removeDashes(uuid: str) -> str:
+    return uuid.replace("-", "")

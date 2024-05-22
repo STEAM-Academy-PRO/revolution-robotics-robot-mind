@@ -57,7 +57,6 @@ class BluetoothSocket(socket.socket):
         return struct.pack("<HHH", socket.AF_BLUETOOTH, dev, channel)
 
     def _sockaddr_rc(self, bdaddr, channel) -> bytes:
-
         return (
             struct.pack("<H", socket.AF_BLUETOOTH)
             + array.array("B", [ord(x) for x in BDAddr(bdaddr).le_string()])

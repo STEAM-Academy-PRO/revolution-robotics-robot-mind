@@ -1,3 +1,7 @@
+from math import floor
+from typing import Callable, Optional
+
+from revvy.bluetooth.pybleno.hci_socket import AclStream
 from .emit import Emit
 import os
 import platform
@@ -63,16 +67,16 @@ ATT_CID = 0x0004
 
 
 class Gatt(Emit):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.maxMtu = 256
         self._mtu = 23
         self._preparedWriteRequest = None
-        self._aclStream = None
+        self._aclStream: Optional[AclStream] = None
 
         self.setServices([])
 
-    def setServices(self, services):
+    def setServices(self, services) -> None:
         deviceName = os.getenv("BLENO_DEVICE_NAME", platform.node())
 
         # // base services and characteristics
@@ -212,7 +216,7 @@ class Gatt(Emit):
             handles[serviceHandle]["endHandle"] = handle
         self._handles = handles
 
-    def setAclStream(self, aclStream):
+    def setAclStream(self, aclStream: AclStream) -> None:
         self._mtu = 23
         self._preparedWriteRequest = None
 
@@ -221,15 +225,16 @@ class Gatt(Emit):
         self._aclStream.on("data", self.onAclStreamData)
         self._aclStream.on("end", self.onAclStreamEnd)
 
-    def onAclStreamData(self, cid, data):
+    def onAclStreamData(self, cid, data) -> None:
         if cid != ATT_CID:
             return
 
         self.handleRequest(data)
 
-    def onAclStreamEnd(self):
+    def onAclStreamEnd(self) -> None:
+        assert self._aclStream is not None
         self._aclStream.off("data", self.onAclStreamData)
-        self._aclStream.removeListener("end", self.onAclStreamEnd)
+        self._aclStream.off("end", self.onAclStreamEnd)
 
         for i in range(0, len(self._handles)):
             if (
@@ -244,11 +249,12 @@ class Gatt(Emit):
                 if self._handles[i]["attribute"] and self._handles[i]["attribute"].emit:
                     self._handles[i]["attribute"].emit("unsubscribe", [])
 
-    def send(self, data):
+    def send(self, data) -> None:
+        assert self._aclStream is not None
         # debug('send: ' + data.toString('hex'))
         self._aclStream.write(ATT_CID, data)
 
-    def errorResponse(self, opcode, handle, status):
+    def errorResponse(self, opcode, handle, status) -> array.array:
         buf = array.array("B", [0] * 5)
 
         writeUInt8(buf, ATT_OP_ERROR, 0)
@@ -258,7 +264,7 @@ class Gatt(Emit):
 
         return buf
 
-    def handleRequest(self, request):
+    def handleRequest(self, request) -> None:
         # debug('handing request: ' + request.toString('hex'))
 
         requestType = request[0]
@@ -293,7 +299,7 @@ class Gatt(Emit):
 
             self.send(response)
 
-    def handleMtuRequest(self, request):
+    def handleMtuRequest(self, request) -> array.array:
         mtu = readUInt16LE(request, 1)
 
         if mtu < 23:
@@ -312,7 +318,7 @@ class Gatt(Emit):
 
         return response
 
-    def handleFindInfoRequest(self, request):
+    def handleFindInfoRequest(self, request) -> array.array:
         startHandle = readUInt16LE(request, 1)
         endHandle = readUInt16LE(request, 3)
 
@@ -375,7 +381,7 @@ class Gatt(Emit):
 
         return response
 
-    def handleFindByTypeRequest(self, request):
+    def handleFindByTypeRequest(self, request) -> array.array:
         startHandle = readUInt16LE(request, 1)
         endHandle = readUInt16LE(request, 3)
         # uuid = request.slice(5, 7).toString('hex').match(/.{1,2}/g).reverse().join('')
@@ -422,7 +428,7 @@ class Gatt(Emit):
 
         return response
 
-    def handleReadByGroupRequest(self, request):
+    def handleReadByGroupRequest(self, request) -> array.array:
         startHandle = readUInt16LE(request, 1)
         endHandle = readUInt16LE(request, 3)
         # uuid = request.slice(5).toString('hex').match(/.{1,2}/g).reverse().join('')
@@ -486,7 +492,7 @@ class Gatt(Emit):
 
         return response
 
-    def handleReadByTypeRequest(self, request):
+    def handleReadByTypeRequest(self, request: bytearray) -> Optional[array.array]:  # ?
         response = None
         requestType = request[0]
 
@@ -572,14 +578,16 @@ class Gatt(Emit):
                     secure = handle["secure"] & 0x02
                     break
 
+            assert self._aclStream is not None
+
             if secure and not self._aclStream.encrypted:
                 response = self.errorResponse(
                     ATT_OP_READ_BY_TYPE_REQ, startHandle, ATT_ECODE_AUTHENTICATION
                 )
             elif valueHandle:
 
-                def create_callback(valueHandle):
-                    def callback(result, data):
+                def create_callback(valueHandle) -> Callable:
+                    def callback(result, data) -> None:
                         if ATT_ECODE_SUCCESS == result:
                             dataLength = min(len(data), self._mtu - 4)
                             callbackResponse = array.array("B", [0] * (4 + dataLength))
@@ -619,22 +627,22 @@ class Gatt(Emit):
 
         return response
 
-    def handleReadOrReadBlobRequest(self, request):
+    def handleReadOrReadBlobRequest(self, request) -> Optional[array.array]:
         response = None
 
         requestType = request[0]
         valueHandle = readUInt16LE(request, 1)
         offset = readUInt16LE(request, 3) if (requestType == ATT_OP_READ_BLOB_REQ) else 0
 
-        handle = self._handles[valueHandle] if valueHandle in self._handles else None
+        handle = self._handles.get(valueHandle, None)
 
         if handle:
             result = None
             data = None
             handleType = handle["type"]
 
-            def create_callback(requestType, valueHandle):
-                def callback(result, data):
+            def create_callback(requestType, valueHandle) -> Callable:
+                def callback(result, data) -> None:
                     if ATT_ECODE_SUCCESS == result:
                         dataLength = min(len(data), self._mtu - 1)
                         callbackResponse = array.array("B", [0] * (1 + dataLength))
@@ -674,15 +682,16 @@ class Gatt(Emit):
                 for i in range(0, len(uuid)):
                     data[i + 3] = uuid[i]
             elif handleType == "characteristicValue" or handleType == "descriptor":
-                handleProperties = handle["properties"] if "properties" in handle else None
-                handleSecure = handle["secure"] if "secure" in handle else None
-                handleAttribute = handle["attribute"] if "attribute" in handle else None
+                handleProperties = handle.get("properties", None)
+                handleSecure = handle.get("secure", None)
+                handleAttribute = handle.get("attribute", None)
                 if handleType == "characteristicValue":
                     handleProperties = self._handles[valueHandle - 1]["properties"]
                     handleSecure = self._handles[valueHandle - 1]["secure"]
                     handleAttribute = self._handles[valueHandle - 1]["attribute"]
 
                 if handleProperties & 0x02:
+                    assert self._aclStream is not None
                     if handleSecure & 0x02 and not self._aclStream.encrypted:
                         result = ATT_ECODE_AUTHENTICATION
                     else:
@@ -712,7 +721,7 @@ class Gatt(Emit):
 
         return response
 
-    def handleWriteRequestOrCommand(self, request):
+    def handleWriteRequestOrCommand(self, request) -> Optional[array.array]:
         response = None
 
         requestType = request[0]
@@ -752,6 +761,7 @@ class Gatt(Emit):
 
                 callback = create_callback(requestType, valueHandle, withoutResponse)
 
+                assert self._aclStream is not None
                 if (
                     handleSecure & (0x04 if withoutResponse else 0x08)
                     and not self._aclStream.encrypted
@@ -770,8 +780,8 @@ class Gatt(Emit):
 
                         if value & 0x0003:
 
-                            def create_updateValueCallback(valueHandle, attribute):
-                                def updateValueCallback(data):
+                            def create_updateValueCallback(valueHandle, attribute) -> Callable:
+                                def updateValueCallback(data) -> None:
                                     dataLength = min(len(data), self._mtu - 3)
                                     useNotify = "notify" in attribute["properties"]
                                     useIndicate = "indicate" in attribute["properties"]
@@ -831,7 +841,7 @@ class Gatt(Emit):
 
         return response
 
-    def handlePrepareWriteRequest(self, request):
+    def handlePrepareWriteRequest(self, request) -> Optional[array.array]:
         response = None
 
         requestType = request[0]
@@ -849,6 +859,7 @@ class Gatt(Emit):
                 handleSecure = handle["secure"]
 
                 if handleProperties and (handleProperties & 0x08):
+                    assert self._aclStream is not None
                     if (handleSecure & 0x08) and not self._aclStream.encrypted:
                         response = self.errorResponse(
                             requestType, valueHandle, ATT_ECODE_AUTHENTICATION
@@ -895,7 +906,7 @@ class Gatt(Emit):
 
         return response
 
-    def handleExecuteWriteRequest(self, request):
+    def handleExecuteWriteRequest(self, request) -> Optional[array.array]:
         response = None
 
         requestType = request[0]
@@ -943,7 +954,7 @@ class Gatt(Emit):
 
         return response
 
-    def handleConfirmation(self, request):
+    def handleConfirmation(self, request) -> None:
         if self._lastIndicatedAttribute:
             if self._lastIndicatedAttribute.emit:
                 self._lastIndicatedAttribute.emit("indicate", [])
