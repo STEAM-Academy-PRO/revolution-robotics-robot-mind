@@ -83,7 +83,7 @@ class Bleno(Emit):
         self.emit("mtuChange", [mtu])
 
     def onDisconnect(self, clientAddress):
-        # debug('disconnect' + clientAddress);
+        # debug('disconnect ' + clientAddress);
         self.emit("disconnect", [clientAddress])
 
     def startAdvertising(self, name, service_uuids=None, callback=None):
