@@ -3,7 +3,6 @@ import time
 from .Emit import Emit
 from .BluetoothHCI import *
 
-# from constants import *
 from .constants2 import *
 from .Io import *
 from .HciStatus import *
@@ -18,6 +17,9 @@ class Hci(Emit):
         self._isDevUp = None
         self._state = None
         self._deviceId = None
+        # le-u min payload size + l2cap header size
+        # see Bluetooth spec 4.2 [Vol 3, Part A, Chapter 4]
+        self._acl_mtu = 23 + 4
 
         self._handleBuffers = {}
 
@@ -43,6 +45,15 @@ class Hci(Emit):
     #     while True:
 
     #         pass
+
+    def initDev(self) -> None:
+        self.setEventMask()
+        self.setLeEventMask()
+        self.readLocalVersion()
+        self.writeLeHostSupported()
+        self.readLeHostSupported()
+        self.readBdAddr()
+        self.leReadBufferSize()
 
     def setSocketFilter(self) -> None:
         typeMask = (1 << HCI_EVENT_PKT) | (1 << HCI_ACLDATA_PKT)
@@ -326,20 +337,53 @@ class Hci(Emit):
         # debug('read rssi - writing: ' + cmd.toString('hex'))
         self.write(cmd)
 
-    def writeAclDataPkt(self, handle, cid: int, data):
-        pkt = array.array("B", [0] * (9 + len(data)))
+    def leReadBufferSize(self) -> None:
+        pkt = array.array("B", [0] * 4)
 
         # header
-        writeUInt8(pkt, HCI_ACLDATA_PKT, 0)
-        writeUInt16LE(pkt, handle | ACL_START_NO_FLUSH << 12, 1)
-        writeUInt16LE(pkt, len(data) + 4, 3)  # data length 1
-        writeUInt16LE(pkt, len(data), 5)  # data length 2
-        writeUInt16LE(pkt, cid, 7)
+        writeUInt8(pkt, HCI_COMMAND_PKT, 0)
+        writeUInt16LE(pkt, LE_READ_BUFFER_SIZE_CMD, 1)
+        writeUInt8(pkt, 0x0, 3)  # data length 0
 
-        copy(data, pkt, 9)
-
-        # debug('write acl data pkt - writing: ' + pkt.toString('hex'))
+        # debug('le read buffer size - writing: ' + pkt.toString('hex'))
         self.write(pkt)
+
+    def readBufferSize(self) -> None:
+        pkt = array.array("B", [0] * 4)
+
+        # header
+        writeUInt8(pkt, HCI_COMMAND_PKT, 0)
+        writeUInt16LE(pkt, READ_BUFFER_SIZE_CMD, 1)
+        writeUInt8(pkt, 0x0, 3)  # data length 0
+
+        # debug('read buffer size - writing: ' + pkt.toString('hex'))
+        self.write(pkt)
+
+    def writeAclDataPkt(self, handle, cid, data) -> None:
+        hf = handle | ACL_START_NO_FLUSH << 12
+        l2capPdu = array.array("B", [0] * (4 + len(data)))
+
+        # header
+        writeUInt16LE(l2capPdu, len(data), 0)
+        writeUInt16LE(l2capPdu, cid, 2)
+        copy(data, l2capPdu, 4)
+        fragId = 0
+
+        while len(l2capPdu) > 0:
+            frag = l2capPdu[0 : self._acl_mtu]
+            l2capPdu = l2capPdu[self._acl_mtu :]
+
+            # hci header
+            pkt = array.array("B", [0] * (5 + len(frag)))
+            writeUInt8(pkt, HCI_ACLDATA_PKT, 0)
+            writeUInt16LE(pkt, hf, 1)
+            hf |= ACL_CONT << 12
+            writeUInt16LE(pkt, len(frag), 3)
+            copy(frag, pkt, 5)
+
+            # debug('write acl data pkt frag ' + fragId + ' - writing: ' + pkt.toString('hex'))
+            self.write(pkt)
+            fragId += 1
 
     def write(self, pkt) -> None:
         # print 'WRITING: %s' % ''.join(format(x, '02x') for x in pkt)
@@ -462,12 +506,7 @@ class Hci(Emit):
     def processCmdCompleteEvent(self, cmd, status, result) -> None:
         # handle
         if cmd == RESET_CMD:
-            self.setEventMask()
-            self.setLeEventMask()
-            self.readLocalVersion()
-            self.writeLeHostSupported()
-            self.readLeHostSupported()
-            self.readBdAddr()
+            self.initDev()
         elif cmd == READ_LE_HOST_SUPPORTED_CMD:
             if status == 0:
                 le = readUInt8(result, 0)
@@ -522,6 +561,28 @@ class Hci(Emit):
 
             # debug('\t\t\thandle = ' + handle)
             self.emit("leLtkNegReply", [handle])
+        elif cmd == LE_READ_BUFFER_SIZE_CMD:
+            if not status:
+                self.processLeReadBufferSize(result)
+        elif cmd == READ_BUFFER_SIZE_CMD:
+            if not status:
+                acl_mtu = readUInt16LE(result, 0)
+                # sanity
+                if acl_mtu:
+                    # debug('br/edr acl_mtu = ' + acl_mtu)
+                    self._acl_mtu = acl_mtu
+
+    def processLeReadBufferSize(self, result) -> None:
+        acl_mtu = readUInt16LE(result, 0)
+        # acl_queue = readUInt8(result, 2)
+        if not acl_mtu:
+            # as per Bluetooth specs
+            # print("falling back to br/edr buffer size")
+            self.readBufferSize()
+        else:
+            # print(f"le acl_mtu = {acl_mtu}")
+            # print(f"le acl_queue = {acl_queue}")
+            self._acl_mtu = acl_mtu
 
     def processLeMetaEvent(self, eventType, status, data) -> None:
         if eventType == EVT_LE_CONN_COMPLETE:
@@ -533,7 +594,7 @@ class Hci(Emit):
         handle = readUInt16LE(data, 0)
         role = readUInt8(data, 2)
         addressType = "random" if readUInt8(data, 3) == 0x01 else "public"
-        mac_data = data[4:10]
+        mac_data: array.array = data[4:10]
         mac_data.reverse()
         address = "%02x:%02x:%02x:%02x:%02x:%02x" % struct.unpack("BBBBBB", mac_data)
         interval = readUInt16LE(data, 10) * 1.25
@@ -594,12 +655,7 @@ class Hci(Emit):
             self._isDevUp = isDevUp
             if isDevUp:
                 self.setSocketFilter()
-                self.setEventMask()
-                self.setLeEventMask()
-                self.readLocalVersion()
-                self.writeLeHostSupported()
-                self.readLeHostSupported()
-                self.readBdAddr()
+                self.initDev()
             else:
                 self.emit("stateChange", ["poweredOff"])
 

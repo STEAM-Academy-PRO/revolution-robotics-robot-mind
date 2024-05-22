@@ -108,12 +108,7 @@ class BlenoBindings(Emit):
         self.emit("addressChange", [address])
 
     def onReadLocalVersion(self, hciVer, hciRev, lmpVer, manufacturer, lmpSubVer) -> None:
-        if manufacturer == 2:
-            # Intel Corporation
-            self._gatt.maxMtu = 23
-        elif manufacturer == 93:
-            # Realtek Semiconductor Corporation
-            self._gatt.maxMtu = 23
+        pass
 
     def onAdvertisingStart(self, error) -> None:
         self.emit("advertisingStart", [error])
