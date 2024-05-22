@@ -285,8 +285,8 @@ class RemoteControllerScheduler:
     def __init__(self, rc: RemoteController):
         self._controller = rc
         self._data_ready_event = Event()
-        self._controller_detected_callback = None
-        self._controller_lost_callback = None
+        self._controller_detected_callback = lambda: None
+        self._controller_lost_callback = lambda: None
         self._message = EMPTY_REMOTE_CONTROLLER_COMMAND
 
     def periodic_control_message_handler(self, message: RemoteControllerCommand):
@@ -336,8 +336,7 @@ class RemoteControllerScheduler:
             message = self._wait_for_message(ctx, FIRST_MESSAGE_TIMEOUT)
             if message is not None:
                 log(f"Time to first message: {stopwatch.elapsed}s")
-                if self._controller_detected_callback:
-                    self._controller_detected_callback()
+                self._controller_detected_callback()
 
                 # process message and wait for the next one
                 while message is not None:
@@ -346,8 +345,7 @@ class RemoteControllerScheduler:
 
             if not ctx.stop_requested:
                 log("Controller lost due to timeout!", LogLevel.WARNING)
-                if self._controller_lost_callback:
-                    self._controller_lost_callback()
+                self._controller_lost_callback()
 
             # reset here, controller was lost or stopped
             self._controller.reset()
