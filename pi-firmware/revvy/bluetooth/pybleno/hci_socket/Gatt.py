@@ -506,7 +506,7 @@ class Gatt(Emit):
             characteristics = []
 
             for i in range(startHandle, endHandle + 1):
-                handle = self._handles[i] if i in self._handles else None
+                handle = self._handles.get(i, None)
 
                 if not handle:
                     break
@@ -743,8 +743,8 @@ class Gatt(Emit):
                 (handleProperties & 0x04) if withoutResponse else (handleProperties & 0x08)
             ):
 
-                def create_callback(requestType, valueHandle, withoutResponse):
-                    def callback(result):
+                def create_callback(requestType, valueHandle, withoutResponse) -> Callable:
+                    def callback(result) -> None:
                         if not withoutResponse:
                             if ATT_ECODE_SUCCESS == result:
                                 callbackResponse = array.array("B", [ATT_OP_WRITE_RESP])
@@ -919,10 +919,8 @@ class Gatt(Emit):
                 response = array.array("B", [ATT_OP_EXEC_WRITE_RESP])
             elif flag == 0x01:
 
-                def create_callback(requestType, valueHandle):
-                    def callback(result):
-                        callbackResponse = None
-
+                def create_callback(requestType, valueHandle) -> Callable:
+                    def callback(result) -> None:
                         if ATT_ECODE_SUCCESS == result:
                             callbackResponse = array.array("B", [ATT_OP_EXEC_WRITE_RESP])
                         else:
