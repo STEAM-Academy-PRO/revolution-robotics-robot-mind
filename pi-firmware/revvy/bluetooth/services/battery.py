@@ -9,7 +9,7 @@ class UnifiedBatteryInfoCharacteristic(Characteristic):
             {
                 "uuid": uuid,
                 "properties": ["read", "notify"],
-                "descriptors": [Descriptor({"uuid": "2901", "value": description})],
+                "descriptors": [Descriptor(uuid="2901", value=description)],
             }
         )
 

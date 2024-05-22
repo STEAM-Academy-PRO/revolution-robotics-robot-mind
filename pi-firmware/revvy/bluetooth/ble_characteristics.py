@@ -42,7 +42,7 @@ class ValidateConfigCharacteristic(Characteristic):
                 "uuid": uuid,
                 "properties": ["write", "read"],
                 "descriptors": [
-                    Descriptor({"uuid": "2901", "value": description}),
+                    Descriptor(uuid="2901", value=description),
                 ],
             }
         )
@@ -83,7 +83,7 @@ class BackgroundProgramControlCharacteristic(Characteristic):
                 "uuid": uuid,
                 "properties": ["read", "notify", "write"],
                 "descriptors": [
-                    Descriptor({"uuid": "2901", "value": description}),
+                    Descriptor(uuid="2901", value=description),
                 ],
             }
         )
@@ -124,7 +124,7 @@ class BrainToMobileCharacteristic(Characteristic, Generic[DataType]):
                 "uuid": uuid,
                 "properties": ["read", "notify"],
                 "descriptors": [
-                    Descriptor({"uuid": "2901", "value": description}),
+                    Descriptor(uuid="2901", value=description),
                 ],
             }
         )
@@ -207,7 +207,7 @@ class MobileToBrainFunctionCharacteristic(Characteristic):
                 "uuid": uuid,
                 "properties": ["write", "read", "notify"],
                 "descriptors": [
-                    Descriptor({"uuid": "2901", "value": description}),
+                    Descriptor(uuid="2901", value=description),
                 ],
             }
         )

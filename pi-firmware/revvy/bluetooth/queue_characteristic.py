@@ -32,7 +32,7 @@ class QueueCharacteristic(Characteristic):
                 "uuid": uuid,
                 "properties": ["read", "write", "notify"],
                 "descriptors": [
-                    Descriptor({"uuid": "2901", "value": description}),
+                    Descriptor(uuid="2901", value=description),
                 ],
             }
         )
