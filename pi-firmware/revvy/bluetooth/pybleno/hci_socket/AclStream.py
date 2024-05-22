@@ -1,4 +1,4 @@
-from Emit import Emit
+from .emit import Emit
 from revvy.bluetooth.pybleno.hci_socket import Hci
 from .Smp import Smp
 

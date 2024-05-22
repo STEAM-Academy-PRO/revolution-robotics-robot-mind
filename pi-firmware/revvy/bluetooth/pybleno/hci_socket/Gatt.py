@@ -1,4 +1,4 @@
-from .Emit import Emit
+from .emit import Emit
 import os
 import platform
 import array

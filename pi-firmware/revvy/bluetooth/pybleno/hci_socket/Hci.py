@@ -1,6 +1,6 @@
 import math
 import time
-from .Emit import Emit
+from .emit import Emit
 from .BluetoothHCI import *
 
 from .constants2 import *

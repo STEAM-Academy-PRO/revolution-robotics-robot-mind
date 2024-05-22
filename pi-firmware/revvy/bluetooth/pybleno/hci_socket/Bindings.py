@@ -1,5 +1,5 @@
 import platform
-from .Emit import Emit
+from .emit import Emit
 
 from .Hci import Hci
 from .Gap import Gap
@@ -8,7 +8,7 @@ from .AclStream import AclStream
 
 
 class BlenoBindings(Emit):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._state = None
 
@@ -57,7 +57,7 @@ class BlenoBindings(Emit):
         if self._handle:
             self._hci.readRssi(self._handle)
 
-    def init(self):
+    def init(self) -> None:
         # self.onSigIntBinded = this.onSigInt
 
         # process.on('SIGINT', self.onSigIntBinded)

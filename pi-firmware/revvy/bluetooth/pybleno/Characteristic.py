@@ -1,16 +1,16 @@
-from .hci_socket.Emit import Emit
+from .hci_socket.emit import Emit
 from . import UuidUtil
 
 
-class Characteristic(dict, Emit):
+class Characteristic(Emit):
     RESULT_SUCCESS = 0x00
     RESULT_INVALID_OFFSET = 0x07
     RESULT_ATTR_NOT_LONG = 0x0B
     RESULT_INVALID_ATTRIBUTE_LENGTH = 0x0D
     RESULT_UNLIKELY_ERROR = 0x0E
 
-    def __init__(self, options=None):
-        super(Characteristic, self).__init__()
+    def __init__(self, options=None) -> None:
+        super().__init__()
         if options is None:
             options = {}
         self["uuid"] = UuidUtil.removeDashes(options["uuid"])
@@ -50,27 +50,27 @@ class Characteristic(dict, Emit):
         self.on("notify", self.onNotify)
         self.on("indicate", self.onIndicate)
 
-    def onReadRequest(self, offset, callback):
+    def onReadRequest(self, offset, callback) -> None:
         callback(self.RESULT_UNLIKELY_ERROR, None)
 
-    def onWriteRequest(self, data, offset, withoutResponse, callback):
+    def onWriteRequest(self, data, offset, withoutResponse, callback) -> None:
         callback(self.RESULT_UNLIKELY_ERROR)
 
-    def onSubscribe(self, maxValueSize, updateValueCallback):
+    def onSubscribe(self, maxValueSize, updateValueCallback) -> None:
         self.maxValueSize = maxValueSize
         self.updateValueCallback = updateValueCallback
 
-    def onUnsubscribe(self):
+    def onUnsubscribe(self) -> None:
         self.maxValueSize = None
         self.updateValueCallback = None
 
-    def onNotify(self):
+    def onNotify(self) -> None:
         pass
 
-    def onIndicate(self):
+    def onIndicate(self) -> None:
         pass
 
-    def __setitem__(self, key, item):
+    def __setitem__(self, key, item) -> None:
         self.__dict__[key] = item
 
     def __getitem__(self, key):
@@ -82,7 +82,7 @@ class Characteristic(dict, Emit):
     def __len__(self):
         return len(self.__dict__)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key) -> None:
         del self.__dict__[key]
 
     def clear(self):

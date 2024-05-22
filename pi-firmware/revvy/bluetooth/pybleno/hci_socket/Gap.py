@@ -1,7 +1,7 @@
 import platform
 import array
 from . import Hci
-from .Emit import Emit
+from .emit import Emit
 from .Io import *
 
 isLinux = platform.system() == "Linux"
