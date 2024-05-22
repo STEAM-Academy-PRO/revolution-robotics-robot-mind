@@ -10,8 +10,6 @@ from .HciStatus import *
 
 
 class Hci(Emit):
-    STATUS_MAPPER = STATUS_MAPPER
-
     def __init__(self) -> None:
         super().__init__()
         self._events = {}

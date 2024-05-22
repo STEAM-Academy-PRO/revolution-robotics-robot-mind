@@ -1,5 +1,7 @@
 import platform
 import array
+
+from revvy.bluetooth.pybleno.hci_socket import HciStatus
 from . import Hci
 from .emit import Emit
 from .Io import *
@@ -180,10 +182,14 @@ class Gap(Emit):
         if self._advertiseState == "starting":
             self._advertiseState = "started"
 
-            error = None
-
             if status:
-                error = Exception(Hci.STATUS_MAPPER[status] or ("Unknown (" + status + ")"))
+                try:
+                    error = HciStatus.STATUS_MAPPER[status]
+                except:
+                    error = f"Unknown ({status})"
+                error = Exception(error)
+            else:
+                error = None
 
             self.emit("advertisingStart", [error])
         elif self._advertiseState == "stopping":
