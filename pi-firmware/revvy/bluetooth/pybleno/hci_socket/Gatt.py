@@ -247,7 +247,7 @@ class Gatt(Emit):
 
                 self._handles[i]["value"] = array.array("B", [0x00, 0x00])
 
-                if self._handles[i]["attribute"] and self._handles[i]["attribute"].emit:
+                if self._handles[i]["attribute"] and hasattr(self._handles[i]["attribute"], "emit"):
                     self._handles[i]["attribute"].emit("unsubscribe", [])
 
     def send(self, data) -> None:

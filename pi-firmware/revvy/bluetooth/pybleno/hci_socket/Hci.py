@@ -410,6 +410,11 @@ class Hci(Emit):
 
     def writeOneAclDataPkt(self) -> None:
         pkt = self._aclOutQueue.pop(0)
+        if pkt["handle"] not in self._handleAclsInProgress:
+            # handle is closed, do not throw exception
+            # FIXME: this is a hack, Gatt notifications should be properly cleared instead
+            return
+
         self._handleAclsInProgress[pkt["handle"]] += 1
         # debug(
         #     "write acl data pkt frag "
