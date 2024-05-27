@@ -950,7 +950,7 @@ class Gatt(Emit):
 
     def handleConfirmation(self, request) -> None:
         if self._lastIndicatedAttribute:
-            if self._lastIndicatedAttribute.emit:
+            if hasattr(self._lastIndicatedAttribute, "emit"):
                 self._lastIndicatedAttribute.emit("indicate", [])
 
             self._lastIndicatedAttribute = None
