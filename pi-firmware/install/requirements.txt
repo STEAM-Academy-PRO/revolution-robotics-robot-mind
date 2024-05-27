@@ -2,4 +2,3 @@
 wheel>=0.34.2
 pybleno @ git+https://github.com/STEAM-Academy-PRO/pybleno.git@maintenance
 smbus2>=0.4.1
-wiringpi>=2.60.1
