@@ -92,6 +92,7 @@ if __name__ == "__main__":
             # list commands here
             "build",
             "generate",
+            "generate-components",
             "erase",
             "run",
             "attach",
@@ -110,6 +111,10 @@ if __name__ == "__main__":
 
     elif args.action == "generate":
         generate_files(in_ci=args.ci)
+
+    elif args.action == "generate-components":
+        print(f"{green('Updating')} CGlue components")
+        shell("cglue --update-all-components")
 
     elif args.action == "erase":
         shell(f"probe-rs erase --chip atsamd51p19a")
