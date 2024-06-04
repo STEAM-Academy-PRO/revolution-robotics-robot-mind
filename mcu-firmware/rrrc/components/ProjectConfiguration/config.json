@@ -90,7 +90,7 @@
         "MaxStartupTime": {
             "port_type": "Constant",
             "data_type": "uint32_t",
-            "value": "60000"
+            "value": "30000"
         },
         "ExpectedUpdateTime": {
             "port_type": "Constant",

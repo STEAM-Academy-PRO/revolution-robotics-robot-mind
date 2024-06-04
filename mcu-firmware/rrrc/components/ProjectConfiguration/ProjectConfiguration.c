@@ -63,7 +63,7 @@ uint32_t ProjectConfiguration_Constant_MaxStartupTime(void)
     /* Begin User Code Section: MaxStartupTime:constant End */
 
     /* End User Code Section: MaxStartupTime:constant End */
-    return 60000;
+    return 30000;
 }
 
 void ProjectConfiguration_Constant_MotorBatteryParameters(BatteryConfiguration_t* value)
