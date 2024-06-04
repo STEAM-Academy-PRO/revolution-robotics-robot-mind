@@ -29,7 +29,7 @@ static spinning_color_data_t spinning_color_data = {
 
 static void ledRingOffWriter(void* data);
 static void ledRingFrameWriter(void* data);
-static void colorWheelWriter1(void* data);
+static void colorWheelWriter(void* data);
 static void rainbowFadeWriter(void* data);
 static void spinningColorWriter(void* data);
 static void init_spinningColor(void* data);
@@ -71,7 +71,7 @@ const indication_handler_t public_scenario_handlers[] =
     [RingLedScenario_ColorWheel] = {
         .name     = "ColorWheel",
         .init     = init_time,
-        .update   = colorWheelWriter1,
+        .update   = colorWheelWriter,
         .uninit   = NULL,
         .userData = &time_data
     },
@@ -163,7 +163,7 @@ static void ledRingFrameWriter(void* data)
     }
 }
 
-static void colorWheelWriter1(void* data)
+static void colorWheelWriter(void* data)
 {
     uint32_t* time = (uint32_t*) data;
     uint32_t phase = (*time * 6) / 20;
