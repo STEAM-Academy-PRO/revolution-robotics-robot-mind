@@ -50,6 +50,7 @@ size_t RingLedDisplay_Constant_ScenarioCount(void);
 void RingLedDisplay_Write_LedColor(uint32_t index, rgb_t value);
 uint32_t RingLedDisplay_Read_ExpectedStartupTime(void);
 MasterStatus_t RingLedDisplay_Read_MasterStatus(void);
+uint32_t RingLedDisplay_Read_MaxStartupTime(void);
 RingLedScenario_t RingLedDisplay_Read_Scenario(void);
 rgb_t RingLedDisplay_Read_UserColors(uint32_t index);
 bool RingLedDisplay_Read_WaitForMasterStartup(void);

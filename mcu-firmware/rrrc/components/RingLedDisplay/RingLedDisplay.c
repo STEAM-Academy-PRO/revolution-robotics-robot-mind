@@ -62,13 +62,13 @@ void RingLedDisplay_Run_Update(void)
     RingLedScenario_t requested_scenario = RingLedDisplay_Read_Scenario();
 
     bool display_default_animation = !master_ready
-                                     && (time_since_startup < RingLedDisplay_Read_ExpectedStartupTime());
+                                     && (time_since_startup < RingLedDisplay_Read_MaxStartupTime());
 
     if (display_default_animation)
     {
         time_since_startup += 20u;
 
-        if (time_since_startup >= RingLedDisplay_Read_ExpectedStartupTime())
+        if (time_since_startup >= RingLedDisplay_Read_MaxStartupTime())
         {
             /* force switch to requested scenario */
             current_scenario = requested_scenario + 1u;
@@ -185,6 +185,18 @@ MasterStatus_t RingLedDisplay_Read_MasterStatus(void)
 
     /* End User Code Section: MasterStatus:read End */
     return MasterStatus_Unknown;
+}
+
+__attribute__((weak))
+uint32_t RingLedDisplay_Read_MaxStartupTime(void)
+{
+    /* Begin User Code Section: MaxStartupTime:read Start */
+
+    /* End User Code Section: MaxStartupTime:read Start */
+    /* Begin User Code Section: MaxStartupTime:read End */
+
+    /* End User Code Section: MaxStartupTime:read End */
+    return 0u;
 }
 
 __attribute__((weak))

@@ -85,6 +85,11 @@
             "default_value": null,
             "data_type": "uint32_t"
         },
+        "MaxStartupTime": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "uint32_t"
+        },
         "ScenarioCount": {
             "port_type": "Constant",
             "data_type": "size_t",
