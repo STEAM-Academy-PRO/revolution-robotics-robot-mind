@@ -75,6 +75,7 @@ uint8_t ProjectConfiguration_Constant_DeviceAddress(void);
 uint32_t ProjectConfiguration_Constant_ExpectedStartupTime(void);
 uint32_t ProjectConfiguration_Constant_ExpectedUpdateTime(void);
 void ProjectConfiguration_Constant_MainBatteryParameters(BatteryConfiguration_t* value);
+uint32_t ProjectConfiguration_Constant_MaxStartupTime(void);
 void ProjectConfiguration_Constant_MotorBatteryParameters(BatteryConfiguration_t* value);
 void ProjectConfiguration_Constant_MotorDeratingParameters(MotorDeratingParameters_t* value);
 void ProjectConfiguration_Constant_MotorPortGpios(uint32_t index, MotorPortGpios_t* value);

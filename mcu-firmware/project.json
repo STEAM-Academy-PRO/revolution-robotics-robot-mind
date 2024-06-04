@@ -511,9 +511,10 @@
             "ProjectConfiguration/MotorBatteryParameters": "BatteryCalculator/MotorBatteryParameters",
             "ProjectConfiguration/MotorThermalParameters": "MotorThermalModel/ThermalParameters",
             "ProjectConfiguration/MotorDeratingParameters": "MotorDerating/Parameters",
-            "ProjectConfiguration/ExpectedStartupTime": {
+            "ProjectConfiguration/ExpectedStartupTime": "RingLedDisplay/ExpectedStartupTime",
+            "ProjectConfiguration/MaxStartupTime": {
                 "consumers": [
-                    "RingLedDisplay/ExpectedStartupTime",
+                    "RingLedDisplay/MaxStartupTime",
                     "MasterStatusObserver/ExpectedStartupTime"
                 ]
             },

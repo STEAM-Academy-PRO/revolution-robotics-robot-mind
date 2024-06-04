@@ -29,7 +29,7 @@ static spinning_color_data_t spinning_color_data = {
 
 static void ledRingOffWriter(void* data);
 static void ledRingFrameWriter(void* data);
-static void colorWheelWriter1(void* data);
+static void colorWheelWriter(void* data);
 static void rainbowFadeWriter(void* data);
 static void spinningColorWriter(void* data);
 static void init_spinningColor(void* data);
@@ -71,7 +71,7 @@ const indication_handler_t public_scenario_handlers[] =
     [RingLedScenario_ColorWheel] = {
         .name     = "ColorWheel",
         .init     = init_time,
-        .update   = colorWheelWriter1,
+        .update   = colorWheelWriter,
         .uninit   = NULL,
         .userData = &time_data
     },
@@ -130,19 +130,39 @@ static void startup_indicator(void* data)
 {
     uint32_t* time = (uint32_t*) data;
 
-    uint32_t n_leds = (uint32_t) ceilf(map_constrained(*time, 0, RingLedDisplay_Read_ExpectedStartupTime(), 0, 12));
-
-    for (uint32_t i = 0u; i < n_leds; i++)
-    {
-        RingLedDisplay_Write_LedColor(i, (rgb_t) LED_YELLOW);
-    }
-
-    for (uint32_t i = n_leds; i < 12u; i++)
-    {
-        RingLedDisplay_Write_LedColor(i, (rgb_t) LED_OFF);
-    }
-
+    uint32_t step = (uint32_t) floorf(map(*time, 0, RingLedDisplay_Read_ExpectedStartupTime(), 0, 12));
     *time += RING_LED_UPDATE_TIME;
+
+    if (step == 24u)
+    {
+        step = 0u;
+        *time = 0u;
+    }
+
+    if (step < 13u)
+    {
+        uint32_t fill_end = step;
+        for (uint32_t i = 0u; i < fill_end; i++)
+        {
+            RingLedDisplay_Write_LedColor(i, (rgb_t) LED_YELLOW);
+        }
+        for (uint32_t i = fill_end; i < 12u; i++)
+        {
+            RingLedDisplay_Write_LedColor(i, (rgb_t) LED_OFF);
+        }
+    }
+    else
+    {
+        uint32_t clear_start = step - 12u;
+        for (uint32_t i = 0u; i < clear_start; i++)
+        {
+            RingLedDisplay_Write_LedColor(i, (rgb_t) LED_OFF);
+        }
+        for (uint32_t i = clear_start; i < 12u; i++)
+        {
+            RingLedDisplay_Write_LedColor(i, (rgb_t) LED_YELLOW);
+        }
+    }
 }
 
 static void ledRingOffWriter(void* data)
@@ -163,7 +183,7 @@ static void ledRingFrameWriter(void* data)
     }
 }
 
-static void colorWheelWriter1(void* data)
+static void colorWheelWriter(void* data)
 {
     uint32_t* time = (uint32_t*) data;
     uint32_t phase = (*time * 6) / 20;
