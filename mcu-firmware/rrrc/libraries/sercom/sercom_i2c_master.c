@@ -6,7 +6,7 @@
  * This implementation assumes 24MHz clock and settings that are configured in the Pi firmware.
  */
 
-#define I2CM_INT_HANDLER_TX  0 /**< Data transmitted */
+#define I2CM_INT_HANDLER_TX   0 /**< Data transmitted */
 #define I2CM_INT_HANDLER_RX   1 /**< Data received */
 #define I2CM_INT_HANDLER_ERROR       3
 
