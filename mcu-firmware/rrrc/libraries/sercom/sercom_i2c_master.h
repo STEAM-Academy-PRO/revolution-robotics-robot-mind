@@ -35,7 +35,7 @@ typedef struct __I2CMasterInstance_t {
     bool in_handler;
     I2CTransaction_t current_transaction;
     size_t current_transfer_count;
-    bool continue_transaction;
+    bool continue_transaction; /** < false to send a stop condition */
 } I2CMasterInstance_t;
 
 typedef enum {
