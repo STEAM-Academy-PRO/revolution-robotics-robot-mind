@@ -14,21 +14,21 @@
 ----------------------------
 */
 
-typedef struct _veml3328_colors
+typedef struct
 {
     uint16_t clear;
     uint16_t red;
     uint16_t green;
     uint16_t blue;
     uint16_t ir;
-} __attribute__((packed)) veml3328_colors_t;
+} veml3328_colors_t;
 
 typedef struct
 {
     int32_t R;
     int32_t G;
     int32_t B;
-}__attribute__((packed)) color_coef_t;
+} color_coef_t;
 
 typedef enum
 {
@@ -70,11 +70,11 @@ typedef struct
 typedef struct {
     sensor_state_t state;
     deinit_state_t deinit_state;
-    uint8_t init_sequence_idx;
-    uint8_t deinit_sequence_idx;
+    uint8_t sequence_idx;
     uint8_t deinit_num_retries;
-    uint8_t readcolor_sequence_idx;
     uint8_t orange_led;
+    color_sensor_test_state_t test_state;
+    SensorOnPortStatus_t test_result;
     bool transferring;
     color_coef_t coef;
     veml3328_colors_t sens_color[4];
@@ -84,9 +84,6 @@ typedef struct {
 static void i2c_txrx_complete(I2CMasterInstance_t* instance, size_t transferred);
 static void rgb_read_sensor(SensorPort_t* sensorPort);
 static void rgb_init_sensor(SensorPort_t* sensorPort);
-
-static bool color_sensor_test_state_result = false;
-static color_sensor_test_state_t color_sensor_test_state = COLOR_SENSOR_TEST_STATE_NONE;
 
 #define DEFAULT_COEF_R (210)
 #define DEFAULT_COEF_G (140)
@@ -300,10 +297,17 @@ static void i2c_txrx_complete(I2CMasterInstance_t* instance, size_t transferred)
     SensorPort_t *sensorPort = CONTAINER_OF(instance, SensorPort_t, sercom.i2cm.sercom_instance);
     SensorLibrary_RGB_Data_t* libdata = sensorPort->libraryData;
 
-    if (color_sensor_test_state == COLOR_SENSOR_TEST_STATE_I2C_READ)
+    if (libdata->test_state == COLOR_SENSOR_TEST_STATE_I2C_READ)
     {
-        color_sensor_test_state = COLOR_SENSOR_TEST_STATE_DONE;
-        color_sensor_test_state_result = (transferred > 0);
+        libdata->test_state = COLOR_SENSOR_TEST_STATE_DONE;
+        if (transferred > 0)
+        {
+            libdata->test_result = SensorOnPortStatus_Present;
+        }
+        else
+        {
+            libdata->test_result = SensorOnPortStatus_NotPresent;
+        }
     }
     else if (transferred > 0u)
     {
@@ -318,9 +322,11 @@ static void i2c_txrx_complete(I2CMasterInstance_t* instance, size_t transferred)
             case SENS_STATE_RESET:
                 rgb_init_sensor(sensorPort);
                 break;
+
             case SENS_STATE_OPERATIONAL:
                 rgb_read_sensor(sensorPort);
                 break;
+
             default:
                 ASSERT(0);
         }
@@ -336,7 +342,7 @@ static void rgb_read_sensor(SensorPort_t* sensorPort)
 {
     SensorLibrary_RGB_Data_t* libdata = sensorPort->libraryData;
 
-    if (libdata->readcolor_sequence_idx >= ARRAY_SIZE(readcolors_sequence))
+    if (libdata->sequence_idx >= ARRAY_SIZE(readcolors_sequence))
     {
         rgb_t color[4];
         normalize_colors(libdata);
@@ -346,27 +352,27 @@ static void rgb_read_sensor(SensorPort_t* sensorPort)
             .count = sizeof(color)
         });
         libdata->transferring = false;
-        libdata->readcolor_sequence_idx = 0;
+        libdata->sequence_idx = 0;
         return;
     }
 
-    libdata->transferring = execute_i2c_command(sensorPort, &libdata->readcolor_sequence[libdata->readcolor_sequence_idx]);
-    libdata->readcolor_sequence_idx++;
+    libdata->transferring = execute_i2c_command(sensorPort, &libdata->readcolor_sequence[libdata->sequence_idx]);
+    libdata->sequence_idx++;
 }
 
 static void rgb_init_sensor(SensorPort_t* sensorPort)
 {
     SensorLibrary_RGB_Data_t* libdata = sensorPort->libraryData;
 
-    if (libdata->init_sequence_idx >= ARRAY_SIZE(init_sequence))
+    if (libdata->sequence_idx >= ARRAY_SIZE(init_sequence))
     {
         set_sensor_state(sensorPort, SENS_STATE_OPERATIONAL);
         libdata->transferring = false;
         return;
     }
 
-    libdata->transferring = execute_i2c_command(sensorPort, &init_sequence[libdata->init_sequence_idx]);
-    libdata->init_sequence_idx++;
+    libdata->transferring = execute_i2c_command(sensorPort, &init_sequence[libdata->sequence_idx]);
+    libdata->sequence_idx++;
 }
 
 /* Called from ISR */
@@ -384,19 +390,19 @@ static void deinit_i2c_cb_from_isr(I2CMasterInstance_t* instance, size_t transfe
         else
         {
             libdata->deinit_num_retries++;
-            const i2c_command_t *cmd = &deinit_sequence[libdata->deinit_sequence_idx];
+            const i2c_command_t *cmd = &deinit_sequence[libdata->sequence_idx];
             SensorPort_I2C_StartWriteFromISR(sensorPort, cmd->address, cmd->data,
                 cmd->data_sz, deinit_i2c_cb_from_isr);
         }
     }
-    else if (libdata->deinit_sequence_idx >= ARRAY_SIZE(deinit_sequence))
+    else if (libdata->sequence_idx >= ARRAY_SIZE(deinit_sequence))
     {
         libdata->deinit_state = SENS_DEINIT_STATE_COMPLETED;
         libdata->transferring = false;
     }
     else
     {
-        const i2c_command_t *cmd = &deinit_sequence[libdata->deinit_sequence_idx++];
+        const i2c_command_t *cmd = &deinit_sequence[libdata->sequence_idx++];
         SensorPort_I2C_StartWriteFromISR(sensorPort,cmd->address, cmd->data, cmd->data_sz,
             deinit_i2c_cb_from_isr);
     }
@@ -417,7 +423,7 @@ static void ProcessDeinitRequested(SensorPort_t* sensorPort)
     libdata->deinit_num_retries = 0;
     libdata->transferring = true;
     const i2c_command_t *cmd = &deinit_sequence[0];
-    libdata->deinit_sequence_idx = 1;
+    libdata->sequence_idx = 1;
     libdata->deinit_state = SENS_DEINIT_STATE_IN_PROGRESS;
     SensorPort_I2C_StartWrite(sensorPort, cmd->address, cmd->data, cmd->data_sz,
         deinit_i2c_cb_from_isr);
@@ -425,8 +431,6 @@ static void ProcessDeinitRequested(SensorPort_t* sensorPort)
 
 static void try_init_port(SensorPort_t* sensorPort)
 {
-    SensorLibrary_RGB_Data_t* libdata = (SensorLibrary_RGB_Data_t*) sensorPort->libraryData;
-
     SensorPort_SetGpio0_Output(sensorPort, false);
     SensorPort_I2C_Disable(sensorPort);
     SensorPort_SetOrangeLed(sensorPort, false);
@@ -444,9 +448,6 @@ static void try_init_port(SensorPort_t* sensorPort)
         SensorPort_SetGreenLed(sensorPort, false);
         set_sensor_state(sensorPort, SENS_STATE_ERROR);
     }
-    libdata->readcolor_sequence_idx = 0;
-    libdata->init_sequence_idx = 0;
-    libdata->transferring = false;
 }
 
 static SensorLibraryStatus_t ColorSensor_Load(SensorPort_t *sensorPort)
@@ -455,6 +456,10 @@ static SensorLibraryStatus_t ColorSensor_Load(SensorPort_t *sensorPort)
 
     SensorLibrary_RGB_Data_t* libdata = SensorPortHandler_Call_Allocate(sizeof(SensorLibrary_RGB_Data_t));
     sensorPort->libraryData = libdata;
+
+    libdata->test_result = SensorOnPortStatus_NotPresent;
+    libdata->transferring = false;
+    libdata->sequence_idx = 0u;
 
     SensorPort_SetVccIo(sensorPort, Sensor_VccIo_3V3);
     SensorPort_ConfigureGpio0_Output(sensorPort);
@@ -510,7 +515,6 @@ static SensorLibraryUnloadStatus_t ColorSensor_Unload(SensorPort_t *sensorPort)
 
         default:
             ASSERT(0);
-            break;
     }
 
     return SensorLibraryUnloadStatus_Pending;
@@ -520,23 +524,24 @@ static SensorLibraryStatus_t ColorSensor_Update(SensorPort_t *sensorPort)
 {
     SensorLibrary_RGB_Data_t* libdata = sensorPort->libraryData;
 
-    if (libdata->transferring == true)
+    if (libdata->transferring)
     {
         return SensorLibraryStatus_Ok;
     }
 
     switch (libdata->state) {
         case SENS_STATE_RESET:
-            libdata->init_sequence_idx = 0;
+            libdata->sequence_idx = 0;
             rgb_init_sensor(sensorPort);
             break;
 
         case SENS_STATE_OPERATIONAL:
-            libdata->readcolor_sequence_idx = 0;
+            libdata->sequence_idx = 0;
             rgb_read_sensor(sensorPort);
             break;
 
         case SENS_STATE_ERROR:
+            libdata->sequence_idx = 0;
             try_init_port(sensorPort);
             break;
 
@@ -592,20 +597,22 @@ static void ColorSensor_ReadSensorInfo(SensorPort_t *sensorPort, uint8_t page,
 
 static void on_test_done(SensorPort_t *sensorPort)
 {
+    SensorLibrary_RGB_Data_t* libdata = sensorPort->libraryData;
     SensorPort_SetGreenLed(sensorPort, false);
     SensorPort_I2C_Disable(sensorPort);
     SensorPort_ConfigureGpio0_Input(sensorPort);
-    color_sensor_test_state = COLOR_SENSOR_TEST_STATE_NONE;
+    libdata->test_state = COLOR_SENSOR_TEST_STATE_NONE;
 }
 
 static bool ColorSensor_TestSensorOnPort(SensorPort_t *sensorPort, SensorOnPortStatus_t *result)
 {
-    SensorPort_I2C_Status_t i2c_status;
+    SensorLibrary_RGB_Data_t* libdata = sensorPort->libraryData;
 
-    switch (color_sensor_test_state)
+    switch (libdata->test_state)
     {
         case COLOR_SENSOR_TEST_STATE_NONE:
-            color_sensor_test_state = COLOR_SENSOR_TEST_STATE_I2C_READ;
+            libdata->test_result = SensorOnPortStatus_NotPresent;
+            libdata->test_state = COLOR_SENSOR_TEST_STATE_I2C_READ;
             SensorPort_SetVccIo(sensorPort, Sensor_VccIo_3V3);
             SensorPort_ConfigureGpio0_Output(sensorPort);
 
@@ -625,7 +632,7 @@ static bool ColorSensor_TestSensorOnPort(SensorPort_t *sensorPort, SensorOnPortS
 
             SensorPort_SetGreenLed(sensorPort, true);
 
-            i2c_status = SensorPort_I2C_StartWrite(sensorPort, PCA9633TK_ADDR,
+            SensorPort_I2C_Status_t i2c_status = SensorPort_I2C_StartWrite(sensorPort, PCA9633TK_ADDR,
                 &PCA9546_port_off, 1, i2c_txrx_complete);
 
             if (i2c_status != SensorPort_I2C_Success)
@@ -641,22 +648,12 @@ static bool ColorSensor_TestSensorOnPort(SensorPort_t *sensorPort, SensorOnPortS
             return false;
 
         case COLOR_SENSOR_TEST_STATE_DONE:
-            if (color_sensor_test_state_result)
-            {
-                *result = SensorOnPortStatus_Present;
-            }
-            else
-            {
-                *result = SensorOnPortStatus_NotPresent;
-            }
-            color_sensor_test_state_result = false;
+            *result = libdata->test_result;
             on_test_done(sensorPort);
             return true;
 
         default:
-            *result = SensorOnPortStatus_Error;
-            on_test_done(sensorPort);
-            return true;
+            ASSERT(0);
     }
 }
 
