@@ -51,10 +51,8 @@ typedef enum {
 
 typedef enum
 {
-    I2C_DIR_RAW_READ = 1,
-    I2C_DIR_RAW_WRITE = 2,
-    I2C_DIR_RAW_READ_CONTINUE = 3,
-    I2C_DIR_RAW_WRITE_CONTINUE = 4,
+    I2C_DIR_RAW_WRITE = 0,
+    I2C_DIR_RAW_READ_CONTINUE,
 } i2c_direction_t;
 
 typedef struct
@@ -221,8 +219,6 @@ static const i2c_command_t deinit_sequence[] =
     {.dir=I2C_DIR_RAW_WRITE, .address=PCA9633TK_ADDR<<1, .data=pca9633tk_deinit_sequence, .data_sz=ARRAY_SIZE(pca9633tk_deinit_sequence)},
 };
 
-static uint8_t VEML3328_control = VEML3328_CONF;
-static uint8_t VEML3328_id = VEML3328_DEVICE_ID_REG;
 static uint8_t VEML3328_colorR = VEML3328_R_DATA;
 static uint8_t VEML3328_colorG = VEML3328_G_DATA;
 static uint8_t VEML3328_colorB = VEML3328_B_DATA;
@@ -375,40 +371,6 @@ static void RgbReadSensor(SensorPort_t* sensorPort)
             );
         } else {
             SensorPort_I2C_StartWriteFromISR(
-                sensorPort,
-                libdata->readcolor_sequence[libdata->readcolor_sequence_idx].address,
-                libdata->readcolor_sequence[libdata->readcolor_sequence_idx].data,
-                libdata->readcolor_sequence[libdata->readcolor_sequence_idx].data_sz,
-                &i2c_txrx_complete
-            );
-        }
-    }
-    else if (libdata->readcolor_sequence[libdata->readcolor_sequence_idx].dir == I2C_DIR_RAW_READ)
-    {
-        if (sensorPort->sercom.i2cm.sercom_instance.in_handler == false)
-        {
-            SensorPort_I2C_StartRead(
-                sensorPort,
-                libdata->readcolor_sequence[libdata->readcolor_sequence_idx].address,
-                libdata->readcolor_sequence[libdata->readcolor_sequence_idx].data,
-                libdata->readcolor_sequence[libdata->readcolor_sequence_idx].data_sz,
-                &i2c_txrx_complete
-            );
-        } else {
-            SensorPort_I2C_StartReadFromISR(
-                sensorPort,
-                libdata->readcolor_sequence[libdata->readcolor_sequence_idx].address,
-                libdata->readcolor_sequence[libdata->readcolor_sequence_idx].data,
-                libdata->readcolor_sequence[libdata->readcolor_sequence_idx].data_sz,
-                &i2c_txrx_complete
-            );
-        }
-    }
-    else if (libdata->readcolor_sequence[libdata->readcolor_sequence_idx].dir == I2C_DIR_RAW_WRITE_CONTINUE)
-    {
-        if (sensorPort->sercom.i2cm.sercom_instance.in_handler == true)
-        {
-            SensorPort_I2C_ContinueWriteFromISR(
                 sensorPort,
                 libdata->readcolor_sequence[libdata->readcolor_sequence_idx].address,
                 libdata->readcolor_sequence[libdata->readcolor_sequence_idx].data,
