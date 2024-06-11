@@ -1,7 +1,7 @@
 #include "rrrc/generated_runtime.h"
 #include "comm_handlers.h"
 
-#include "flash_mapping.h"
+#include "CommonLibraries/flash_mapping.h"
 #include "CommonLibraries/converter.h"
 #include "utils.h"
 

@@ -11,7 +11,7 @@
     "instance_variables": {},
     "types": {
         "ApplicationFlashHeader_t": {
-            "defined_in": "\"flash_mapping.h\"",
+            "defined_in": "\"CommonLibraries/flash_mapping.h\"",
             "pass_semantic": "pointer",
             "default_value": "(ApplicationFlashHeader_t){0, 0, 0, 0}"
         },

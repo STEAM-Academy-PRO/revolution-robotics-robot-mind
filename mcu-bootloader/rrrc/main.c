@@ -1,8 +1,8 @@
 #include "driver_init.h"
-#include "flash_mapping.h"
 
 #include "CommonLibraries/functions.h"
 #include "CommonLibraries/color.h"
+#include "CommonLibraries/flash_mapping.h"
 #include "rrrc/generated_runtime.h"
 
 #include <math.h>

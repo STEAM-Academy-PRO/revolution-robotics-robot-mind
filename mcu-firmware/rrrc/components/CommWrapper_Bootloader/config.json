@@ -12,6 +12,7 @@
     "types": {},
     "runnables": {
         "Command_GetOperationMode_Start": "Comm_CommandHandler_Start_t",
+        "Command_ReadApplicationCrc_Start": "Comm_CommandHandler_Start_t",
         "Command_RebootToBootloader_Start": "Comm_CommandHandler_Start_t"
     },
     "ports": {

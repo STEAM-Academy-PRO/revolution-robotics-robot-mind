@@ -61,6 +61,7 @@
         "../mcu-common/CommonLibraries/color.c",
         "../mcu-common/CommonLibraries/converter.c",
         "../mcu-common/CommonLibraries/functions.c",
+        "../mcu-common/CommonLibraries/flash_mapping.c",
         "third_party/FreeRTOSV10.0.0/Source/croutine.c",
         "third_party/FreeRTOSV10.0.0/Source/event_groups.c",
         "third_party/FreeRTOSV10.0.0/Source/list.c",

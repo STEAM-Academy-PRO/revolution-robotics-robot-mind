@@ -4,7 +4,7 @@
 #ifndef COMPONENT_TYPES_UPDATE_MANAGER_H_
 #define COMPONENT_TYPES_UPDATE_MANAGER_H_
 
-#include "flash_mapping.h"
+#include "CommonLibraries/flash_mapping.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
