@@ -89,27 +89,28 @@ class McuUpdater:
         Compare firmware version to the currently running one
         """
 
-        if not self.is_bootloader_mode:
-            fw = self._application_controller.get_firmware_version()
-            if fw != bin_file_fw_version:  # allow downgrade as well
-                log(f"Firmware version is not latest, updating. {fw}")
-                return True
-
-            self.reboot_to_bootloader()
-
-            log("Checking CRC...")
-
-            crc = self._bootloader_controller.read_firmware_crc()
-
-            is_crc_different = crc != fw_crc
-            if is_crc_different:
-                log(f"Firmware CRC check failed! {crc} != {fw_crc}")
-            else:
-                log("Firmware CRC matches, skipping update.")
-            return is_crc_different
-        else:
+        if self.is_bootloader_mode:
             # in bootloader mode, probably no firmware, request update
             return True
+
+        fw = self._application_controller.get_firmware_version()
+        if fw != bin_file_fw_version:  # allow downgrade as well
+            log(f"Firmware version is not latest, updating. {fw}")
+            return True
+
+        self.reboot_to_bootloader()
+
+        log("Checking CRC...")
+
+        crc = self._bootloader_controller.read_firmware_crc()
+
+        is_crc_different = crc != fw_crc
+        if is_crc_different:
+            log(f"Firmware CRC check failed! {crc} != {fw_crc}")
+        else:
+            log("Firmware CRC matches, skipping update.")
+
+        return is_crc_different
 
     def reboot_to_bootloader(self) -> None:
         """
