@@ -3,6 +3,9 @@
 
 /* Begin User Code Section: Declarations */
 #include "utils_assert.h"
+#include "CommonLibraries/log.h"
+#include "CommonLibraries/flash_mapping.h"
+#include <string.h>
 
 /* These constants are common between bootloader and application */
 #define OPERATION_MODE_BOOTLOADER   ((uint8_t) 0xBBu)
@@ -27,6 +30,22 @@ Comm_Status_t CommWrapper_Bootloader_Run_Command_GetOperationMode_Start(ConstByt
     /* Begin User Code Section: Command_GetOperationMode_Start:run End */
 
     /* End User Code Section: Command_GetOperationMode_Start:run End */
+}
+
+Comm_Status_t CommWrapper_Bootloader_Run_Command_ReadApplicationCrc_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount)
+{
+    /* Begin User Code Section: Command_ReadApplicationCrc_Start:run Start */
+    (void) commandPayload;
+
+    LOG_RAW("ReadApplicationCrc\n");
+    uint32_t checksum = FMP_ReadApplicationChecksum();
+    memcpy(&response.bytes[0], &checksum, 4u);
+    *responseCount = 4u;
+    return Comm_Status_Ok;
+    /* End User Code Section: Command_ReadApplicationCrc_Start:run Start */
+    /* Begin User Code Section: Command_ReadApplicationCrc_Start:run End */
+
+    /* End User Code Section: Command_ReadApplicationCrc_Start:run End */
 }
 
 Comm_Status_t CommWrapper_Bootloader_Run_Command_RebootToBootloader_Start(ConstByteArray_t commandPayload, ByteArray_t response, uint8_t* responseCount)

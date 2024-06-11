@@ -1,8 +1,8 @@
 #include "driver_init.h"
-#include "flash_mapping.h"
 
 #include "CommonLibraries/functions.h"
 #include "CommonLibraries/color.h"
+#include "CommonLibraries/flash_mapping.h"
 #include "rrrc/generated_runtime.h"
 
 #include <math.h>
@@ -95,7 +95,13 @@ int main(void)
             if (FMP_IsApplicationHeaderEmpty() || FLASH_HEADER->bootloader_version != BOOTLOADER_VERSION)
             {
                 LOG_RAW("Debug mode, fixing up application header\n");
-                FMP_FixApplicationHeader();
+                ApplicationFlashHeader_t header = {
+                    .bootloader_version = BOOTLOADER_VERSION,
+                    .hw_version = HARDWARE_VERSION,
+                    .target_checksum = 0xDEADBEEFu, /* doesn't matter in debug */
+                    .target_length = FLASH_AVAILABLE
+                };
+                UpdateManager_Run_UpdateApplicationHeader(&header);
                 NVIC_SystemReset();
             }
             start_application = !FMP_IsApplicationEmpty();
@@ -105,7 +111,15 @@ int main(void)
         {
             LOG_RAW("Bootloader: Starting application\n");
             /* this should be the only application start point to avoid getting stuck in a hard fault */
-            FMT_JumpTargetFirmware();
+
+            __disable_irq();
+            watchdog_start();
+            size_t jump_addr = FLASH_ADDR + FLASH_FW_OFFSET;
+            __asm__ (" mov   r1, %0        \n"
+                    " ldr   r0, [r1, #4]  \n"
+                    " ldr   sp, [r1]      \n"
+                    " blx   r0"
+                    : : "r" (jump_addr));
         } else {
             LOG_RAW("No valid firmware found\n");
         }

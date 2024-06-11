@@ -31,6 +31,7 @@ class RevvyControl:
         self.set_bluetooth_connection_status = SetBluetoothStatusCommand(transport)
         self.get_hardware_version = ReadHardwareVersionCommand(transport)
         self.get_firmware_version = ReadFirmwareVersionCommand(transport)
+        self.read_firmware_crc = ReadFirmwareCrcCommand(transport)
         self.reboot_bootloader = RebootToBootloaderCommand(transport)
 
         self.get_motor_port_amount = ReadMotorPortAmountCommand(transport)

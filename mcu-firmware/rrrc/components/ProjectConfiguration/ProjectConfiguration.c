@@ -25,7 +25,7 @@ uint32_t ProjectConfiguration_Constant_ExpectedStartupTime(void)
     /* Begin User Code Section: ExpectedStartupTime:constant End */
 
     /* End User Code Section: ExpectedStartupTime:constant End */
-    return 15000;
+    return 8000;
 }
 
 uint32_t ProjectConfiguration_Constant_ExpectedUpdateTime(void)

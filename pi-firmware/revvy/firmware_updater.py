@@ -31,6 +31,7 @@ from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.version import VERSION, Version, get_sw_version
 from revvy.utils.functions import split, bytestr_hash, read_json
 from revvy.mcu.rrrc_control import RevvyTransportBase
+from revvy.mcu.commands import UnknownCommandError
 
 log = get_logger("McuUpdater")
 
@@ -89,27 +90,30 @@ class McuUpdater:
         Compare firmware version to the currently running one
         """
 
-        if not self.is_bootloader_mode:
-            fw = self._application_controller.get_firmware_version()
-            if fw != bin_file_fw_version:  # allow downgrade as well
-                log(f"Firmware version is not latest, updating. {fw}")
-                return True
-
-            self.reboot_to_bootloader()
-
-            log("Checking CRC...")
-
-            crc = self._bootloader_controller.read_firmware_crc()
-
-            is_crc_different = crc != fw_crc
-            if is_crc_different:
-                log(f"Firmware CRC check failed! {crc} != {fw_crc}")
-            else:
-                log("Firmware CRC matches, skipping update.")
-            return is_crc_different
-        else:
+        if self.is_bootloader_mode:
             # in bootloader mode, probably no firmware, request update
             return True
+
+        fw = self._application_controller.get_firmware_version()
+        if fw != bin_file_fw_version:  # allow downgrade as well
+            log(f"Firmware version is not latest, updating. {fw}")
+            return True
+
+        log("Checking CRC...")
+
+        try:
+            crc = self._application_controller.read_firmware_crc()
+        except UnknownCommandError:
+            log(f"Updating old firmware that does not support reading CRC")
+            return True
+
+        is_crc_different = crc != fw_crc
+        if is_crc_different:
+            log(f"Firmware CRC check failed! {crc} != {fw_crc}")
+        else:
+            log("Firmware CRC matches, skipping update.")
+
+        return is_crc_different
 
     def reboot_to_bootloader(self) -> None:
         """

@@ -30,6 +30,7 @@ Comm_CommandHandler_t communicationHandlers[COMM_HANDLER_COUNT] =
 
     /* [0x06 - 0x0A]: reserved for bootloader */
     [0x06u] = { .Start = &CommWrapper_Bootloader_Run_Command_GetOperationMode_Start, .GetResult = NULL, .ExecutionInProgress = false },
+    [0x07u] = { .Start = &CommWrapper_Bootloader_Run_Command_ReadApplicationCrc_Start, .GetResult = NULL, .ExecutionInProgress = false  },
     [0x0Bu] = { .Start = &CommWrapper_Bootloader_Run_Command_RebootToBootloader_Start, .GetResult = NULL, .ExecutionInProgress = false },
 
     /* motor commands */

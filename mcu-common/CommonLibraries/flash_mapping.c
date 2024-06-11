@@ -117,25 +117,3 @@ bool FMP_IsApplicationHeaderEmpty(void)
 {
     return _is_region_empty((const uint32_t*) FLASH_HDR_OFFSET, NVMCTRL_BLOCK_SIZE);
 }
-
-void FMP_FixApplicationHeader(void)
-{
-    ApplicationFlashHeader_t header = {
-        .bootloader_version = BOOTLOADER_VERSION,
-        .hw_version = HARDWARE_VERSION,
-        .target_checksum = 0xDEADBEEFu, /* doesn't matter in debug */
-        .target_length = FLASH_AVAILABLE
-    };
-    UpdateManager_Run_UpdateApplicationHeader(&header);
-}
-
-void FMT_JumpTargetFirmware(void) {
-    __disable_irq();
-    watchdog_start();
-    size_t jump_addr = FLASH_ADDR + FLASH_FW_OFFSET;
-    __asm__ (" mov   r1, %0        \n"
-             " ldr   r0, [r1, #4]  \n"
-             " ldr   sp, [r1]      \n"
-             " blx   r0"
-             : : "r" (jump_addr));
-}
