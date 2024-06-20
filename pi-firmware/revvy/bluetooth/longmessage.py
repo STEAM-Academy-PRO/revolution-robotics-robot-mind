@@ -473,6 +473,13 @@ class LongMessageImplementation:
         - FRAMEWORK update that we need to install.
         - ASSET_DATA add new sound to the repertoire
         """
+
+        message_handler_thread = threading.Thread(
+            target=lambda: self.on_message_updated_impl(message), name="LongMessageHandler"
+        )
+        message_handler_thread.start()
+
+    def on_message_updated_impl(self, message: ReceivedLongMessage):
         message_type = message.message_type
 
         self._log(f"Received message: {message_type.name}")
@@ -534,3 +541,5 @@ class LongMessageImplementation:
 
         elif message_type == LongMessageType.ASSET_DATA:
             extract_asset_longmessage(self._storage, self._asset_dir)
+
+        self._log(f"Message {message_type.name} updated")
