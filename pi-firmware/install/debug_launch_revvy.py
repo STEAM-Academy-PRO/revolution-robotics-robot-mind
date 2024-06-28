@@ -262,7 +262,7 @@ def install_update_package(
             print(yellow("Dev package, overwriting existing version"))
             shutil.rmtree(target_dir)
         else:
-            print(yellow("Trying to install an installed version, skipping"))
+            log(yellow(f"{version_to_install} is already installed, skipping"))
             # we don't want to install this package, remove sources
             shutil.rmtree(tmp_dir)
             if remove_source:
