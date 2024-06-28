@@ -231,10 +231,6 @@ class MotorPortWrapper(Wrapper):
         self._pos_offset = val - self._motor.driver.pos
         self._log(f"setting position offset to {self._pos_offset}")
 
-    @pos.setter
-    def pos(self, val):
-        self._motor.pos = val
-
     def move(self, direction, amount, unit_amount, limit, unit_limit) -> None:
         self._log("move")
 
