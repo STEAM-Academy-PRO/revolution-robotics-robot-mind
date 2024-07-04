@@ -1,3 +1,4 @@
+from typing import Optional
 from revvy.bluetooth.data_types import ScriptVariables
 
 
@@ -19,18 +20,18 @@ class Variable(object):
     def __str__(self) -> str:
         return self.__get_string_description()
 
-    def bind(self, script: str, name: str):
+    def bind(self, script: int, name: str):
         """Bind a variable to a script and give it a name."""
         self.__script = script
         self.__name = name
         self.__value = None
 
     @property
-    def script(self):
+    def script(self) -> Optional[int]:
         return self.__script
 
     @property
-    def name(self):
+    def name(self) -> Optional[str]:
         return self.__name
 
     @property
