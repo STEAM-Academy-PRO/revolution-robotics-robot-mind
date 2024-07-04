@@ -43,7 +43,7 @@ class QueueCharacteristic(Characteristic):
 
         self.is_sending = False
 
-    def onWriteRequest(self, data, offset, withoutResponse, callback):
+    def onWriteRequest(self, data, offset, withoutResponse, callback) -> None:
         """Mobile sends a confirmation that it got the latest pocket by overwriting the value to confirm."""
         if data == CONFIRM_TOKEN:
             self.is_sending = False
@@ -52,7 +52,7 @@ class QueueCharacteristic(Characteristic):
                 on_ready_callback()
         callback(Characteristic.RESULT_SUCCESS)
 
-    def onReadRequest(self, offset, callback):
+    def onReadRequest(self, offset, callback) -> None:
         """Mobile sends a query about the data to the brain."""
         # BLE sends packets of 20 bytes, so we need to split the error message into chunks.
         callback(Characteristic.RESULT_SUCCESS, self._value[offset:])

@@ -138,7 +138,7 @@ class NullMotor(MotorPortDriver):
     ) -> Awaiter:
         return Awaiter(AwaiterState.FINISHED)
 
-    def set_power(self, power):
+    def set_power(self, power: int):
         pass
 
     def update_status(self, data: bytes):
