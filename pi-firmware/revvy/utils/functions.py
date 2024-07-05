@@ -2,7 +2,7 @@ import hashlib
 import json
 import traceback
 from binascii import b2a_base64, a2b_base64
-from typing import Callable, TypeVar, TYPE_CHECKING
+from typing import Callable, Optional, TypeVar, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from revvy.scripting.variables import Variable
@@ -175,7 +175,7 @@ def read_json(filename: str):
         return json.load(f)
 
 
-def str_to_func(code: str, script_id=None) -> Callable:
+def str_to_func(code: str, script_id: Optional[int] = None) -> Callable:
     """Take python code as string and create a callable functions
     The function arguments will be injected into the code as global variables
 

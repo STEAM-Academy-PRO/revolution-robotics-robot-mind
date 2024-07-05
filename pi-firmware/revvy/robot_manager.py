@@ -286,8 +286,8 @@ class RobotManager:
         # Initialize variable slots from config
         scriptvars = []
         for varconf in config.controller.variable_slots:
-            v = self._robot.script_variables.slot(varconf["slot"])
-            v.bind(varconf["script"], varconf["variable"])
+            v = self._robot.script_variables.slot(varconf.slot)
+            v.bind(varconf.script, varconf.variable)
             scriptvars.append(v)
 
         self._bg_controlled_scripts.assign("list_slots", scriptvars)

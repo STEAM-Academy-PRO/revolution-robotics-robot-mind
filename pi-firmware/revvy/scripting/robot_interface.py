@@ -890,29 +890,25 @@ class RobotWrapper:
         sensors_data_processed = self.read_rgb_sensor_data()
         return sensors_data_processed[sensor_channel.value]
 
-    def read_saturation(self, channel):
+    def read_saturation(self, channel) -> int:
         sensor_data = self.get_color_by_user_channel(channel)
         return sensor_data.saturation
 
-    def read_color(self, channel):
+    def read_color(self, channel) -> str:
         sensor_data = self.get_color_by_user_channel(channel)
         return sensor_data.name
 
-    def read_brightness(self, channel):
+    def read_brightness(self, channel) -> int:
         color = self.get_color_by_user_channel(channel)
         return color.value
 
-    def read_hue(self, channel):
+    def read_hue(self, channel) -> int:
         color = self.get_color_by_user_channel(channel)
         return color.hue
 
-    def detects_color(self, color_name, channel):
+    def detects_color(self, color_name, channel) -> bool:
         color = self.get_color_by_user_channel(channel)
         return color_name == color.name
 
-    def hue_convert(self, val):
-        color = self.get_color_by_user_channel(val)
-        return "not ready"
-
-    def stop(self):
+    def stop(self) -> None:
         pass

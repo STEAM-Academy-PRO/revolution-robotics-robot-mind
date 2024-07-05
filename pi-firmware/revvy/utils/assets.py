@@ -7,7 +7,7 @@ from revvy.utils.logger import get_logger, LogLevel
 
 
 class Assets:
-    def __init__(self):
+    def __init__(self) -> None:
         self._log = get_logger("Assets")
         self._files = defaultdict(dict)
 

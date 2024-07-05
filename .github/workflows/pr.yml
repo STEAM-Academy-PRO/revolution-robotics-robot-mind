@@ -254,7 +254,7 @@ jobs:
       contents: read # checkout
 
     needs: [archive-pi-firmware]
-    runs-on: self-hosted
+    runs-on: [self-hosted, silent-runner]
 
     steps:
       - name: Download python firmware package

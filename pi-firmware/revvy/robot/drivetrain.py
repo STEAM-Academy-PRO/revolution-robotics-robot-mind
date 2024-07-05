@@ -56,8 +56,8 @@ class TurnController(DrivetrainController):
         self,
         drivetrain: "DifferentialDrivetrain",
         turn_angle: int,
-        wheel_speed: int,
-        power_limit: int,
+        wheel_speed: float,
+        power_limit: Optional[float],
     ):
         self._max_turn_wheel_speed = wheel_speed
         self._max_turn_power = power_limit
@@ -271,7 +271,7 @@ class DifferentialDrivetrain:
         )
         self._apply_motor_commands(bytes(commands))
 
-    def _process_unit_speed(self, speed, unit_speed):
+    def _process_unit_speed(self, speed, unit_speed) -> tuple[Optional[float], float]:
         if unit_speed == MotorConstants.UNIT_SPEED_RPM:
             power = None
         elif unit_speed == MotorConstants.UNIT_SPEED_PWR:
@@ -281,21 +281,21 @@ class DifferentialDrivetrain:
 
         return power, speed
 
-    def stop_release(self):
+    def stop_release(self) -> None:
         with self._command_lock:
             self._log("stop and release")
             self._abort_controller()
 
             self._apply_release()
 
-    def set_speeds(self, left, right, power_limit=None):
+    def set_speeds(self, left, right, power_limit=None) -> None:
         with self._command_lock:
             self._log(f"set speeds: {left} {right} {power_limit}")
             self._abort_controller()
 
             self._apply_speeds(left, right, power_limit)
 
-    def set_speed(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM):
+    def set_speed(self, direction, speed, unit_speed=MotorConstants.UNIT_SPEED_RPM) -> None:
         self._log(f"set speed: {direction} {speed} {unit_speed}")
         self._abort_controller()
         multipliers = {

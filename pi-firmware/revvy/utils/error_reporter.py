@@ -35,7 +35,7 @@ class RobotError:
         self.stack = stack
         self.ref = 255 if ref is None else ref
 
-    def __json__(self):
+    def __json__(self) -> dict:
         return {
             "type": self.error_type,
             "stack": self.stack,

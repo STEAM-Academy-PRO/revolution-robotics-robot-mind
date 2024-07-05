@@ -1,6 +1,6 @@
 import json
 from json import JSONDecodeError
-from typing import Optional, TypeVar
+from typing import NamedTuple, Optional, TypeVar
 
 from revvy.robot.configurations import Motors, Sensors, ccw_motor
 from revvy.robot.ports.common import DriverConfig
@@ -49,11 +49,17 @@ class PortConfig:
         self._configured += 1
 
 
+class VariableSlotConfig(NamedTuple):
+    slot: int
+    variable: str
+    script: int
+
+
 class RemoteControlConfig:
     def __init__(self) -> None:
         self.analog = []
         self.buttons: list[Optional[ScriptDescriptor]] = [None] * 32
-        self.variable_slots = []
+        self.variable_slots: list[VariableSlotConfig] = []
 
 
 class ConfigError(Exception):
@@ -185,11 +191,11 @@ class RobotConfig:
 
         for variable_assignments in assignments.setdefault("variableSlots", []):
             self.controller.variable_slots.append(
-                {
-                    "slot": variable_assignments["slot"],
-                    "variable": variable_assignments["variable"],
-                    "script": script_idx,
-                }
+                VariableSlotConfig(
+                    slot=variable_assignments["slot"],
+                    variable=variable_assignments["variable"],
+                    script=script_idx,
+                )
             )
 
         for button_assignment in assignments.setdefault("buttons", []):

@@ -297,7 +297,7 @@ class BaseDcMotorDriver(MotorPortDriver):
         return self._pos
 
     @property
-    def power(self):
+    def power(self) -> int:
         return self._power
 
     def set_power(self, power: int) -> None:
