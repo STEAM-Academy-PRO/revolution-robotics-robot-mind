@@ -3,7 +3,7 @@
 python -m dev_tools.create_package --dev
 
 # This is the version that it will be mapped to.
-VERSION="0.1.$(git rev-list --count HEAD)"
+VERSION="1.0.$(git rev-list --count HEAD)"
 
 # Define source and destination folders
 LOCAL_SOURCE_FOLDER="./"
