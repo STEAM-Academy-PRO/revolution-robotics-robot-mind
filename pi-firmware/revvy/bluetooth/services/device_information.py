@@ -81,7 +81,7 @@ class DeviceInformationService(BleService):
                 "sw_version": VersionCharacteristic(uuid="2A28", version_info=str(VERSION.sw)),
                 "serial_number": SerialNumberCharacteristic(get_serial()),
                 "manufacturer_name": ManufacturerNameCharacteristic(b"RevolutionRobotics"),
-                "model_number": ModelNumberCharacteristic(b"RevvyAlpha"),
+                "model_number": ModelNumberCharacteristic(b"Revvy"),
                 "system_id": SystemIdCharacteristic(),
             },
         )
