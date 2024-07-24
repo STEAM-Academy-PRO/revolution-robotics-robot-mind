@@ -37,7 +37,7 @@ void PowerSwitch_Run_Update(void)
     if (isOn != previous_state)
     {
         previous_state = isOn;
-        LOG("PowerSwitch: %s", isOn ? "ON" : "OFF");
+        LOG("PowerSwitch: %s\n", isOn ? "ON" : "OFF");
     }
     #endif
 

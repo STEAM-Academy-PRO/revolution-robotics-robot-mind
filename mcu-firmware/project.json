@@ -549,6 +549,7 @@
                 ]
             },
             "RingLedDisplay/LedColor": "LedDisplayController/RingLedsIn",
+            "PowerSwitch/IsSwitchedOn": "LedDisplayController/IsPowerSwitchOn",
             "LedDisplayController/MaxBrightness": "LEDController/MaxBrightness",
             "LedDisplayController/StatusLeds": "LEDController/StatusLED",
             "LedDisplayController/RingLeds": "LEDController/RingLED",
