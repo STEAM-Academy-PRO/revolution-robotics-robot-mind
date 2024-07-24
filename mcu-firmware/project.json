@@ -138,6 +138,7 @@
         "MotorDriver_8833",
         "MotorPortHandler",
         "MotorThermalModel",
+        "PowerSwitch",
         "ProjectConfiguration",
         "RestartManager",
         "RingLedDisplay",
@@ -406,7 +407,8 @@
             "20ms_offset19": [],
             "100ms": [
                 "BatteryCalculator/Update",
-                "MasterStatusObserver/Update"
+                "MasterStatusObserver/Update",
+                "PowerSwitch/Update"
             ]
         },
         "port_connections": {

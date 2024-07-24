@@ -389,15 +389,17 @@ typedef uint8_t gpio_pin_t;
 #define IMU_INT1_pin          PB26
 #define IMU_INT2_pin          PB28
 
-#define CHARGER_STBY        PC21
-#define CHARGER_STAT        PC23
+#define CHARGER_STBY          PC21
+#define CHARGER_STAT          PC23
 
-#define SM_MOT_VOLTAGE          PC30
-#define SM_BAT_VOLTAGE          PC31
+#define SM_MOT_VOLTAGE        PC30
+#define SM_BAT_VOLTAGE        PC31
 
-#define ADC_CH_MOT_VOLTAGE      12
-#define ADC_CH_BAT_VOLTAGE      13
+#define ADC_CH_MOT_VOLTAGE    12
+#define ADC_CH_BAT_VOLTAGE    13
 
 #define ADC_CHN_INT_GND       0x18
+
+#define PWR_EN                PC28
 
 #endif // ATMEL_START_PINS_H_INCLUDED
