@@ -32,6 +32,7 @@
 #define MASTER_UPDATING_COLOR       (rgb_t) LED_RED
 
 typedef enum {
+    LedDisplayMode_SwitchedOff,
     LedDisplayMode_LowBattery,
     LedDisplayMode_Normal,
 } LedDisplayMode_t;
@@ -99,6 +100,11 @@ static void _clear_display(void)
 
 static LedDisplayMode_t _get_display_mode(void)
 {
+    if (!LedDisplayController_Read_IsPowerSwitchOn())
+    {
+        return LedDisplayMode_SwitchedOff;
+    }
+
     if (LedDisplayController_Read_MainBatteryLow())
     {
         return LedDisplayMode_LowBattery;
@@ -142,6 +148,40 @@ static rgb_t _display_main_battery(void)
     color.B = 0u;
 
     return color;
+}
+
+static rgb_t _display_main_battery_while_off(void)
+{
+    switch (LedDisplayController_Read_MainBatteryStatus())
+    {
+        case ChargerState_Charged:
+            return (rgb_t) LED_GREEN;
+
+        case ChargerState_Charging:
+            if (_blink(&_charging_blink_timer, CHARGING_BLINK_LENGTH, CHARGING_BLINK_PERIOD))
+            {
+                return (rgb_t) LED_BLUE;
+            }
+            else
+            {
+                return (rgb_t) LED_OFF;
+            }
+
+        case ChargerState_Fault:
+            if (_blink(&_charging_blink_timer, CHARGING_BLINK_LENGTH, CHARGING_BLINK_PERIOD))
+            {
+                return (rgb_t) LED_RED;
+            }
+            else
+            {
+                return (rgb_t) LED_OFF;
+            }
+
+        default:
+        case ChargerState_NotPluggedIn:
+            // This is impossible, something powers the board. Indicate charging.
+            return (rgb_t) LED_BLUE;
+    }
 }
 
 static rgb_t _display_motor_battery(void)
@@ -215,30 +255,22 @@ void LedDisplayController_Run_Update(void)
 
     if (current_display_mode != _previous_display_mode)
     {
-        /* Handle leaving state */
-        switch (_previous_display_mode)
-        {
-            default:
-                break;
-
-            case LedDisplayMode_LowBattery:
-                LedDisplayController_Write_MaxBrightness(LedDisplayController_Read_DefaultBrightness());
-                break;
-        }
-
-        /* Handle entering state */
+        _clear_display();
         switch (current_display_mode)
         {
             default:
                 break;
 
+            case LedDisplayMode_SwitchedOff:
+                LedDisplayController_Write_MaxBrightness(LedDisplayController_Read_PowerOffBrightness());
+                break;
+
             case LedDisplayMode_LowBattery:
-                _clear_display();
                 LedDisplayController_Write_MaxBrightness(LedDisplayController_Read_LowBatteryBrightness());
                 break;
 
             case LedDisplayMode_Normal:
-                _clear_display();
+                LedDisplayController_Write_MaxBrightness(LedDisplayController_Read_DefaultBrightness());
                 break;
         }
     }
@@ -310,6 +342,10 @@ void LedDisplayController_Run_Update(void)
                     LedDisplayController_Read_RingLedsIn(i)
                 );
             }
+            break;
+
+        case LedDisplayMode_SwitchedOff:
+            LedDisplayController_Write_StatusLeds(MAIN_BATTERY_INDICATOR_LED, _display_main_battery_while_off());
             break;
 
         case LedDisplayMode_LowBattery:
@@ -384,6 +420,18 @@ uint8_t LedDisplayController_Read_DefaultBrightness(void)
 
     /* End User Code Section: DefaultBrightness:read End */
     return 24;
+}
+
+__attribute__((weak))
+bool LedDisplayController_Read_IsPowerSwitchOn(void)
+{
+    /* Begin User Code Section: IsPowerSwitchOn:read Start */
+
+    /* End User Code Section: IsPowerSwitchOn:read Start */
+    /* Begin User Code Section: IsPowerSwitchOn:read End */
+
+    /* End User Code Section: IsPowerSwitchOn:read End */
+    return true;
 }
 
 __attribute__((weak))
@@ -481,6 +529,18 @@ int16_t LedDisplayController_Read_MotorDriveValues(uint32_t index)
 
     /* End User Code Section: MotorDriveValues:read End */
     return 0;
+}
+
+__attribute__((weak))
+uint8_t LedDisplayController_Read_PowerOffBrightness(void)
+{
+    /* Begin User Code Section: PowerOffBrightness:read Start */
+
+    /* End User Code Section: PowerOffBrightness:read Start */
+    /* Begin User Code Section: PowerOffBrightness:read End */
+
+    /* End User Code Section: PowerOffBrightness:read End */
+    return 10;
 }
 
 __attribute__((weak))

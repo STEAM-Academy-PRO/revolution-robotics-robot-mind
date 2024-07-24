@@ -138,6 +138,7 @@
         "MotorDriver_8833",
         "MotorPortHandler",
         "MotorThermalModel",
+        "PowerSwitch",
         "ProjectConfiguration",
         "RestartManager",
         "RingLedDisplay",
@@ -255,7 +256,8 @@
                 "McuStatusSlots/Reset",
                 "McuStatusCollector/Reset",
                 "MotorDriver_8833/OnInit",
-                "CRC/OnInit"
+                "CRC/OnInit",
+                "PowerSwitch/OnInit"
             ],
             "OnInitDone": [
                 [
@@ -406,7 +408,8 @@
             "20ms_offset19": [],
             "100ms": [
                 "BatteryCalculator/Update",
-                "MasterStatusObserver/Update"
+                "MasterStatusObserver/Update",
+                "PowerSwitch/Update"
             ]
         },
         "port_connections": {
@@ -547,6 +550,7 @@
                 ]
             },
             "RingLedDisplay/LedColor": "LedDisplayController/RingLedsIn",
+            "PowerSwitch/IsSwitchedOn": "LedDisplayController/IsPowerSwitchOn",
             "LedDisplayController/MaxBrightness": "LEDController/MaxBrightness",
             "LedDisplayController/StatusLeds": "LEDController/StatusLED",
             "LedDisplayController/RingLeds": "LEDController/RingLED",
