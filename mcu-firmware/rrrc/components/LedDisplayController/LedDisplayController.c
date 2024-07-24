@@ -158,10 +158,24 @@ static rgb_t _display_main_battery_while_off(void)
             return (rgb_t) LED_GREEN;
 
         case ChargerState_Charging:
-            return (rgb_t) LED_BLUE;
+            if (_blink(&_charging_blink_timer, CHARGING_BLINK_LENGTH, CHARGING_BLINK_PERIOD))
+            {
+                return (rgb_t) LED_BLUE;
+            }
+            else
+            {
+                return (rgb_t) LED_OFF;
+            }
 
         case ChargerState_Fault:
-            return (rgb_t) LED_RED;
+            if (_blink(&_charging_blink_timer, CHARGING_BLINK_LENGTH, CHARGING_BLINK_PERIOD))
+            {
+                return (rgb_t) LED_RED;
+            }
+            else
+            {
+                return (rgb_t) LED_OFF;
+            }
 
         default:
         case ChargerState_NotPluggedIn:
