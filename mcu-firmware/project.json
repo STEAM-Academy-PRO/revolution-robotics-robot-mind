@@ -256,7 +256,8 @@
                 "McuStatusSlots/Reset",
                 "McuStatusCollector/Reset",
                 "MotorDriver_8833/OnInit",
-                "CRC/OnInit"
+                "CRC/OnInit",
+                "PowerSwitch/OnInit"
             ],
             "OnInitDone": [
                 [
