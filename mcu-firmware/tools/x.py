@@ -123,11 +123,11 @@ if __name__ == "__main__":
         build(config, in_ci=args.ci, rebuild=args.rebuild)
         dir = "Release" if args.release else "Debug"
         shell(
-            f"probe-rs run --chip atsamd51p19a --speed 15000 Build/{dir}/mcu-firmware/rrrc_samd51.elf"
+            f"probe-rs run --chip atsamd51p19a Build/{dir}/mcu-firmware/rrrc_samd51.elf"
         )
 
     elif args.action == "attach":
         dir = "Release" if args.release else "Debug"
         shell(
-            f"probe-rs attach --chip atsamd51p19a --speed 15000 Build/{dir}/mcu-firmware/rrrc_samd51.elf"
+            f"probe-rs attach --chip atsamd51p19a Build/{dir}/mcu-firmware/rrrc_samd51.elf"
         )

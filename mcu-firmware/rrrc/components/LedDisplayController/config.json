@@ -52,6 +52,11 @@
             "default_value": null,
             "data_type": "ChargerState_t"
         },
+        "MainBatteryDetected": {
+            "port_type": "ReadValue",
+            "default_value": null,
+            "data_type": "bool"
+        },
         "MainBatteryLow": {
             "port_type": "ReadValue",
             "default_value": null,
@@ -96,11 +101,6 @@
             "port_type": "ReadValue",
             "default_value": 24,
             "data_type": "uint8_t"
-        },
-        "IsPowerSwitchOn": {
-            "port_type": "ReadValue",
-            "default_value": "true",
-            "data_type": "bool"
         }
     }
 }
