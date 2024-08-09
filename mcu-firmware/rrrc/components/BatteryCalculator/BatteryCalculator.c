@@ -56,12 +56,14 @@ static void _update_main_battery(void)
                 BatteryCalculator_Write_MainBatteryLow(mainBatteryLow);
             }
         }
+        BatteryCalculator_Write_MainBatteryDetected(true);
     }
     else
     {
         mainBatteryLow = true;
         BatteryCalculator_Write_MainBatteryLevel(0u);
         BatteryCalculator_Write_MainBatteryLow(true);
+        BatteryCalculator_Write_MainBatteryDetected(false);
     }
 }
 
@@ -114,6 +116,18 @@ void BatteryCalculator_Run_Update(void)
     /* Begin User Code Section: Update:run End */
 
     /* End User Code Section: Update:run End */
+}
+
+__attribute__((weak))
+void BatteryCalculator_Write_MainBatteryDetected(bool value)
+{
+    (void) value;
+    /* Begin User Code Section: MainBatteryDetected:write Start */
+
+    /* End User Code Section: MainBatteryDetected:write Start */
+    /* Begin User Code Section: MainBatteryDetected:write End */
+
+    /* End User Code Section: MainBatteryDetected:write End */
 }
 
 __attribute__((weak))

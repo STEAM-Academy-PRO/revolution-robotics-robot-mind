@@ -57,6 +57,10 @@
             "port_type": "WriteData",
             "data_type": "bool"
         },
+        "MainBatteryDetected": {
+            "port_type": "WriteData",
+            "data_type": "bool"
+        },
         "MainBatteryLow": {
             "port_type": "WriteData",
             "data_type": "bool"

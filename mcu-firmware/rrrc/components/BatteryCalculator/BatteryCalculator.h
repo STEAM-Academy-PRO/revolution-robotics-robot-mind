@@ -24,6 +24,7 @@ typedef struct {
 
 void BatteryCalculator_Run_OnInit(void);
 void BatteryCalculator_Run_Update(void);
+void BatteryCalculator_Write_MainBatteryDetected(bool value);
 void BatteryCalculator_Write_MainBatteryLevel(uint8_t value);
 void BatteryCalculator_Write_MainBatteryLow(bool value);
 void BatteryCalculator_Write_MotorBatteryLevel(uint8_t value);

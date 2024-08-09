@@ -100,8 +100,12 @@ static void _clear_display(void)
 
 static LedDisplayMode_t _get_display_mode(void)
 {
-    if (!LedDisplayController_Read_IsPowerSwitchOn())
+    if (!LedDisplayController_Read_MainBatteryDetected())
     {
+        // Assume charging-while-off. This is a hack because we can't reliable observe
+        // the power switch state across hardware versions. However, on old hardware (PCB v1)
+        // we can't charge while off, and on new hardware (PCB v3) we can't measure the battery
+        // while off. So this is a safe assumption.
         return LedDisplayMode_SwitchedOff;
     }
 
@@ -423,18 +427,6 @@ uint8_t LedDisplayController_Read_DefaultBrightness(void)
 }
 
 __attribute__((weak))
-bool LedDisplayController_Read_IsPowerSwitchOn(void)
-{
-    /* Begin User Code Section: IsPowerSwitchOn:read Start */
-
-    /* End User Code Section: IsPowerSwitchOn:read Start */
-    /* Begin User Code Section: IsPowerSwitchOn:read End */
-
-    /* End User Code Section: IsPowerSwitchOn:read End */
-    return true;
-}
-
-__attribute__((weak))
 uint8_t LedDisplayController_Read_LowBatteryBrightness(void)
 {
     /* Begin User Code Section: LowBatteryBrightness:read Start */
@@ -444,6 +436,18 @@ uint8_t LedDisplayController_Read_LowBatteryBrightness(void)
 
     /* End User Code Section: LowBatteryBrightness:read End */
     return 10;
+}
+
+__attribute__((weak))
+bool LedDisplayController_Read_MainBatteryDetected(void)
+{
+    /* Begin User Code Section: MainBatteryDetected:read Start */
+
+    /* End User Code Section: MainBatteryDetected:read Start */
+    /* Begin User Code Section: MainBatteryDetected:read End */
+
+    /* End User Code Section: MainBatteryDetected:read End */
+    return false;
 }
 
 __attribute__((weak))
