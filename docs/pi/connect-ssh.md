@@ -29,6 +29,29 @@ Windows
 Linux
 -----
 
+Cable with setting up a STATIC IP address
+-----------------------------------------
+
+- Mount the card
+- edit: `bootfs/cmdline.txt`
+Add to `modules-load=g_ether...` add `modules-load=dwc2,g_ether...`!
+
+- Append the following to `rootfs/etc/dhcpd.conf`
+
+```
+interface usb0
+static ip_address=192.168.6.2/24
+static ip6_address=fd51:42f8:caae:d92e::ff/64
+static routers=192.168.6.1
+static domain_name_servers=192.168.6.1 8.8.8.8 fd51:42f8:caae:d92e::1
+```
+
+- touch `bootfs/ssh`
+
+- set yourself a static ip via your network manager like `192.168.6.4` - `255.255.255.0`
+
+WiFi
+----
 - figure out the IP address (TODO: fix auto dhcp IP address or document enable Bonjour service for linux)
 - `ssh pi@some.ip`
 
@@ -45,7 +68,8 @@ You may want to SSH into the brain over Wifi instead of USB. Here's how to set u
 
 - remove the SD card from brain, insert into laptop
 - make sure `dtoverlay=pi3-disable-wifi` is **NOT** present or commented out in `config.txt`
-- edit `wpa_supplicant.conf` on the boot partition with the following content with your wifi router data:
+- edit `bootfs/wpa_supplicant.conf` on the **boot partition** with the following content with your 
+- wifi router data:
 
 ```
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
