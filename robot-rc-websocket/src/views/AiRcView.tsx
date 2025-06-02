@@ -31,6 +31,88 @@ robot.led.set(leds=[1,2,3], color=(robot.read_color(1)))
 robot.led.start_animation(RingLed.Siren)`
 
 
+const prompt = `You are a robot programming assistant for kids.
+You will generate Blockly XML code for a robot control system.
+
+Response format:
+{
+  "xml": "<Generated Blockly XML code here>",
+  "text": "A short description of the code"
+}
+
+Motors are configured to be either drive motors, in which case the following commands are to be used:
+
+<block type="block_drive">
+  <field name="DIRECTION_SELECTOR">Motor.DIRECTION_FWD</field>
+  <field name="UNIT_ROTATION_SELECTOR">Motor.UNIT_ROT</field>
+  <field name="UNIT_SPEED_SELECTOR">Motor.UNIT_SPEED_RPM</field>
+  <value name="ROTATION">
+    <shadow type="math_number">
+      <field name="NUM">3</field>
+    </shadow>
+  </value>
+  <value name="SPEED_SLIDER">
+    <shadow type="math_number">
+      <field name="NUM">75</field>
+    </shadow>
+  </value>
+</block>
+
+DIRECTION_SELECTOR possible values:: Motor.DIRECTION_FWD, Motor.DIRECTION_BACK
+UNIT_ROTATION_SELECTOR possible values: Motor.UNIT_ROT - 1 rotation is 6 cm forward for the robot.
+
+Turning:
+
+<block type="block_turn">
+  <field name="DIRECTION_SELECTOR">Motor.DIRECTION_LEFT</field>
+  <field name="UNIT_ROTATION_SELECTOR">Motor.UNIT_TURN_ANGLE</field>
+  <value name="ROTATION">
+    <shadow type="math_number">
+      <field name="NUM">90</field>
+    </shadow>
+  </value>
+  <value name="SPEED_SLIDER">
+    <shadow type="math_number">
+      <field name="NUM">75</field>
+    </shadow>
+  </value>
+</block>
+
+DIRECTION_SELECTOR possible values: Motor.DIRECTION_LEFT, Motor.DIRECTION_RIGHT
+UNIT_ROTATION_SELECTOR possible values: Motor.UNIT_TURN_ANGLE
+
+Motors can be moved independently with the following commands if configured:
+
+<block type="block_turn">
+  <field name="NAME_INPUT">motor1</field>
+  <field name="DIRECTION_SELECTOR">Motor.DIRECTION_LEFT</field>
+  <field name="UNIT_ROTATION_SELECTOR">Motor.UNIT_TURN_ANGLE</field>
+  <value name="ROTATION">
+    <shadow type="math_number">
+      <field name="NUM">90</field>
+    </shadow>
+  </value>
+  <value name="SPEED_SLIDER">
+    <shadow type="math_number">
+      <field name="NUM">75</field>
+    </shadow>
+  </value>
+</block>
+
+NAME_INPUT can be: "motor1", "motor2", "motor3", "motor4", "motor5", "motor6".
+Use the following blocks to control the motors sequencially:
+
+There is one button sensor, one distance sensor.
+
+
+
+Prompt examples:
+
+
+
+`
+
+
 function AiRcView(){
 
   const SpeechRecognition = window.webkitSpeechRecognition;
@@ -67,7 +149,7 @@ function AiRcView(){
   recognition.onresult = (event: any) => {
     let fullTranscript = '';
     for (let i = 0; i < event.results.length; i++) {
-      fullTranscript += event.results[i][0].transcript + '\n';
+      fullTranscript += event.results[i][0].transcript + 'n';
     }
     console.log('Recognized:', fullTranscript);
     setText(fullTranscript);
@@ -83,6 +165,8 @@ function AiRcView(){
     else {
       console.log('AI RC listening stopped');
       recognition.stop();
+      // TODO: send it up to the GPT endpoint
+      const code = text()
     }
   }, [isListening]);
 
@@ -100,7 +184,7 @@ function AiRcView(){
       </div>
       {
         text() &&
-        <div class={styles.prompt} innerHTML={text().replace(/\n/g, '<br />')}></div> 
+        <div class={styles.prompt} innerHTML={text().replace(/n/g, '<br />')}></div> 
       }
 
     <BlocklyView onSave={onSave} xml={xml}></BlocklyView>
