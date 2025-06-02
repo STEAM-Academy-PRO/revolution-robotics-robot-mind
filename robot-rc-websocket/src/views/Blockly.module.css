@@ -1,1 +1,1 @@
-.blockly{ width: 80vw; height: 80vh;}
+.blockly{ width: 100%; height: calc( 100vh - 60px); border: 0px}

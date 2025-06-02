@@ -1,0 +1,55 @@
+.ai{
+    height: 200px; width: 200px; border-radius: 100px; border: 0;
+    position: absolute; right: 1%; top: 1%;
+    background: #6f0ec4
+}
+.ai:hover{
+    cursor: pointer; border: 2px solid #000;
+    background-color: #700f7b;
+}
+.ai:active{
+    background-color: #fff; border: 2px solid #000;
+}
+
+
+.listening{
+    background: linear-gradient(270deg, #32233f, #700f7b, #e1ee1e, #3cff63);
+    background-size: 600% 600%;
+    animation: gradientMove 6s ease infinite;
+    border: 5px solid rgb(228, 228, 131);
+}
+
+.listening.ai:hover{
+    /* background-color: #00ff00; */
+    box-shadow: 0px 0px 10px #000;
+
+}
+
+
+
+@keyframes gradientMove {
+    0% {
+        background-position: 50% 50%;
+    }
+    25% {
+        background-position: 100% 0%;
+    }
+    50% {
+        background-position: 50% 100%;
+    }
+    75% {
+        background-position: 0% 0%;
+    }
+    100% {
+        background-position: 50% 50%;
+    }
+}
+
+
+.prompt{
+    position: absolute; top: calc( 10% + 130px); width: 400px; right: 1%;
+    background-color: #660d0d; color: #fff;
+    padding: 10px; font-size: 16px;
+    display: flex;
+    border-radius: 10px;;
+}

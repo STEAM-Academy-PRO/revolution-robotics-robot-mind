@@ -9,6 +9,7 @@ import CodeView from './views/CodeView';
 
 import { connLoading, connectOrDisconnect } from './utils/Communicator';
 import { conn } from './settings';
+import AiRcView from './views/AiRcView';
 
 // Load default config as fallback.
 
@@ -29,10 +30,15 @@ function App() {
     children: <CodeView />
   },
   {
+    id: 'airC',
+    label: 'AI RC',
+    children: <AiRcView />
+  },
+  {
     id: 'play',
     label: 'Play',
     children: <PlayView isActive={isActive} />
-  }
+  },
   ]
 
   return (
