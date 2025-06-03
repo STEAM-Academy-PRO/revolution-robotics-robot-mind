@@ -102,7 +102,238 @@ Motors can be moved independently with the following commands if configured:
 NAME_INPUT can be: "motor1", "motor2", "motor3", "motor4", "motor5", "motor6".
 Use the following blocks to control the motors sequencially:
 
-There is one button sensor, one distance sensor.
+There is max one button sensor and max one distance sensor, and a built in direction sensor (IMU) that can be used to read the robot's orientation.
+
+There are the following blocks to interact with them:
+Read their number value:
+<block type=\"block_ultrasonic_sensor\"></block>
+
+Returns boolean true/false if the distance is less than 20 cm:
+<block type="block_is_object_near"></block>
+
+Button is pressed (returns boolean true/false)
+<block type="block_bumper"></block>
+
+Check IMU orientation (360 degrees for full circle):
+<block type=\"block_gyroscope_sensor\"></block>
+
+
+Make the program wait for a given number of seconds (can be float):
+
+<block type=\"block_wait\">
+  <value name=\"WAIT\">
+    <shadow type=\"math_number\">
+      <field name=\"NUM\">1</field>
+    </shadow>
+  </value>
+</block>
+
+
+The following control blocks are available:
+
+If-then:
+<block type="if_then">
+  <value name="COND">
+    ... binary condition to check (blocks) ...
+  </value>
+  <statement name="IN_IF">
+    ... blocks to execute if condition is true ...
+  </statement>
+</block>
+
+
+If-then-else:
+<block type="if_then_else">
+  <value name="COND">
+    ... binary condition to check (blocks) ...
+  </value>
+  <statement name="IN_IF">
+    ... blocks to execute if condition is true ...
+  </statement>
+  <statement name="IN_ELSE">
+    ... blocks to execute if condition is false ...
+  </statement>
+</block>
+
+Loop with front condition:
+<block type=\"block_repeat_while\"></block>
+  <value name="CONDITION">
+    ... binary condition to check (blocks) ...
+  </value>
+  <statement name="STATEMENT">
+    ... blocks within the loop ...
+  </statement>
+</block>
+
+Repeat a number of times:
+<block type="controls_repeat_ext2">
+  <value name="TIMES">
+    <shadow type="math_number">
+      <field name="NUM">3</field>
+    </shadow>
+  </value>
+  <statement name="DO">
+    ... blocks to repeat ...
+  </statement>
+</block>
+
+You can break loop boxes with:
+<block type="block_break"></block>
+
+
+The following logic blocks are available:
+
+<block type="logic_and">
+  <value name="LEFT">
+    <shadow type="logic_boolean">
+      <field name="BOOL">TRUE</field>
+    </shadow>
+  </value>
+  <value name="RIGHT">
+    <shadow type="logic_boolean">
+      <field name="BOOL">TRUE</field>
+    </shadow>
+  </value>
+</block>
+
+<block type="logic_or">
+  <value name="LEFT">
+    <shadow type="logic_boolean">
+      <field name="BOOL">TRUE</field>
+    </shadow>
+  </value>
+  <value name="RIGHT">
+    <shadow type="logic_boolean">
+      <field name="BOOL">TRUE</field>
+    </shadow>
+  </value>
+</block>
+
+Returns a boolean value:
+LOGIC_SELECTOR values: EQ, NEQ, GT, GTE, LT, LTE
+
+<block type="logic_compare2">
+  <field name="LOGIC_SELECTOR">NEQ</field>
+  <value name="A">
+    <block type="math_number">
+      <field name="NUM">0</field>
+    </block>
+  </value>
+  <value name="B">
+    <shadow type="math_number">
+      <field name="NUM">10</field>
+    </shadow>
+  </value>
+</block>
+
+Negate a boolean value:
+<block type="logic_not">
+  <value name="RIGHT">
+    <shadow type="logic_boolean">
+      <field name="BOOL">TRUE</field>
+    </shadow>
+  </value>
+</block>
+
+Math blocks:
+OPERATOR_SELECTOR values: ADD, MINUS, MULTIPLY, DIVIDE, MODULO
+<block type="math_arithmetic2">
+  <field name="OPERATOR_SELECTOR">ADD</field>
+  <value name="A">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+  <value name="B">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
+
+Rounding numbers:
+OPERATOR_SELECTOR values: ROUND, ROUNDUP, ROUNDDOWN
+<block type="math_round2">
+  <field name="OPERATOR_SELECTOR">ROUND</field>
+  <value name="NUM">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
+
+Trigonometry:
+MATH_TRIG_SELECTOR values: sin, cos, tan
+<block type="math_trig2">
+  <field name="MATH_TRIG_SELECTOR">sin</field>
+  <value name="RIGHT">
+    <shadow type="math_number">
+      <field name="NUM">0</field>
+    </shadow>
+  </value>
+</block>
+
+Special value numbers:
+<block type="math_pi"></block>
+
+
+On the robot there is a circular LED ring that can be controlled with the following blocks:
+LEDs are indexed from 1 to 12, starting from the top and going clockwise.
+
+<block type="block_set_all_leds">
+  <value name="COLOR">
+    <shadow type="colour_picker">
+      <field name="COLOUR">#ffcc00</field>
+    </shadow>
+  </value>
+</block>
+
+<block type="block_set_multiple_led">
+  <field name="LED_IDS">1,2,3</field>
+  <value name="COLOR">
+    <shadow type="colour_picker">
+      <field name="COLOUR">#ff0000</field>
+    </shadow>
+  </value>
+</block>
+
+<block type="block_set_led">
+  <value name="LED">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
+    </shadow>
+  </value>
+  <value name="COLOR">
+    <shadow type="colour_picker">
+      <field name="COLOUR">#ff0000</field>
+    </shadow>
+  </value>
+</block>
+
+Switch all LEDs off:
+<block type="block_set_leds_black_small"></block>
+
+Variables should be declared at the top of all blocks, inside the XML main tag like this:
+<variables>
+  <variable>asfd</variable>
+</variables>
+
+Then use them like this:
+<block type="variables_get">
+  <field name="VAR">asfd</field>
+</block>
+
+<block type="variables_set">
+  <field name="VAR">variable1</field>
+  <value name="VALUE">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
+    </shadow>
+  </value>
+</block>
+
+
+
 
 
 
