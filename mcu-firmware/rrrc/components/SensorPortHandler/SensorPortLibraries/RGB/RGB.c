@@ -127,10 +127,10 @@ static uint8_t pca9633tk_init_sequence[] =
 {
     0x91, /* PCA9633TK_REG_MODE1      */
     0x01, /* PCA9633TK_REG_MODE2      */
-    0x04, /* PCA9633TK_REG_PWM0       */
-    0x04, /* PCA9633TK_REG_PWM1       */
-    0x04, /* PCA9633TK_REG_PWM2       */
-    0x04, /* PCA9633TK_REG_PWM3       */
+    0x5A, /* PCA9633TK_REG_PWM0       */
+    0x5A, /* PCA9633TK_REG_PWM1       */
+    0x5A, /* PCA9633TK_REG_PWM2       */
+    0x5A, /* PCA9633TK_REG_PWM3       */
     0xFF, /* PCA9633TK_REG_GRPPWM     */
     0x00, /* PCA9633TK_REG_GRPFREQ    */
     0xAA, /* PCA9633TK_REG_LEDOUT     */
@@ -260,9 +260,13 @@ static bool execute_i2c_command(SensorPort_t* sensorPort, const i2c_command_t* c
 static void normalize_colors(SensorLibrary_RGB_Data_t* libdata)
 {
     for (size_t idx = 0u; idx < 4u; idx++) {
-        libdata->sens_color[idx].red   = (libdata->sens_color[idx].red   * libdata->coef.R) / 1000u;
-        libdata->sens_color[idx].green = (libdata->sens_color[idx].green * libdata->coef.G) / 1000u;
-        libdata->sens_color[idx].blue  = (libdata->sens_color[idx].blue  * libdata->coef.B) / 1000u;
+        // Normalize the color values based on the coefficients
+        // The coefficients are used to scale the RGB values to fit within the expected range
+        // The different channels have different coefficients based on the sensor's characteristics
+        // Blue is more sensitive than red and green, so it has a higher coefficient
+        libdata->sens_color[idx].red   = (libdata->sens_color[idx].red   * libdata->coef.R) / 800u;
+        libdata->sens_color[idx].green = (libdata->sens_color[idx].green * libdata->coef.G) / 880u;
+        libdata->sens_color[idx].blue  = (libdata->sens_color[idx].blue  * libdata->coef.B) / 1250u;
     }
 }
 
