@@ -8,6 +8,8 @@
   --log-bg: rgba(203, 223, 203, 0.3);
   --button-bg: #7777;
   --button-color: white;
+  --editor-tab-active-background: #444;
+  --editor-tab-active-color: #fff;
 }
 
 .cm-editor{height: 100%;}

@@ -517,11 +517,11 @@ function AiRcView(){
   const [text, setText] = createSignal<string>('');
 
   onMount(() => {
-    console.log('ai stub')
+    // console.log('ai stub')
   });
 
   onCleanup(() => {
-    console.log('ai stub exit')
+    // console.log('ai stub exit')
   })
 
   const onSave = (code: string) => {
@@ -547,7 +547,7 @@ function AiRcView(){
       recognition.start();
     }
     else {
-      console.log('AI RC listening stopped');
+      // console.log('AI RC listening stopped');
       recognition.stop();
       // TODO: send it up to the GPT endpoint
       const code = text()

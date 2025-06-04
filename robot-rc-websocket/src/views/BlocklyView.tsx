@@ -8,10 +8,14 @@ export function BlocklyView({onSave, xml}: {onSave: (xml: string, python: string
     let xmlString = typeof xml === 'function' ? xml() : xml;
 
     onMount(() => {
-        console.log('BlocklyView mounted', blocklyRef);
+        // console.log('BlocklyView mounted', blocklyRef);
+        let debounceTimeout: number | undefined;
         window.addEventListener('message', (event) => {
             if (event.data.type === 'save') {
+            if (debounceTimeout) clearTimeout(debounceTimeout);
+            debounceTimeout = window.setTimeout(() => {
                 onSave(event.data.xml, event.data.python);
+            }, 300); // 300ms debounce
             }
         });
         blocklyRef.onload = () => {
@@ -26,7 +30,7 @@ export function BlocklyView({onSave, xml}: {onSave: (xml: string, python: string
 
     createEffect(() => {
         let xmlString = typeof xml === 'function' ? xml() : xml;
-        console.log('BlocklyView xml changed:', xmlString);
+        // console.log('BlocklyView xml changed:', xmlString);
         if (xmlString && blocklyRef?.contentWindow) {
             blocklyRef.contentWindow.postMessage({type: 'load', xml: xmlString}, '*');
         }
