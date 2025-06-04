@@ -92,8 +92,8 @@ static void rgb_init_sensor(SensorPort_t* sensorPort);
 #define SENS_DEINIT_MAX_RETRIES 5
 /* I2C device addresses, left shifted to include the R/W bit */
 #define	VEML3328_ADDR            (0x10 << 1)
-#define PCA9633TK_ADDR           (0x62 << 1)
-#define PCA9546APW_ADDR          (0x70 << 1)
+#define PCA9633TK_ADDR           (0x62 << 1) // LED Driver IC
+#define PCA9546APW_ADDR          (0x70 << 1) // I2C Multiplexer
 
 /* veml3328 command code */
 #define	VEML3328_CONF            0x00
@@ -127,7 +127,7 @@ static uint8_t pca9633tk_init_sequence[] =
 {
     0x91, /* PCA9633TK_REG_MODE1      */
     0x01, /* PCA9633TK_REG_MODE2      */
-    0x5A, /* PCA9633TK_REG_PWM0       */
+    0x53, /* PCA9633TK_REG_PWM0       */
     0x5A, /* PCA9633TK_REG_PWM1       */
     0x5A, /* PCA9633TK_REG_PWM2       */
     0x5A, /* PCA9633TK_REG_PWM3       */
