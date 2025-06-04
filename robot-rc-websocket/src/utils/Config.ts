@@ -58,14 +58,17 @@ createEffect(() => {
     conf.robotConfig.motors = motors()
     conf.robotConfig.sensors = sensors()
 
+    
+
     conf.blocklyList = buildBlocklyItems()
 
     // Autosave on change
     setCurrentConfig(conf)
-    console.warn('saving config', conf)
+    // console.warn('saving config', conf)
 
     localStorage.setItem('config', JSON.stringify(conf));
     localStorage.setItem('programs', JSON.stringify(programs()))
+    console.log('Saving button bindings', programs())
     localStorage.setItem('buttonBindings', JSON.stringify(scriptBindings()))
     localStorage.setItem('driveMode', driveMode())
 
@@ -79,8 +82,8 @@ function buildBlocklyItems() {
     Object.keys(scriptBindings()).forEach((key) => {
         const program = programs().find((p) => p.name === scriptBindings()[key])
         if (!program) { return }
-        const pythonCodeBase64 = btoa(program.code)
-
+        const pythonCodeBase64 = btoa(program.python)
+        console.log('Building Blockly item for', key, scriptBindings()[key], pythonCodeBase64)
         if (key === 'drive') {
             ret.push(createPredefinedDriveBlocklyItem(driveMode(), pythonCodeBase64))
         } else {
@@ -210,8 +213,8 @@ const Sensors = [{
 
 export interface Program {
     name: string,
-    code: string,
-    blocklyXml?: string
+    python: string,
+    xml: string
 }
 
 export interface Sensor {

@@ -333,11 +333,164 @@ Then use them like this:
 </block>
 
 
-
-
-
-
 Prompt examples:
+
+Repeat 4 times so we arrive at the same spot:
+Drive forward for 30 cm, then turn left 90 degrees
+
+<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="block_start">
+    <next>
+      <block type="controls_repeat_ext2">
+        <value name="TIMES">
+          <shadow type="math_number">
+            <field name="NUM">4</field>
+          </shadow>
+        </value>
+        <statement name="DO">
+          <block type="block_drive">
+            <field name="DIRECTION_SELECTOR">Motor.DIRECTION_FWD</field>
+            <field name="UNIT_ROTATION_SELECTOR">Motor.UNIT_ROT</field>
+            <field name="UNIT_SPEED_SELECTOR">Motor.UNIT_SPEED_RPM</field>
+            <value name="ROTATION">
+              <shadow type="math_number">
+                <field name="NUM">5</field>
+              </shadow>
+            </value>
+            <value name="SPEED_SLIDER">
+              <shadow type="math_number">
+                <field name="NUM">75</field>
+              </shadow>
+            </value>
+            <next>
+              <block type="block_turn">
+                <field name="DIRECTION_SELECTOR">Motor.DIRECTION_RIGHT</field>
+                <field name="UNIT_ROTATION_SELECTOR">Motor.UNIT_TURN_ANGLE</field>
+                <value name="ROTATION">
+                  <shadow type="math_number">
+                    <field name="NUM">90</field>
+                  </shadow>
+                </value>
+                <value name="SPEED_SLIDER">
+                  <shadow type="math_number">
+                    <field name="NUM">75</field>
+                  </shadow>
+                </value>
+              </block>
+            </next>
+          </block>
+        </statement>
+      </block>
+    </next>
+  </block>
+</xml>
+
+
+Compass: always point the LED ring to one direction.
+
+<xml xmlns="https://developers.google.com/blockly/xml">
+  <variables>
+    <variable>lastled</variable>
+  </variables>
+  <block type="block_start">
+    <next>
+      <block type="block_set_leds_black_small">
+        <next>
+          <block type="variables_set">
+            <field name="VAR">lastled</field>
+            <value name="VALUE">
+              <shadow type="math_number">
+                <field name="NUM">1</field>
+              </shadow>
+            </value>
+            <next>
+              <block type="block_repeat_while">
+                <value name="CONDITION">
+                  <block type="logic_boolean">
+                    <field name="BOOL">TRUE</field>
+                  </block>
+                </value>
+                <statement name="STATEMENT">
+                  <block type="block_set_led">
+                    <value name="LED">
+                      <shadow type="math_number">
+                        <field name="NUM">1</field>
+                      </shadow>
+                      <block type="variables_get">
+                        <field name="VAR">lastled</field>
+                      </block>
+                    </value>
+                    <value name="COLOR">
+                      <shadow type="colour_picker">
+                        <field name="COLOUR">#000000</field>
+                      </shadow>
+                    </value>
+                    <next>
+                      <block type="variables_set">
+                        <field name="VAR">lastled</field>
+                        <value name="VALUE">
+                          <shadow type="math_number">
+                            <field name="NUM">1</field>
+                          </shadow>
+                          <block type="math_arithmetic2">
+                            <field name="OPERATOR_SELECTOR">MULTIPLY</field>
+                            <value name="A">
+                              <shadow type="math_number">
+                                <field name="NUM">0</field>
+                              </shadow>
+                              <block type="math_arithmetic2">
+                                <field name="OPERATOR_SELECTOR">DIVIDE</field>
+                                <value name="A">
+                                  <shadow type="math_number">
+                                    <field name="NUM">0</field>
+                                  </shadow>
+                                  <block type="block_gyroscope_sensor"></block>
+                                </value>
+                                <value name="B">
+                                  <shadow type="math_number">
+                                    <field name="NUM">360</field>
+                                  </shadow>
+                                </value>
+                              </block>
+                            </value>
+                            <value name="B">
+                              <shadow type="math_number">
+                                <field name="NUM">-12</field>
+                              </shadow>
+                            </value>
+                          </block>
+                        </value>
+                        <next>
+                          <block type="block_set_led">
+                            <value name="LED">
+                              <shadow type="math_number">
+                                <field name="NUM">1</field>
+                              </shadow>
+                              <block type="variables_get">
+                                <field name="VAR">lastled</field>
+                              </block>
+                            </value>
+                            <value name="COLOR">
+                              <shadow type="colour_picker">
+                                <field name="COLOUR">#3366ff</field>
+                              </shadow>
+                            </value>
+                          </block>
+                        </next>
+                      </block>
+                    </next>
+                  </block>
+                </statement>
+              </block>
+            </next>
+          </block>
+        </next>
+      </block>
+    </next>
+  </block>
+</xml>
+
+
 
 
 

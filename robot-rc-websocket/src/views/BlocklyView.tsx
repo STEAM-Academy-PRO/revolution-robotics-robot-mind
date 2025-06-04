@@ -2,20 +2,21 @@ import { Accessor, createEffect, on, onMount } from "solid-js";
 import { blocklyUrlBase } from "../settings";
 import styles from './Blockly.module.css'
 
-export function BlocklyView({onSave, xml}: {onSave: (code: string) => void, xml: Accessor<string>}) {
+export function BlocklyView({onSave, xml}: {onSave: (xml: string, python: string) => void, xml: string | Accessor<string>}) {
 
     let blocklyRef!: HTMLIFrameElement
+    let xmlString = typeof xml === 'function' ? xml() : xml;
 
     onMount(() => {
         console.log('BlocklyView mounted', blocklyRef);
         window.addEventListener('message', (event) => {
             if (event.data.type === 'save') {
-                onSave(event.data.xml);
+                onSave(event.data.xml, event.data.python);
             }
         });
         blocklyRef.onload = () => {
             if (blocklyRef.contentWindow) {
-                const x = xml()
+                const x = xmlString
                 blocklyRef.contentWindow.postMessage({type: 'init', xml: x}, '*');
             } else {
                 console.error('Blockly iframe contentWindow is not available');
@@ -24,10 +25,10 @@ export function BlocklyView({onSave, xml}: {onSave: (code: string) => void, xml:
     });
 
     createEffect(() => {
-        const x = xml();
-        console.log('BlocklyView xml changed:', x);
-        if (x && blocklyRef?.contentWindow) {
-            blocklyRef.contentWindow.postMessage({type: 'load', xml: x}, '*');
+        let xmlString = typeof xml === 'function' ? xml() : xml;
+        console.log('BlocklyView xml changed:', xmlString);
+        if (xmlString && blocklyRef?.contentWindow) {
+            blocklyRef.contentWindow.postMessage({type: 'load', xml: xmlString}, '*');
         }
     });
 

@@ -10,13 +10,19 @@
     max-width: 100%;
     margin: 0 auto;
 }
-
 .statuses{
     display: flex;
     flex-direction: row;
     margin-bottom: 30px;
+    width: 100%;
 }
-.status{ margin: 3px; padding: 10px; background: #eee7; color: white}
+.status{ 
+    margin: 3px; 
+    padding: 10px; 
+    background: #eee7; 
+    color: white;
+    flex: 1; /* Expand to fill available width */
+}
 
 .joystick{
     background: var(--button-bg);

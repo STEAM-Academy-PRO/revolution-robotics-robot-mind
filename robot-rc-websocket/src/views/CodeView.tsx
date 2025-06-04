@@ -1,27 +1,26 @@
-import { createSignal, createEffect, Accessor, Setter, For, Show, createMemo } from 'solid-js'
+import { createSignal, createEffect,For, Show, onCleanup } from 'solid-js'
 
 import styles from './CodeEditor.module.css'
 
-import { RobotMessage } from '../utils/Communicator';
-import { uploadConfig } from '../utils/commands';
-import { DriveMode, Program, scriptBindings, currentConfig, driveMode, handleDriveChange, programs, setScriptBindings, setPrograms, scriptBindingTargets } from '../utils/Config';
+import { DriveMode, Program, scriptBindings, driveMode, handleDriveChange, programs, setScriptBindings, setPrograms, scriptBindingTargets } from '../utils/Config';
 import CodeEditor from './CodeEditor';
 import { BlocklyView } from './BlocklyView';
-import { conn } from '../settings';
+import defaultBlocklyXml from './utils/default-xml';
 
 
 function CodeView() {
 
   const [edited, setEdited] = createSignal<Program | null>(null)
   const [editedCode, setEditedCode] = createSignal<string>('')
+  const [editedXml, setEditedXml] = createSignal<string>('')
   const [editedIndex, setEditedIndex] = createSignal<number | null>(null);
   const [editedName, setEditedName] = createSignal<string>('')
-  const [tab, setTab] = createSignal<string>('python');
+  const [tab, setTab] = createSignal<string>('blockly');
 
 
   const addProgram = () => {
     const newProgramList = programs().slice()
-    const newProgram = { name: String(programs().length + 1), code: "robot.led.set(leds=[1,2,3,4,5,6,7,8,9,10,11,12], color='#0000ff')\n\n" }
+    const newProgram = { name: String(programs().length + 1), python: "robot.led.set(leds=[1,2,3,4,5,6,7,8,9,10,11,12], color='#0000ff')\n\n", xml: defaultBlocklyXml }
     newProgramList.push(newProgram)
     setEdited(newProgram)
     setPrograms(newProgramList)
@@ -40,27 +39,30 @@ function CodeView() {
   }
 
   createEffect(() => {
-    setEditedCode(edited()?.code || '')
+    // setEditedCode(edited()?.python || '')
     setEditedName(edited()?.name || '')
   })
 
-  const saveCode = (code: string) => {
-    setEditedCode(code)
+  const saveCode = (python: string, xml: string) => {
+    setEditedCode(python)
+    setEditedXml(xml)
     saveEdited()
     const newProgramList = programs().slice()
     const editedInd = editedIndex()
-    console.log('save')
+    console.warn('save', python)
     if (!editedInd && editedInd !== 0) { return }
     newProgramList[editedInd] = Object.assign({}, edited())
     setPrograms(newProgramList)
-    console.log(newProgramList)
+    // console.log(newProgramList)
   }
 
   const saveEdited = () => {
     const current = edited()
     if (current !== null) {
-      current.code = editedCode()
+      current.python = editedCode()
+      current.xml = editedXml()
       current.name = editedName()
+      // console.log('current.xml', current.xml)
     }
   }
 
@@ -73,6 +75,20 @@ function CodeView() {
     }
     setScriptBindings(newBindings)
   }
+
+  onCleanup(() => {
+    
+    if (edited() !== null) {
+      console.log('oncleanup', edited())
+      saveEdited()
+      const newProgramList = programs().slice()
+      const editedInd = editedIndex()
+      if (editedInd !== null) {
+        newProgramList[editedInd] = Object.assign({}, edited())
+        setPrograms(newProgramList)
+      }
+    }
+  })
 
 
   return (
@@ -129,10 +145,10 @@ function CodeView() {
                 Program Name: <input type="text" value={editedName()} onInput={(e) => { setEditedName(e.target.value); saveEdited() }} />
               </div>
               <Show when={tab() === 'python'}>
-                <CodeEditor value={editedCode} setValue={saveCode}></CodeEditor>
+                <CodeEditor value={editedCode} setValue={(python) => saveCode(python, '')}></CodeEditor>
               </Show>
               <Show when={tab() === 'blockly'}>
-                <BlocklyView onSave={setEditedCode} />
+                <BlocklyView onSave={(xml, python) => saveCode(python, xml)} xml={edited()?.xml || ''} />
               </Show>
             </div>
           </div>

@@ -118,7 +118,8 @@ export default function PlayView({
         case 'sensor_value_change':
           const sensorId = data.data.port_id
           const sensorValue = data.data.value
-          switch (sensors()[sensorId].type) {
+          const sensorType = sensors()[sensorId]?.type
+          switch (sensorType) {
             case SensorType.BUTTON:
               sensors()[sensorId].setValue(sensorValue ? '1' : '0')
               break
@@ -128,7 +129,9 @@ export default function PlayView({
               break
             default:
               // console.log('distance sensor', sensorValue)
-              sensors()[sensorId].setValue(sensorValue)
+              if (sensors()[sensorId]){
+                sensors()[sensorId].setValue(sensorValue)
+              }
 
           }
           break
@@ -253,7 +256,9 @@ export default function PlayView({
           </span>
         ))}
         <span class={styles.status}>
-          <Show when={isConnected()}>Connected 🔌 <br />ctrl: {controlSignal()}</Show>
+          <Show when={isConnected()}>Connected 🔌 <br />
+            {/* <div>ctrl: {controlSignal()}</div> */}
+          </Show>
           <Show when={!isConnected()}>
             Disconnected 🚫
           </Show>
@@ -266,7 +271,7 @@ export default function PlayView({
 
           <span> Turnaround: {turnaround()}ms </span>
           <div class={styles.error} title="... meaning the message confirmations come back in the wrong order.">
-            Message Order Error: {orderError()}</div>
+            Message Order Error: <div>{orderError()}</div></div>
         </span>
       </div>
       <div class={styles.controller}>
