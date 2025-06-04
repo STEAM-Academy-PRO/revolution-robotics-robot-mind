@@ -116,7 +116,7 @@ export default function PlayView({
           setIsConnected(false)
           break
         case 'sensor_value_change':
-          const sensorId = data.data.port_id
+          const sensorId = data.data.port_id + 1
           const sensorValue = data.data.value
           const sensorType = sensors()[sensorId]?.type
           switch (sensorType) {
