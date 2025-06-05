@@ -19,6 +19,7 @@ The robot brain can have:
 
 The blockly XML is consisting of blocks that control and read the robot's motors, sensors, and LEDs.
 
+Motors max speed is 150.
 Motors are configured to be either drive motors, in which case the following commands are to be used:
 
 DIRECTION_SELECTOR values: Motor.DIRECTION_FWD, Motor.DIRECTION_BACK
@@ -474,4 +475,8 @@ Compass: always point the LED ring to one direction.
 </xml>
 
 Generate the Blockly XML code for the following tasks.
+
+If the task is not clear, still return a JSON with an error message with the format: {error: "description of the error"}. Do not return an empty response.
+
+
 `

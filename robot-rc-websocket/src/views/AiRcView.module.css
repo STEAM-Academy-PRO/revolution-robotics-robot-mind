@@ -10,7 +10,23 @@
 .ai:active{
     background-color: #fff; border: 2px solid #000;
 }
+.ai:disabled{
+    background-color: #ccc; border: 2px solid #000;
+    cursor: not-allowed;
+}
 
+.textButton{
+    position: absolute; right: 1%; top: calc(1% + 180px);
+    background-color: #700f7b; color: #fff;
+    padding: 10px; font-size: 16px;
+    height: 50px; width: 50px;
+    border-radius: 25px; border: 0;
+    cursor: pointer;
+}
+.textButton:hover{
+    background-color: #fff; color: #000;
+    box-shadow: 0px 0px 10px #000;
+}
 
 .listening{
     background: linear-gradient(270deg, #32233f, #700f7b, #e1ee1e, #3cff63);
@@ -24,8 +40,6 @@
     box-shadow: 0px 0px 10px #000;
 
 }
-
-
 
 @keyframes gradientMove {
     0% {
@@ -47,9 +61,26 @@
 
 
 .prompt{
-    position: absolute; top: calc( 10% + 130px); width: 400px; right: 1%;
+    position: absolute; top: calc( 10% + 180px); width: 400px; right: calc( 1% + 10px ); ;
     background-color: #660d0d; color: #fff;
     padding: 10px; font-size: 16px;
     display: flex;
     border-radius: 10px;;
+    text-align: left;
+}
+
+.promptEditor{
+    position: fixed; left: calc(50% - 200px); top: 100px;
+    width: 400px; height: 300px; background-color: #fff;
+    font-size: 16px; color: #000;
+    border: 1px solid #ccc;
+    border-radius: 10px;;
+}
+
+.promptEditor textarea{
+    border-radius: 10px;
+    width: 100%; height: 100%;
+    border: 0; margin: 0;
+    font-family: monospace;
+    resize: none;
 }

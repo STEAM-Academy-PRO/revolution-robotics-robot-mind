@@ -1,7 +1,8 @@
 import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
-import styles from './AiRcView.module.css'
+import styles from "./AiRcView.module.css";
 import { BlocklyView } from "./BlocklyView";
 import aiBlocklyPrompt from "./utils/ai-blockly-prompt";
+import { fetchAiResponse } from "../utils/ai";
 
 const codeHelp = `
 
@@ -29,27 +30,30 @@ button = robot.sensors["button"].read()
 
 # LEDs
 robot.led.set(leds=[1,2,3], color=(robot.read_color(1)))
-robot.led.start_animation(RingLed.Siren)`
+robot.led.start_animation(RingLed.Siren)`;
 
-
-function AiRcView(){
-
+function AiRcView() {
   const SpeechRecognition = window.webkitSpeechRecognition;
   // if (typeof window['SpeechRecognition'] === 'undefined') {
   //   console.error('SpeechRecognition is not supported in this browser.');
   //   return <div>Speech Recognition is not supported in this browser.</div>;
   // }
   const recognition = new SpeechRecognition();
-  recognition.lang = 'en-US';
+  recognition.lang = "en-US";
   recognition.continuous = true; // or true for continuous listening
   recognition.interimResults = true;
 
-  let editorRef!: HTMLDivElement;
+  let promptEditorRef!: HTMLTextAreaElement;
 
-  let lastXml = localStorage.getItem('ai-rc-code') || '';
+  let lastXml = localStorage.getItem("ai-rc-code") || "";
 
   const [isListening, setIsListening] = createSignal(false);
-  const [text, setText] = createSignal<string>('');
+  const [text, setText] = createSignal<string>(
+    "go forward 30cm then turn right and repeat this 4 times"
+  );
+  const [isPromptEditorOpen, setIsPromptEditorOpen] =
+    createSignal<boolean>(false);
+  const [isLoadingPrompt, setIsLoadingPrompt] = createSignal<boolean>(false);
 
   onMount(() => {
     // console.log('ai stub')
@@ -57,84 +61,123 @@ function AiRcView(){
 
   onCleanup(() => {
     // console.log('ai stub exit')
-  })
+  });
 
   const onSave = (code: string) => {
     // console.log('AI RC code saved:', code, arguments);
-    localStorage.setItem('ai-rc-code', code);
+    localStorage.setItem("ai-rc-code", code);
     // setXml(code);
-  }
+  };
 
   recognition.onresult = (event: any) => {
-    let fullTranscript = '';
+    let fullTranscript = "";
     for (let i = 0; i < event.results.length; i++) {
-      fullTranscript += event.results[i][0].transcript + 'n';
+      fullTranscript += event.results[i][0].transcript + "n";
     }
-    console.log('Recognized:', fullTranscript);
+    console.log("Recognized:", fullTranscript);
     setText(fullTranscript);
     // setText(transcript);
   };
 
-
   createEffect(async () => {
     if (isListening()) {
-      console.log('AI RC listening started');
+      console.log("AI RC listening started");
       recognition.start();
-    }
-    else {
+    } else {
       // console.log('AI RC listening stopped');
       recognition.stop();
       // TODO: send it up to the GPT endpoint
-      const code = text()
+      const code = text();
 
-      console.log(import.meta.env.VITE_OPENAI_API_KEY, ' - ', code);
+      console.log(import.meta.env.VITE_OPENAI_API_KEY, " - ", code);
     }
   }, [isListening]);
 
-
   const sendQuery = async () => {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: aiBlocklyPrompt },
-          { role: 'user', content: text() }
-        ],
-      })
-    })
+    if (isLoadingPrompt()) {
+      return;
+    }
+    setIsLoadingPrompt(true);
+    setXml("");
+    const responseJson = await fetchAiResponse(text());
 
-    const responseJson = await response.json();
+    console.log("AI RC response:", responseJson);
+    setXml(responseJson.xml);
+    setIsLoadingPrompt(false);
+    // TODO: send the code to the robot and run it!
+  };
 
-    console.log('AI RC response:', responseJson);
-    setXml(responseJson.choices[0].message.content);
-  }
-
+  const reloadCode = (code: string) => {
+    // TODO: upload config and run python!
+    console.log("Should send robot this code and run:", code);
+  };
 
   const [xml, setXml] = createSignal<string>(lastXml);
 
+  return (
+    <div>
+      <button
+        class={styles.ai}
+        classList={{ [styles.listening]: isListening() }}
+        disabled={isLoadingPrompt()}
+        onClick={() => {
+          setIsListening(!isListening());
+          setIsPromptEditorOpen(false);
+          if (!isListening()) {
+            sendQuery();
+          }
+        }}
+      >
+        Robot Friend
+      </button>
 
-  return <div>
-      <button class={styles.ai} classList={{[styles.listening]: isListening()}} onClick={() => {
-        setIsListening(!isListening());
-        if (!isListening()) {
-          sendQuery()
-        }
-      }}>Robot Friend</button>
-      <div>
+      <button
+        class={styles.textButton}
+        onClick={() => {
+          setIsPromptEditorOpen(!isPromptEditorOpen());
+          if (!isPromptEditorOpen()) {
+            sendQuery();
+          }
+        }}
+      >
+        <span class={styles.icon} role="img" aria-label="keyboard">
+          ⌨️
+        </span>
+      </button>
 
-      </div>
-      {
-        text() &&
-        <div class={styles.prompt} innerHTML={text().replace(/n/g, '<br />')}></div> 
-      }
+      <div></div>
+      {text() && (
+        <div
+          class={styles.prompt}
+          innerHTML={text().replace(/n/g, "<br />")}
+        ></div>
+      )}
+      {isPromptEditorOpen() && (
+        <div class={styles.promptEditor}>
+          <textarea
+            ref={promptEditorRef}
+            value={text()}
+            onInput={(e) => {
+              setText(e.currentTarget.value);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                setIsPromptEditorOpen(false);
+                sendQuery();
+              }
+            }}
+          ></textarea>
+        </div>
+      )}
 
-    <BlocklyView onSave={onSave} xml={xml}></BlocklyView>
-  </div>
+      <BlocklyView
+        onSave={onSave}
+        xml={xml}
+        reloadCode={reloadCode}
+      ></BlocklyView>
+    </div>
+  );
 }
 
-export default AiRcView
+export default AiRcView;
