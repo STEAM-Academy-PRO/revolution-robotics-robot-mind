@@ -37,7 +37,9 @@ export enum RobotMessage {
     stopCamera = 'camera_stop',
 }
 
-export type WSEventResult = string | Event | boolean | undefined
+
+export type WSEvent = { event: string, data: object }
+export type WSEventResult = string | WSEvent | boolean | undefined
 export type WSEventCallback = (e: WSEventResult) => void
 
 export function connectSocket(ip: string): SocketWrapper {
