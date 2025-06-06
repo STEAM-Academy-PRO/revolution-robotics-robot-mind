@@ -18,6 +18,42 @@ The robot brain can have:
 - a circular LED ring with 12 LEDs.
 
 The blockly XML is consisting of blocks that control and read the robot's motors, sensors, and LEDs.
+Use ONLY the blocks that are described below.
+Namely:
+
+block_drive
+block_turn
+block_ultrasonic_sensor
+block_is_object_near
+block_bumper
+block_gyroscope_sensor
+block_wait
+
+if_then
+if_then_else
+block_repeat_while
+controls_repeat_ext2
+block_repeat_forever
+block_break
+
+logic_and
+logic_or
+logic_compare2
+logic_not
+
+math_arithmetic2
+math_round2
+math_trig2
+math_pi
+math_random_int2
+
+block_set_all_leds
+block_set_multiple_led
+block_set_led
+block_set_leds_black_small
+
+variables_get
+variables_set
 
 Motors max speed is 150.
 Motors are configured to be either drive motors, in which case the following commands are to be used:
@@ -90,7 +126,7 @@ There is max one button sensor and max one distance sensor, and a built in direc
 
 There are the following blocks to interact with them:
 Read their number value:
-<block type=\"block_ultrasonic_sensor\"></block>
+<block type="block_ultrasonic_sensor"></block>
 
 Returns boolean true/false if the distance is less than 20 cm:
 <block type="block_is_object_near"></block>
@@ -99,15 +135,15 @@ Button is pressed (returns boolean true/false)
 <block type="block_bumper"></block>
 
 Check IMU orientation (360 degrees for full circle):
-<block type=\"block_gyroscope_sensor\"></block>
+<block type="block_gyroscope_sensor"></block>
 
 
 Make the program wait for a given number of seconds (can be float):
 
-<block type=\"block_wait\">
-  <value name=\"WAIT\">
-    <shadow type=\"math_number\">
-      <field name=\"NUM\">1</field>
+<block type="block_wait">
+  <value name="WAIT">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
     </shadow>
   </value>
 </block>
@@ -140,7 +176,7 @@ If-then-else:
 </block>
 
 Loop with front condition:
-<block type=\"block_repeat_while\"></block>
+<block type="block_repeat_while"></block>
   <value name="CONDITION">
     ... binary condition to check (blocks) ...
   </value>
@@ -158,6 +194,13 @@ Repeat a number of times:
   </value>
   <statement name="DO">
     ... blocks to repeat ...
+  </statement>
+</block>
+
+Repeat forever block:
+<block type="block_repeat_forever">
+  <statement name="STATEMENT">
+    ... blocks to repeat forever ...
   </statement>
 </block>
 
@@ -261,7 +304,22 @@ Special value numbers:
 <block type="math_pi"></block>
 
 
-On the robot there is a circular LED ring that can be controlled with the following blocks:
+Random number generator block:
+<block type="math_random_int2">
+  <value name="FROM">
+    <shadow type="math_number">
+      <field name="NUM">1</field>
+    </shadow>
+  </value>
+  <value name="TO">
+    <shadow type="math_number">
+      <field name="NUM">100</field>
+    </shadow>
+  </value>
+</block>
+
+
+On the robot there is a circulblock_repeat_whilear LED ring that can be controlled with the following blocks:
 LEDs are indexed from 1 to 12, starting from the top and going clockwise.
 
 <block type="block_set_all_leds">

@@ -1,10 +1,16 @@
 import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import styles from "./AiRcView.module.css";
 import { BlocklyView } from "./BlocklyView";
-import { fetchAiResponse } from "../utils/ai";
+import { fetchAiXmlResponse, fixXmlError } from "../utils/ai";
 import { RRController } from "../utils/program-runner";
 import { conn } from "../settings";
 import { currentConfig } from "../utils/Config";
+import aiBlocklyPrompt from "./utils/ai-blockly-prompt";
+
+const queryErrorCache: { [key: string]: number } =
+JSON.parse(
+  localStorage.getItem("ai-rc-query-error-cache") || "{}"
+);
 
 
 function AiRcView() {
@@ -20,6 +26,7 @@ function AiRcView() {
 
   let lastXml = localStorage.getItem("ai-rc-code") || "";
 
+  const [xml, setXml] = createSignal<string>(lastXml);
   const [isListening, setIsListening] = createSignal(false);
   const [text, setText] = createSignal<string>(
     "go forward 30cm then turn right and repeat this 4 times"
@@ -27,14 +34,6 @@ function AiRcView() {
   const [isPromptEditorOpen, setIsPromptEditorOpen] =
     createSignal<boolean>(false);
   const [isLoadingPrompt, setIsLoadingPrompt] = createSignal<boolean>(false);
-
-  onMount(() => {
-    // console.log('ai stub')
-  });
-
-  onCleanup(() => {
-    // console.log('ai stub exit')
-  });
 
   const onSave = (code: string) => {
     // console.log('AI RC code saved:', code, arguments);
@@ -47,9 +46,7 @@ function AiRcView() {
     for (let i = 0; i < event.results.length; i++) {
       fullTranscript += event.results[i][0].transcript + "n";
     }
-    console.log("Recognized:", fullTranscript);
     setText(fullTranscript);
-    // setText(transcript);
   };
 
   createEffect(async () => {
@@ -57,12 +54,8 @@ function AiRcView() {
       console.log("AI RC listening started");
       recognition.start();
     } else {
-      // console.log('AI RC listening stopped');
+      console.log('AI RC listening stopped');
       recognition.stop();
-      // TODO: send it up to the GPT endpoint
-      const code = text();
-
-      console.log(import.meta.env.VITE_OPENAI_API_KEY, " - ", code);
     }
   }, [isListening]);
 
@@ -72,13 +65,13 @@ function AiRcView() {
     }
     setIsLoadingPrompt(true);
     setXml("");
-    const responseJson = await fetchAiResponse(text());
+    const responseJson = await fetchAiXmlResponse(text());
 
     console.log("AI RC response:", responseJson);
     setXml(responseJson.xml);
     setIsLoadingPrompt(false);
-    // TODO: send the code to the robot and run it!
   };
+
 
   const uploadAndStart = async (pythonCode: string) => {
     const connection = conn()
@@ -89,6 +82,21 @@ function AiRcView() {
     await new RRController(connection, currentConfig()).start(pythonCode);
   }
 
+  const onLoadError = async (message: string, xml: string) => {
+    console.error("Error loading AI RC code:", message);
+
+    queryErrorCache[text()] = (queryErrorCache[text()] || 0) + 1;
+    localStorage.setItem("ai-rc-query-error-cache", JSON.stringify(queryErrorCache));
+
+    if (queryErrorCache[text()] > 3) {
+      console.warn("Too many errors for this query, AI Failed!");
+    }
+
+    const fixedXml = await fixXmlError(aiBlocklyPrompt + '\n' + text(), xml, message)
+    setXml(fixedXml);
+    console.log("AI RC code fixed:", fixedXml);
+    uploadAndStart(fixedXml);
+  };
 
   const onCodeReload = (code: string) => {
     console.log("AI RC code reloaded:", code);
@@ -97,7 +105,6 @@ function AiRcView() {
   };
 
 
-  const [xml, setXml] = createSignal<string>(lastXml);
 
   return (
     <div>
@@ -113,7 +120,7 @@ function AiRcView() {
           }
         }}
       >
-        Robot Friend
+        Tell me what should I do?
       </button>
 
       <button
@@ -160,6 +167,7 @@ function AiRcView() {
         onSave={onSave}
         xml={xml}
         reloadCode={onCodeReload}
+        onLoadError={onLoadError}
       ></BlocklyView>
     </div>
   );

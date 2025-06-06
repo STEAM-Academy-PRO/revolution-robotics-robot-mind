@@ -1,19 +1,45 @@
-export function formatXML(xmlString) {
-  try {
-    const xmlDoc = new DOMParser().parseFromString(xmlString, "application/xml");
+export function formatXml(xml: string): string {
+  const lines = xml
+    .replace(/>\s*</g, '>\n<') // Ensure each tag is on its own line
+    .trim()
+    .split('\n');
 
-    // Check for parser errors
-    if (xmlDoc.getElementsByTagName('parsererror').length) {
-      throw new Error('Invalid XML');
+  let indent = 0;
+  const stack: string[] = [];
+  const formatted = lines.map(line => {
+    const trimmed = line.trim();
+    let error = false;
+
+    // Closing tag
+    const closingTagMatch = trimmed.match(/^<\/([\w:-]+)>/);
+    if (closingTagMatch) {
+      const tagName = closingTagMatch[1];
+      const last = stack.pop();
+      if (last !== tagName) {
+        error = true;
+      }
+      indent--;
     }
 
-    // Format XML with indentation
-    const formatted = xmlString.replace(/(>)(<)(\/*)/g, '$1\n$2$3')
-                               .replace(/(<[^>]+>)/g, '\n$1')
-                               .trim();
-    return formatted;
+    const currentIndent = '|  '.repeat(Math.max(indent, 0));
+    let outputLine = currentIndent + trimmed;
 
-  } catch (e) {
-    return `Error: ${e.message}`;
-  }
+    // Opening tag (not closing, not self-closing)
+    const openingTagMatch = trimmed.match(/^<([\w:-]+)(\s[^>]*)?>$/);
+    const selfClosing = /\/>$/.test(trimmed);
+
+    if (openingTagMatch && !selfClosing) {
+      const tagName = openingTagMatch[1];
+      stack.push(tagName);
+      indent++;
+    }
+
+    if (error) {
+      outputLine += ' // <------------------------- ERROR';
+    }
+
+    return outputLine;
+  });
+
+  return formatted.join('\n');
 }

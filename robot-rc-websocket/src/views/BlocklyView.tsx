@@ -5,10 +5,12 @@ import { formatXml } from "../utils/xml-formatter";
 
 export function BlocklyView({
   onSave,
+  onLoadError,
   xml,
   reloadCode,
 }: {
   onSave: (xml: string, python: string) => void;
+  onLoadError?: (message: string, xml: string) => void;
   xml: string | Accessor<string>;
   reloadCode?: (code: string) => void;
 }) {
@@ -29,8 +31,9 @@ export function BlocklyView({
             reloadCode?.(event.data.python);
           }
           break;
-        case "error":
+        case "load_error":
           setError(event.data.message + "\n" + formatXml(event.data.xml));
+          onLoadError?.(event.data.message, event.data.xml)
           break;
         }
 
