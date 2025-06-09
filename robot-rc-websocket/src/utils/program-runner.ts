@@ -14,6 +14,7 @@ export class RRController {
   conn: SocketWrapper;
   config: RobotConfigV1;
   subscription: any;
+  onStop: (() => void) | null = null;
 
   constructor(connection: SocketWrapper, configuration: RobotConfigV1) {
     this.conn = connection;
@@ -21,10 +22,13 @@ export class RRController {
     this.i = 0;
   }
 
-  async start(pythonCode: string) {
+  async start(pythonCode: string, onStop: () => void) {
+    this.onStop = onStop;
     const config = this.getConfig(this.config, pythonCode);
-    await uploadConfig(this.conn, this.config);
+    console.warn('config', config)
+    await uploadConfig(this.conn, config);
     this.isConnected = true;
+    this.isActive = true;
     this.subscription = this.conn.on(WSEventType.onMessage, (e: WSEventResult) => {
       if (typeof e !== "object" || !("event" in e)) {
         console.error("[message] Invalid message received from server:", e);
@@ -32,11 +36,15 @@ export class RRController {
       }
       switch (e?.event) {
         case "confirm_success":
-          this.sendControlMessage();
+          if (this.isActive && this.isConnected) {
+            this.sendControlMessage();
+          }
           break;
         case "control_confirm":
           // Small delay to have at least 15 ms between messages.
-          setTimeout(() => this.sendControlMessage(), 10);
+          if (this.isActive && this.isConnected) {
+            setTimeout(() => this.sendControlMessage(), 10);
+          }
           break;
         case "orientation_change":
           break;
@@ -47,6 +55,10 @@ export class RRController {
         case "program_status_change":
           break;
         case "controller_lost":
+          console.warn("[message] Controller lost connection, stopping.");
+          if (this.onStop) {
+            this.onStop();
+          }
           break;
         case "sensor_value_change":
           break;
@@ -56,17 +68,22 @@ export class RRController {
           console.log(`[message] Data received from server: ${e.event}`);
       }
     });
+  }
 
+  stop() {
+    this.isActive = false;
+    this.isConnected = false;
+    this.conn?.send(RobotMessage.reset, new Uint8Array([0])); // Send stop command
   }
 
   getConfig(config: RobotConfigV1, pythonCode: string): RobotConfigV1 {
     return Object.assign({}, config, {
-      blocklyList: {
+      blocklyList: [{
         pythonCode: btoa(pythonCode),
         assignments: {
           background: 0
         }
-      }
+      }]
     });
   }
 

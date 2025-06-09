@@ -1,4 +1,4 @@
-import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import styles from "./AiRcView.module.css";
 import { BlocklyView } from "./BlocklyView";
 import { fetchAiXmlResponse, fixXmlError } from "../utils/ai";
@@ -23,8 +23,9 @@ function AiRcView() {
   recognition.interimResults = true;
 
   let promptEditorRef!: HTMLTextAreaElement;
+  let rrController: RRController|null = null;
 
-  let lastXml = localStorage.getItem("ai-rc-code") || "";
+  let lastXml = localStorage.getItem("ai-rc-xml") || "";
 
   const [xml, setXml] = createSignal<string>(lastXml);
   const [isListening, setIsListening] = createSignal(false);
@@ -33,12 +34,14 @@ function AiRcView() {
   );
   const [isPromptEditorOpen, setIsPromptEditorOpen] =
     createSignal<boolean>(false);
-  const [isLoadingPrompt, setIsLoadingPrompt] = createSignal<boolean>(false);
 
-  const onSave = (code: string) => {
-    // console.log('AI RC code saved:', code, arguments);
-    localStorage.setItem("ai-rc-code", code);
-    // setXml(code);
+  const [isRunning, setIsRunning] = createSignal<boolean>(false);
+  const [isLoadingPrompt, setIsLoadingPrompt] = createSignal<boolean>(false);
+  const [pythonCode, setPythonCode] = createSignal<string>("");
+
+  const onSave = (xml: string, code: string) => {
+    localStorage.setItem("ai-rc-xml", code);
+    setPythonCode(code);
   };
 
   recognition.onresult = (event: any) => {
@@ -72,6 +75,13 @@ function AiRcView() {
     setIsLoadingPrompt(false);
   };
 
+  const onStop = () => {
+    if (rrController) {
+      setIsRunning(false);
+      rrController.stop();
+      rrController = null;
+    }
+  }
 
   const uploadAndStart = async (pythonCode: string) => {
     const connection = conn()
@@ -79,7 +89,10 @@ function AiRcView() {
       console.error("No connection to the robot. Please connect first.");
       return;
     }
-    await new RRController(connection, currentConfig()).start(pythonCode);
+    setPythonCode(pythonCode);
+    rrController = new RRController(connection, currentConfig());
+    setIsRunning(true);
+    await rrController.start(pythonCode, onStop);
   }
 
   const onLoadError = async (message: string, xml: string) => {
@@ -101,6 +114,7 @@ function AiRcView() {
   const onCodeReload = (code: string) => {
     console.log("AI RC code reloaded:", code);
     // Should only reload once
+    setPythonCode(code);
     uploadAndStart(code);
   };
 
@@ -136,6 +150,41 @@ function AiRcView() {
           ⌨️
         </span>
       </button>
+
+
+      <Show when={!isRunning()}>
+        <button
+          class={styles.playButton}
+          disabled={!pythonCode() || isLoadingPrompt()}
+          onClick={() => {
+            if (pythonCode()) {
+              uploadAndStart(pythonCode());
+            }
+          }}
+          title="Run Python code"
+        >
+          <svg
+            class={styles.icon}
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            aria-label="play"
+            fill="currentColor"
+          >
+            <polygon points="6,4 20,12 6,20" />
+          </svg>
+        </button>
+      </Show>
+
+      <Show when={isRunning()}>
+        <button
+          class={styles.stopButton}
+          onClick={onStop}
+          title="Stop"
+        >
+          &#9632;
+        </button>
+      </Show>
 
       <div></div>
       {text() && (

@@ -39,6 +39,7 @@ export function BlocklyView({
 
         if (debounceTimeout) clearTimeout(debounceTimeout);
         debounceTimeout = window.setTimeout(() => {
+            if (event.data.type !== "save") return;
             onSave(event.data.xml, event.data.python);
         }, 300); // 300ms debounce
     });
