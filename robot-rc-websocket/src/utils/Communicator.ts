@@ -33,6 +33,7 @@ export enum WSEventType {
 export enum RobotMessage {
     configure = 'configure',
     control = 'control',
+    reset = 'reset',
     startCamera = 'camera_start',
     stopCamera = 'camera_stop',
 }

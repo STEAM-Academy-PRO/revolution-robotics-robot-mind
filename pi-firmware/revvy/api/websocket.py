@@ -153,6 +153,10 @@ class RobotWebSocketApi:
                         self.send(
                             {"event": "confirm_success", "data": time() - configure_start_time}
                         )
+                    if message_type == "reset":
+                        log(f"Incoming Reset Message: [{message_type}]")
+                        self._robot_manager.reset_configuration()
+                        self.send({"event": "reset_confirm", "data": "ok"})
 
                     if message_type == "control":
                         json_data = message["body"]
