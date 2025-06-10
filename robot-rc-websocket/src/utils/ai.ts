@@ -1,5 +1,9 @@
 import aiBlocklyPrompt from "../views/utils/ai-blockly-prompt";
 
+const translation = {
+  block_not: 'logic_not'
+}
+
 // save responses to a cache:
 const cache = localStorage.getItem("aiResponses")
   ? JSON.parse(localStorage.getItem("aiResponses")!)
@@ -25,8 +29,10 @@ export async function fetchAiResponse(
     body: JSON.stringify({
       model,
       input: prompt,
+      text: { format: { type: "json_object" }},
       // Lower the temperature for more deterministic responses
-      temperature: 0,
+      // Apparently if temp is 0 it will not be "creative" enough.
+      // temperature: 0,
       ...options,
     }),
   });
@@ -36,23 +42,31 @@ export async function fetchAiResponse(
   }
 
   const responseJson = await response.json();
+  try {
+    const jsonResponse = JSON.parse(responseJson.output[0].content[0].text);
+    jsonResponse.xml = applyTranslation(jsonResponse.xml);
+    cache[prompt] = jsonResponse;
+    localStorage.setItem("aiResponses", JSON.stringify(cache));
 
-  const jsonResponse = JSON.parse(responseJson.output[0].content[0].text);
-
-  cache[prompt] = jsonResponse;
-  localStorage.setItem("aiResponses", JSON.stringify(cache));
-
-  return jsonResponse;
+    return jsonResponse;
+  } catch (e) {
+    console.error("Error parsing AI response:", e);
+    console.error("Raw response:", responseJson);
+    throw new Error("Invalid AI response format");
+  }
 }
 
-export async function fetchAiXmlResponse(prompt: string): Promise<{ xml: string; text: any }> {
-  return fetchAiResponse(prompt, {
-    instructions: aiBlocklyPrompt,
-  })
+export async function fetchAiXmlResponse(
+  prompt: string
+): Promise<{ xml?: string; text?: string; error?: string }> {
+  return fetchAiResponse(aiBlocklyPrompt + prompt);
 }
 
-
-export async function fixXmlError(originalQuery: string, xml: string, error: string): Promise<string> {
+export async function fixXmlError(
+  originalQuery: string,
+  xml: string,
+  error: string
+): Promise<string> {
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -75,7 +89,19 @@ export async function fixXmlError(originalQuery: string, xml: string, error: str
 
   // Save fixed XML to cache
   const fixedXml = responseJson.output[0].content[0].text;
-  cache[originalQuery] = { xml: fixedXml, text: responseJson.output[0].content[0].text };
+  cache[originalQuery] = {
+    xml: fixedXml,
+    text: responseJson.output[0].content[0].text,
+  };
 
   return fixedXml;
+}
+
+export function applyTranslation(text: string): string {
+  let result = text;
+  for (const [key, value] of Object.entries(translation)) {
+    const regex = new RegExp(`\\b${key}\\b`, "g");
+    result = result.replace(regex, value);
+  }
+  return result;
 }

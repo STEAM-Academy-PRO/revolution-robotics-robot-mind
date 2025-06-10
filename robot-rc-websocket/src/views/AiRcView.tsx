@@ -7,11 +7,9 @@ import { conn } from "../settings";
 import { currentConfig } from "../utils/Config";
 import aiBlocklyPrompt from "./utils/ai-blockly-prompt";
 
-const queryErrorCache: { [key: string]: number } =
-JSON.parse(
+const queryErrorCache: { [key: string]: number } = JSON.parse(
   localStorage.getItem("ai-rc-query-error-cache") || "{}"
 );
-
 
 function AiRcView() {
   // @ts-ignore
@@ -23,15 +21,20 @@ function AiRcView() {
   recognition.interimResults = true;
 
   let promptEditorRef!: HTMLTextAreaElement;
-  let rrController: RRController|null = null;
+  let rrController: RRController | null = null;
 
   let lastXml = localStorage.getItem("ai-rc-xml") || "";
 
   const [xml, setXml] = createSignal<string>(lastXml);
   const [isListening, setIsListening] = createSignal(false);
-  const [text, setText] = createSignal<string>(
-    "go forward 30cm then turn right and repeat this 4 times"
+
+  const pastConversation = JSON.parse(
+    localStorage.getItem("ai-rc-conversation") || "[]"
   );
+
+  const [conversation, setConversation] =
+    createSignal<{ message: string; type: string }[]>(pastConversation);
+  const [text, setText] = createSignal<string>("");
   const [isPromptEditorOpen, setIsPromptEditorOpen] =
     createSignal<boolean>(false);
 
@@ -45,6 +48,7 @@ function AiRcView() {
   };
 
   recognition.onresult = (event: any) => {
+    console.log("AI RC recognition result:", event);
     let fullTranscript = "";
     for (let i = 0; i < event.results.length; i++) {
       fullTranscript += event.results[i][0].transcript + "n";
@@ -57,7 +61,7 @@ function AiRcView() {
       console.log("AI RC listening started");
       recognition.start();
     } else {
-      console.log('AI RC listening stopped');
+      console.log("AI RC listening stopped");
       recognition.stop();
     }
   }, [isListening]);
@@ -68,11 +72,42 @@ function AiRcView() {
     }
     setIsLoadingPrompt(true);
     setXml("");
-    const responseJson = await fetchAiXmlResponse(text());
+    const query = conversation()
+      .filter((c) => c.type === "ME")
+      .map((c) => c.message)
+      .join("\n");
+    const responseJson = await fetchAiXmlResponse(query);
 
     console.log("AI RC response:", responseJson);
-    setXml(responseJson.xml);
+    if (responseJson.error) {
+      setConversation([
+        ...conversation(),
+        { message: responseJson.error, type: "AI_ERROR" },
+      ]);
+    }
+    if (responseJson.xml) {
+      setXml(responseJson.xml);
+    }
+
     setIsLoadingPrompt(false);
+  };
+
+  const onInputChanged = () => {
+    if (text().trim()) {
+      setConversation([...conversation(), { message: text(), type: "ME" }]);
+      localStorage.setItem(
+        "ai-rc-conversation",
+        JSON.stringify(conversation())
+      );
+    }
+    setText("");
+    sendQuery();
+  };
+
+  const onClearConversation = () => {
+    setConversation([]);
+    localStorage.removeItem("ai-rc-conversation");
+    setText("");
   };
 
   const onStop = () => {
@@ -81,10 +116,10 @@ function AiRcView() {
       rrController.stop();
       rrController = null;
     }
-  }
+  };
 
   const uploadAndStart = async (pythonCode: string) => {
-    const connection = conn()
+    const connection = conn();
     if (!connection) {
       console.error("No connection to the robot. Please connect first.");
       return;
@@ -93,19 +128,26 @@ function AiRcView() {
     rrController = new RRController(connection, currentConfig());
     setIsRunning(true);
     await rrController.start(pythonCode, onStop);
-  }
+  };
 
   const onLoadError = async (message: string, xml: string) => {
     console.error("Error loading AI RC code:", message);
 
-    queryErrorCache[text()] = (queryErrorCache[text()] || 0) + 1;
-    localStorage.setItem("ai-rc-query-error-cache", JSON.stringify(queryErrorCache));
+    queryErrorCache[getConversationHash()] = (queryErrorCache[getConversationHash()] || 0) + 1;
+    localStorage.setItem(
+      "ai-rc-query-error-cache",
+      JSON.stringify(queryErrorCache)
+    );
 
     if (queryErrorCache[text()] > 3) {
       console.warn("Too many errors for this query, AI Failed!");
     }
 
-    const fixedXml = await fixXmlError(aiBlocklyPrompt + '\n' + text(), xml, message)
+    const fixedXml = await fixXmlError(
+      aiBlocklyPrompt + "\n" + text(),
+      xml,
+      message
+    );
     setXml(fixedXml);
     console.log("AI RC code fixed:", fixedXml);
     uploadAndStart(fixedXml);
@@ -115,22 +157,26 @@ function AiRcView() {
     console.log("AI RC code reloaded:", code);
     // Should only reload once
     setPythonCode(code);
-    uploadAndStart(code);
+    // uploadAndStart(code);
   };
 
-
+  const getConversationHash = () => {
+    return conversation()
+      .map((c) => `${c.type}:${c.message}`)
+      .join("|"); // lol demo
+  };
 
   return (
     <div>
       <button
-        class={styles.ai}
+        class={styles.aiButton}
         classList={{ [styles.listening]: isListening() }}
         disabled={isLoadingPrompt()}
         onClick={() => {
           setIsListening(!isListening());
           setIsPromptEditorOpen(false);
           if (!isListening()) {
-            sendQuery();
+            onInputChanged();
           }
         }}
       >
@@ -142,7 +188,7 @@ function AiRcView() {
         onClick={() => {
           setIsPromptEditorOpen(!isPromptEditorOpen());
           if (!isPromptEditorOpen()) {
-            sendQuery();
+            onInputChanged();
           }
         }}
       >
@@ -150,7 +196,6 @@ function AiRcView() {
           ⌨️
         </span>
       </button>
-
 
       <Show when={!isRunning()}>
         <button
@@ -177,22 +222,52 @@ function AiRcView() {
       </Show>
 
       <Show when={isRunning()}>
-        <button
-          class={styles.stopButton}
-          onClick={onStop}
-          title="Stop"
-        >
+        <button class={styles.stopButton} onClick={onStop} title="Stop">
           &#9632;
         </button>
       </Show>
 
-      <div></div>
-      {text() && (
-        <div
-          class={styles.prompt}
-          innerHTML={text().replace(/n/g, "<br />")}
-        ></div>
-      )}
+      <div class={styles.prompt}>
+        <div class={styles.promptHeader}>
+          <h2>AI RC Conversation</h2>
+          <button
+            class={styles.clearButton}
+            onClick={onClearConversation}
+            title="Clear conversation"
+          >
+            🗑️
+          </button>
+        </div>
+        <Show when={conversation().length > 0}>
+          <div class={styles.conversation}>
+            <ul>
+              {conversation().map((entry, idx) => (
+                <li class={styles[entry.type]}>
+                  <span class={styles.sender}>[{entry.type}]</span>&nbsp;
+                  {entry.message}
+                  <button
+                    class={styles.clearButton}
+                    title="Remove message"
+                    onClick={() => {
+                      const updated = [...conversation()];
+                      updated.splice(idx, 1);
+                      setConversation(updated);
+                      localStorage.setItem(
+                        "ai-rc-conversation",
+                        JSON.stringify(updated)
+                      );
+                    }}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Show>
+        {text() && <pre class={styles.promptText} innerHTML={text()}></pre>}
+      </div>
+
       {isPromptEditorOpen() && (
         <div class={styles.promptEditor}>
           <textarea
@@ -205,7 +280,7 @@ function AiRcView() {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 setIsPromptEditorOpen(false);
-                sendQuery();
+                onInputChanged();
               }
             }}
           ></textarea>
@@ -223,3 +298,5 @@ function AiRcView() {
 }
 
 export default AiRcView;
+
+
