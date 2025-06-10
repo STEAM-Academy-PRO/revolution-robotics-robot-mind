@@ -11,7 +11,7 @@ const queryErrorCache: { [key: string]: number } = JSON.parse(
   localStorage.getItem("ai-rc-query-error-cache") || "{}"
 );
 
-function AiRcView() {
+function BlocklyAIView() {
   // @ts-ignore
   const SpeechRecognition = window.webkitSpeechRecognition;
 
@@ -41,6 +41,7 @@ function AiRcView() {
   const [isRunning, setIsRunning] = createSignal<boolean>(false);
   const [isLoadingPrompt, setIsLoadingPrompt] = createSignal<boolean>(false);
   const [pythonCode, setPythonCode] = createSignal<string>("");
+  const [error, setError] = createSignal<string | undefined>(undefined);
 
   const onSave = (xml: string, code: string) => {
     localStorage.setItem("ai-rc-xml", code);
@@ -58,15 +59,13 @@ function AiRcView() {
 
   createEffect(async () => {
     if (isListening()) {
-      console.log("AI RC listening started");
       recognition.start();
     } else {
-      console.log("AI RC listening stopped");
       recognition.stop();
     }
   }, [isListening]);
 
-  const sendQuery = async () => {
+  const sendQuery = async (forceDisableCache?: boolean) => {
     if (isLoadingPrompt()) {
       return;
     }
@@ -76,7 +75,7 @@ function AiRcView() {
       .filter((c) => c.type === "ME")
       .map((c) => c.message)
       .join("\n");
-    const responseJson = await fetchAiXmlResponse(query);
+    const responseJson = await fetchAiXmlResponse(query, forceDisableCache);
 
     console.log("AI RC response:", responseJson);
     if (responseJson.error) {
@@ -94,7 +93,7 @@ function AiRcView() {
 
   const onInputChanged = () => {
     if (text().trim()) {
-      setConversation([...conversation(), { message: text(), type: "ME" }]);
+      setConversation([...conversation(), { message: text().trim(), type: "ME" }]);
       localStorage.setItem(
         "ai-rc-conversation",
         JSON.stringify(conversation())
@@ -131,30 +130,37 @@ function AiRcView() {
   };
 
   const onLoadError = async (message: string, xml: string) => {
-    console.error("Error loading AI RC code:", message);
-
+    if (isLoadingPrompt()) {
+      return;
+    }
+    console.error("Error loading AI RC code. Trying to fix it.",);
+    setIsLoadingPrompt(true);
     queryErrorCache[getConversationHash()] = (queryErrorCache[getConversationHash()] || 0) + 1;
     localStorage.setItem(
       "ai-rc-query-error-cache",
       JSON.stringify(queryErrorCache)
     );
 
-    if (queryErrorCache[text()] > 3) {
+    if (queryErrorCache[getConversationHash()] > 3) {
       console.warn("Too many errors for this query, AI Failed!");
+      setError(
+        `AI failed to fix the code after ${queryErrorCache[getConversationHash()]} attempts.\n\n${xml}`)
+      setIsLoadingPrompt(false);
+      return;
     }
 
     const fixedXml = await fixXmlError(
-      aiBlocklyPrompt + "\n" + text(),
+      aiBlocklyPrompt + "\n" + getConversationHash(),
       xml,
       message
     );
     setXml(fixedXml);
-    console.log("AI RC code fixed:", fixedXml);
-    uploadAndStart(fixedXml);
+    console.log("AI RC code fixed: rev", queryErrorCache[getConversationHash()]);
+    setIsLoadingPrompt(false);
   };
 
   const onCodeReload = (code: string) => {
-    console.log("AI RC code reloaded:", code);
+    console.warn("AI RC code reloaded:", code);
     // Should only reload once
     setPythonCode(code);
     // uploadAndStart(code);
@@ -177,6 +183,9 @@ function AiRcView() {
           setIsPromptEditorOpen(false);
           if (!isListening()) {
             onInputChanged();
+            console.log("AI RC listening stopped");
+          } else {
+            console.log("AI RC listening started");
           }
         }}
       >
@@ -237,14 +246,22 @@ function AiRcView() {
           >
             🗑️
           </button>
+          <button
+            class={styles.retryButton}
+            disabled={isLoadingPrompt()}
+            onClick={()=>sendQuery(true)}
+            title="Retry AI query"
+          >
+            🔄
+          </button>
         </div>
         <Show when={conversation().length > 0}>
           <div class={styles.conversation}>
-            <ul>
+            <ul class={styles.conversationList}>
               {conversation().map((entry, idx) => (
                 <li class={styles[entry.type]}>
-                  <span class={styles.sender}>[{entry.type}]</span>&nbsp;
-                  {entry.message}
+                  <div class={styles.sender}>[{entry.type}]</div>&nbsp;
+                  <div>{entry.message}</div>
                   <button
                     class={styles.clearButton}
                     title="Remove message"
@@ -286,7 +303,19 @@ function AiRcView() {
           ></textarea>
         </div>
       )}
-
+      {error() && (
+        <div class={styles.error}>
+          <h3>Error</h3>
+          <button
+            class={styles.closeButton}
+            onClick={() => setError(undefined)}
+            aria-label="Close error"
+          >
+            ×
+          </button>
+          <pre>{error()}</pre>
+        </div>
+      )}
       <BlocklyView
         onSave={onSave}
         xml={xml}
@@ -297,6 +326,6 @@ function AiRcView() {
   );
 }
 
-export default AiRcView;
+export default BlocklyAIView;
 
 

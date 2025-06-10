@@ -9,7 +9,7 @@ import CodeView from './views/CodeView';
 
 import { connLoading, connectOrDisconnect } from './utils/Communicator';
 import { conn } from './settings';
-import AiRcView from './views/AiRcView';
+import BlocklyAIView from './views/BlocklyAiView';
 
 // Load default config as fallback.
 
@@ -30,10 +30,15 @@ function App() {
     children: <CodeView />
   },
   {
-    id: 'airC',
-    label: 'AI RC',
-    children: <AiRcView />
+    id: 'blocklyAi',
+    label: 'Blockly AI',
+    children: <BlocklyAIView />
   },
+  // {
+  //   id: 'voiceRC',
+  //   label: 'VoiceRC',
+  //   children: <BlocklyAIView />
+  // },
   {
     id: 'play',
     label: 'Play',

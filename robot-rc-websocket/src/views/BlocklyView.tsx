@@ -18,7 +18,7 @@ export function BlocklyView({
   let xmlString = typeof xml === "function" ? xml() : xml;
   let oncePerLoad = false;
 
-  const [error, setError] = createSignal<string | undefined>();
+  // const [error, setError] = createSignal<string | undefined>();
 
   onMount(() => {
     // console.log('BlocklyView mounted', blocklyRef);
@@ -32,8 +32,8 @@ export function BlocklyView({
           }
           break;
         case "load_error":
-          setError(event.data.message + "\n" + formatXml(event.data.xml));
-          onLoadError?.(event.data.message, event.data.xml)
+          // setError(event.data.message + "\n" + formatXml(event.data.xml));
+          onLoadError?.(event.data.message, formatXml(event.data.xml))
           break;
         }
 
@@ -72,19 +72,6 @@ export function BlocklyView({
         class={styles.blockly}
         src={`${blocklyUrlBase()}/interface.html`}
       ></iframe>
-      {error() && (
-        <div class={styles.error}>
-          <h3>Error</h3>
-          <button
-            class={styles.closeButton}
-            onClick={() => setError(undefined)}
-            aria-label="Close error"
-          >
-            ×
-          </button>
-          <pre>{error()}</pre>
-        </div>
-      )}
     </div>
   );
 }

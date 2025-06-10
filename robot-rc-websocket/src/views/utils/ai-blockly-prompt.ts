@@ -323,6 +323,7 @@ Random number generator block:
 
 On the robot there is a circulblock_repeat_whilear LED ring that can be controlled with the following blocks:
 LEDs are indexed from 1 to 12, starting from the top and going clockwise.
+When blinking leds, always add a little wait, as those commands are atomic.
 
 <block type="block_set_all_leds">
   <value name="COLOR">

@@ -1,7 +1,8 @@
 import aiBlocklyPrompt from "../views/utils/ai-blockly-prompt";
 
-const translation = {
-  block_not: 'logic_not'
+const typicalBlockNameFailures = {
+  block_not: 'logic_not',
+  block_if_then: 'if_then',
 }
 
 // save responses to a cache:
@@ -13,9 +14,11 @@ const model = "gpt-3.5-turbo"; // Default model, can be changed if needed
 
 export async function fetchAiResponse(
   prompt: string,
-  options?: object
+  options?: object,
+  force: boolean = false
 ): Promise<{ xml: string; text: any }> {
-  if (cache[prompt]) {
+
+  if (cache[prompt] && !force) {
     console.log("Using cached response for prompt:", prompt);
     return cache[prompt];
   }
@@ -44,7 +47,7 @@ export async function fetchAiResponse(
   const responseJson = await response.json();
   try {
     const jsonResponse = JSON.parse(responseJson.output[0].content[0].text);
-    jsonResponse.xml = applyTranslation(jsonResponse.xml);
+    jsonResponse.xml = fixTypicalBlockNameFailures(jsonResponse.xml);
     cache[prompt] = jsonResponse;
     localStorage.setItem("aiResponses", JSON.stringify(cache));
 
@@ -57,9 +60,10 @@ export async function fetchAiResponse(
 }
 
 export async function fetchAiXmlResponse(
-  prompt: string
+  prompt: string,
+  force: boolean = false
 ): Promise<{ xml?: string; text?: string; error?: string }> {
-  return fetchAiResponse(aiBlocklyPrompt + prompt);
+  return fetchAiResponse('JSON Response: ' + prompt, {instructions: aiBlocklyPrompt}, force);
 }
 
 export async function fixXmlError(
@@ -77,7 +81,6 @@ export async function fixXmlError(
       model,
       input: xml,
       instructions: `Original query: "${originalQuery}"\n\n\nGot the following XML parsing error: ${error}\n\n\n Fix the XML formatting errors in the provided code. Return just the XML file this time, no JSON. Do not add any comments or explanations.`,
-      temperature: 0,
     }),
   });
 
@@ -88,7 +91,7 @@ export async function fixXmlError(
   const responseJson = await response.json();
 
   // Save fixed XML to cache
-  const fixedXml = responseJson.output[0].content[0].text;
+  const fixedXml = fixTypicalBlockNameFailures(responseJson.output[0].content[0].text);
   cache[originalQuery] = {
     xml: fixedXml,
     text: responseJson.output[0].content[0].text,
@@ -97,9 +100,9 @@ export async function fixXmlError(
   return fixedXml;
 }
 
-export function applyTranslation(text: string): string {
+export function fixTypicalBlockNameFailures(text: string): string {
   let result = text;
-  for (const [key, value] of Object.entries(translation)) {
+  for (const [key, value] of Object.entries(typicalBlockNameFailures)) {
     const regex = new RegExp(`\\b${key}\\b`, "g");
     result = result.replace(regex, value);
   }
