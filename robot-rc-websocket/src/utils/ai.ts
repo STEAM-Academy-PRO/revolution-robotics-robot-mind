@@ -10,7 +10,7 @@ const cache = localStorage.getItem("aiResponses")
   ? JSON.parse(localStorage.getItem("aiResponses")!)
   : {};
 
-const model = "gpt-3.5-turbo"; // Default model, can be changed if needed
+const model = "gpt-4-turbo"; // Default model, can be changed if needed
 
 export async function fetchAiResponse(
   prompt: string,
