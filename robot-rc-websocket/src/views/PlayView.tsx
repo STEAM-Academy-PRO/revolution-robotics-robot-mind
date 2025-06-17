@@ -1,205 +1,352 @@
-import { createSignal, createEffect, Accessor, Setter, Show, createMemo } from 'solid-js'
-import { RobotMessage, WSEventType } from '../utils/Communicator';
-import { Position } from '../utils/Position';
-import { mapAnalogNormal, toByte } from '../utils/mapping';
-import { Joystick } from '../components/Joystick';
-import { CameraView } from './CameraView';
-import { Log, log } from '../utils/log';
-import { SensorType, SensorTypeResolve, currentConfig } from '../utils/Config';
-import { uploadConfig } from '../utils/commands';
-import { ColorSensor, ColorSensorReading } from '../utils/ColorSensor';
-import { conn } from '../settings';
+import {
+  createSignal,
+  createEffect,
+  Accessor,
+  Setter,
+  Show,
+  createMemo,
+} from "solid-js";
+import { RobotMessage, WSEventType } from "../utils/Communicator";
+import { Position } from "../utils/Position";
+import { mapAnalogNormal, toByte } from "../utils/mapping";
+import { Joystick } from "../components/Joystick";
+import { CameraView } from "./CameraView";
+import { Log, log } from "../utils/log";
+import { RobotConfigV1, SensorType, SensorTypeResolve, currentConfig } from "../utils/Config";
+import { uploadConfig } from "../utils/commands";
+import { ColorSensor, ColorSensorReading } from "../utils/ColorSensor";
+import { conn } from "../settings";
 
-import styles from './Play.module.css'
+import styles from "./Play.module.css";
+import { create } from "underscore";
 
 const BUTTON_MAP_XBOX: { [id: number]: number } = {
   2: 0,
   3: 2,
   0: 3,
-  1: 1
-}
+  1: 1,
+};
 
 export default function PlayView({
   isActive,
 }: {
-  isActive: Accessor<boolean>,
+  isActive: Accessor<boolean>;
 }) {
+  const [orientation, setOrientation] = createSignal<Array<number>>();
+  const [battery, setBattery] = createSignal<Array<number>>();
+  const [version, setVersion] = createSignal<string>();
+  const [hasGamepad, setHasGamepad] = createSignal<boolean>(false);
+  const [isConnected, setIsConnected] = createSignal<boolean>(true);
+  const [controlSignal, setControlSignal] = createSignal<string>("");
+  const [turnaround, setTurnaround] = createSignal<number>(0);
+  const [orderError, setOrderError] = createSignal<number>(0);
+  const [isListening, setIsListening] = createSignal<boolean>(false);
 
-  const [orientation, setOrientation] = createSignal<Array<number>>()
-  const [battery, setBattery] = createSignal<Array<number>>()
-  const [version, setVersion] = createSignal<string>()
-  const [hasGamepad, setHasGamepad] = createSignal<boolean>(false)
-  const [isConnected, setIsConnected] = createSignal<boolean>(true)
-  const [controlSignal, setControlSignal] = createSignal<string>('')
-  const [turnaround, setTurnaround] = createSignal<number>(0)
-  const [orderError, setOrderError] = createSignal<number>(0)
-
-  let lastTimeControlMessageSent: number = new Date().getTime()
-  let lastControlMessageId: number = 0
+  let lastTimeControlMessageSent: number = new Date().getTime();
+  let lastControlMessageId: number = 0;
 
   interface SensorView {
-    value: Accessor<any>,
-    setValue: Accessor<any>,
-    type: SensorType
+    value: Accessor<any>;
+    setValue: Accessor<any>;
+    type: SensorType;
   }
 
   // Render sensors based on the config!
   const sensors: Accessor<{ [id: number]: SensorView }> = createMemo(() => {
-    const sensors: { [id: number]: SensorView } = {}
-    currentConfig().robotConfig.sensors.map(
-      (config, i) => {
-        if (config) {
-          const [value, setValue] = createSignal()
-          sensors[i + 1] = { value, setValue, type: config.type }
-        }
-      })
-    return sensors
-  })
+    const sensors: { [id: number]: SensorView } = {};
+    currentConfig().robotConfig.sensors.map((config, i) => {
+      if (config) {
+        const [value, setValue] = createSignal();
+        sensors[i + 1] = { value, setValue, type: config.type };
+      }
+    });
+    return sensors;
+  });
 
   const reUploadConfig = () => {
-    console.log(currentConfig())
-    uploadConfig(conn(), currentConfig())
-    setIsConnected(true)
-    sendControlMessage()
-  }
+    console.log(currentConfig());
+    uploadConfig(conn(), currentConfig());
+    setIsConnected(true);
+    sendControlMessage();
+  };
 
-  window.addEventListener('gamepadconnected', (event) => {
-    log('✅ 🎮 A gamepad was connected');
-    setHasGamepad(true)
+  window.addEventListener("gamepadconnected", (event) => {
+    log("✅ 🎮 A gamepad was connected");
+    setHasGamepad(true);
   });
-  window.addEventListener('gamepaddisconnected', (event) => {
-    log('❌ 🎮 A gamepad was disconnected:');
-    setHasGamepad(false)
+  window.addEventListener("gamepaddisconnected", (event) => {
+    log("❌ 🎮 A gamepad was disconnected:");
+    setHasGamepad(false);
   });
 
   const buttons = [0, 1, 2, 3].map((i) => {
-    let [get, set] = createSignal<boolean>(false)
-    let [status, setStatus] = createSignal<number>(0)
-    return { get, set, status, setStatus }
-  })
+    let [get, set] = createSignal<boolean>(false);
+    let [status, setStatus] = createSignal<number>(0);
+    return { get, set, status, setStatus };
+  });
 
-  const BUFFER = 256
-  const turnaroundArray = new Array(BUFFER).fill(0)
+
+  const sendCommand = (command: string) => {
+    if (!isActive() || !isConnected()) {
+      return;
+    }
+    console.log("Sending command:", command);
+    conn()?.send(RobotMessage.run, command);
+  }
+
+  const getConfig = (pythonCode: string) : RobotConfigV1 => {
+    const blocklyListExtended = currentConfig().blocklyList.slice(0)
+    blocklyListExtended.unshift({
+        pythoncode: btoa(pythonCode),
+        assignments: {
+          background: 0
+        }
+      })
+    return Object.assign({}, currentConfig(), {
+      blocklyList: blocklyListExtended
+    });
+  }
+
+    // @ts-ignore
+  const SpeechRecognition = window.webkitSpeechRecognition;
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.continuous = true; // or true for continuous listening
+  recognition.interimResults = true;
+
+  createEffect(async () => {
+    if (isListening()) {
+      recognition.start();
+    } else {
+      recognition.stop();
+    }
+  }, [isListening]);
+
+  let lastLastCommandHash: string | undefined;
+
+  recognition.onresult = (event: any) => {
+    console.log("AI RC recognition result:", event);
+    let fullTranscript = "";
+    for (let i = 0; i < event.results.length; i++) {
+      fullTranscript += event.results[i][0].transcript + "\n";
+    }
+    console.log("Full transcript:", fullTranscript);
+    // Find last command:
+    const keywords: {[keyword: string]: string} = {
+      "forward": "forward",
+      "backward": "backward",
+      "left": "left",
+      "right": "right",
+      "stop": "stop",
+    }
+    const speedMap: {[keyword: string]: number} = {
+      "slow": 30,
+      "normal": 75,
+      "fast": 150
+    }
+    if (fullTranscript) {
+      // Find the last occurrence of any keyword by searching from the end of the string
+      let lastCommand: string | undefined;
+      let lastIndex = -1;
+      let lastNumber: number | undefined;
+      let lastSpeed: string = 'normal'
+
+      for (const keyword of Object.keys(keywords)) {
+        const idx = fullTranscript.toLowerCase().lastIndexOf(keyword);
+        if (idx > lastIndex && idx !== -1) {
+          lastIndex = idx;
+          lastCommand = keyword;
+          // Find any number after the keyword
+          const numberMatch = fullTranscript.slice(idx + keyword.length).match(/(\d+)/);
+          if (numberMatch) {
+            lastNumber = parseInt(numberMatch[0]);
+          }
+          // Find any speed after the keyword
+          const speedMatch = fullTranscript.slice(idx + keyword.length).match(/(slow|normal|fast)/);
+          if (speedMatch) {
+            lastSpeed = speedMatch[0];
+          }
+        }
+      }
+      if (lastCommand) {
+        const direction = keywords[lastCommand];
+        console.log("Detected command:", direction);
+        if (lastLastCommandHash === lastCommand + lastNumber + lastSpeed) {
+          console.log("Ignoring duplicate command:", lastCommand, lastNumber, lastSpeed);
+          return;
+        }
+
+        // Set the joystick position based on the detected command
+        switch (direction) {
+          case "forward":
+            if (lastNumber) {
+              // We assume CM, so calculate with this amount of turns:
+              sendCommand(`robot.drive(direction=Motor.DIRECTION_FWD, rotation=${Math.round(lastNumber / 20)}, unit_rotation=Motor.UNIT_ROT, speed=${speedMap[lastSpeed]}, unit_speed=Motor.UNIT_SPEED_RPM)`)
+            } else {
+              sendCommand(`robot.drivetrain.set_speed(direction=Motor.DIRECTION_FWD, speed=${speedMap[lastSpeed]}, unit_speed=Motor.UNIT_SPEED_RPM)`);
+            }
+            break;
+          case "backward":
+            if (lastNumber) {
+              // We assume CM, so calculate with this amount of turns:
+              sendCommand(`robot.drive(direction=Motor.DIRECTION_BACK, rotation=${Math.round(lastNumber / 20)}, unit_rotation=Motor.UNIT_ROT, speed=${speedMap[lastSpeed]}, unit_speed=Motor.UNIT_SPEED_RPM)`)
+            } else {
+              sendCommand(`robot.drivetrain.set_speed(direction=Motor.DIRECTION_BACK, speed=${speedMap[lastSpeed]}, unit_speed=Motor.UNIT_SPEED_RPM)`);
+            }
+            break;
+          case "left":
+              // We assume degrees, but default is 90
+            sendCommand(`robot.turn(direction=Motor.DIRECTION_LEFT, rotation=${lastNumber || 90}, unit_rotation=Motor.UNIT_TURN_ANGLE, speed=${speedMap[lastSpeed]}, unit_speed=Motor.UNIT_SPEED_RPM)`)
+            break;
+          case "right":
+            sendCommand(`robot.turn(direction=Motor.DIRECTION_RIGHT, rotation=${lastNumber || 90}, unit_rotation=Motor.UNIT_TURN_ANGLE, speed=${speedMap[lastSpeed]}, unit_speed=Motor.UNIT_SPEED_RPM)`)
+            break;
+          case "stop":
+            sendCommand(`robot.drivetrain.stop(action=Motor.ACTION_RELEASE)`);
+            // position.setX(0);
+        }
+        lastLastCommandHash = lastCommand + lastNumber + lastSpeed;
+
+      }
+
+    }
+  };
+
+
+
+
+  const BUFFER = 256;
+  const turnaroundArray = new Array(BUFFER).fill(0);
 
   // Process incoming messages.
   createEffect(() => {
     conn()?.on(WSEventType.onMessage, (data) => {
       switch (data.event) {
-        case 'confirm_success':
-          sendControlMessage()
-          break
-        case 'control_confirm':
+        case "confirm_success":
+          sendControlMessage();
+          break;
+        case "control_confirm":
           // Ready for the next control message.
-          const now = new Date().getTime()
+          const now = new Date().getTime();
           if (data.data !== lastControlMessageId) {
-            setOrderError(orderError() + 1)
+            setOrderError(orderError() + 1);
           }
-          turnaroundArray[data.data] = now - lastTimeControlMessageSent
+          turnaroundArray[data.data] = now - lastTimeControlMessageSent;
 
-          setTurnaround(Math.round(turnaroundArray.reduce((a, b) => a + b, 0) / BUFFER))
+          setTurnaround(
+            Math.round(turnaroundArray.reduce((a, b) => a + b, 0) / BUFFER)
+          );
           // Small delay to have at least 15 ms between messages.
-          setTimeout(() => sendControlMessage(), 10)
-          break
-        case 'orientation_change':
-          setOrientation(data.data)
-          break
-        case 'battery_change':
-          setBattery(data.data)
-          break
-        case 'version_info':
-          setVersion(Object.keys(data.data).map((k) => `${k}: ${data.data[k]}`).join(' '))
-          break
-        case 'program_status_change':
-          buttons[data.data[0]].setStatus(data.data[1])
-          break
-        case 'controller_lost':
-          setIsConnected(false)
-          break
-        case 'sensor_value_change':
-          const sensorId = data.data.port_id + 1
-          const sensorValue = data.data.value
-          const sensorType = sensors()[sensorId]?.type
+          setTimeout(() => sendControlMessage(), 10);
+          break;
+        case "orientation_change":
+          setOrientation(data.data);
+          break;
+        case "battery_change":
+          setBattery(data.data);
+          break;
+        case "version_info":
+          setVersion(
+            Object.keys(data.data)
+              .map((k) => `${k}: ${data.data[k]}`)
+              .join(" ")
+          );
+          break;
+        case "program_status_change":
+          buttons[data.data[0]].setStatus(data.data[1]);
+          break;
+        case "controller_lost":
+          setIsConnected(false);
+          break;
+        case "sensor_value_change":
+          const sensorId = data.data.port_id + 1;
+          const sensorValue = data.data.value;
+          const sensorType = sensors()[sensorId]?.type;
           switch (sensorType) {
             case SensorType.BUTTON:
-              sensors()[sensorId].setValue(sensorValue ? '1' : '0')
-              break
+              sensors()[sensorId].setValue(sensorValue ? "1" : "0");
+              break;
             case SensorType.COLOR:
-              const colorReadings: ColorSensorReading = sensorValue
-              sensors()[sensorId].setValue(colorReadings)
-              break
+              const colorReadings: ColorSensorReading = sensorValue;
+              sensors()[sensorId].setValue(colorReadings);
+              break;
             default:
               // console.log('distance sensor', sensorValue)
-              if (sensors()[sensorId]){
-                sensors()[sensorId].setValue(sensorValue)
+              if (sensors()[sensorId]) {
+                sensors()[sensorId].setValue(sensorValue);
               }
-
           }
-          break
-        case 'error': break
+          break;
+        case "error":
+          break;
         default:
           console.log(`[message] Data received from server: ${data.event}`);
       }
-    })
-    setIsConnected(Boolean(conn()))
+    });
+    setIsConnected(Boolean(conn()));
     // if (conn()){
     //   sendControlMessage()
     // }
-  })
+  });
 
-  const position = new Position()
-  const position2 = new Position()
+  const position = new Position();
+  const position2 = new Position();
 
-  let i = 0
+  let i = 0;
 
-  let last = { x: 0, y: 0 }
-  let last2 = { x: 0, y: 0 }
+  let last = { x: 0, y: 0 };
+  let last2 = { x: 0, y: 0 };
 
   // We have to send the control messages whenever we uploaded it, or else it resets configuration state.
   // Try uncommenting the lines with doSendMove in them. The first time it stops receiving the messages
   // on the robot the state resets to not configured.
 
   const sendControlMessage = () => {
-    if (!isActive() || !isConnected()) { return }
+    if (!isActive() || !isConnected()) {
+      return;
+    }
 
-    last.x = position.x()
-    last.y = position.y()
+    last.x = position.x();
+    last.y = position.y();
 
-    last2.x = position2.x()
-    last2.y = position2.y()
+    last2.x = position2.x();
+    last2.y = position2.y();
 
     // Only allow gamepad, if we are not having the joystick on the screen
     // set to a value to avoid flickering.
     // const isScreenControllerIsAtCenter = (!position.x() && !position.y())
 
-    const twoOtherAnalogs = { x: 0, y: 0 }
+    const twoOtherAnalogs = { x: 0, y: 0 };
 
     // Gamepad support!
     if (hasGamepad()) {
       const gamepads = navigator.getGamepads();
       for (const gamepad of gamepads) {
         // Disregard empty slots.
-        if (!gamepad) { continue; }
+        if (!gamepad) {
+          continue;
+        }
         // Analog controls for drive.
-        position.setX(gamepad.axes[0] * 0.8)
-        position.setY((-gamepad.axes[1]) * 0.8)
+        position.setX(gamepad.axes[0] * 0.8);
+        position.setY(-gamepad.axes[1] * 0.8);
 
         // 2nd joystick
-        position2.setX(gamepad.axes[2] * 0.8)
-        position2.setY((-gamepad.axes[3]) * 0.8)
-
+        position2.setX(gamepad.axes[2] * 0.8);
+        position2.setY(-gamepad.axes[3] * 0.8);
 
         // Process the gamepad buttons, map them to the controller. See map up there.
         Object.keys(BUTTON_MAP_XBOX).map((keySrt) => {
-          const key = parseInt(keySrt)
-          const value = gamepad.buttons[BUTTON_MAP_XBOX[key]].pressed
-          buttons[key].set(value)
-        })
+          const key = parseInt(keySrt);
+          const value = gamepad.buttons[BUTTON_MAP_XBOX[key]].pressed;
+          buttons[key].set(value);
+        });
       }
     }
 
-    const buttonByte = toByte(buttons.map((b) => b.get()))
+    const buttonByte = toByte(buttons.map((b) => b.get()));
 
-    const controlMessageId = i++ % 127 // keepalive - no need to change this as it's bluetooth specific
+    const controlMessageId = i++ % 127; // keepalive - no need to change this as it's bluetooth specific
 
     const ctrlArray = new Uint8Array([
       controlMessageId,
@@ -211,7 +358,6 @@ export default function PlayView({
       0, // unused analog
       0, // unused analog
 
-
       0, // Reserved
       0, // Reserved
       0, // Reserved
@@ -221,47 +367,56 @@ export default function PlayView({
       0, // UInt8, button group 2, 1 button per bit
       0, // UInt8, button group 3, 1 button per bit
       0, // UInt8, button group 4, 1 button per bit
+    ]);
 
-    ])
-
-    isActive() && conn()?.send(RobotMessage.control, ctrlArray)
-    const now = new Date().getTime()
-    setControlSignal(ctrlArray.join('') + ' ' + (now - lastTimeControlMessageSent) + 'ms')
-    lastTimeControlMessageSent = now
-    lastControlMessageId = controlMessageId
-  }
+    isActive() && conn()?.send(RobotMessage.control, ctrlArray);
+    const now = new Date().getTime();
+    setControlSignal(
+      ctrlArray.join("") + " " + (now - lastTimeControlMessageSent) + "ms"
+    );
+    lastTimeControlMessageSent = now;
+    lastControlMessageId = controlMessageId;
+  };
 
   // onCleanup(() => {
   //   clearInterval(interval)
   // })
 
-
   return (
     <div>
-      <h1>
+      {/* <h1>
         Controller
-      </h1>
-      <span class={styles.controllerConnection}>
-
-      </span>
+      </h1> */}
       <div class={styles.statuses}>
         <span class={styles.status}>version: {version()}</span>
-        <span class={styles.status}>orientation: {JSON.stringify(orientation())}</span>
-        <span class={styles.status}>battery: {battery()?.join(' ')}</span>
+        <span class={styles.status}>
+          orientation: {JSON.stringify(orientation())}
+        </span>
+        <span class={styles.status}>battery: {battery()?.join(" ")}</span>
         {Object.keys(sensors()).map((sensorKey) => (
           <span class={styles.status}>
-            <SensorView type={SensorTypeResolve[sensors()[sensorKey].type]}
+            <SensorView
+              type={SensorTypeResolve[sensors()[sensorKey].type]}
               value={sensors()[sensorKey].value}
             ></SensorView>
           </span>
         ))}
+
         <span class={styles.status}>
-          <Show when={isConnected()}>Connected 🔌 <br />
+          <button class={styles.listenButton} classList={{ [styles.listening]: isListening() }}
+            onClick={() => {
+              setIsListening(!isListening())}}>
+            <Show when={isListening()}>Stop Listening</Show>
+            <Show when={!isListening()}>Start Listening</Show>
+          </button>
+        </span>
+
+        <span class={styles.status}>
+          <Show when={isConnected()}>
+            Connected 🔌 <br />
             {/* <div>ctrl: {controlSignal()}</div> */}
           </Show>
-          <Show when={!isConnected()}>
-            Disconnected 🚫
-          </Show>
+          <Show when={!isConnected()}>Disconnected 🚫</Show>
 
           <Show when={conn()}>
             <div>
@@ -270,8 +425,12 @@ export default function PlayView({
           </Show>
 
           <span> Turnaround: {turnaround()}ms </span>
-          <div class={styles.error} title="... meaning the message confirmations come back in the wrong order.">
-            Message Order Error: <div>{orderError()}</div></div>
+          <div
+            class={styles.error}
+            title="... meaning the message confirmations come back in the wrong order."
+          >
+            Message Order Error: <div>{orderError()}</div>
+          </div>
         </span>
       </div>
       <div class={styles.controller}>
@@ -292,59 +451,90 @@ export default function PlayView({
   );
 }
 
-function SensorView({ type, value }: { value: Accessor<any>, type: string }) {
-  return <div>
-    {type} <br />
-    <Show when={type === 'button'}>
-      {value()}
-    </Show>
-    <Show when={type === 'distance_sensor'}>
-      {value()}
-    </Show>
-    <Show when={type === 'color_sensor'}>
-      <ColorSensor value={value}></ColorSensor>
-    </Show>
-  </div>
+function SensorView({ type, value }: { value: Accessor<any>; type: string }) {
+  return (
+    <div>
+      {type} <br />
+      <Show when={type === "button"}>{value()}</Show>
+      <Show when={type === "distance_sensor"}>{value()}</Show>
+      <Show when={type === "color_sensor"}>
+        <ColorSensor value={value}></ColorSensor>
+      </Show>
+    </div>
+  );
 }
 
-
-function Button({ label, setter, getter, status }:
-  { label: string, setter: Setter<boolean>, getter: Accessor<boolean>, status: Accessor<number> }) {
-  return <button class={styles.button}
-    classList={{
-      [styles.buttonPressed]: getter(),
-      [styles.buttonError]: status() === 2,
-      [styles.buttonRunning]: status() === 1
-    }}
-    onTouchStart={() => setter(true)} onTouchEnd={() => setter(false)}
-    onMouseDown={() => setter(true)} onMouseUp={() => setter(false)}>{label}</button>
+function Button({
+  label,
+  setter,
+  getter,
+  status,
+}: {
+  label: string;
+  setter: Setter<boolean>;
+  getter: Accessor<boolean>;
+  status: Accessor<number>;
+}) {
+  return (
+    <button
+      class={styles.button}
+      classList={{
+        [styles.buttonPressed]: getter(),
+        [styles.buttonError]: status() === 2,
+        [styles.buttonRunning]: status() === 1,
+      }}
+      onTouchStart={() => setter(true)}
+      onTouchEnd={() => setter(false)}
+      onMouseDown={() => setter(true)}
+      onMouseUp={() => setter(false)}
+    >
+      {label}
+    </button>
+  );
 }
 
-
-function Buttons({ list }: { list: Array<{ set: Setter<boolean>, get: Accessor<boolean>, status: Accessor<number> }> }) {
-  const rows = [0, 1, 2]
-  const cols = [0, 1, 2]
+function Buttons({
+  list,
+}: {
+  list: Array<{
+    set: Setter<boolean>;
+    get: Accessor<boolean>;
+    status: Accessor<number>;
+  }>;
+}) {
+  const rows = [0, 1, 2];
+  const cols = [0, 1, 2];
 
   const matrix = [
     [5, 0, 6],
     [3, 4, 1],
-    [8, 2, 7]
-  ]
+    [8, 2, 7],
+  ];
 
   function getButtonForIndex(i: number) {
     if (i < list.length) {
-      return <Button label={String(i)} setter={list[i].set} status={list[i].status} getter={list[i].get} />
+      return (
+        <Button
+          label={String(i)}
+          setter={list[i].set}
+          status={list[i].status}
+          getter={list[i].get}
+        />
+      );
     }
   }
 
-  return <div class={styles.matrix}>
-    {rows.map((row) => (
-      <div key={row} class={styles.matrixRow}>
-        {cols.map((col) => (
-          <div key={col} class={styles.matrixCell}>
-            {getButtonForIndex(matrix[row][col])}
-          </div>
-        ))}
-      </div>
-    ))}</div>
+  return (
+    <div class={styles.matrix}>
+      {rows.map((row) => (
+        <div key={row} class={styles.matrixRow}>
+          {cols.map((col) => (
+            <div key={col} class={styles.matrixCell}>
+              {getButtonForIndex(matrix[row][col])}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
 }

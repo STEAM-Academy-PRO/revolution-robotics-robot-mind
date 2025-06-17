@@ -20,6 +20,7 @@ class RobotEvent(Enum):
     SENSOR_VALUE_CHANGE = "sensor_value_change"
     CONTROLLER_LOST = "controller_lost"
     TIMER_TICK = "timer_tick"
+    PROGRAM_RUNNING = "program_running"
 
     # e.g. MCU connection lost for good.
     FATAL_ERROR = "fatal_error"

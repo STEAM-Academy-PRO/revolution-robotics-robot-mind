@@ -123,7 +123,8 @@ export interface BlocklyItem {
             priority: number
         }],
         buttons?: { id: number, priority: number }[]
-        variableSlots?: string[]
+        variableSlots?: string[],
+        background?: number
     },
     builtinScriptName?: DriveMode
     pythoncode?: string

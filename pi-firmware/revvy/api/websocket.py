@@ -158,6 +158,11 @@ class RobotWebSocketApi:
                         self._robot_manager.reset_configuration()
                         self.send({"event": "reset_confirm", "data": "ok"})
 
+                    if message_type == "run":
+                        log(f"Incoming Run Message: [{message_type}]")
+                        self._robot_manager.robot_run_program(message["body"])
+                        self.send({"event": "run_confirm", "data": "ok"})
+
                     if message_type == "control":
                         json_data = message["body"]
                         data = bytearray(

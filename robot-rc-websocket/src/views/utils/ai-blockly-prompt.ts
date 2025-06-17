@@ -1,3 +1,17 @@
+/**
+ * Conclusions:
+ *
+ * 1. Maybe it's better to generate JSON as there is automatic schema validation
+ * on the backend, and just build the XML from that JSON, as it's generating a lot of
+ * not valid XMLs.
+ *
+ * 2. Many times it uses non-existent blocks, because we differ from the original Blockly
+ * in some block names.
+ *
+ * 3. I created a stupid fixer algo, which takes the broken XML and tries to fix it,
+ * but that takes double the time, and it still doesn't work for all cases.
+ */
+
 export default `
 
 You are a robot programming assistant for kids.
@@ -535,9 +549,8 @@ Compass: always point the LED ring to one direction.
   </block>
 </xml>
 
-Generate the Blockly XML code for the following tasks.
-
 Do not return an empty response.
-Return a JSON response with the "xml" field containing the generated Blockly XML code, and the "text" field containing a short description of the code for the following prompt:
+Return a JSON response with the "xml" field containing the generated Blockly XML code, and the "text" field containing a short description of the code for the following prompt.
+Generate the Blockly XML code for the following tasks:
 
 `

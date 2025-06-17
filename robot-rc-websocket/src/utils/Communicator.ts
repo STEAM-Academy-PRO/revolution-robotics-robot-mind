@@ -36,6 +36,7 @@ export enum RobotMessage {
     reset = 'reset',
     startCamera = 'camera_start',
     stopCamera = 'camera_stop',
+    run = 'run',
 }
 
 

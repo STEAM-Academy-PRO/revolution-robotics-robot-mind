@@ -1,7 +1,7 @@
 """
-    Manages robot on high level.
-    Instantiates Robot, RemoteController, preserves state,
-    processes configuration messages.
+Manages robot on high level.
+Instantiates Robot, RemoteController, preserves state,
+processes configuration messages.
 """
 
 import enum
@@ -35,7 +35,8 @@ from revvy.robot.filters.sensor_data import (
 from revvy.robot.status import RobotStatus, RemoteControllerStatus
 from revvy.robot_config import RobotConfig, empty_robot_config
 from revvy.scripting.robot_interface import MotorConstants
-from revvy.scripting.runtime import ScriptEvent, ScriptHandle, ScriptManager
+from revvy.scripting.runtime import ScriptDescriptor, ScriptEvent, ScriptHandle, ScriptManager
+from revvy.utils.functions import str_to_func
 from revvy.utils.logger import LogLevel, get_logger
 from revvy.utils.stopwatch import Stopwatch
 from revvy.utils.error_reporter import RobotErrorType, revvy_error_handler
@@ -371,6 +372,22 @@ class RobotManager:
             RobotEvent.BACKGROUND_CONTROL_STATE_CHANGE,
             self.remote_controller.background_control_state,
         )
+
+    def robot_run_program(self, source: str) -> None:
+        """
+        Run a program on the robot.
+        The program is a string that contains the code to be executed.
+        """
+        self._log(f"Running program: {source}")
+        runnable = str_to_func(source, 99)
+        script_desc = ScriptDescriptor("rc", runnable, 1, source=source, ref_id=99)
+        script_handle = self._scripts.add_script(script_desc, self._config)
+        script_handle.on(ScriptEvent.ERROR, self._show_script_error)
+        # script_handle.on(ScriptEvent.STOP, self._report_button_script_state_change)
+        script_handle.start()
+
+        # Notify the app that the program is running.
+        self.trigger(RobotEvent.PROGRAM_RUNNING, script_handle.descriptor.ref_id)
 
     def _create_sensor_data_filter(
         self,
