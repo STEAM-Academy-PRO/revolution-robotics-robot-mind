@@ -1,9 +1,14 @@
 import { connectToRobot, disconnect } from '../utils/Communicator';
 import { blocklyUrlBase, conn, endpoint, setBlocklyUrlBase, setEndpoint } from '../settings';
 import styles from './Config.module.css'
+import { searchBluetoothDevices } from '../utils/bluetooth-device-list';
 
 export default function SettingsView() {
-
+  const connectToRobotViaBle = async () => {
+    const id = await searchBluetoothDevices()
+    setEndpoint(`${id}-rr.local`);
+    connectToRobot();
+  }
   return (
     <div>
       <h3>Connection</h3>
@@ -16,6 +21,11 @@ export default function SettingsView() {
           <button class={styles.btn} onClick={disconnect}>Disconnect</button>
         }
       </div>
+
+      <div>
+        <button onClick={connectToRobotViaBle}>ble</button>
+      </div>
+
       <div>
         <br />
         Blockly Endpoint:<br />
