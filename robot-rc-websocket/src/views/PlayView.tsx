@@ -12,13 +12,19 @@ import { mapAnalogNormal, toByte } from "../utils/mapping";
 import { Joystick } from "../components/Joystick";
 import { CameraView } from "./CameraView";
 import { Log, log } from "../utils/log";
-import { RobotConfigV1, SensorType, SensorTypeResolve, currentConfig } from "../utils/Config";
+import {
+  RobotConfigV1,
+  SensorType,
+  SensorTypeResolve,
+  currentConfig,
+} from "../utils/Config";
 import { uploadConfig } from "../utils/commands";
 import { ColorSensor, ColorSensorReading } from "../utils/ColorSensor";
 import { conn } from "../settings";
 
 import styles from "./Play.module.css";
 import { create } from "underscore";
+import { processVoiceCommandTranscript } from "./utils/voice-command";
 
 const BUTTON_MAP_XBOX: { [id: number]: number } = {
   2: 0,
@@ -85,35 +91,22 @@ export default function PlayView({
     return { get, set, status, setStatus };
   });
 
-
   const sendCommand = (command: string) => {
     if (!isActive() || !isConnected()) {
       return;
     }
-    console.log("Sending command:", command);
+    // log(`Sending command: ${command}`);
     conn()?.send(RobotMessage.run, command);
-  }
+  };
 
-  const getConfig = (pythonCode: string) : RobotConfigV1 => {
-    const blocklyListExtended = currentConfig().blocklyList.slice(0)
-    blocklyListExtended.unshift({
-        pythoncode: btoa(pythonCode),
-        assignments: {
-          background: 0
-        }
-      })
-    return Object.assign({}, currentConfig(), {
-      blocklyList: blocklyListExtended
-    });
-  }
 
-    // @ts-ignore
+  // @ts-ignore
   const SpeechRecognition = window.webkitSpeechRecognition;
 
   const recognition = new SpeechRecognition();
   recognition.lang = "en-US";
   recognition.continuous = true; // or true for continuous listening
-  recognition.interimResults = true;
+  // recognition.interimResults = true;
 
   createEffect(async () => {
     if (isListening()) {
@@ -123,96 +116,41 @@ export default function PlayView({
     }
   }, [isListening]);
 
-  let lastLastCommandHash: string | undefined;
 
   recognition.onresult = (event: any) => {
-    console.log("AI RC recognition result:", event);
+    // console.log("AI RC recognition result:", event);
     let fullTranscript = "";
     for (let i = 0; i < event.results.length; i++) {
       fullTranscript += event.results[i][0].transcript + "\n";
     }
-    console.log("Full transcript:", fullTranscript);
+    const lastCommand = event.results[event.results.length - 1][0].transcript;
+    // console.log(fullTranscript)
+    // console.log("Last command:", lastCommand);
+    // console.log("Full transcript:", fullTranscript);
     // Find last command:
-    const keywords: {[keyword: string]: string} = {
-      "forward": "forward",
-      "backward": "backward",
-      "left": "left",
-      "right": "right",
-      "stop": "stop",
-    }
-    const speedMap: {[keyword: string]: number} = {
-      "slow": 30,
-      "normal": 75,
-      "fast": 150
-    }
-    if (fullTranscript) {
-      // Find the last occurrence of any keyword by searching from the end of the string
-      let lastCommand: string | undefined;
-      let lastIndex = -1;
-      let lastNumber: number | undefined;
-      let lastSpeed: string = 'normal'
-
-      for (const keyword of Object.keys(keywords)) {
-        const idx = fullTranscript.toLowerCase().lastIndexOf(keyword);
-        if (idx > lastIndex && idx !== -1) {
-          lastIndex = idx;
-          lastCommand = keyword;
-          // Find any number after the keyword
-          const numberMatch = fullTranscript.slice(idx + keyword.length).match(/(\d+)/);
-          if (numberMatch) {
-            lastNumber = parseInt(numberMatch[0]);
-          }
-          // Find any speed after the keyword
-          const speedMatch = fullTranscript.slice(idx + keyword.length).match(/(slow|normal|fast)/);
-          if (speedMatch) {
-            lastSpeed = speedMatch[0];
-          }
-        }
-      }
-      if (lastCommand) {
-        const direction = keywords[lastCommand];
-        console.log("Detected command:", direction);
-        if (lastLastCommandHash === lastCommand + lastNumber + lastSpeed) {
-          console.log("Ignoring duplicate command:", lastCommand, lastNumber, lastSpeed);
-          return;
-        }
-
-        // Set the joystick position based on the detected command
-        switch (direction) {
-          case "forward":
-            if (lastNumber) {
-              // We assume CM, so calculate with this amount of turns:
-              sendCommand(`robot.drive(direction=Motor.DIRECTION_FWD, rotation=${Math.round(lastNumber / 20)}, unit_rotation=Motor.UNIT_ROT, speed=${speedMap[lastSpeed]}, unit_speed=Motor.UNIT_SPEED_RPM)`)
-            } else {
-              sendCommand(`robot.drivetrain.set_speed(direction=Motor.DIRECTION_FWD, speed=${speedMap[lastSpeed]}, unit_speed=Motor.UNIT_SPEED_RPM)`);
-            }
-            break;
-          case "backward":
-            if (lastNumber) {
-              // We assume CM, so calculate with this amount of turns:
-              sendCommand(`robot.drive(direction=Motor.DIRECTION_BACK, rotation=${Math.round(lastNumber / 20)}, unit_rotation=Motor.UNIT_ROT, speed=${speedMap[lastSpeed]}, unit_speed=Motor.UNIT_SPEED_RPM)`)
-            } else {
-              sendCommand(`robot.drivetrain.set_speed(direction=Motor.DIRECTION_BACK, speed=${speedMap[lastSpeed]}, unit_speed=Motor.UNIT_SPEED_RPM)`);
-            }
-            break;
-          case "left":
-              // We assume degrees, but default is 90
-            sendCommand(`robot.turn(direction=Motor.DIRECTION_LEFT, rotation=${lastNumber || 90}, unit_rotation=Motor.UNIT_TURN_ANGLE, speed=${speedMap[lastSpeed]}, unit_speed=Motor.UNIT_SPEED_RPM)`)
-            break;
-          case "right":
-            sendCommand(`robot.turn(direction=Motor.DIRECTION_RIGHT, rotation=${lastNumber || 90}, unit_rotation=Motor.UNIT_TURN_ANGLE, speed=${speedMap[lastSpeed]}, unit_speed=Motor.UNIT_SPEED_RPM)`)
-            break;
-          case "stop":
-            sendCommand(`robot.drivetrain.stop(action=Motor.ACTION_RELEASE)`);
-            // position.setX(0);
-        }
-        lastLastCommandHash = lastCommand + lastNumber + lastSpeed;
-
-      }
-
+    const pythonCode = processVoiceCommandTranscript(lastCommand);
+    if (pythonCode) {
+      // console.log('Sending command from voice:', pythonCode);
+      sendCommand(pythonCode);
     }
   };
 
+  recognition.onerror = (event: any) => {
+    console.error("Speech recognition error:", event.error);
+    setIsListening(false);
+  }
+
+  recognition.onend = () => {
+    console.log("Speech recognition ended");
+    if (isListening()) {
+      setTimeout(() => {
+        if (isListening()) {
+          recognition.start();
+        }
+      }
+      , 100);
+    }
+  };
 
 
 
@@ -280,6 +218,8 @@ export default function PlayView({
           break;
         case "error":
           break;
+        case "run_confirm":
+          break
         default:
           console.log(`[message] Data received from server: ${data.event}`);
       }
@@ -403,9 +343,13 @@ export default function PlayView({
         ))}
 
         <span class={styles.status}>
-          <button class={styles.listenButton} classList={{ [styles.listening]: isListening() }}
+          <button
+            class={styles.listenButton}
+            classList={{ [styles.listening]: isListening() }}
             onClick={() => {
-              setIsListening(!isListening())}}>
+              setIsListening(!isListening());
+            }}
+          >
             <Show when={isListening()}>Stop Listening</Show>
             <Show when={!isListening()}>Start Listening</Show>
           </button>
