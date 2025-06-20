@@ -1,4 +1,4 @@
-import aiBlocklyPrompt from "../views/utils/ai-blockly-prompt";
+import aiBlocklyPrompt from "./ai-blockly-prompt";
 
 const typicalBlockNameFailures = {
   block_not: 'logic_not',

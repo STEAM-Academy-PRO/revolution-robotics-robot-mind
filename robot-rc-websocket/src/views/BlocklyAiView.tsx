@@ -5,7 +5,7 @@ import { fetchAiXmlResponse, fixXmlError } from "../utils/ai";
 import { RRController } from "../utils/program-runner";
 import { conn } from "../settings";
 import { currentConfig } from "../utils/Config";
-import aiBlocklyPrompt from "./utils/ai-blockly-prompt";
+import aiBlocklyPrompt from "../utils/ai-blockly-prompt";
 
 const queryErrorCache: { [key: string]: number } = JSON.parse(
   localStorage.getItem("ai-rc-query-error-cache") || "{}"

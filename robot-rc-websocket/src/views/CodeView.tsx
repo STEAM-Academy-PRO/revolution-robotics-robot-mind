@@ -15,7 +15,7 @@ import {
 } from "../utils/Config";
 import CodeEditor from "./CodeEditor";
 import { BlocklyView } from "./BlocklyView";
-import defaultBlocklyXml from "./utils/default-xml";
+import defaultBlocklyXml from "../utils/default-xml";
 
 function CodeView() {
   const [editedId, setEditedId] = createSignal<number | null>(null);

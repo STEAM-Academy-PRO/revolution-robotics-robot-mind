@@ -24,7 +24,8 @@ import { conn } from "../settings";
 
 import styles from "./Play.module.css";
 import { create } from "underscore";
-import { processVoiceCommandTranscript } from "./utils/voice-command";
+import { processVoiceCommandTranscript } from "../utils/voice-command";
+import { Toast } from "./utils/Toast";
 
 const BUTTON_MAP_XBOX: { [id: number]: number } = {
   2: 0,
@@ -47,6 +48,7 @@ export default function PlayView({
   const [turnaround, setTurnaround] = createSignal<number>(0);
   const [orderError, setOrderError] = createSignal<number>(0);
   const [isListening, setIsListening] = createSignal<boolean>(false);
+  const [toast, setToast] = createSignal<string>("");
 
   let lastTimeControlMessageSent: number = new Date().getTime();
   let lastControlMessageId: number = 0;
@@ -128,6 +130,9 @@ export default function PlayView({
     // console.log("Last command:", lastCommand);
     // console.log("Full transcript:", fullTranscript);
     // Find last command:
+    setToast('🎤 ' + lastCommand);
+    log('🎤 ' + lastCommand)
+    // console.log("Last command:", lastCommand);
     const pythonCode = processVoiceCommandTranscript(lastCommand);
     if (pythonCode) {
       // console.log('Sending command from voice:', pythonCode);
@@ -324,9 +329,7 @@ export default function PlayView({
 
   return (
     <div>
-      {/* <h1>
-        Controller
-      </h1> */}
+      <Toast message={toast}></Toast>
       <div class={styles.statuses}>
         <span class={styles.status}>version: {version()}</span>
         <span class={styles.status}>

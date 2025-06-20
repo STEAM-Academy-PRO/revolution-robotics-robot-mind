@@ -1,5 +1,6 @@
-import { programs } from "../../utils/Config";
-import { log } from "../../utils/log";
+import { last } from "underscore";
+import { programs } from "./Config";
+import { log } from "./log";
 
 const knightRiderLightsPython = `
 robot.led.set(leds=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], color='#000000')
@@ -79,6 +80,7 @@ const directions: { [keyword: string]: string } = {
   around: "around",
 };
 
+
 let lastNumber: number | undefined;
 let lastSpeed: string = "normal";
 let lastDirection: string | undefined;
@@ -91,6 +93,11 @@ export const processVoiceCommandTranscript = (fullTranscript: string) => {
   let lastCommand: string | undefined;
   let lastIndex = -1;
   let lastUnit = "cm";
+
+  // Sometimes the transcript contains number words like "one", "two", etc.
+  // We need to replace them with digits before processing
+  // This is useful for commands like "drive one meter" or "turn two degrees"
+  fullTranscript = replaceNumberWords(fullTranscript);
 
   const programMap: { [name: string]: string } = {};
   programs().map((p) => (programMap[p.name] = p.python));
@@ -135,11 +142,17 @@ export const processVoiceCommandTranscript = (fullTranscript: string) => {
             leds = "[2, 3, 4]";
             lastDirection = "left";
             lastMotorDirection = "Motor.DIRECTION_LEFT";
+            if (!numberMatch) {
+              lastNumber = 90; // Default to 90 degrees if not specified
+            }
             break;
           case "right":
             leds = "[8, 9, 10]";
             lastDirection = "right";
             lastMotorDirection = "Motor.DIRECTION_RIGHT";
+            if (!numberMatch) {
+              lastNumber = 90; // Default to 90 degrees if not specified
+            }
             break;
           case "front":
           case "forward":
@@ -161,10 +174,13 @@ export const processVoiceCommandTranscript = (fullTranscript: string) => {
             leds = "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]";
         }
         const unitMatch = lastCommandText.match(
-          /(cm|meter|meters| m|feet|foot|inch|inches)/i
+          /(cm|centimeters|meter|meters| m|feet|foot|inch|inches)/i
         );
         if (unitMatch) {
           lastUnit = unitMatch[0].toLowerCase();
+          if (lastUnit === "centimeters") {
+            lastUnit = "cm"; // Convert centimeters to cm for consistency
+          }
           if (
             lastUnit === "meter" ||
             lastUnit === "meters" ||
@@ -255,3 +271,34 @@ export const processVoiceCommandTranscript = (fullTranscript: string) => {
     }
   }
 };
+
+
+const numberWordsMap: { [word: string]: number } = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  eleven: 11,
+  twelve: 12,
+  thirteen: 13,
+  fourteen: 14,
+  fifteen: 15,
+  sixteen: 16,
+  seventeen: 17,
+  eighteen: 18,
+  nineteen: 19,
+  twenty: 20,
+};
+
+export function replaceNumberWords(text: string): string {
+  return text.replace(
+    new RegExp(`\\b(${Object.keys(numberWordsMap).join("|")})\\b`, "gi"),
+    (match) => numberWordsMap[match.toLowerCase()].toString()
+  );
+}

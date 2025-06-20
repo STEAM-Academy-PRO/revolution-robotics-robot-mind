@@ -2,10 +2,12 @@ import { Show } from 'solid-js'
 
 import styles from './Config.module.css'
 
-import { MotorConfig, MotorType, SensorConfig, SensorType, motors, sensors, setMotors, setSensors } from '../utils/Config';
+import { MotorConfig, MotorType, SensorConfig, SensorType, motors, sensors, setCurrentConfig, setMotors, setSensors } from '../utils/Config';
 import { MotorView } from '../utils/Motor';
 import { SensorView } from '../utils/Sensor';
 import SettingsView from './SettingsView';
+import { setEndpoint } from '../settings';
+import { connectToRobot } from '../utils/Communicator';
 
 function ConfigView() {
 
@@ -52,15 +54,23 @@ function ConfigView() {
     setSensors(newSensorArray)
   }
 
+  const isEmbedded = location.hostname.endsWith('.local')
+  if (isEmbedded){
+    setEndpoint(location.hostname)
+    connectToRobot()
+  }
+
+
   return (
     <div >
       <div class={styles.controller}>
-        <div class={styles.config}>
-          <div>
-            <SettingsView />
+        <Show when={!isEmbedded}>
+          <div class={styles.config}>
+            <div>
+              <SettingsView />
+            </div>
           </div>
-
-        </div>
+        </Show>
         <div class={styles.config}>
           <h3>Sensors</h3>
           <table class={styles.configurationTable}>
