@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import solidPlugin from 'vite-plugin-solid';
+import { execSync } from 'child_process';
 // import devtools from 'solid-devtools/vite'
 
 export default defineConfig({
@@ -11,6 +12,13 @@ export default defineConfig({
     */
     // devtools(),
     solidPlugin(),
+    {
+      name: 'copy-to-pi-firmware-static',
+      closeBundle() {
+        // Copy all files from dist to ../pi-firmware/static
+        execSync('cp -r dist/* ../pi-firmware/static/', { stdio: 'inherit' });
+      }
+    }
   ],
   server: {
     // Show to everyone on the network

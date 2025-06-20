@@ -33,6 +33,7 @@ if __name__ == "__main__":
 
     package_sources = [
         "revvy/",
+        "static/",
         "install/requirements.txt",
         "install/requirements_pi_dev.txt",
         "data/",

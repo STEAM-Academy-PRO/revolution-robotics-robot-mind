@@ -57,6 +57,23 @@ if __name__ == "__main__":
 
         RobotWebSocketApi(robot_manager)
 
+        # Host our own remote control web interface
+        # As we use Bonjour, once the robot goes online, this
+        # interface will be accessible at http://serial-rr.local:8000
+        from flask import Flask, send_from_directory
+        import threading
+        app = Flask(__name__, static_folder='static')
+
+        @app.route('/')
+        def serve_index():
+            return send_from_directory(app.static_folder, 'index.html')
+
+        @app.route('/<path:path>')
+        def serve_static_file(path):
+            return send_from_directory(app.static_folder, path)
+        threading.Thread(target=app.run, kwargs={"host": "0.0.0.0", "port": 8000}, daemon=True).start()
+        log("Web server started on localhost:80")
+
     try:
         # Give visual indication to the user that something is happening
         robot_manager.robot_start()
