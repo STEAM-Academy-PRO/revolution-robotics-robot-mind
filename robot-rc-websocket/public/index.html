@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Revolution Robotics</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+            width: 100vw;
+            height: 100vh;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            color: white
+        }
+        .logo-btn {
+            background: none;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .logo-btn:hover .logo-placeholder {
+            box-shadow: 0 0 20px #0ff;
+        }
+        .logo-placeholder {
+            width: 160px;
+            height: 160px;
+            background: #222;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #888;
+            margin-bottom: 1rem;
+            border: 2px solid #444;
+            transition: box-shadow 0.2s;
+        }
+        .logo-btn:active .logo-placeholder {
+            box-shadow: 0 0 20px #0ff;
+        }
+        .connect-text {
+            font-size: 2rem;
+            text-align: center;
+            letter-spacing: 1px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <button class="logo-btn" id="connectBtn">
+        <div class="logo-placeholder">
+            <img src="logo.webp">
+        </div>
+        <div class="connect-text">
+            Connect to my Brain
+            <div style="font-size: 0.9rem; color: #aaa; margin-top: 1rem;">
+                Make sure that your brain is connected to the same network as your computer/tablet
+            </div>
+        </div>
+        <div id="error"></div>
+    </button>
+
+    <div style="margin-top:2rem; display:flex; flex-direction:column; align-items:center;">
+        <label for="brainIdInput" style="color:#aaa; font-size:1rem; margin-bottom:0.5rem;">
+            ...or type in the brain ID
+        </label>
+        <input
+            id="brainIdInput"
+            type="text"
+            maxlength="8"
+            autocomplete="off"
+            style="background:#181818; color:#fff; border:1.5px solid #444; border-radius:6px; padding:0.5rem 1rem; font-size:1.2rem; text-align:center; outline:none; width:160px;"
+            placeholder="e.g. 123ABC"
+        >
+        <button
+            id="manualConnectBtn"
+            style="margin-top:1rem; padding:0.5rem 1.5rem; font-size:1.1rem; border-radius:6px; border:none; background:#0ff; color:#000; cursor:pointer;"
+        >
+            Connect
+        </button>
+    </div>
+    <script>
+        document.onload = function() {
+            const brainId = localStorage.getItem('brainId');
+            if (brainId) {
+                document.getElementById('brainIdInput').value = brainId;
+            }
+        };
+        document.getElementById('brainIdInput').addEventListener('input', function(e) {
+            const val = e.target.value.trim();
+            if (val.length === e.target.maxLength) {
+                localStorage.setItem('brainId', val);
+                window.location.href = `http://${val}-rr.local:8000`;
+            }
+        });
+        document.getElementById('manualConnectBtn').addEventListener('click', function() {
+            const input = document.getElementById('brainIdInput');
+            const val = input.value.trim();
+            if (val) {
+                localStorage.setItem('brainId', val);
+                window.location.href = `http://${val}-rr.local:8000`;
+            }
+        });
+
+        async function connectBluetooth() {
+            if (!navigator.bluetooth) {
+                document.getElementById('error').innerHTML = 'Bluetooth not supported in this browser.';
+                return;
+            }
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{services: ['d2d5558c-5b9d-11e9-8647-d663bd873d93']}]
+                });
+                if (device && device.name) {
+                    window.location.href = `http://${device.name}-rr.local:8000`;
+                }
+            } catch (err) {
+                // User cancelled or error
+                document.getElementById('error').innerHTML = `
+                    <div style="color: red; font-size: 1.5rem; text-align: center;">
+                        Failed to connect to Bluetooth device.<br>
+                        Please ensure Bluetooth is enabled and try again.
+                    </div>
+                `;
+            }
+        }
+
+        document.getElementById('connectBtn').addEventListener('click', connectBluetooth);
+    </script>
+</body>
+</html>
