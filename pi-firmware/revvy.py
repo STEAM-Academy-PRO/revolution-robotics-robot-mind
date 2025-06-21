@@ -64,6 +64,14 @@ if __name__ == "__main__":
         import threading
         app = Flask(__name__, static_folder='static')
 
+        not_secure_app = Flask(__name__, static_folder='static')
+        @not_secure_app.route('/')
+        def serve_index():
+            return send_from_directory(app.static_folder, 'cert.html')
+        @not_secure_app.route('/<path:path>')
+        def serve_static_file(path):
+            return send_from_directory(app.static_folder, path)
+
         @app.route('/')
         def serve_index():
             return send_from_directory(app.static_folder, 'index.html')
@@ -71,8 +79,26 @@ if __name__ == "__main__":
         @app.route('/<path:path>')
         def serve_static_file(path):
             return send_from_directory(app.static_folder, path)
-        threading.Thread(target=app.run, kwargs={"host": "0.0.0.0", "port": 8000}, daemon=True).start()
-        log("Web server started on localhost:80")
+
+        threading.Thread(
+            target=app.run,
+            kwargs={
+            "host": "0.0.0.0",
+            "port": 8433,
+            "ssl_context": ("/home/pi/cert/cert.pem", "/home/pi/cert/key.pem")
+            },
+            daemon=True
+        ).start()
+
+        threading.Thread(
+            target=not_secure_app.run,
+            kwargs={
+            "host": "0.0.0.0",
+            "port": 8000,
+            },
+            daemon=True
+        ).start()
+        log("Web server started on localhost:8000, secure on localhost:8433")
 
     try:
         # Give visual indication to the user that something is happening

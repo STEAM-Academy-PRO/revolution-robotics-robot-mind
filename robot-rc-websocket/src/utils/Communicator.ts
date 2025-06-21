@@ -6,6 +6,7 @@ import { RobotError } from "./Types";
 import { conn, endpoint, setConn } from "../settings";
 
 const PORT = 8765
+const PORT_SSL = 8766
 
 export const [connLoading, setConnLoading] = createSignal<boolean>(false)
 
@@ -47,7 +48,13 @@ export type WSEventCallback = (e: WSEventResult) => void
 export function connectSocket(ip: string): SocketWrapper {
     const emitter = createEmitter<Record<WSEventType, WSEventResult>>()
 
-    let socket: WebSocket = new WebSocket(`ws://${ip}:${PORT}`);
+    // Check if we're on secure context (HTTPS)
+
+    const isSecureContext = window.location.protocol === 'https:';
+    const protocol = isSecureContext ? 'wss://' : 'ws://';
+    const port = isSecureContext ? PORT_SSL : PORT;
+
+    let socket: WebSocket = new WebSocket(`${protocol}${ip}:${port}`);
 
     socket.onopen = function (e) {
         console.warn("[open] Connection established");

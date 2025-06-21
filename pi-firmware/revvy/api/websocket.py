@@ -13,6 +13,8 @@ from revvy.utils.error_reporter import RobotErrorType
 from revvy.utils.version import VERSION
 
 import websockets
+import asyncio
+import ssl
 
 from revvy.robot.robot_events import RobotEvent
 from revvy.robot_manager import RobotManager
@@ -26,6 +28,10 @@ from revvy.utils.logger import LogLevel, get_logger
 log = get_logger("WebSocket")
 
 SERVER_PORT = 8765
+SERVER_PORT_SSL = 8766
+
+ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+ssl_context.load_cert_chain(certfile="/home/pi/cert/cert.pem", keyfile="/home/pi/cert/key.pem")
 
 log = get_logger("WS")
 
@@ -100,10 +106,17 @@ class RobotWebSocketApi:
         """Starts separate thread"""
         asyncio.set_event_loop(asyncio.new_event_loop())
         log("Starting WebSocket server")
+
         server = websockets.serve(self.incoming_connection, "0.0.0.0", SERVER_PORT)
+
+        server_ssl = websockets.serve(
+            self.incoming_connection, "0.0.0.0", SERVER_PORT_SSL, ssl=ssl_context
+        )
+
         log(f"Started WebSocket server on {SERVER_PORT}")
         self._event_loop = asyncio.get_event_loop()
         self._event_loop.run_until_complete(server)
+        self._event_loop.run_until_complete(server_ssl)
         self._event_loop.run_forever()
 
     def thread(self) -> None:
