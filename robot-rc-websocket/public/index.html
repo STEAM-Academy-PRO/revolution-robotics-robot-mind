@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Revolution Robotics</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="rr-logo-white.svg" type="image/svg+xml">
     <style>
         html, body {
             height: 100%;
@@ -120,7 +121,12 @@
             }
         });
 
+        let connecting = false
+
         async function connectBluetooth() {
+            if (connecting) return; // Prevent multiple clicks
+            connecting = true;
+
             if (!navigator.bluetooth) {
                 document.getElementById('error').innerHTML = 'Bluetooth not supported in this browser.';
                 return;
@@ -141,15 +147,19 @@
                 const decoder = new TextDecoder('utf-8');
                 const ip = decoder.decode(value);
 
-                // console.log('Robot IP Address:', ip);
+                console.log('Robot IP Address:', ip);
+
+                if (device && device.gatt.connected) {
+                    await device.gatt.disconnect();
+                    console.log('Bluetooth device disconnected.');
+                }
 
                 if (ip){
-                    window.location.href = `http://${ip}:8000`;
+                    window.location.href = `https://${ip}:8433?address=${ip}`;
                 }
-
-                if (device && device.name) {
-                    window.location.href = `http://${device.name}-rr.local:8000`;
-                }
+                // if (device && device.name) {
+                //     window.location.href = `http://${device.name}-rr.local:8000`;
+                // }
             } catch (err) {
                 // User cancelled or error
                 console.error('Bluetooth connection failed:', err);
@@ -159,6 +169,9 @@
                         Please ensure Bluetooth is enabled and try again.
                     </div>
                 `;
+            }
+            finally {
+                connecting = false;
             }
         }
 
