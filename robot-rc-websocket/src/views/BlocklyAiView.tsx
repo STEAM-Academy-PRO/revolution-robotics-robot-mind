@@ -6,20 +6,13 @@ import { RRController } from "../utils/program-runner";
 import { conn } from "../settings";
 import { currentConfig } from "../utils/Config";
 import aiBlocklyPrompt from "../utils/ai-blockly-prompt";
+import { SpeechRecognition } from "../utils/voice-command";
 
 const queryErrorCache: { [key: string]: number } = JSON.parse(
   localStorage.getItem("ai-rc-query-error-cache") || "{}"
 );
 
 function BlocklyAIView() {
-  // @ts-ignore
-  const SpeechRecognition = window.webkitSpeechRecognition;
-
-  const recognition = new SpeechRecognition();
-  recognition.lang = "en-US";
-  recognition.continuous = true; // or true for continuous listening
-  recognition.interimResults = true;
-
   let promptEditorRef!: HTMLTextAreaElement;
   let rrController: RRController | null = null;
 
@@ -48,22 +41,32 @@ function BlocklyAIView() {
     setPythonCode(code);
   };
 
-  recognition.onresult = (event: any) => {
-    console.log("AI RC recognition result:", event);
-    let fullTranscript = "";
-    for (let i = 0; i < event.results.length; i++) {
-      fullTranscript += event.results[i][0].transcript + "\n";
-    }
-    setText(fullTranscript);
-  };
+  let recognition: any | null = null;
 
-  createEffect(async () => {
-    if (isListening()) {
-      recognition.start();
-    } else {
-      recognition.stop();
-    }
-  }, [isListening]);
+  if (SpeechRecognition) {
+    createEffect(async () => {
+      if (isListening()) {
+        if (SpeechRecognition) {
+          recognition = new SpeechRecognition();
+          recognition.lang = "en-US";
+          recognition.continuous = true; // or true for continuous listening
+          recognition.interimResults = true;
+
+          recognition.onresult = (event: any) => {
+            console.log("AI RC recognition result:", event);
+            let fullTranscript = "";
+            for (let i = 0; i < event.results.length; i++) {
+              fullTranscript += event.results[i][0].transcript + "\n";
+            }
+            setText(fullTranscript);
+          };
+          recognition.start();
+        } else {
+          recognition.stop();
+        }
+      }
+    }, [isListening]);
+  }
 
   const sendQuery = async (forceDisableCache?: boolean) => {
     if (isLoadingPrompt()) {
@@ -93,7 +96,10 @@ function BlocklyAIView() {
 
   const onInputChanged = () => {
     if (text().trim()) {
-      setConversation([...conversation(), { message: text().trim(), type: "ME" }]);
+      setConversation([
+        ...conversation(),
+        { message: text().trim(), type: "ME" },
+      ]);
       localStorage.setItem(
         "ai-rc-conversation",
         JSON.stringify(conversation())
@@ -133,9 +139,10 @@ function BlocklyAIView() {
     if (isLoadingPrompt()) {
       return;
     }
-    console.error("Error loading AI RC code. Trying to fix it.",);
+    console.error("Error loading AI RC code. Trying to fix it.");
     setIsLoadingPrompt(true);
-    queryErrorCache[getConversationHash()] = (queryErrorCache[getConversationHash()] || 0) + 1;
+    queryErrorCache[getConversationHash()] =
+      (queryErrorCache[getConversationHash()] || 0) + 1;
     localStorage.setItem(
       "ai-rc-query-error-cache",
       JSON.stringify(queryErrorCache)
@@ -144,7 +151,10 @@ function BlocklyAIView() {
     if (queryErrorCache[getConversationHash()] > 3) {
       console.warn("Too many errors for this query, AI Failed!");
       setError(
-        `AI failed to fix the code after ${queryErrorCache[getConversationHash()]} attempts.\n\n${xml}`)
+        `AI failed to fix the code after ${
+          queryErrorCache[getConversationHash()]
+        } attempts.\n\n${xml}`
+      );
       setIsLoadingPrompt(false);
       return;
     }
@@ -155,7 +165,10 @@ function BlocklyAIView() {
       message
     );
     setXml(fixedXml);
-    console.log("AI RC code fixed: rev", queryErrorCache[getConversationHash()]);
+    console.log(
+      "AI RC code fixed: rev",
+      queryErrorCache[getConversationHash()]
+    );
     setIsLoadingPrompt(false);
   };
 
@@ -249,7 +262,7 @@ function BlocklyAIView() {
           <button
             class={styles.retryButton}
             disabled={isLoadingPrompt()}
-            onClick={()=>sendQuery(true)}
+            onClick={() => sendQuery(true)}
             title="Retry AI query"
           >
             🔄
@@ -327,5 +340,3 @@ function BlocklyAIView() {
 }
 
 export default BlocklyAIView;
-
-

@@ -1,4 +1,3 @@
-import { last } from "underscore";
 import { programs } from "./Config";
 import { log } from "./log";
 
@@ -302,3 +301,6 @@ export function replaceNumberWords(text: string): string {
     (match) => numberWordsMap[match.toLowerCase()].toString()
   );
 }
+
+// @ts-ignore
+export const SpeechRecognition = window.webkitSpeechRecognition;

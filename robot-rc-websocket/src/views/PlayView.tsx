@@ -13,7 +13,6 @@ import { Joystick } from "../components/Joystick";
 import { CameraView } from "./CameraView";
 import { Log, log } from "../utils/log";
 import {
-  RobotConfigV1,
   SensorType,
   SensorTypeResolve,
   currentConfig,
@@ -23,8 +22,7 @@ import { ColorSensor, ColorSensorReading } from "../utils/ColorSensor";
 import { conn } from "../settings";
 
 import styles from "./Play.module.css";
-import { create } from "underscore";
-import { processVoiceCommandTranscript } from "../utils/voice-command";
+import { processVoiceCommandTranscript, SpeechRecognition } from "../utils/voice-command";
 import { Toast } from "./utils/Toast";
 
 const BUTTON_MAP_XBOX: { [id: number]: number } = {
@@ -102,60 +100,78 @@ export default function PlayView({
   };
 
 
-  // @ts-ignore
-  const SpeechRecognition = window.webkitSpeechRecognition;
+  if (SpeechRecognition){
 
-  const recognition = new SpeechRecognition();
-  recognition.lang = "en-US";
-  recognition.continuous = true; // or true for continuous listening
-  // recognition.interimResults = true;
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.continuous = true; // or true for continuous listening
+    // recognition.interimResults = true;
 
-  createEffect(async () => {
-    if (isListening()) {
-      recognition.start();
-    } else {
-      recognition.stop();
+    // List all the sound interfaces.
+    if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+      navigator.mediaDevices.enumerateDevices().then((devices) => {
+        const audioInputs = devices.filter((device) => device.kind === "audioinput");
+        console.log("Available audio input devices:", audioInputs);
+        log(
+          "Audio Inputs: " +
+            audioInputs.map((d) => d.label || d.deviceId).join(", ")
+        );
+      });
     }
-  }, [isListening]);
 
-
-  recognition.onresult = (event: any) => {
-    // console.log("AI RC recognition result:", event);
-    let fullTranscript = "";
-    for (let i = 0; i < event.results.length; i++) {
-      fullTranscript += event.results[i][0].transcript + "\n";
-    }
-    const lastCommand = event.results[event.results.length - 1][0].transcript;
-    // console.log(fullTranscript)
-    // console.log("Last command:", lastCommand);
-    // console.log("Full transcript:", fullTranscript);
-    // Find last command:
-    setToast('🎤 ' + lastCommand);
-    log('🎤 ' + lastCommand)
-    // console.log("Last command:", lastCommand);
-    const pythonCode = processVoiceCommandTranscript(lastCommand);
-    if (pythonCode) {
-      // console.log('Sending command from voice:', pythonCode);
-      sendCommand(pythonCode);
-    }
-  };
-
-  recognition.onerror = (event: any) => {
-    console.error("Speech recognition error:", event.error);
-    setIsListening(false);
-  }
-
-  recognition.onend = () => {
-    console.log("Speech recognition ended");
-    if (isListening()) {
-      setTimeout(() => {
-        if (isListening()) {
-          recognition.start();
-        }
+    createEffect(async () => {
+      if (isListening()) {
+        recognition.start();
+      } else {
+        recognition.stop();
       }
-      , 100);
+    }, [isListening]);
+
+
+    recognition.onresult = (event: any) => {
+      // console.log("AI RC recognition result:", event);
+      let fullTranscript = "";
+      for (let i = 0; i < event.results.length; i++) {
+        fullTranscript += event.results[i][0].transcript + "\n";
+      }
+      const lastCommand = event.results[event.results.length - 1][0].transcript;
+      // console.log(fullTranscript)
+      // console.log("Last command:", lastCommand);
+      // console.log("Full transcript:", fullTranscript);
+      // Find last command:
+      setToast('🎤 ' + lastCommand);
+      log('🎤 ' + lastCommand)
+      // console.log("Last command:", lastCommand);
+      const pythonCode = processVoiceCommandTranscript(lastCommand);
+      if (pythonCode) {
+        // console.log('Sending command from voice:', pythonCode);
+        sendCommand(pythonCode);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error:", event);
+      if (event.error === "audio-capture") {
+        setToast("Error: No microphone found. Try setting it under chrome://settings/content/microphone");
+        log("Error: No microphone found. Try setting it under chrome://settings/content/microphone");
+      }
+      setToast(`Error: ${event.error}`);
+      log(`Error: ${event.error}`);
+      setIsListening(false);
     }
-  };
+
+    recognition.onend = () => {
+      console.log("Speech recognition ended");
+      if (isListening()) {
+        setTimeout(() => {
+          if (isListening()) {
+            recognition.start();
+          }
+        }
+        , 100);
+      }
+    };
+  }
 
 
 
