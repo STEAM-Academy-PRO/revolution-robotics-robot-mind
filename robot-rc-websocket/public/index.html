@@ -72,7 +72,7 @@
         </div>
         <div class="connect-text">
             Connect to my Brain
-            <div style="font-size: 0.9rem; color: #aaa; margin-top: 1rem;">
+            <div style="font-size: 0.9rem; color: #aaa; margin-top: 1rem;" id="info">
                 Make sure that your brain is connected to the same network as your computer/tablet
             </div>
         </div>
@@ -148,6 +148,7 @@
                 const ip = decoder.decode(value);
 
                 console.log('Robot IP Address:', ip);
+                document.getElementById('info').innerHTML = `Your RR Brain's IP is ${ip}, redirecting...`
 
                 if (device && device.gatt.connected) {
                     await device.gatt.disconnect();
