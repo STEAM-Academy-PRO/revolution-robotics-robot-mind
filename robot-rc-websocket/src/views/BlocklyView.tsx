@@ -70,6 +70,7 @@ export function BlocklyView({
       <iframe
         ref={blocklyRef}
         class={styles.blockly}
+        sandbox="allow-scripts allow-same-origin"
         src={`${blocklyUrlBase()}/interface.html`}
       ></iframe>
     </div>
