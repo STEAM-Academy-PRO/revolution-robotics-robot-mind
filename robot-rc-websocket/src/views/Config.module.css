@@ -19,9 +19,6 @@ textarea {
     display: flex
 }
 
-.active {
-    background: #ddd
-}
 
 pre {
     text-align: left;
@@ -37,25 +34,63 @@ pre {
 }
 
 .config {
-    width: 33%
+    /* width: 33% */
 }
 
-.config table td {
-    border: 1px solid black;
-    width: 110px
+
+.motorRow {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.config table td:first-child {
-    width: 50px
+.portCell{
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    border: 1px solid rgba(79, 79, 79, 0.52);
+    height: 120px;
+    width: 120px;
+}
+.motorPad{
+    padding: 30px;
+    height: 222px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.config table td:nth-child(1) {
-    width: 50px
+.logo{
+    height: 150px;
 }
 
-.config table td:last-child {
-    width: 200px
+
+.portButton{
+    border: gray solid 1px;
+    border-radius: 5px;
+    padding: 10px;
+    font-size: large;
+    cursor: pointer;
+    background-color: rgb(34, 34, 34);
+    margin-bottom: 15px;
 }
+
+.activeButton {
+    background: #ddd4;
+    border: yellow 1px solid;
+}
+
+
+.configWrapper {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding: 40px;
+}
+
 
 .configurationTable {
     height: 200px;
@@ -67,6 +102,7 @@ pre {
 
 .bold {
     font-weight: 700;
+    color: yellow;
 }
 
 .btn {

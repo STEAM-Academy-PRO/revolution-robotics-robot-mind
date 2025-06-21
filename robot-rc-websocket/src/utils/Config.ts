@@ -5,7 +5,6 @@ import { createEffect, createSignal } from "solid-js"
 import { uploadConfig } from "./commands"
 import { RobotMessage } from "./Communicator"
 import { conn } from "../settings"
-import { python } from "@codemirror/lang-python"
 
 export enum DriveMode {
     drive_joystick = 'drive_joystick',
@@ -191,8 +190,8 @@ export enum MotorReversed {
 export interface RobotConfigV1 {
     blocklyList: Array<BlocklyItem>
     robotConfig: {
-        sensors: SensorConfig[]
-        motors: MotorConfig[]
+        sensors: (SensorConfig | null)[]
+        motors: (MotorConfig | null)[]
     }
 
 }

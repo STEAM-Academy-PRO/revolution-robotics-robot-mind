@@ -16,10 +16,10 @@
     margin-bottom: 30px;
     width: 100%;
 }
-.status{ 
-    margin: 3px; 
-    padding: 10px; 
-    background: #eee7; 
+.status{
+    margin: 3px;
+    padding: 10px;
+    background: #eee7;
     color: white;
     flex: 1; /* Expand to fill available width */
 }
