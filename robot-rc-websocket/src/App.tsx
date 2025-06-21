@@ -21,17 +21,17 @@ function App() {
 
   const menuItems = [{
     id: 'configure',
-    label: 'Configure',
+    label: 'Configure ⚙️',
     children: <ConfigView />
   },
   {
     id: 'code',
-    label: 'Code',
+    label: 'Code 💻',
     children: <CodeView />
   },
   {
     id: 'blocklyAi',
-    label: 'Blockly AI',
+    label: 'Blockly AI 🤖',
     children: <BlocklyAIView />
   },
   // {
@@ -41,8 +41,13 @@ function App() {
   // },
   {
     id: 'play',
-    label: 'Play',
+    label: 'Play 🕹️',
     children: <PlayView isActive={isActive} />
+  },
+  {
+    id: 'connection_settings',
+    label: '🔗',
+    children: <SettingsView />
   },
   ]
 
