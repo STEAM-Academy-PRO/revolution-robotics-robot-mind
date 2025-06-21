@@ -104,6 +104,10 @@ export function connectToRobot() {
     setConnLoading(true)
     const socket = connectSocket(endpoint())
     socket.on(WSEventType.onMessage, (data) => {
+        if (typeof data !== "object" || data === null || typeof data.event !== "string" || typeof data.data !== "object" || data.data === null) {
+            console.warn("Received invalid WS event:", data);
+            return;
+        }
         switch (data.event) {
             case 'orientation_change': break
             case 'program_status_change': break
