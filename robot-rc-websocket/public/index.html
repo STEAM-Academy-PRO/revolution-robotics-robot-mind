@@ -124,13 +124,32 @@
             }
             try {
                 const device = await navigator.bluetooth.requestDevice({
-                    filters: [{services: ['d2d5558c-5b9d-11e9-8647-d663bd873d93']}]
+                    filters: [{services: ['d2d5558c-5b9d-11e9-8647-d663bd873d93']}],
+                    optionalServices: ['12345678-1234-5678-1234-56789abcdef0']
                 });
+
+                const serviceUUID = '12345678-1234-5678-1234-56789abcdef0';
+                const charUUID = '12345678-1234-5678-1234-56789abcdef1';
+
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService(serviceUUID);
+                const characteristic = await service.getCharacteristic(charUUID);
+                const value = await characteristic.readValue();
+                const decoder = new TextDecoder('utf-8');
+                const ip = decoder.decode(value);
+
+                // console.log('Robot IP Address:', ip);
+
+                if (ip){
+                    window.location.href = `http://${ip}:8000`;
+                }
+
                 if (device && device.name) {
                     window.location.href = `http://${device.name}-rr.local:8000`;
                 }
             } catch (err) {
                 // User cancelled or error
+                console.error('Bluetooth connection failed:', err);
                 document.getElementById('error').innerHTML = `
                     <div style="color: red; font-size: 1.5rem; text-align: center;">
                         Failed to connect to Bluetooth device.<br>

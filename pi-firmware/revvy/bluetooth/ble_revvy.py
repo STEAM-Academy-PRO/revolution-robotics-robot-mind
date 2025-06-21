@@ -8,6 +8,8 @@ from pybleno import Bleno, BlenoPrimaryService
 from revvy.bluetooth.services.battery import CustomBatteryService
 from revvy.bluetooth.services.device_information import DeviceInformationService
 from revvy.bluetooth.services.long_message import LongMessageService
+from revvy.bluetooth.services.lan import LanAddressService
+
 from revvy.robot.robot_events import RobotEvent
 
 from revvy.utils.device_name import get_device_name
@@ -66,12 +68,14 @@ class RevvyBLE:
         self._bas = CustomBatteryService(initial_battery_state)
         self._live = LiveMessageService(robot_manager)
         self._long = LongMessageService(long_message_handler)
+        self._lan = LanAddressService()
 
         self._named_services = {
             "device_information_service": self._dis,
             "battery_service": self._bas,
             "long_message_service": self._long,
             "live_message_service": self._live,
+            "lan_address_service": self._lan,
         }
 
         self._advertised_uuid_list = [self._live["uuid"]]
