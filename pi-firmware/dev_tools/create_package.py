@@ -12,8 +12,48 @@ from tools.common import find_files
 from dev_tools.generate_manifest import gen_manifest
 
 
+def copy_blockly_if_exists():
+    print("Copying Blockly files if they exist...")
+    vscode_settings_path = ".vscode/settings.json"
+    blockly_path = None
+    if path.exists(vscode_settings_path):
+        with open(vscode_settings_path, "r") as f:
+            try:
+                settings = json.load(f)
+                blockly_path = settings.get("blockly")
+            except Exception as e:
+                pass
+    if blockly_path is not None:
+        if (path.exists(blockly_path) and path.isdir(blockly_path)):
+            blockly_static_path = "static/blockly"
+            os.makedirs(blockly_static_path, exist_ok=True)
+            for filename in [
+                "interface.html",
+                "blockly_compressed.js",
+                "blocks_compressed.js",
+                "python_compressed.js",
+                "prism.css",
+                "prism.js",
+                "toolbox/toolboxes.js",
+                "toolbox/tabs.js",
+                "style.css",
+                "msg/js/en.js",
+            ]:
+                src = path.join(blockly_path, filename)
+                dst = path.join(blockly_static_path, filename)
+                dst_dir = path.dirname(dst)
+                os.makedirs(dst_dir, exist_ok=True)
+                shutil.copy2(src, dst)
+
+
+
+
 def create_package(sources, output):
     print("Creating framework package: {}".format(output))
+
+    if args.dev:
+        copy_blockly_if_exists()
+
     prefix = path.join(path.dirname(path.realpath(path.join(__file__, ".."))), "")
 
     with tarfile.open(output, "w:gz") as tar:

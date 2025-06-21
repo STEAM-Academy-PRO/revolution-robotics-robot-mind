@@ -16,5 +16,6 @@
   "python.analysis.typeCheckingMode": "standard",
   "python.languageServer": "Pylance",
   "editor.formatOnSave": true,
-  "target": "raspberrypi.local"
+  "target": "raspberrypi.local",
+  "blockly": "../../blockly"
 }
