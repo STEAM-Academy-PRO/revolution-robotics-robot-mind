@@ -37,7 +37,7 @@ export default function PlayView({
 }: {
   isActive: Accessor<boolean>;
 }) {
-  const [orientation, setOrientation] = createSignal<Array<number>>();
+  const [orientation, setOrientation] = createSignal<string>();
   const [battery, setBattery] = createSignal<Array<number>>();
   const [version, setVersion] = createSignal<string>();
   const [hasGamepad, setHasGamepad] = createSignal<boolean>(false);
@@ -105,19 +105,6 @@ export default function PlayView({
     const recognition = new SpeechRecognition();
     recognition.lang = "en-US";
     recognition.continuous = true; // or true for continuous listening
-    // recognition.interimResults = true;
-
-    // List all the sound interfaces.
-    if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
-      navigator.mediaDevices.enumerateDevices().then((devices) => {
-        const audioInputs = devices.filter((device) => device.kind === "audioinput");
-        console.log("Available audio input devices:", audioInputs);
-        log(
-          "Audio Inputs: " +
-            audioInputs.map((d) => d.label || d.deviceId).join(", ")
-        );
-      });
-    }
 
     createEffect(async () => {
       if (isListening()) {
@@ -135,9 +122,7 @@ export default function PlayView({
         fullTranscript += event.results[i][0].transcript + "\n";
       }
       const lastCommand = event.results[event.results.length - 1][0].transcript;
-      // console.log(fullTranscript)
-      // console.log("Last command:", lastCommand);
-      // console.log("Full transcript:", fullTranscript);
+
       // Find last command:
       setToast('🎤 ' + lastCommand);
       log('🎤 ' + lastCommand)
@@ -200,7 +185,7 @@ export default function PlayView({
           setTimeout(() => sendControlMessage(), 10);
           break;
         case "orientation_change":
-          setOrientation(data.data);
+          setOrientation(`X: ${data.data.a}\nY: ${data.data.c}\nZ: ${data.data.b}`);
           break;
         case "battery_change":
           setBattery(data.data);
@@ -231,7 +216,6 @@ export default function PlayView({
               sensors()[sensorId].setValue(colorReadings);
               break;
             default:
-              // console.log('distance sensor', sensorValue)
               if (sensors()[sensorId]) {
                 sensors()[sensorId].setValue(sensorValue);
               }
@@ -349,7 +333,7 @@ export default function PlayView({
       <div class={styles.statuses}>
         <span class={styles.status}>version: {version()}</span>
         <span class={styles.status}>
-          orientation: {JSON.stringify(orientation())}
+          orientation: <pre style={{margin: 0}} innerHTML={orientation()}></pre>
         </span>
         <span class={styles.status}>battery: {battery()?.join(" ")}</span>
         {Object.keys(sensors()).map((sensorKey) => (
@@ -360,6 +344,16 @@ export default function PlayView({
             ></SensorView>
           </span>
         ))}
+
+        <span class={styles.status}>
+          <span> Turnaround: {turnaround()}ms </span>
+          <div
+            class={styles.error}
+            title="... meaning the message confirmations come back in the wrong order."
+          >
+            M. Order Error: <div>{orderError()}</div>
+          </div>
+        </span>
 
         <span class={styles.status}>
           <button
@@ -386,15 +380,8 @@ export default function PlayView({
               <button onClick={reUploadConfig}>RESTART</button>
             </div>
           </Show>
-
-          <span> Turnaround: {turnaround()}ms </span>
-          <div
-            class={styles.error}
-            title="... meaning the message confirmations come back in the wrong order."
-          >
-            Message Order Error: <div>{orderError()}</div>
-          </div>
         </span>
+
       </div>
       <div class={styles.controller}>
         <div class={styles.joystick}>

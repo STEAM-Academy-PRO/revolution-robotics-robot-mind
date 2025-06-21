@@ -7,8 +7,8 @@ import PlayView from './views/PlayView';
 import SettingsView from './views/SettingsView';
 import CodeView from './views/CodeView';
 
-import { connLoading, connectOrDisconnect } from './utils/Communicator';
-import { conn } from './settings';
+import { connLoading, connectOrDisconnect, connectToRobot } from './utils/Communicator';
+import { conn, setEndpoint } from './settings';
 import BlocklyAIView from './views/BlocklyAiView';
 
 // Load default config as fallback.
@@ -34,11 +34,6 @@ function App() {
     label: 'Blockly AI 🤖',
     children: <BlocklyAIView />
   },
-  // {
-  //   id: 'voiceRC',
-  //   label: 'VoiceRC',
-  //   children: <BlocklyAIView />
-  // },
   {
     id: 'play',
     label: 'Play 🕹️',
@@ -50,6 +45,16 @@ function App() {
     children: <SettingsView />
   },
   ]
+
+  const isEmbedded = location.hostname.endsWith(".local") || location.search.includes("address=");
+  if (isEmbedded) {
+    const robotEndpoint = location.hostname.endsWith(".local")?location.hostname : new URLSearchParams(location.search).get("address");
+    if (robotEndpoint){
+      setEndpoint(robotEndpoint);
+      connectToRobot();
+    }
+  }
+
 
   return (
     <div class={styles.App}>

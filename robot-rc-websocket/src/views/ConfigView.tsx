@@ -63,12 +63,6 @@ function ConfigView() {
     setSensors(newSensorArray);
   };
 
-  const isEmbedded = location.hostname.endsWith(".local") || location.search.includes("address="); 
-  if (isEmbedded) {
-    setEndpoint(location.hostname);
-    connectToRobot();
-  }
-
   return (
     <div>
       <div class={styles.controller}>

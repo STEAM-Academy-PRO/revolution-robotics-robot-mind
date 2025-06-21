@@ -20,12 +20,6 @@ const keywords: { [keyword: string]: string } = {
   drive: "drive",
   turn: "turn",
   move: "drive",
-  //   forward: "forward",
-  //   front: "forward",
-  //   back: "backward",
-  //   backward: "backward",
-  //   left: "left",
-  //   right: "right",
   stop: "stop",
 
   rainbow: "rainbow",
