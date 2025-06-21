@@ -10,6 +10,7 @@ from os import path
 from revvy.utils.functions import file_hash, read_json
 from tools.common import find_files
 from dev_tools.generate_manifest import gen_manifest
+import glob
 
 
 def copy_blockly_if_exists():
@@ -38,12 +39,23 @@ def copy_blockly_if_exists():
                 "toolbox/tabs.js",
                 "style.css",
                 "msg/js/en.js",
+                "media/*"
             ]:
-                src = path.join(blockly_path, filename)
-                dst = path.join(blockly_static_path, filename)
-                dst_dir = path.dirname(dst)
-                os.makedirs(dst_dir, exist_ok=True)
-                shutil.copy2(src, dst)
+                # Handle globs and directories
+                src_pattern = path.join(blockly_path, filename)
+                matches = glob.glob(src_pattern, recursive=True)
+                for src in matches:
+                    # Compute relative path from blockly_path
+                    rel_path = path.relpath(src, blockly_path)
+                    dst = path.join(blockly_static_path, rel_path)
+                    dst_dir = path.dirname(dst)
+                    os.makedirs(dst_dir, exist_ok=True)
+                    if path.isdir(src):
+                        # Copy directory recursively
+                        if not path.exists(dst):
+                            shutil.copytree(src, dst)
+                    else:
+                        shutil.copy2(src, dst)
 
 
 
