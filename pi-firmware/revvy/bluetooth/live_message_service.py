@@ -15,6 +15,9 @@ from revvy.bluetooth.ble_characteristics import (
     ValidateConfigCharacteristic,
     ValidateState,
 )
+
+from revvy.bluetooth.services.lan import LanIpCharacteristic, NetworkStatusCharacteristic, WlanCredentialsCharacteristic
+
 from revvy.bluetooth.queue_characteristic import QueueCharacteristic
 from revvy.bluetooth.data_types import (
     BackgroundControlState,
@@ -90,6 +93,44 @@ class LiveMessageService(BlenoPrimaryService):
             self.validate_config_callback,
         )
 
+        self._lan_ip_characteristic = LanIpCharacteristic(
+            "12345678-1234-5678-1234-56789abcdef1", "LANAddress"
+        )
+
+        # Bluetooth is a black magic box that seems to break in Rube Goldberg ways.
+        # If I do not load TWO LanIpCharacteristic - one here, one in
+        # lan.py, it seems to break the actual service getting published, for
+        # no apparent reason.
+        # I have figured so far that the order of the module loads probably matters,
+        # but I could not figure out why it's this way. Is it because of
+        # some random registers being flipped so that the lan service
+        # gets published as a secondary service? Is it because of our
+        # "very reliable" Bluetooth stack that I have tried reusing?
+        # The service gets published, or at least the debug messages
+        # I added in pybleno lib's low-level code show that it does,
+        # but then the browser's BLE implementation does NOT see, if
+        # it's published as a secondary service.
+        # I tried debugging with the bluetoothctl tool, where you can
+        # see that whether the service is primary or secondary,
+        # and that's pretty much random, based on whether the above line
+        # is in or not.
+        # Because WHY THE ACTUAL F. would someone do a STATEFUL BLE interface???
+        # At this point, I just want to lit it on fire and
+        # ban bluetooth from the world, but I guess we have to work with what I have
+        # with my AI friends.
+
+        # A piece of advice: run and connect at EVERY SINGLE LINE CHANGE!
+        # to preserve your sanity.
+
+
+        # self._wlan_credentials_characteristic = WlanCredentialsCharacteristic(
+        #     "12345678-1234-5678-1234-56789abcdef2", b"WLAN Credentials"
+        # )
+
+        # self._network_status_characteristic = NetworkStatusCharacteristic(
+        #     "12345678-1234-5678-1234-56789abcdef3", b"WLAN network status"
+        # )
+
         super().__init__(
             {
                 "uuid": "d2d5558c-5b9d-11e9-8647-d663bd873d93",
@@ -104,6 +145,9 @@ class LiveMessageService(BlenoPrimaryService):
                     self._timer_characteristic,
                     self._program_status_characteristic,
                     self._error_reporting_characteristic,
+                    self._lan_ip_characteristic,
+                    # self._wlan_credentials_characteristic,
+                    # self._network_status_characteristic
                 ],
             }
         )

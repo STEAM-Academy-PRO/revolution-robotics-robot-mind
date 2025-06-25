@@ -98,6 +98,31 @@
             Connect
         </button>
     </div>
+    <div style="margin-top:2rem; display:flex; flex-direction:column; align-items:center;">
+        <p>
+            <label>Configure wireless on the Revolution Brain:</label>
+        </p>
+        <input
+            type="text"
+            placeholder="e.g. Home WiFi"
+            style="margin-top:1rem; padding:0.5rem 1rem;"
+            id="wifiSsid"
+        >
+        <input
+            type="password"
+            placeholder="e.g. password123"
+            style="margin-top:0.5rem; padding:0.5rem 1rem;"
+            id="wifiPassword">
+
+        <button
+            id="connectBtn"
+            onclick="sendDownWlanCredentials()"
+            style="margin-top:1rem; padding:0.5rem 1.5rem; font-size:1.1rem; border-radius:6px; border:none; background:#0ff; color:#000; cursor:pointer;"
+        >
+            Send down WIFI credentials
+        </button>
+
+    </div>
     <script>
         document.onload = function() {
             const brainId = localStorage.getItem('brainId');
@@ -105,6 +130,26 @@
                 document.getElementById('brainIdInput').value = brainId;
             }
         };
+        window.addEventListener('DOMContentLoaded', function() {
+            // Restore brainId
+            const brainId = localStorage.getItem('brainId');
+            if (brainId) {
+                document.getElementById('brainIdInput').value = brainId;
+            }
+            // Restore WiFi SSID and password
+            const ssid = localStorage.getItem('wifiSsid');
+            const pwd = localStorage.getItem('wifiPassword');
+            if (ssid) document.getElementById('wifiSsid').value = ssid;
+            if (pwd) document.getElementById('wifiPassword').value = pwd;
+        });
+
+        // Save WiFi SSID and password on change
+        document.getElementById('wifiSsid').addEventListener('input', function(e) {
+            localStorage.setItem('wifiSsid', e.target.value);
+        });
+        document.getElementById('wifiPassword').addEventListener('input', function(e) {
+            localStorage.setItem('wifiPassword', e.target.value);
+        });
         document.getElementById('brainIdInput').addEventListener('input', function(e) {
             const val = e.target.value.trim();
             if (val.length === e.target.maxLength) {
@@ -122,27 +167,66 @@
         });
 
         let connecting = false
+        let device, server;
+
+        const liveMessageServiceUUID = 'd2d5558c-5b9d-11e9-8647-d663bd873d93';
+        // const liveMessageServiceUUID = '97148a03-5b9d-11e9-8647-d663bd873d93';
+
+        const revvyBleWlanServiceUUID = "12345678-1234-5678-1234-56789abcdef0";
+        const lanIpServiceUUID = '12345678-1234-5678-1234-56789abcdef2';
+        // const wlanCredentialsServiceUUID = '12345678-1234-5678-1234-56789abcdef2'
+        // const wlanStatusServiceUUID = '12345678-1234-5678-1234-56789abcdef3'
+
+        // I am using this here, so that the old brains are also visible.
+
+        async function sendDownWlanCredentials(){
+            if (!device) {
+                await connectBluetooth()
+            }
+            if (device && device.gatt.connected) {
+                console.log('Bluetooth device disconnected.');
+                // Send SSID and password to the BLE device
+                const ssid = localStorage.getItem('wifiSsid') || '';
+                const password = localStorage.getItem('wifiPassword') || '';
+                const credentialsService = await server.getPrimaryService(liveMessageServiceUUID);
+                const credentialsCharacteristic = await credentialsService.getCharacteristic(wlanCredentialsServiceUUID);
+
+                // Format: SSID and password separated by a null byte
+                const encoder = new TextEncoder();
+                const credentialsData = encoder.encode(`${ssid}\0${password}`);
+                await credentialsCharacteristic.writeValue(credentialsData);
+                console.log('Sent WiFi credentials over BLE.');
+            }
+
+        }
 
         async function connectBluetooth() {
             if (connecting) return; // Prevent multiple clicks
             connecting = true;
 
+            document.getElementById('error').innerHTML = '';
+
             if (!navigator.bluetooth) {
                 document.getElementById('error').innerHTML = 'Bluetooth not supported in this browser.';
                 return;
             }
-            try {
+            // try {
                 const device = await navigator.bluetooth.requestDevice({
                     filters: [{services: ['d2d5558c-5b9d-11e9-8647-d663bd873d93']}],
-                    optionalServices: ['12345678-1234-5678-1234-56789abcdef0']
+                    optionalServices: ['12345678-1234-5678-1234-56789abcdef0', '97148a03-5b9d-11e9-8647-d663bd873d93']
                 });
 
-                const serviceUUID = '12345678-1234-5678-1234-56789abcdef0';
-                const charUUID = '12345678-1234-5678-1234-56789abcdef1';
 
-                const server = await device.gatt.connect();
-                const service = await server.getPrimaryService(serviceUUID);
-                const characteristic = await service.getCharacteristic(charUUID);
+                server = await device.gatt.connect();
+
+                // const services = await server.getPrimaryServices();
+                // console.log('Available services:');
+                // for (const svc of services) {
+                //     console.log(`Service UUID: ${svc.uuid}`);
+                // }
+
+                const service = await server.getPrimaryService('12345678-1234-5678-1234-56789abcdef0');
+                const characteristic = await service.getCharacteristic(lanIpServiceUUID);
                 const value = await characteristic.readValue();
                 const decoder = new TextDecoder('utf-8');
                 const ip = decoder.decode(value);
@@ -150,30 +234,27 @@
                 console.log('Robot IP Address:', ip);
                 document.getElementById('info').innerHTML = `Your RR Brain's IP is ${ip}, redirecting...`
 
-                if (device && device.gatt.connected) {
-                    await device.gatt.disconnect();
-                    console.log('Bluetooth device disconnected.');
-                }
-
                 if (ip){
-                    window.location.href = `https://${ip}:8433?address=${ip}`;
+                    // window.location.href = `https://${ip}:8433?address=${ip}`;
+                    console.log('Redirecting to:', `http://${ip}:8000`);
+                    // await device.gatt.disconnect();
                 }
                 // if (device && device.name) {
                 //     window.location.href = `http://${device.name}-rr.local:8000`;
                 // }
-            } catch (err) {
-                // User cancelled or error
-                console.error('Bluetooth connection failed:', err);
-                document.getElementById('error').innerHTML = `
-                    <div style="color: red; font-size: 1.5rem; text-align: center;">
-                        Failed to connect to Bluetooth device.<br>
-                        Please ensure Bluetooth is enabled and try again.
-                    </div>
-                `;
-            }
-            finally {
-                connecting = false;
-            }
+            // } catch (err) {
+            //     // User cancelled or error
+            //     console.error('Bluetooth connection failed:', err);
+            //     document.getElementById('error').innerHTML = `
+            //         <div style="color: red; font-size: 1.5rem; text-align: center;">
+            //             Failed to connect to Bluetooth device.<br>
+            //             Please ensure Bluetooth is enabled and try again.
+            //         </div>
+            //     `;
+            // }
+            // finally {
+            //     connecting = false;
+            // }
         }
 
         document.getElementById('connectBtn').addEventListener('click', connectBluetooth);

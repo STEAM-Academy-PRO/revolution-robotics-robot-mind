@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import time
 from typing import Callable
 from pybleno import Bleno, BlenoPrimaryService
 
@@ -81,6 +82,7 @@ class RevvyBLE:
         self._advertised_uuid_list = [self._live["uuid"]]
 
         self._bleno = Bleno()
+        self.reset_bluetooth_stack()
 
         # _bleno exposes it's on function runtime, which makes the linter sad.
         self._bleno.on("stateChange", self._on_state_change)
@@ -167,7 +169,7 @@ class RevvyBLE:
 
             def on_set_service_error(error) -> None:
                 self._log(f"setServices: {_result(error)}")
-
+            self._log(f'Setting up services... {self._named_services.keys()}')
             self._bleno.setServices(list(self._named_services.values()), on_set_service_error)
 
     def start(self) -> None:
@@ -217,3 +219,27 @@ class RevvyBLE:
     def report_errors_in_queue(self, *args) -> None:
         while revvy_error_handler.has_error():
             self._live.report_error(revvy_error_handler.pop_error())
+    
+    def reset_bluetooth_stack(self):
+        self._log("🛠️ Resetting Bluetooth stack...")
+
+        # Stop advertising if active
+        self._log("Stopping BLE advertising...")
+        # self._bleno.stopAdvertising()
+
+        # Bring interface down
+        self._log("Bringing hci0 interface down...")
+        subprocess.run(['sudo', 'hciconfig', 'hci0', 'down'])
+        time.sleep(1)
+
+        # Bring interface up
+        self._log("Bringing hci0 interface up...")
+        subprocess.run(['sudo', 'hciconfig', 'hci0', 'up'])
+        time.sleep(1)
+
+        # Restart bluetoothd (optional but safer)
+        self._log("Restarting bluetoothd service...")
+        subprocess.run(['sudo', 'systemctl', 'restart', 'bluetooth'])
+        time.sleep(2)
+
+        self._log("✅ Bluetooth reset complete.")
