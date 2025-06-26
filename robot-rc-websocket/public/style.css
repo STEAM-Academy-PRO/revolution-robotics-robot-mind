@@ -1,0 +1,123 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: #000;
+    color: #fff;
+    width: 100vw;
+    height: 100vh;
+}
+body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+    color: white
+}
+.logo-btn {
+    background: none;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+.logo-btn:hover .logo-placeholder {
+    box-shadow: 0 0 20px #713fdd;
+}
+.logo-placeholder {
+    width: 160px;
+    height: 160px;
+    background: #222;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #888;
+    margin-bottom: 1rem;
+    border: 2px solid #444;
+    transition: box-shadow 0.2s;
+}
+.logo-btn:active .logo-placeholder {
+    box-shadow: 0 0 20px #713fdd;
+}
+.connect-text {
+    font-size: 2rem;
+    text-align: center;
+    letter-spacing: 1px;
+    color: white;
+}
+.logo{
+    height: 100px;
+}
+
+.pulse-bg {
+    animation: pulse-bg 2s infinite;
+}
+form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.btn{
+    background-color: #713fdd;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 1.2rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    margin-top: 20px;
+}
+.btn:hover {
+    background-color: #5a2bbf;
+    box-shadow: 0 0 20px #713fdd;
+}
+
+.btn.first-time{
+    background-color: black;
+    color: white;
+    border: 1px solid #713fdd;
+    padding: 10px 20px;
+    font-size: 1.2rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.form{
+    display: flex;
+    padding: 20px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 400px;
+    margin-top: 20px;
+    text-align: center;;
+}
+.form form { margin-top: 20px; }
+
+.toggle-container{
+    margin-top: 20px;
+    display: none;
+}
+
+@keyframes pulse-bg {
+    0% {
+        background-color: #000;
+    }
+    50% {
+        background-color: #713fdd;
+    }
+    100% {
+        background-color: #000;
+    }
+}

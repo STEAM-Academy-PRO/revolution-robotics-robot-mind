@@ -5,82 +5,7 @@
     <title>Revolution Robotics</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="rr-logo-white.svg" type="image/svg+xml">
-    <style>
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            background: #000;
-            color: #fff;
-            width: 100vw;
-            height: 100vh;
-        }
-        body {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            font-family: Arial, sans-serif;
-            color: white
-        }
-        .logo-btn {
-            background: none;
-            border: none;
-            outline: none;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-        .logo-btn:hover .logo-placeholder {
-            box-shadow: 0 0 20px #713fdd;
-        }
-        .logo-placeholder {
-            width: 160px;
-            height: 160px;
-            background: #222;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            color: #888;
-            margin-bottom: 1rem;
-            border: 2px solid #444;
-            transition: box-shadow 0.2s;
-        }
-        .logo-btn:active .logo-placeholder {
-            box-shadow: 0 0 20px #713fdd;
-        }
-        .connect-text {
-            font-size: 2rem;
-            text-align: center;
-            letter-spacing: 1px;
-            color: white;
-        }
-        .logo{
-            height: 100px;
-        }
-
-        .pulse-bg {
-            animation: pulse-bg 2s infinite;
-        }
-
-        @keyframes pulse-bg {
-            0% {
-                background-color: #000;
-            }
-            50% {
-                background-color: #713fdd;
-            }
-            100% {
-                background-color: #000;
-            }
-        }
-
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <button class="logo-btn" id="connectBtn">
@@ -88,15 +13,19 @@
             <img src="rr-logo-white.svg" class="logo">
         </div>
         <div class="connect-text">
-            Connect to my Brain
+            Connect to my Revolution Robotics Brain
             <div style="font-size: 0.9rem; color: #aaa; margin-top: 1rem;" id="info">
                 Make sure that your brain is connected to the same network as your computer/tablet
             </div>
         </div>
         <div id="error"></div>
+
+        <span id="manualConnectBtn" class="btn">
+            Connect
+        </span>
     </button>
 
-    <div style="margin-top:2rem; display:flex; flex-direction:column; align-items:center;">
+    <!-- <div style="margin-top:2rem; display:flex; flex-direction:column; align-items:center;">
         <label for="brainIdInput" style="color:#aaa; font-size:1rem; margin-bottom:0.5rem;">
             ...or type in the brain ID
         </label>
@@ -114,203 +43,37 @@
         >
             Connect
         </button>
-    </div>
-    <div style="margin-top:2rem; display:flex; flex-direction:column; align-items:center;">
-        <p>
-            <label>Configure wireless on the Revolution Brain:</label>
-        </p>
-        <input
-            type="text"
-            placeholder="e.g. Home WiFi"
-            style="margin-top:1rem; padding:0.5rem 1rem;"
-            id="wifiSsid"
-        >
-        <input
-            type="password"
-            placeholder="e.g. password123"
-            style="margin-top:0.5rem; padding:0.5rem 1rem;"
-            id="wifiPassword">
-
-        <button
-            id="connectBtn"
-            onclick="sendDownWlanCredentials()"
-            style="margin-top:1rem; padding:0.5rem 1.5rem; font-size:1.1rem; border-radius:6px; border:none; background:#713fdd; color:#000; cursor:pointer;"
-        >
-            Send down WIFI credentials
+    </div> -->
+    <div class="form">
+        <button class="btn first-time" id="firstTimeSetupBtn">
+            First time WIFI setup
         </button>
+        <div class="toggle-container" id="toggleContainer">
+            <label>Configure wireless credentials on the Revolution Brain:</label>
+            <form onsubmit="return false;">
+                <input
+                    type="text"
+                    placeholder="e.g. Home WiFi"
+                    style="margin-top:1rem; padding:0.5rem 1rem;"
+                    id="wifiSsid"
+                >
+                <input
+                    type="password"
+                    placeholder="e.g. password123"
+                    style="margin-top:0.5rem; padding:0.5rem 1rem;"
+                    id="wifiPassword">
 
+                <button
+                    type="button"
+                    id="sendWifiBtn"
+                    class="btn"
+                    >
+                    Send down WIFI credentials
+                </button>
+            </form>
+        </div>
     </div>
-    <script>
-        document.onload = function() {
-            const brainId = localStorage.getItem('brainId');
-            if (brainId) {
-                document.getElementById('brainIdInput').value = brainId;
-            }
-        };
-        window.addEventListener('DOMContentLoaded', function() {
-            // Restore brainId
-            const brainId = localStorage.getItem('brainId');
-            if (brainId) {
-                document.getElementById('brainIdInput').value = brainId;
-            }
-            // Restore WiFi SSID and password
-            const ssid = localStorage.getItem('wifiSsid');
-            const pwd = localStorage.getItem('wifiPassword');
-            if (ssid) document.getElementById('wifiSsid').value = ssid;
-            if (pwd) document.getElementById('wifiPassword').value = pwd;
-        });
+    <script src="rc-connector.js"></script>
 
-        // Save WiFi SSID and password on change
-        document.getElementById('wifiSsid').addEventListener('input', function(e) {
-            localStorage.setItem('wifiSsid', e.target.value);
-        });
-        document.getElementById('wifiPassword').addEventListener('input', function(e) {
-            localStorage.setItem('wifiPassword', e.target.value);
-        });
-        document.getElementById('brainIdInput').addEventListener('input', function(e) {
-            const val = e.target.value.trim();
-            if (val.length === e.target.maxLength) {
-                localStorage.setItem('brainId', val);
-                window.location.href = `http://${val}-rr.local:8000`;
-            }
-        });
-        document.getElementById('manualConnectBtn').addEventListener('click', function() {
-            const input = document.getElementById('brainIdInput');
-            const val = input.value.trim();
-            if (val) {
-                localStorage.setItem('brainId', val);
-                window.location.href = `http://${val}-rr.local:8000`;
-            }
-        });
-
-        let connecting = false
-        let device, server;
-
-        const liveMessageServiceUUID = 'd2d5558c-5b9d-11e9-8647-d663bd873d93';
-
-        const revvyBleWlanServiceUUID = "12345678-1234-5678-1234-56789abcdef0";
-        const lanIpServiceUUID = '12345678-1234-5678-1234-56789abcdef2';
-        const wlanCredentialsServiceUUID = '12345678-1234-5678-1234-56789abcdef3'
-        const networkStatusCharacteristicUUID = '12345678-1234-5678-1234-56789abcdef5';
-
-        // I am using this here, so that the old brains are also visible.
-
-        async function sendDownWlanCredentials(){
-            if (!device) {
-                await connectBluetooth()
-            }
-            try{
-                if (device && device.gatt.connected) {
-
-                    statusLog('Connected to device, sending WLAN credentials...');
-
-                    // Send SSID and password to the BLE device
-                    const ssid = localStorage.getItem('wifiSsid') || '';
-                    const password = localStorage.getItem('wifiPassword') || '';
-
-                    const credentialsService = await server.getPrimaryService(revvyBleWlanServiceUUID);
-                    const credentialsCharacteristic = await credentialsService.getCharacteristic(wlanCredentialsServiceUUID);
-
-                    // Format: SSID and password separated by a null byte
-                    const encoder = new TextEncoder();
-                    const credentialsData = encoder.encode(`${ssid}\0${password}`);
-                    await credentialsCharacteristic.writeValue(credentialsData);
-                    statusLog('Sent WiFi credentials over BLE.');
-                }
-            } catch (err) {
-                console.error('Failed to send WLAN credentials:', err);
-                error(`Failed to send WLAN credentials.<br> ${err.message} <br>`)
-            }
-        }
-
-        async function connectButton(){
-            await connectBluetooth();
-            if (device && device.gatt.connected) {
-                statusLog('Connected to device, getting IP address...');
-                await getIp()
-            }
-        }
-
-        async function getIp(){
-            statusLog('Getting IP address...');
-            const service = await server.getPrimaryService(revvyBleWlanServiceUUID);
-            const ipCharacteristic = await service.getCharacteristic(lanIpServiceUUID);
-            const ipEncoded = await ipCharacteristic.readValue();
-            const decoder = new TextDecoder('utf-8');
-            const ip = decoder.decode(ipEncoded);
-
-            statusLog(`Your RR Brain's IP is ${ip}, redirecting...`)
-
-            return ip
-        }
-
-        async function connectBluetooth() {
-            if (connecting) return; // Prevent multiple clicks
-            connecting = true;
-            document.getElementById('logo').classList.add('pulse-bg');
-
-            document.getElementById('error').innerHTML = '';
-
-            if (!navigator.bluetooth) {
-                document.getElementById('error').innerHTML = 'Bluetooth not supported in this browser.';
-                return;
-            }
-            try {
-                statusLog('Connecting to the Brain...');
-                device = await navigator.bluetooth.requestDevice({
-                    filters: [{services: [liveMessageServiceUUID]}],
-                    optionalServices: [revvyBleWlanServiceUUID]
-                });
-
-                server = await device.gatt.connect();
-
-                await subscribeToNetworkStatusChanges();
-            } catch (err) {
-                // User cancelled or error
-                console.error('Bluetooth connection failed:', err);
-                error(`Failed to connect to Bluetooth device.<br> ${err.message} <br>`)
-            }
-            finally {
-                connecting = false;
-                document.getElementById('logo').classList.remove('pulse-bg');
-            }
-        }
-
-        async function subscribeToNetworkStatusChanges(){
-            try{
-                const service = await server.getPrimaryService(revvyBleWlanServiceUUID);
-
-                // 3. Get the characteristic with notify
-                const characteristic = await service.getCharacteristic(networkStatusCharacteristicUUID);
-
-                // 4. Subscribe to notifications
-                await characteristic.startNotifications();
-                characteristic.addEventListener('characteristicvaluechanged', (event) => {
-                    const value = event.target.value;
-                    const decoder = new TextDecoder('utf-8');
-                    const status = decoder.decode(value);
-                    statusLog(`Network status changed: ${status}`);
-                });
-            }
-            catch (e){
-                error(`Failed to subscribe to network status changes.<br> ${e.message} <br>`);
-            }
-        }
-
-        function error(message){
-            document.getElementById('error').innerHTML = `
-                <div style="color: red; font-size: 1.5rem; text-align: center;">
-                    <strong>Error:</strong> ${message}
-                </div>
-            `;
-        }
-
-        function statusLog(message){
-            console.log(message);
-            document.getElementById('info').innerHTML = message
-        }
-
-        document.getElementById('connectBtn').addEventListener('click',  connectButton);
-    </script>
 </body>
 </html>
