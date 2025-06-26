@@ -108,7 +108,8 @@ async function subscribeToNetworkStatusChanges(){
             const value = event.target.value;
             const decoder = new TextDecoder('utf-8');
             const status = decoder.decode(value);
-            statusLog(`Network status changed: ${status}`);
+            const deviceName = device.name || 'Unknown Device';
+            statusLog(`[${deviceName}] ${status}`);
         });
     }
     catch (e){
