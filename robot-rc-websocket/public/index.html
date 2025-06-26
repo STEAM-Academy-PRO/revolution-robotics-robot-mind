@@ -35,7 +35,7 @@
             margin-bottom: 2rem;
         }
         .logo-btn:hover .logo-placeholder {
-            box-shadow: 0 0 20px #0ff;
+            box-shadow: 0 0 20px #713fdd;
         }
         .logo-placeholder {
             width: 160px;
@@ -52,7 +52,7 @@
             transition: box-shadow 0.2s;
         }
         .logo-btn:active .logo-placeholder {
-            box-shadow: 0 0 20px #0ff;
+            box-shadow: 0 0 20px #713fdd;
         }
         .connect-text {
             font-size: 2rem;
@@ -63,11 +63,28 @@
         .logo{
             height: 100px;
         }
+
+        .pulse-bg {
+            animation: pulse-bg 2s infinite;
+        }
+
+        @keyframes pulse-bg {
+            0% {
+                background-color: #000;
+            }
+            50% {
+                background-color: #713fdd;
+            }
+            100% {
+                background-color: #000;
+            }
+        }
+
     </style>
 </head>
 <body>
     <button class="logo-btn" id="connectBtn">
-        <div class="logo-placeholder">
+        <div class="logo-placeholder" id="logo">
             <img src="rr-logo-white.svg" class="logo">
         </div>
         <div class="connect-text">
@@ -93,7 +110,7 @@
         >
         <button
             id="manualConnectBtn"
-            style="margin-top:1rem; padding:0.5rem 1.5rem; font-size:1.1rem; border-radius:6px; border:none; background:#0ff; color:#000; cursor:pointer;"
+            style="margin-top:1rem; padding:0.5rem 1.5rem; font-size:1.1rem; border-radius:6px; border:none; background:#713fdd; color:#000; cursor:pointer;"
         >
             Connect
         </button>
@@ -117,7 +134,7 @@
         <button
             id="connectBtn"
             onclick="sendDownWlanCredentials()"
-            style="margin-top:1rem; padding:0.5rem 1.5rem; font-size:1.1rem; border-radius:6px; border:none; background:#0ff; color:#000; cursor:pointer;"
+            style="margin-top:1rem; padding:0.5rem 1.5rem; font-size:1.1rem; border-radius:6px; border:none; background:#713fdd; color:#000; cursor:pointer;"
         >
             Send down WIFI credentials
         </button>
@@ -174,8 +191,7 @@
 
         const revvyBleWlanServiceUUID = "12345678-1234-5678-1234-56789abcdef0";
         const lanIpServiceUUID = '12345678-1234-5678-1234-56789abcdef2';
-        // const wlanCredentialsServiceUUID = '12345678-1234-5678-1234-56789abcdef2'
-        // const wlanStatusServiceUUID = '12345678-1234-5678-1234-56789abcdef3'
+        const wlanCredentialsServiceUUID = '12345678-1234-5678-1234-56789abcdef3'
 
         // I am using this here, so that the old brains are also visible.
 
@@ -183,26 +199,55 @@
             if (!device) {
                 await connectBluetooth()
             }
-            if (device && device.gatt.connected) {
-                console.log('Bluetooth device disconnected.');
-                // Send SSID and password to the BLE device
-                const ssid = localStorage.getItem('wifiSsid') || '';
-                const password = localStorage.getItem('wifiPassword') || '';
-                const credentialsService = await server.getPrimaryService(liveMessageServiceUUID);
-                const credentialsCharacteristic = await credentialsService.getCharacteristic(wlanCredentialsServiceUUID);
+            try{
+                if (device && device.gatt.connected) {
 
-                // Format: SSID and password separated by a null byte
-                const encoder = new TextEncoder();
-                const credentialsData = encoder.encode(`${ssid}\0${password}`);
-                await credentialsCharacteristic.writeValue(credentialsData);
-                console.log('Sent WiFi credentials over BLE.');
+                    statusLog('Connected to device, sending WLAN credentials...');
+
+                    // Send SSID and password to the BLE device
+                    const ssid = localStorage.getItem('wifiSsid') || '';
+                    const password = localStorage.getItem('wifiPassword') || '';
+
+                    const credentialsService = await server.getPrimaryService(revvyBleWlanServiceUUID);
+                    const credentialsCharacteristic = await credentialsService.getCharacteristic(wlanCredentialsServiceUUID);
+
+                    // Format: SSID and password separated by a null byte
+                    const encoder = new TextEncoder();
+                    const credentialsData = encoder.encode(`${ssid}\0${password}`);
+                    await credentialsCharacteristic.writeValue(credentialsData);
+                    statusLog('Sent WiFi credentials over BLE.');
+                }
+            } catch (err) {
+                console.error('Failed to send WLAN credentials:', err);
+                error(`Failed to send WLAN credentials.<br> ${err.message} <br>`)
             }
+        }
 
+        async function connectButton(){
+            await connectBluetooth();
+            if (device && device.gatt.connected) {
+                statusLog('Connected to device, getting IP address...');
+                await getIp()
+            }
+        }
+
+        async function getIp(){
+            statusLog('Getting IP address...');
+            const service = await server.getPrimaryService(revvyBleWlanServiceUUID);
+            const ipCharacteristic = await service.getCharacteristic(lanIpServiceUUID);
+            const ipEncoded = await ipCharacteristic.readValue();
+            const decoder = new TextDecoder('utf-8');
+            const ip = decoder.decode(ipEncoded);
+
+            statusLog(`Your RR Brain's IP is ${ip}, redirecting...`)
+
+            return ip
         }
 
         async function connectBluetooth() {
             if (connecting) return; // Prevent multiple clicks
             connecting = true;
+            document.getElementById('logo').classList.add('pulse-bg');
 
             document.getElementById('error').innerHTML = '';
 
@@ -210,54 +255,39 @@
                 document.getElementById('error').innerHTML = 'Bluetooth not supported in this browser.';
                 return;
             }
-            // try {
-                const device = await navigator.bluetooth.requestDevice({
-                    filters: [{services: ['d2d5558c-5b9d-11e9-8647-d663bd873d93']}],
-                    optionalServices: ['12345678-1234-5678-1234-56789abcdef0', '97148a03-5b9d-11e9-8647-d663bd873d93']
+            try {
+                statusLog('Connecting to the Brain...');
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{services: [liveMessageServiceUUID]}],
+                    optionalServices: [revvyBleWlanServiceUUID]
                 });
 
-
                 server = await device.gatt.connect();
-
-                // const services = await server.getPrimaryServices();
-                // console.log('Available services:');
-                // for (const svc of services) {
-                //     console.log(`Service UUID: ${svc.uuid}`);
-                // }
-
-                const service = await server.getPrimaryService('12345678-1234-5678-1234-56789abcdef0');
-                const characteristic = await service.getCharacteristic(lanIpServiceUUID);
-                const value = await characteristic.readValue();
-                const decoder = new TextDecoder('utf-8');
-                const ip = decoder.decode(value);
-
-                console.log('Robot IP Address:', ip);
-                document.getElementById('info').innerHTML = `Your RR Brain's IP is ${ip}, redirecting...`
-
-                if (ip){
-                    // window.location.href = `https://${ip}:8433?address=${ip}`;
-                    console.log('Redirecting to:', `http://${ip}:8000`);
-                    // await device.gatt.disconnect();
-                }
-                // if (device && device.name) {
-                //     window.location.href = `http://${device.name}-rr.local:8000`;
-                // }
-            // } catch (err) {
-            //     // User cancelled or error
-            //     console.error('Bluetooth connection failed:', err);
-            //     document.getElementById('error').innerHTML = `
-            //         <div style="color: red; font-size: 1.5rem; text-align: center;">
-            //             Failed to connect to Bluetooth device.<br>
-            //             Please ensure Bluetooth is enabled and try again.
-            //         </div>
-            //     `;
-            // }
-            // finally {
-            //     connecting = false;
-            // }
+            } catch (err) {
+                // User cancelled or error
+                console.error('Bluetooth connection failed:', err);
+                error(`Failed to connect to Bluetooth device.<br> ${err.message} <br>`)
+            }
+            finally {
+                connecting = false;
+                document.getElementById('logo').classList.remove('pulse-bg');
+            }
         }
 
-        document.getElementById('connectBtn').addEventListener('click', connectBluetooth);
+        function error(message){
+            document.getElementById('error').innerHTML = `
+                <div style="color: red; font-size: 1.5rem; text-align: center;">
+                    <strong>Error:</strong> ${message}
+                </div>
+            `;
+        }
+
+        function statusLog(message){
+            console.log(message);
+            document.getElementById('info').innerHTML = message
+        }
+
+        document.getElementById('connectBtn').addEventListener('click',  connectButton);
     </script>
 </body>
 </html>

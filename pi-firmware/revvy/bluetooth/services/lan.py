@@ -125,14 +125,14 @@ class LanAddressService(BleService):
         log("Initializing LAN Address Service")
 
         self._lan_ip_characteristic = LanIpCharacteristic("12345678-1234-5678-1234-56789abcdef2", b"LAN Info")
-        # self._wlan_credentials_characteristic = WlanCredentialsCharacteristic("12345678-1234-5678-1234-56789abcdef3", b"WLAN Credentials")
+        self._wlan_credentials_characteristic = WlanCredentialsCharacteristic("12345678-1234-5678-1234-56789abcdef3", b"WLAN Credentials")
         # self._network_status_characteristic = NetworkStatusCharacteristic("12345678-1234-5678-1234-56789abcdef4", b"Network Status")
 
         super().__init__(
             "12345678-1234-5678-1234-56789abcdef0",
             {
                 "lan_info": self._lan_ip_characteristic,
-                # "wlan_credentials": self._wlan_credentials_characteristic,
+                "wlan_credentials": self._wlan_credentials_characteristic,
                 # "network_status": self._network_status_characteristic,
             },
         )

@@ -93,8 +93,14 @@ class LiveMessageService(BlenoPrimaryService):
             self.validate_config_callback,
         )
 
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
         self._lan_ip_characteristic = LanIpCharacteristic(
             "12345678-1234-5678-1234-56789abcdef1", "LANAddress"
+        )
+
+        self._wlan_credentials_characteristic = WlanCredentialsCharacteristic(
+            "12345678-1234-5678-1234-56789abcdef4", b"WLAN Credentials"
         )
 
         # Bluetooth is a black magic box that seems to break in Rube Goldberg ways.
@@ -123,12 +129,8 @@ class LiveMessageService(BlenoPrimaryService):
         # to preserve your sanity.
 
 
-        # self._wlan_credentials_characteristic = WlanCredentialsCharacteristic(
-        #     "12345678-1234-5678-1234-56789abcdef2", b"WLAN Credentials"
-        # )
-
         # self._network_status_characteristic = NetworkStatusCharacteristic(
-        #     "12345678-1234-5678-1234-56789abcdef3", b"WLAN network status"
+        #     "12345678-1234-5678-1234-56789abcdef2", b"WLAN network status"
         # )
 
         super().__init__(
@@ -146,7 +148,7 @@ class LiveMessageService(BlenoPrimaryService):
                     self._program_status_characteristic,
                     self._error_reporting_characteristic,
                     self._lan_ip_characteristic,
-                    # self._wlan_credentials_characteristic,
+                    self._wlan_credentials_characteristic,
                     # self._network_status_characteristic
                 ],
             }
