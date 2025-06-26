@@ -3,8 +3,6 @@ from pybleno import BlenoPrimaryService
 from pybleno import Characteristic, Descriptor
 from revvy.bluetooth.services.ble import BleService
 
-# from revvy.bluetooth.ble_characteristics import BrainToMobileCharacteristic
-
 from revvy.utils.logger import get_logger
 
 log = get_logger("WLAN")
@@ -51,37 +49,6 @@ class LanIpCharacteristic(Characteristic):
             update_notified_value(self._value)
 
 
-class WlanCredentialsCharacteristic(Characteristic):
-    def __init__(self, uuid, description):
-        log("Initializing WLAN Credentials Characteristic")
-        super().__init__(
-            {
-                "uuid": uuid,
-                "properties": ["read", "write"],
-                "descriptors": [Descriptor({"uuid": "2901", "value": description})],
-            }
-        )
-        self._value = b""
-
-    def onReadRequest(self, offset, callback) -> None:
-        if offset:
-            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
-        else:
-            callback(
-                Characteristic.RESULT_SUCCESS,
-                self._value,
-            )
-    def onWriteRequest(self, data: bytes, offset, withoutResponse, callback) -> None:
-        if offset:
-            callback(Characteristic.RESULT_ATTR_NOT_LONG)
-        else:
-            try:
-                self._value = data
-                print(f"WLAN SSID Characteristic updated: {self._value.decode('utf-8')}")
-                callback(Characteristic.RESULT_SUCCESS)
-            except UnicodeDecodeError:
-                callback(Characteristic.RESULT_UNLIKELY_ERROR)
-
 
 class NetworkStatusCharacteristic(Characteristic):
     def __init__(self, uuid, description):
@@ -120,19 +87,58 @@ class NetworkStatusCharacteristic(Characteristic):
 
 
 
+class WlanCredentialsCharacteristic(Characteristic):
+    def __init__(self, uuid, description, network_status_characteristic: NetworkStatusCharacteristic):
+        log("Initializing WLAN Credentials Characteristic")
+        super().__init__(
+            {
+                "uuid": uuid,
+                "properties": ["read", "write"],
+                "descriptors": [Descriptor({"uuid": "2901", "value": description})],
+            }
+        )
+        self._value = b""
+        self._network_status_characteristic = network_status_characteristic
+
+    def onReadRequest(self, offset, callback) -> None:
+        if offset:
+            callback(Characteristic.RESULT_ATTR_NOT_LONG, None)
+        else:
+            callback(
+                Characteristic.RESULT_SUCCESS,
+                self._value,
+            )
+    def onWriteRequest(self, data: bytes, offset, withoutResponse, callback) -> None:
+        if offset:
+            callback(Characteristic.RESULT_ATTR_NOT_LONG)
+        else:
+            try:
+                self._value = data
+                ssid = self._value.decode('utf-8').split('\0')[0]
+                password = self._value.decode('utf-8').split('\0')[1] if '\0' in self._value.decode('utf-8') else ''
+                log(f"WLAN Credentials Received - SSID: {ssid}, Password: {password}")
+                callback(Characteristic.RESULT_SUCCESS)
+                if (self._network_status_characteristic is not None):
+                    log("Updating network status characteristic with WLAN credentials")
+                    self._network_status_characteristic.setStatus("Wifi Credentials Received for " + ssid)
+            except UnicodeDecodeError:
+                callback(Characteristic.RESULT_UNLIKELY_ERROR)
+
+
+
 class LanAddressService(BleService):
     def __init__(self):
         log("Initializing LAN Address Service")
 
         self._lan_ip_characteristic = LanIpCharacteristic("12345678-1234-5678-1234-56789abcdef2", b"LAN Info")
-        self._wlan_credentials_characteristic = WlanCredentialsCharacteristic("12345678-1234-5678-1234-56789abcdef3", b"WLAN Credentials")
-        # self._network_status_characteristic = NetworkStatusCharacteristic("12345678-1234-5678-1234-56789abcdef4", b"Network Status")
+        self._network_status_characteristic = NetworkStatusCharacteristic("12345678-1234-5678-1234-56789abcdef5", b"Network Status")
+        self._wlan_credentials_characteristic = WlanCredentialsCharacteristic("12345678-1234-5678-1234-56789abcdef3", b"WLAN Credentials", self._network_status_characteristic) # self._network_status_characteristic)
 
         super().__init__(
             "12345678-1234-5678-1234-56789abcdef0",
             {
                 "lan_info": self._lan_ip_characteristic,
                 "wlan_credentials": self._wlan_credentials_characteristic,
-                # "network_status": self._network_status_characteristic,
+                "network_status": self._network_status_characteristic,
             },
         )

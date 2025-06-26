@@ -99,10 +99,17 @@ class LiveMessageService(BlenoPrimaryService):
             "12345678-1234-5678-1234-56789abcdef1", "LANAddress"
         )
 
-        self._wlan_credentials_characteristic = WlanCredentialsCharacteristic(
-            "12345678-1234-5678-1234-56789abcdef4", b"WLAN Credentials"
+
+        self._network_status_characteristic = NetworkStatusCharacteristic(
+            "12345678-1234-5678-1234-56789abcdef6", b"WLAN network status"
         )
 
+        self._wlan_credentials_characteristic = WlanCredentialsCharacteristic(
+            "12345678-1234-5678-1234-56789abcdef4", b"WLAN Credentials", self._network_status_characteristic
+        )
+
+        # I:
+        #
         # Bluetooth is a black magic box that seems to break in Rube Goldberg ways.
         # If I do not load TWO LanIpCharacteristic - one here, one in
         # lan.py, it seems to break the actual service getting published, for
@@ -116,22 +123,60 @@ class LiveMessageService(BlenoPrimaryService):
         # I added in pybleno lib's low-level code show that it does,
         # but then the browser's BLE implementation does NOT see, if
         # it's published as a secondary service.
-        # I tried debugging with the bluetoothctl tool, where you can
+        # I tried debugging with the bluetoothctl tool
+        #
+        # bluetoothctl
+        # [bluetooth]# connect B8:27:EB:95:3F:EF  // Device address
+        # [bluetooth]# menu gatt
+        # [bluetooth]# list-attributes
+        #
+        # where you can
         # see that whether the service is primary or secondary,
         # and that's pretty much random, based on whether the above line
         # is in or not.
-        # Because WHY THE ACTUAL F. would someone do a STATEFUL BLE interface???
-        # At this point, I just want to lit it on fire and
-        # ban bluetooth from the world, but I guess we have to work with what I have
-        # with my AI friends.
+        #
+        # Whatever, I still have my AI friends.
 
         # A piece of advice: run and connect at EVERY SINGLE LINE CHANGE!
         # to preserve your sanity.
 
+        # II:
+        #
+        # I did not figure out WHY the above happens, but it seems if I do not init these
+        # characteristics here, seems like the other service does not get registered/published/
+        # gets lost and is not visible from the client webapp.
+        # In short: Upon adding a service into lan.py, you have to add it here as well,
+        # otherwise the service fails to load.
 
-        # self._network_status_characteristic = NetworkStatusCharacteristic(
-        #     "12345678-1234-5678-1234-56789abcdef2", b"WLAN network status"
-        # )
+        # III:
+        #
+        # My current suspicion is that there are plenty of bugs in the pybleno library,
+        # and one of it is that instead of throwing errors when I am trying to do something
+        # silly from BLE perspective, instead of throwing me "you're holding it wrong" errors
+        # it just silently fails, AND then breaks something completely unrelated.
+
+        # IV:
+        #
+        # Note to future adventurers who get here:
+        # on the client side, do keep resetting the cache (i.e. dev machine)
+        # as when you change the services, there seem to be a bug (at least in my linux distro)
+        # that not all services are being updated, especially when reloaded.
+        # Changing service features/characteristics on the same device is probably not default
+        # use-case, therefore they did not optimize for this scenario. Not great DX, but
+        # who likes to do "free corporate work" when there is a deadline?
+        # So do yourself a favor, and if something does not work,
+        # reset the cache (e.g. `sudo rm -rf /var/lib/bluetooth/D4:3B:04:0C:89:3C/cache/B8:27:EB:95:3F:EF`)
+        # (first address is the machine's address, second is the device - which you can just tab-tab
+        # (haha, you wish, you have to even sudo ls, because of course it has to be a root-only directory))
+
+        # V:
+        #
+        # If this was a book, this would be the resolution.
+        # But this is real life.
+        # There are no solutions, just hacks and workarounds, that keep things together
+        # with oily duck tape.
+        # If you figured it out, let me know.
+
 
         super().__init__(
             {
@@ -148,8 +193,8 @@ class LiveMessageService(BlenoPrimaryService):
                     self._program_status_characteristic,
                     self._error_reporting_characteristic,
                     self._lan_ip_characteristic,
-                    self._wlan_credentials_characteristic,
-                    # self._network_status_characteristic
+                    self._network_status_characteristic,
+                    self._wlan_credentials_characteristic
                 ],
             }
         )

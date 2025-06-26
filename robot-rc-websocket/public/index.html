@@ -187,11 +187,11 @@
         let device, server;
 
         const liveMessageServiceUUID = 'd2d5558c-5b9d-11e9-8647-d663bd873d93';
-        // const liveMessageServiceUUID = '97148a03-5b9d-11e9-8647-d663bd873d93';
 
         const revvyBleWlanServiceUUID = "12345678-1234-5678-1234-56789abcdef0";
         const lanIpServiceUUID = '12345678-1234-5678-1234-56789abcdef2';
         const wlanCredentialsServiceUUID = '12345678-1234-5678-1234-56789abcdef3'
+        const networkStatusCharacteristicUUID = '12345678-1234-5678-1234-56789abcdef5';
 
         // I am using this here, so that the old brains are also visible.
 
@@ -263,6 +263,8 @@
                 });
 
                 server = await device.gatt.connect();
+
+                await subscribeToNetworkStatusChanges();
             } catch (err) {
                 // User cancelled or error
                 console.error('Bluetooth connection failed:', err);
@@ -271,6 +273,27 @@
             finally {
                 connecting = false;
                 document.getElementById('logo').classList.remove('pulse-bg');
+            }
+        }
+
+        async function subscribeToNetworkStatusChanges(){
+            try{
+                const service = await server.getPrimaryService(revvyBleWlanServiceUUID);
+
+                // 3. Get the characteristic with notify
+                const characteristic = await service.getCharacteristic(networkStatusCharacteristicUUID);
+
+                // 4. Subscribe to notifications
+                await characteristic.startNotifications();
+                characteristic.addEventListener('characteristicvaluechanged', (event) => {
+                    const value = event.target.value;
+                    const decoder = new TextDecoder('utf-8');
+                    const status = decoder.decode(value);
+                    statusLog(`Network status changed: ${status}`);
+                });
+            }
+            catch (e){
+                error(`Failed to subscribe to network status changes.<br> ${e.message} <br>`);
             }
         }
 
