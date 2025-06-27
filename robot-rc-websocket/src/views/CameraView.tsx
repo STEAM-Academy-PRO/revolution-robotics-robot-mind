@@ -46,27 +46,38 @@ function CameraController(): {
     }
 }
 
-export function CameraView() {
+type CameraViewProps = {
+    children?: any;
+};
+
+export function CameraView(props: CameraViewProps) {
     const controller = CameraController()
 
     const cameraAddress = createMemo(() =>
-        conn() ? `http://${endpoint()}:8080/?action=stream` : ''
+        conn() ? `https://${endpoint()}:8083/?action=stream` : ''
     )
 
     return <>
+        <div class={styles.camera}>
+            <Show when={controller.state() === CameraState.connected}>
+                <img src={cameraAddress()} />
+            </Show>
+        </div>
+
+        <div class={styles.rest}>
+            {props.children}
+        </div>
+
         <div class={styles.cameraButtonWrapper}>
             <Show when={controller.state() === CameraState.offline && conn()}>
                 <button class={styles.cameraOn} onClick={controller.connect}>Camera ON</button>
             </Show>
             <Show when={controller.state() === CameraState.connected}>
-                <button class={styles.cameraOff} onClick={controller.disconnect}>Camera OFF</button>
+                <button class={styles.cameraOff} onClick={controller.disconnect}>X</button>
             </Show>
             <Show when={controller.state() === CameraState.connecting}>
                 <button disabled>Connecting</button>
             </Show>
         </div>
-        <Show when={controller.state() === CameraState.connected}>
-            <img class={styles.camera} src={cameraAddress()} />
-        </Show>
     </>
 }

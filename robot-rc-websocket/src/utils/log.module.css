@@ -17,7 +17,22 @@
 .log {
     background: var(--log-bg);
     padding: 10px;
-    height: 500px;
+    height: 60px;
     text-align: left;
     overflow-y: auto;
+    position: fixed;
+    bottom: 0;
+    width: calc( 100% - 20px );
+}
+
+.clearLog{
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--button-bg);
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 5px;
 }

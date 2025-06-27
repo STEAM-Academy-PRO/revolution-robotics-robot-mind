@@ -12,17 +12,16 @@ import { mapAnalogNormal, toByte } from "../utils/mapping";
 import { Joystick } from "../components/Joystick";
 import { CameraView } from "./CameraView";
 import { Log, log } from "../utils/log";
-import {
-  SensorType,
-  SensorTypeResolve,
-  currentConfig,
-} from "../utils/Config";
+import { SensorType, SensorTypeResolve, currentConfig } from "../utils/Config";
 import { uploadConfig } from "../utils/commands";
 import { ColorSensor, ColorSensorReading } from "../utils/ColorSensor";
 import { conn } from "../settings";
 
 import styles from "./Play.module.css";
-import { processVoiceCommandTranscript, SpeechRecognition } from "../utils/voice-command";
+import {
+  processVoiceCommandTranscript,
+  SpeechRecognition,
+} from "../utils/voice-command";
 import { Toast } from "./utils/Toast";
 
 const BUTTON_MAP_XBOX: { [id: number]: number } = {
@@ -99,9 +98,7 @@ export default function PlayView({
     conn()?.send(RobotMessage.run, command);
   };
 
-
-  if (SpeechRecognition){
-
+  if (SpeechRecognition) {
     const recognition = new SpeechRecognition();
     recognition.lang = "en-US";
     recognition.continuous = true; // or true for continuous listening
@@ -114,7 +111,6 @@ export default function PlayView({
       }
     }, [isListening]);
 
-
     recognition.onresult = (event: any) => {
       // console.log("AI RC recognition result:", event);
       let fullTranscript = "";
@@ -124,8 +120,8 @@ export default function PlayView({
       const lastCommand = event.results[event.results.length - 1][0].transcript;
 
       // Find last command:
-      setToast('🎤 ' + lastCommand);
-      log('🎤 ' + lastCommand)
+      setToast("🎤 " + lastCommand);
+      log("🎤 " + lastCommand);
       // console.log("Last command:", lastCommand);
       const pythonCode = processVoiceCommandTranscript(lastCommand);
       if (pythonCode) {
@@ -137,13 +133,17 @@ export default function PlayView({
     recognition.onerror = (event: any) => {
       console.error("Speech recognition error:", event);
       if (event.error === "audio-capture") {
-        setToast("Error: No microphone found. Try setting it under chrome://settings/content/microphone");
-        log("Error: No microphone found. Try setting it under chrome://settings/content/microphone");
+        setToast(
+          "Error: No microphone found. Try setting it under chrome://settings/content/microphone"
+        );
+        log(
+          "Error: No microphone found. Try setting it under chrome://settings/content/microphone"
+        );
       }
       setToast(`Error: ${event.error}`);
       log(`Error: ${event.error}`);
       setIsListening(false);
-    }
+    };
 
     recognition.onend = () => {
       console.log("Speech recognition ended");
@@ -152,13 +152,10 @@ export default function PlayView({
           if (isListening()) {
             recognition.start();
           }
-        }
-        , 100);
+        }, 100);
       }
     };
   }
-
-
 
   const BUFFER = 256;
   const turnaroundArray = new Array(BUFFER).fill(0);
@@ -185,7 +182,9 @@ export default function PlayView({
           setTimeout(() => sendControlMessage(), 10);
           break;
         case "orientation_change":
-          setOrientation(`X: ${data.data.a}\nY: ${data.data.c}\nZ: ${data.data.b}`);
+          setOrientation(
+            `X: ${data.data.a} Y: ${data.data.c} Z: ${data.data.b}`
+          );
           break;
         case "battery_change":
           setBattery(data.data);
@@ -224,7 +223,7 @@ export default function PlayView({
         case "error":
           break;
         case "run_confirm":
-          break
+          break;
         default:
           console.log(`[message] Data received from server: ${data.event}`);
       }
@@ -329,74 +328,76 @@ export default function PlayView({
 
   return (
     <div>
-      <Toast message={toast}></Toast>
-      <div class={styles.statuses}>
-        <span class={styles.status}>version: {version()}</span>
-        <span class={styles.status}>
-          orientation: <pre style={{margin: 0}} innerHTML={orientation()}></pre>
-        </span>
-        <span class={styles.status}>battery: {battery()?.join(" ")}</span>
-        {Object.keys(sensors()).map((sensorKey) => (
-          <span class={styles.status}>
-            <SensorView
-              type={SensorTypeResolve[sensors()[sensorKey].type]}
-              value={sensors()[sensorKey].value}
-            ></SensorView>
-          </span>
-        ))}
+      <CameraView>
+        <Toast message={toast}></Toast>
+        <div class={styles.playView}>
+          <div class={styles.statuses}>
+            <span class={styles.status}>version: {version()}</span>
+            <span class={styles.status}>
+              orientation:{" "}
+              <pre style={{ margin: 0 }} innerHTML={orientation()}></pre>
+            </span>
+            <span class={styles.status}>battery: {battery()?.join(" ")}</span>
+            {Object.keys(sensors()).map((sensorKey) => (
+              <span class={styles.status}>
+                <SensorView
+                  type={SensorTypeResolve[sensors()[sensorKey].type]}
+                  value={sensors()[sensorKey].value}
+                ></SensorView>
+              </span>
+            ))}
 
-        <span class={styles.status}>
-          <span> Turnaround: {turnaround()}ms </span>
-          <div
-            class={styles.error}
-            title="... meaning the message confirmations come back in the wrong order."
-          >
-            M. Order Error: <div>{orderError()}</div>
+            <span class={styles.status}>
+              <span> Turnaround: {turnaround()}ms </span>
+              <div
+                class={styles.error}
+                title="... meaning the message confirmations come back in the wrong order."
+              >
+                M. Order Error: <div>{orderError()}</div>
+              </div>
+            </span>
+
+            <span class={styles.status}>
+              <button
+                class={styles.listenButton}
+                classList={{ [styles.listening]: isListening() }}
+                onClick={() => {
+                  setIsListening(!isListening());
+                }}
+              >
+                <Show when={isListening()}>Stop Listening</Show>
+                <Show when={!isListening()}>Start Listening</Show>
+              </button>
+            </span>
+
+            <span class={styles.status}>
+              <Show when={isConnected()}>
+                Connected 🔌 <br />
+                {/* <div>ctrl: {controlSignal()}</div> */}
+              </Show>
+              <Show when={!isConnected()}>Disconnected 🚫</Show>
+
+              <Show when={conn()}>
+                <div>
+                  <button onClick={reUploadConfig}>RESTART</button>
+                </div>
+              </Show>
+            </span>
           </div>
-        </span>
-
-        <span class={styles.status}>
-          <button
-            class={styles.listenButton}
-            classList={{ [styles.listening]: isListening() }}
-            onClick={() => {
-              setIsListening(!isListening());
-            }}
-          >
-            <Show when={isListening()}>Stop Listening</Show>
-            <Show when={!isListening()}>Start Listening</Show>
-          </button>
-        </span>
-
-        <span class={styles.status}>
-          <Show when={isConnected()}>
-            Connected 🔌 <br />
-            {/* <div>ctrl: {controlSignal()}</div> */}
-          </Show>
-          <Show when={!isConnected()}>Disconnected 🚫</Show>
-
-          <Show when={conn()}>
-            <div>
-              <button onClick={reUploadConfig}>RESTART</button>
+          <div class={styles.controller}>
+            <div class={styles.joystick}>
+              <Joystick enabled={isConnected} position={position}></Joystick>
             </div>
-          </Show>
-        </span>
-
-      </div>
-      <div class={styles.controller}>
-        <div class={styles.joystick}>
-          <Joystick enabled={isConnected} position={position}></Joystick>
+            <div class={styles.placeholder}></div>
+            <div class={styles.controllerButtons}>
+              <Buttons list={buttons} />
+            </div>
+          </div>
+          {/* <div>
+            <Log />
+          </div> */}
         </div>
-        <div class={styles.placeholder}>
-          <CameraView />
-        </div>
-        <div class={styles.controllerButtons}>
-          <Buttons list={buttons} />
-        </div>
-      </div>
-      <div>
-        <Log />
-      </div>
+      </CameraView>
     </div>
   );
 }

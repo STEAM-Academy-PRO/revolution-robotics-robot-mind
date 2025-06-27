@@ -5,16 +5,54 @@
     width: 100%;
 }
 
+.playView{}
+
 .camera{
-    max-height: 600px;
-    max-width: 100%;
-    margin: 0 auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    z-index: 1;
+    object-fit: cover;
+    pointer-events: none;
+    background:rgba(23, 7, 40, 0.701)
 }
+.rest{
+    z-index: 100;
+    position: relative;
+    width: 100%;
+}
+.camera img{
+    width: 100vw;
+    height: 100vh;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.cameraOn{
+}
+.cameraOff{
+    border: 0;
+    background: rgba(67, 20, 116, 0.701);
+    color: white;
+}
+.cameraButtonWrapper{
+    position: fixed;
+    z-index: 300;
+    top:50%; left: calc( 50% - 50px ); width: 100px;
+    height: 100px;
+}
+
 .statuses{
     display: flex;
     flex-direction: row;
     margin-bottom: 30px;
     width: 100%;
+    font-size: x-small
 }
 .status{
     margin: 3px;
@@ -72,12 +110,6 @@
   .buttonRunning{ box-shadow: 0 0 0 4px rgba(57, 255, 57, 1); transition: all 0.1s ease; }
   .buttonError{ box-shadow: 0 0 0 4px rgba(255, 37, 37, 1); transition: all 0.1s ease; }
 
-.cameraOn{}
-.cameraOff{}
-.cameraButtonWrapper{
-    position: absolute;
-    top: 0px; left: 0px; width: 100%
-}
 
 .colorBox{
     display: block;
@@ -92,11 +124,11 @@
 }
 
 .listenButton {
+    font-size: xx-small;
     background: green;
     border-radius: 100px;
     padding: 10px 20px;
     color: white;
-    font-size: 16px;
     cursor: pointer;
     transition: background-color 0.3s ease;
 }

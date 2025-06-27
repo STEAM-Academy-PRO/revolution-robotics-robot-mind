@@ -42,6 +42,7 @@
   /* padding: 20px; */
   margin: 0 auto;
   position: relative;
+  height: 100vh;
 }
 
 ul{

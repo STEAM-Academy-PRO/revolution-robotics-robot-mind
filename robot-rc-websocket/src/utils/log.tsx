@@ -25,7 +25,7 @@ export const log = (msg: any, level: LogLevel = LogLevel.INFO) => {
 }
 
 export function Log() {
-  let logElement: HTMLDivElement;
+  let logElement!: HTMLDivElement;
   createEffect(() => {
     _log()
     if (logElement) {
@@ -34,10 +34,10 @@ export function Log() {
   })
 
   return <div>
-    <Show when={_log().length}>
-      <button onClick={() => clearLog()}>clear</button>
-    </Show>
     <div ref={logElement!} class={styles.log}>
+      <Show when={_log().length}>
+        <button onClick={() => clearLog()} class={styles.clearLog}>clear</button>
+      </Show>
       <For each={_log()}>{(entry) =>
         <div classList={{
           [styles.info]: entry.level === LogLevel.INFO,
