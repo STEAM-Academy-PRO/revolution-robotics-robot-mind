@@ -76,8 +76,29 @@ form {
     transition: background-color 0.3s, transform 0.2s;
     margin-top: 20px;
 }
+
+.connected{
+    background-color: #713fdd;
+}
+
+.btn2 {
+    background-color: transparent;
+    color: white;
+    border: 1px solid #713fdd;
+    padding: 10px 20px;
+    font-size: 1.2rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
 .btn:hover {
     background-color: #5a2bbf;
+    box-shadow: 0 0 20px #713fdd;
+}
+
+.btn2:hover {
+    background-color: #444;
     box-shadow: 0 0 20px #713fdd;
 }
 
@@ -109,6 +130,18 @@ form {
     margin-top: 20px;
     display: none;
 }
+
+#previous-wifi-access-point-buttons{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+#previous-wifi-access-point-buttons button {
+    margin-right: 10px;
+}
+
+.margin-top-40 { margin-top: 40px; }
 
 @keyframes pulse-bg {
     0% {

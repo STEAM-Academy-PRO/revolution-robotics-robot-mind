@@ -23,6 +23,7 @@
         <span id="manualConnectBtn" class="btn">
             Connect
         </span>
+
     </button>
 
     <!-- <div style="margin-top:2rem; display:flex; flex-direction:column; align-items:center;">
@@ -44,33 +45,41 @@
             Connect
         </button>
     </div> -->
+    <div id="lastBrain">
+
+    </div>
+
     <div class="form">
         <button class="btn first-time" id="firstTimeSetupBtn">
-            First time WIFI setup
+            WIFI setup
         </button>
-        <div class="toggle-container" id="toggleContainer">
-            <label>Configure wireless credentials on the Revolution Brain:</label>
-            <form onsubmit="return false;">
-                <input
-                    type="text"
-                    placeholder="e.g. Home WiFi"
-                    style="margin-top:1rem; padding:0.5rem 1rem;"
-                    id="wifiSsid"
-                >
-                <input
-                    type="password"
-                    placeholder="e.g. password123"
-                    style="margin-top:0.5rem; padding:0.5rem 1rem;"
-                    id="wifiPassword">
 
-                <button
-                    type="button"
-                    id="sendWifiBtn"
-                    class="btn"
+        <div class="toggle-container" id="toggleContainer">
+            <div id="previous-wifi-access-points"></div>
+            <div class="margin-top-40">
+                <form onsubmit="return false;">
+                    <label>Add new WiFi:</label>
+                    <input
+                        type="text"
+                        placeholder="e.g. Home WiFi"
+                        style="margin-top:1rem; padding:0.5rem 1rem;"
+                        id="wifiSsid"
                     >
-                    Send down WIFI credentials
-                </button>
-            </form>
+                    <input
+                        type="password"
+                        placeholder="e.g. password123"
+                        style="margin-top:0.5rem; padding:0.5rem 1rem;"
+                        id="wifiPassword">
+
+                    <button
+                        type="button"
+                        id="sendWifiBtn"
+                        class="btn"
+                        >
+                        Send down WIFI credentials
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
     <script src="rc-connector.js"></script>
