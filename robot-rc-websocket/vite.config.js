@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import solidPlugin from 'vite-plugin-solid';
 import { execSync } from 'child_process';
-// import devtools from 'solid-devtools/vite'
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   base: './',
@@ -12,6 +12,36 @@ export default defineConfig({
     */
     // devtools(),
     solidPlugin(),
+
+    VitePWA({
+      registerType: 'autoUpdate',
+      manifest: {
+        name: 'RR Remote',
+        short_name: 'RRRemote',
+        start_url: '.',
+        display: 'standalone',
+        background_color: '#000',
+        theme_color: '#000',
+        icons: [
+          {
+            src: 'icon-192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'icon-512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          }
+        ]
+      },
+      workbox: {
+        cleanupOutdatedCaches: true,
+        navigateFallback: 'index.html',
+        globPatterns: ['**/*.{js,css,html,png,svg,woff2}']
+      }
+    }),
+
     {
       name: 'copy-to-pi-firmware-static',
       closeBundle() {
