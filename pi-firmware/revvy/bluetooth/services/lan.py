@@ -1,5 +1,5 @@
 import socket
-import stat
+import threading
 import subprocess
 from time import sleep
 from pybleno import BlenoPrimaryService
@@ -8,8 +8,32 @@ from revvy.bluetooth.services.ble import BleService
 
 from revvy.utils.logger import get_logger
 
+IFACE = 'wlan0'
 
 log = get_logger("WLAN")
+
+def watch_ip_changes(callback):
+    """
+    Watch for changes in the IP address of the specified interface.
+    Calls the callback with the new IP address when it changes.
+    """
+
+    def watcher():
+        last_ip = ''
+        while True:
+            ip = get_local_ip()
+            if ip != "0.0.0.0":
+                if last_ip != ip:
+                    log(f"IP address changed: {last_ip} -> {ip}")
+                    last_ip = ip
+                    callback(ip)
+            else:
+                log("No valid IP address found, retrying...")
+            sleep(3)
+
+    t = threading.Thread(target=watcher, daemon=True)
+    t.start()
+    return watcher
 
 def get_local_ip():
     # Try to determine the local IP address by connecting to a public address (does not send packets)
@@ -24,6 +48,10 @@ def get_local_ip():
 def update_wifi_settings(ssid, password, statusCallback = lambda x: None):
     try:
         # Write credentials to wpa_supplicant.conf
+        # This is
+        #   ln -s /etc/wpa_supplicant/wpa_supplicant.conf /home/pi/network_config/wpa_supplicant.conf
+        # because the wpa_supplicant.conf file is not writable by the user by default.
+        # This way the script can update it without sudo.
         wpa_conf = '/home/pi/network_config/wpa_supplicant.conf'
 
         statusCallback(f"Updating WiFi settings for SSID: {ssid}")
@@ -39,20 +67,6 @@ def update_wifi_settings(ssid, password, statusCallback = lambda x: None):
         '''
 
         statusCallback(f"Updating WiFi settings for SSID: {ssid}")
-
-        # Backup old config
-        # try:
-        #     subprocess.run(['cp', wpa_conf, wpa_conf + '.bak'], check=True)
-        # except subprocess.CalledProcessError as e:
-        #     log(f"Failed to backup wpa_supplicant.conf: {e}")
-
-        # # Write new config
-        # statusCallback('Deleting old wpa_supplicant.conf...')
-        # try:
-        #     subprocess.run(['rm', '-f', wpa_conf], check=True)
-        # except subprocess.CalledProcessError as e:
-        #     log(f"Failed to delete old wpa_supplicant.conf: {e}")
-
         statusCallback('Writing new wpa_supplicant.conf...')
         with open(wpa_conf, 'w') as f:
             f.write(new_config)
@@ -60,11 +74,12 @@ def update_wifi_settings(ssid, password, statusCallback = lambda x: None):
         # Reload wpa_supplicant
         statusCallback("Reloading wpa_supplicant with new credentials...")
         subprocess.run(['sudo', 'wpa_cli', '-i', 'wlan0', 'reconfigure'], check=True)
-        # Optionally, bring interface down and up
-        statusCallback("Restarting wlan0 interface...")
-        subprocess.run(['sudo', 'ifdown', 'wlan0'], check=False)
-        statusCallback("Bringing wlan0 back up...")
-        subprocess.run(['sudo', 'ifup', 'wlan0'], check=False)
+
+        statusCallback("Bringing wlan0 down...")
+        subprocess.run(['sudo', 'ip', 'link', 'set', 'wlan0', 'down'], check=True)
+
+        statusCallback("Bringing wlan0 up...")
+        subprocess.run(['sudo', 'ip', 'link', 'set', 'wlan0', 'up'], check=True)
 
         # Check interface status
         statusCallback("Checking wlan0 interface status...")
@@ -107,7 +122,6 @@ class LanIpCharacteristic(Characteristic):
             }
         )
         self._value = get_local_ip().encode('utf-8')
-        log(f"LAN Info Characteristic initialized with IP: {self._value.decode('utf-8')}")
 
     def onReadRequest(self, offset, callback) -> None:
         self._value = get_local_ip().encode('utf-8')
@@ -118,8 +132,8 @@ class LanIpCharacteristic(Characteristic):
                 Characteristic.RESULT_SUCCESS,
                 self._value,
             )
-    def updateValue(self) -> None:
-        new_value = get_local_ip().encode('utf-8')
+    def updateValue(self, new_value) -> None:
+        new_value = new_value or get_local_ip()
         if new_value == self._value:
             return
 
@@ -127,7 +141,7 @@ class LanIpCharacteristic(Characteristic):
 
         update_notified_value = self.updateValueCallback
         if update_notified_value:
-            update_notified_value(self._value)
+            update_notified_value(self._value.encode('utf-8'))
 
 
 
@@ -140,7 +154,7 @@ class NetworkStatusCharacteristic(Characteristic):
                 "descriptors": [Descriptor({"uuid": "2901", "value": description})],
             }
         )
-        self._value = b"Disconnected"
+        self._value = b"Initializing..."
 
     def onReadRequest(self, offset, callback) -> None:
         if offset:
@@ -156,7 +170,7 @@ class NetworkStatusCharacteristic(Characteristic):
         if new_value == self._value:
             return
 
-        self._value = new_value
+        # self._value = new_value
 
         update_notified_value = self.updateValueCallback
         if update_notified_value:
@@ -202,15 +216,13 @@ class WlanCredentialsCharacteristic(Characteristic):
                 if (self._network_status_characteristic is not None):
                     log("Updating network status characteristic with WLAN credentials")
                     self._network_status_characteristic.setStatus("Wifi Credentials Received for " + ssid)
-                update_wifi_settings(ssid, password, statusCallback=self._network_status_characteristic.updateValue)
-                sleep(5)
-                ip = get_local_ip()
-                self._network_status_characteristic.setStatus(f"Connected to {ssid} with IP {ip}")
 
+                update_wifi_settings(ssid, password, statusCallback=self._network_status_characteristic.updateValue)
+
+                self._network_status_characteristic.setStatus(f"Connecting to {ssid}, waiting for IP")
 
             except UnicodeDecodeError:
                 callback(Characteristic.RESULT_UNLIKELY_ERROR)
-
 
 
 class LanAddressService(BleService):
@@ -220,6 +232,9 @@ class LanAddressService(BleService):
         self._lan_ip_characteristic = LanIpCharacteristic("12345678-1234-5678-1234-56789abcdef2", b"LAN Info")
         self._network_status_characteristic = NetworkStatusCharacteristic("12345678-1234-5678-1234-56789abcdef5", b"Network Status")
         self._wlan_credentials_characteristic = WlanCredentialsCharacteristic("12345678-1234-5678-1234-56789abcdef3", b"WLAN Credentials", self._network_status_characteristic) # self._network_status_characteristic)
+
+        # Start watching for IP changes and update the characteristic, let the user know if the wifi address changes.
+        watch_ip_changes(lambda addrs: self._lan_ip_characteristic.updateValue(addrs))
 
         super().__init__(
             "12345678-1234-5678-1234-56789abcdef0",
