@@ -90,3 +90,61 @@ SD Card write protection
 ------------------------
 
 [here](setup.md)
+
+
+Networking
+----------
+
+To enable BLE update for network settings, see `lan.py`, change `wpa_supplicant.conf`:
+
+```bash
+sudo rm /etc/wpa_supplicant/wpa_supplicant.conf
+sudo ln -s /etc/wpa_supplicant/wpa_supplicant.conf /home/pi/network_config/wpa_supplicant.conf
+```
+
+If you get operation not permitted errors when trying to start the bluetooth advertising,
+or setting local network preferences, try this:
+
+```bash
+sudo setcap 'cap_net_admin,cap_net_raw=eip' /usr/bin/python3.9
+```
+
+For fixing the internet certs: `sudo timedatectl set-ntp true` -> updates the current clock
+
+For dev support `pip3 install flask`
+
+Bonjour
+-------
+
+Append `/bin/serial.sh`
+
+```bash
+
+# Get the CPU serial
+HOSTNAME="${SERIAL}-rr"
+
+# Set the hostname
+sudo hostnamectl set-hostname "$HOSTNAME"
+
+# Update /etc/hosts
+sudo sed -i "s/127.0.1.1.*/127.0.1.1\t$HOSTNAME/" /etc/hosts
+
+# Set up Avahi service (optional, announce HTTP on port 80)
+sudo tee /etc/avahi/services/http.service > /dev/null <<EOF
+<?xml version="1.0" standalone='no'?>
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<service-group>
+  <name replace-wildcards="yes">%h Web Server</name>
+  <service>
+    <type>_http._tcp</type>
+    <port>80</port>
+  </service>
+</service-group>
+EOF
+
+echo "✅ Hostname set to $HOSTNAME. Accessible via http://$HOSTNAME.local"
+
+```
+
+Generate dummy certificates into `/home/pi/cert/`:
+
