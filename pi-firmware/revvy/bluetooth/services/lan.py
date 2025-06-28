@@ -7,6 +7,8 @@ from pybleno import Characteristic, Descriptor
 from revvy.bluetooth.services.ble import BleService
 
 from revvy.utils.logger import get_logger
+import fcntl
+import struct
 
 IFACE = 'wlan0'
 
@@ -36,22 +38,23 @@ def watch_ip_changes(callback):
     return watcher
 
 def get_local_ip():
-    # Try to determine the local IP address by connecting to a public address (does not send packets)
+    # Get the IP address assigned to wlan0 interface only
+
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            # The IP doesn't need to be reachable; no packets are sent
-            s.connect(("8.8.8.8", 80))
-            return s.getsockname()[0]
+        iface = IFACE.encode('utf-8')
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        ip = fcntl.ioctl(
+            s.fileno(),
+            0x8915,  # SIOCGIFADDR
+            struct.pack('256s', iface[:15])
+        )[20:24]
+        return socket.inet_ntoa(ip)
     except Exception:
         return '0.0.0.0'
 
 def update_wifi_settings(ssid, password, statusCallback = lambda x: None):
     try:
         # Write credentials to wpa_supplicant.conf
-        # This is
-        #   ln -s /etc/wpa_supplicant/wpa_supplicant.conf /home/pi/network_config/wpa_supplicant.conf
-        # because the wpa_supplicant.conf file is not writable by the user by default.
-        # This way the script can update it without sudo.
         wpa_conf = '/home/pi/network_config/wpa_supplicant.conf'
 
         statusCallback(f"Updating WiFi settings for SSID: {ssid}")
@@ -68,18 +71,42 @@ def update_wifi_settings(ssid, password, statusCallback = lambda x: None):
 
         statusCallback(f"Updating WiFi settings for SSID: {ssid}")
         statusCallback('Writing new wpa_supplicant.conf...')
-        with open(wpa_conf, 'w') as f:
-            f.write(new_config)
+        try:
+            with open(wpa_conf, 'w') as f:
+                f.write(new_config)
+        except PermissionError as e:
+            log(f"Permission denied while writing wpa_supplicant.conf: {e}")
+            statusCallback(f"Permission denied: {e}")
+            return False, f"Permission denied: {e}"
+        except Exception as e:
+            log(f"Error writing wpa_supplicant.conf: {e}")
+            statusCallback(f"Error writing wpa_supplicant.conf: {e}")
+            return False, f"Error writing wpa_supplicant.conf: {e}"
 
         # Reload wpa_supplicant
         statusCallback("Reloading wpa_supplicant with new credentials...")
-        subprocess.run(['sudo', 'wpa_cli', '-i', 'wlan0', 'reconfigure'], check=True)
+        try:
+            subprocess.run(['sudo', 'wpa_cli', '-i', 'wlan0', 'reconfigure'], check=True)
+        except subprocess.CalledProcessError as e:
+            log(f"Failed to reload wpa_supplicant: {e}")
+            statusCallback(f"Failed to reload wpa_supplicant: {e}")
+            return False, f"Failed to reload wpa_supplicant: {e}"
 
         statusCallback("Bringing wlan0 down...")
-        subprocess.run(['sudo', 'ip', 'link', 'set', 'wlan0', 'down'], check=True)
+        try:
+            subprocess.run(['sudo', 'ip', 'link', 'set', 'wlan0', 'down'], check=True)
+        except subprocess.CalledProcessError as e:
+            log(f"Failed to bring wlan0 down: {e}")
+            statusCallback(f"Failed to bring wlan0 down: {e}")
+            return False, f"Failed to bring wlan0 down: {e}"
 
         statusCallback("Bringing wlan0 up...")
-        subprocess.run(['sudo', 'ip', 'link', 'set', 'wlan0', 'up'], check=True)
+        try:
+            subprocess.run(['sudo', 'ip', 'link', 'set', 'wlan0', 'up'], check=True)
+        except subprocess.CalledProcessError as e:
+            log(f"Failed to bring wlan0 up: {e}")
+            statusCallback(f"Failed to bring wlan0 up: {e}")
+            return False, f"Failed to bring wlan0 up: {e}"
 
         # Check interface status
         statusCallback("Checking wlan0 interface status...")
@@ -88,26 +115,34 @@ def update_wifi_settings(ssid, password, statusCallback = lambda x: None):
             output = result.stdout
             if "ESSID:off/any" in output or "Not-Associated" in output:
                 statusCallback("Failed to connect: Interface not associated with any network.")
+                log("Failed to connect: Interface not associated with any network.")
                 return False, "Failed to connect: Interface not associated with any network."
             elif "Access Point: Not-Associated" in output:
                 statusCallback("Failed to connect: No access point found.")
+                log("Failed to connect: No access point found.")
                 return False, "Failed to connect: No access point found."
             elif "Encryption key:off" in output:
                 statusCallback("Failed to connect: Encryption key is off.")
+                log("Failed to connect: Encryption key is off.")
                 return False, "Failed to connect: Encryption key is off."
             elif "Invalid" in output or "failed" in output.lower():
                 statusCallback("Failed to connect: Invalid credentials or connection failure.")
+                log("Failed to connect: Invalid credentials or connection failure.")
                 return False, "Failed to connect: Invalid credentials or connection failure."
             elif "ESSID" in output and ssid in output:
                 statusCallback(f"Successfully connected to {ssid}.")
+                log(f"Successfully connected to {ssid}.")
             else:
                 statusCallback("Connection status unclear, please check manually.")
+                log("Connection status unclear, please check manually.")
                 return True, f"Successfully connected to {ssid}."
         except subprocess.CalledProcessError as e:
             statusCallback(f"Failed to get interface status: {e}")
+            log(f"Failed to get interface status: {e}")
             return False, f"Failed to get interface status: {e}"
     except Exception as e:
         statusCallback(f"Error updating WiFi settings: {e}")
+        log(f"Error updating WiFi settings: {e}")
         return False, f"Failed to update WiFi: {e}"
 
 

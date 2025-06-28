@@ -148,3 +148,74 @@ echo "✅ Hostname set to $HOSTNAME. Accessible via http://$HOSTNAME.local"
 
 Generate dummy certificates into `/home/pi/cert/`:
 
+### serial.sh networking update
+
+- With: bonjour config with name `[robot-cpu-ID]-rr`
+- Auto cert generation if does not exist
+- Relink `wpa_supplicant.conf` - from boot to `/home/pi/network_config/wpa_supplicant.conf` so the script can update it
+- Dummy fix logging for nginx so we can wrap the webcam's stream into SSL
+
+
+```bash
+#!/usr/bin/sh
+
+SERIAL=`cat /proc/cpuinfo | sed -n 's/Serial[^0]*0*//p'`
+QR=`/usr/bin/qrencode -t ANSI -m 2 "${SERIAL}"`
+
+CPU_ID=$(awk '/Serial/ {print $3}' /proc/cpuinfo | tail -c 9)
+HOSTNAME="${CPU_ID}-rr"
+
+# --- UPDATE HOSTNAME ---
+sudo hostnamectl set-hostname "$HOSTNAME"
+echo "Serial number:\n${QR}" > /etc/issue
+sudo sed -i "s/127.0.1.1.*/127.0.1.1\t$HOSTNAME/" /etc/hosts
+
+# --- BONJOUR CONFIG ---
+
+# Set up Avahi service (optional, announce HTTP on port 80)
+sudo tee /etc/avahi/services/http.service > /dev/null <<EOF
+<?xml version="1.0" standalone='no'?>
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<service-group>
+  <name replace-wildcards="yes">%h Web Server</name>
+  <service>
+    <type>_http._tcp</type>
+    <port>80</port>
+  </service>
+</service-group>
+EOF
+
+echo "✅ Hostname set to $HOSTNAME. Accessible via http://$HOSTNAME.local"
+
+# --- CERT CREATION IF NOT EXISTS ---
+CERT_DIR="/home/pi/cert"
+if [ ! -d "$CERT_DIR" ]; then
+  mkdir -p "$CERT_DIR"
+  openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
+    -keyout "$CERT_DIR/key.pem" \
+    -out "$CERT_DIR/cert.pem" \
+    -subj "/CN=${HOSTNAME}.local"
+  echo "🔐 Self-signed certificate generated at $CERT_DIR for CN=${HOSTNAME}.local"
+  sudo chown -R pi:pi "$CERT_DIR"
+fi
+
+# --- NGINX LOG FIX ---
+sudo mkdir -p /var/lib/nginx/body
+sudo mkdir -p /var/log/nginx
+sudo systemctl start nginx
+```
+
+One time setup for `wpa_supplicant.conf`
+----------------------------------------
+
+```bash
+sudo rm /etc/wpa_supplicant/wpa_supplicant.conf
+sudo chmod 666 /etc/wpa_supplicant
+touch /etc/wpa_supplicant/wpa_supplicant.conf
+mkdir /home/pi/network_config
+ln -s /etc/wpa_supplicant/wpa_supplicant.conf /home/pi/network_config/wpa_supplicant.conf
+```
+
+Then fill up the wpa_supplicant with the content of your wifi credentials (see above at [[How to enable Wifi]])
+
+
