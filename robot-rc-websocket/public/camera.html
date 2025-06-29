@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Detection</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #000;
+            color: #fff;
+        }
+        video, canvas {
+            border: 2px solid #00FFFF;
+            margin-top: 20px;
+            position: absolute;
+            top: 0; left: 0;
+        }
+        .wrapper{ position: relative;}
+    </style>
+</head>
+<body>
+    <h1>Camera Object Detection</h1>
+    <div class="wrapper">
+        <video id="webcam" autoplay playsinline width="640" height="480"></video>
+        <canvas id="canvas" width="640" height="480"></canvas>
+    </div>
+    <script>
+    let model;
+
+    async function setupCamera() {
+        const webcam = document.getElementById('webcam');
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        webcam.srcObject = stream;
+
+        return new Promise(resolve => {
+            webcam.onloadedmetadata = () => {
+            resolve(webcam);
+            };
+        });
+    }
+
+    async function detectFrame(video, model) {
+        const predictions = await model.detect(video);
+        drawPredictions(predictions);
+        requestAnimationFrame(() => detectFrame(video, model));
+    }
+
+    function drawPredictions(predictions) {
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+        predictions.forEach(prediction => {
+            ctx.strokeStyle = "#00FFFF";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(...prediction.bbox);
+            ctx.font = "16px sans-serif";
+            ctx.fillStyle = "#00FFFF";
+            ctx.fillText(prediction.class, prediction.bbox[0], prediction.bbox[1] > 10 ? prediction.bbox[1] - 5 : 10);
+        });
+    }
+
+    async function run() {
+    const video = await setupCamera();
+    video.play();
+    model = await cocoSsd.load();
+    detectFrame(video, model);
+    }
+
+    run();
+    </script>
+</html>

@@ -2,6 +2,7 @@ import { Accessor, Show, createMemo, createSignal } from "solid-js"
 import { RobotMessage, WSEventType } from "../utils/Communicator"
 import styles from './Play.module.css'
 import { conn, endpoint } from "../settings"
+import ObjectDetector from "./ai/ObjectDetectorStream"
 
 
 enum CameraState {
@@ -42,7 +43,6 @@ function CameraController(): {
                 setState(CameraState.offline)
             }
         }
-
     }
 }
 
@@ -53,14 +53,28 @@ type CameraViewProps = {
 export function CameraView(props: CameraViewProps) {
     const controller = CameraController()
 
-    const cameraAddress = createMemo(() =>
-        conn() ? `https://${endpoint()}:8083/?action=stream` : ''
-    )
+    const [doDetect, setDoDetect] = createSignal(false)
+
+    const cameraAddress = createMemo(() =>{
+        if (conn()){
+            if (location.protocol === 'https:') {
+                return `https://${endpoint()}:8083/?action=stream`
+            } else {
+                return `http://${endpoint()}:8080/?action=stream`
+            }
+        }
+        return ''
+    })
+
+    const togglObjectDetection = () => {
+        setDoDetect(!doDetect())
+    }
 
     return <>
         <div class={styles.camera}>
             <Show when={controller.state() === CameraState.connected}>
-                <img src={cameraAddress()} />
+                {/* <img src={cameraAddress()} /> */}
+                <ObjectDetector src={cameraAddress()} doDetect={doDetect}></ObjectDetector>
             </Show>
         </div>
 
@@ -74,7 +88,13 @@ export function CameraView(props: CameraViewProps) {
             </Show>
             <Show when={controller.state() === CameraState.connected}>
                 <button class={styles.cameraOff} onClick={controller.disconnect}>X</button>
+                <br/>
+                <button class={styles.doDetect} onClick={togglObjectDetection}>
+                    {doDetect() ? 'XX' : '🤖'}
+                </button>
+
             </Show>
+
             <Show when={controller.state() === CameraState.connecting}>
                 <button disabled>Connecting</button>
             </Show>

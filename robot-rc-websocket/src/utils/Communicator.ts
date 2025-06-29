@@ -113,6 +113,7 @@ export function connectToRobot() {
             case 'camera_stopped': break
             case 'sensor_value_change': break
             case 'control_confirm': break
+            case 'controller_lost': break
             case 'run_confirm': break
             case 'error':
                 let type = ''
