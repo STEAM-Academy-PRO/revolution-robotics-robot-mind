@@ -13,7 +13,7 @@ log = get_logger("Camera")
 # Installation instructions: camera.md
 
 STREAMER_FOLDER = "/home/pi/mjpg-streamer/mjpg-streamer-experimental/"
-STREAMER_COMMAND = 'mjpg_streamer -o "output_http.so -w ./www" -i "input_uvc.so -r 1280x960 -f 30"'
+STREAMER_COMMAND = 'mjpg_streamer -o "output_http.so -w ./www" -i "input_uvc.so -r 640x480 -f 30"'
 
 
 class Camera:
