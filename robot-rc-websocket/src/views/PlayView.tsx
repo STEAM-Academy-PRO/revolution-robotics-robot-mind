@@ -71,9 +71,10 @@ export default function PlayView({
   const reUploadConfig = () => {
     console.log(currentConfig());
     uploadConfig(conn(), currentConfig());
-    setIsConnected(true);
+    // setIsConnected(true);
     sendControlMessage();
   };
+
 
   window.addEventListener("gamepadconnected", (event) => {
     log("✅ 🎮 A gamepad was connected");
@@ -200,7 +201,9 @@ export default function PlayView({
           buttons[data.data[0]].setStatus(data.data[1]);
           break;
         case "controller_lost":
-          setIsConnected(false);
+          if (isConnected()){
+            reUploadConfig()
+          }
           break;
         case "sensor_value_change":
           const sensorId = data.data.port_id + 1;
@@ -379,7 +382,7 @@ export default function PlayView({
 
               <Show when={conn()}>
                 <div>
-                  <button onClick={reUploadConfig}>RESTART</button>
+                  <button onClick={()=>setIsConnected(!isConnected())}>RESTART</button>
                 </div>
               </Show>
             </span>
