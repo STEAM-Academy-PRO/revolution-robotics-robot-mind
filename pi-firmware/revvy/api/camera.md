@@ -11,7 +11,7 @@ sudo touch /var/lib/dpkg/status
 
 Install dependencies:
 ```bash
-sudo apt install -y raspberrypi-kernel git gcc g++ cmake libjpeg62-turbo-dev git libuvc-dev v4l-utils nginx
+sudo apt install -y raspberrypi-kernel git gcc g++ cmake libjpeg62-turbo-dev libuvc-dev v4l-utils nginx
 ```
 
 For now, our kernel does not load UVCWebcam module, as we do not have it in production.
