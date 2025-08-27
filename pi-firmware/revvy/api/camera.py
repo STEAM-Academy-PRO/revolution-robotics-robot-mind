@@ -11,9 +11,13 @@ from revvy.utils.logger import LogLevel, get_logger
 log = get_logger("Camera")
 
 # Installation instructions: camera.md
+RESOLUTION_VGA="640x480"
+RESOLUTION_LOW="320x240"
+FPS_HIGH="30"
+FPS_LOW="15"
 
 STREAMER_FOLDER = "/home/pi/mjpg-streamer/mjpg-streamer-experimental/"
-STREAMER_COMMAND = 'mjpg_streamer -o "output_http.so -w ./www" -i "input_uvc.so -r 640x480 -f 30"'
+STREAMER_COMMAND = f'mjpg_streamer -o "output_http.so -w ./www" -i "input_uvc.so -r {RESOLUTION_LOW} -f {FPS_LOW}"'
 
 
 class Camera:
