@@ -63,6 +63,7 @@ function BlocklyAIView() {
           recognition.start();
         } else {
           recognition.stop();
+          setText('');
         }
       }
     }, [isListening]);
@@ -196,6 +197,7 @@ function BlocklyAIView() {
           setIsPromptEditorOpen(false);
           if (!isListening()) {
             onInputChanged();
+            recognition.stop()
             console.log("AI RC listening stopped");
           } else {
             console.log("AI RC listening started");
