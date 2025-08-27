@@ -3,9 +3,6 @@ import * as cocoSsd from '@tensorflow-models/coco-ssd';
 import '@tensorflow/tfjs';
 import { Accessor, createEffect, createSignal, onCleanup } from 'solid-js';
 
-import ObjectDetectorWorker from './object-detector.worker?worker';
-import { useImageReady } from '../utils/useImageReady';
-import { Position } from '../../utils/Position';
 
 
 type Props = {
@@ -22,13 +19,11 @@ export default function ObjectDetector(props: Props) {
 
   const [modelLoading, setModelLoading] = createSignal(false);
   let model: cocoSsd.ObjectDetection | null = null;
-  let intervalId: number;
 
   const loadModel = async () => {
     setModelLoading(true);
     return await cocoSsd.load().then((loadedModel: cocoSsd.ObjectDetection) => {
       model = loadedModel;
-      
     });
   }
 
