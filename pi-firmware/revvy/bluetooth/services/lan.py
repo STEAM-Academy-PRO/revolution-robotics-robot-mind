@@ -17,7 +17,7 @@ log = get_logger("WLAN")
 def watch_ip_changes(callback):
     """
     Watch for changes in the IP address of the specified interface.
-    Calls the callback with the new IP address when it changes.
+    Calls the callback every 3 seconds with the current IP, if valid
     """
 
     def watcher():
@@ -28,9 +28,10 @@ def watch_ip_changes(callback):
                 if last_ip != ip:
                     log(f"IP address changed: {last_ip} -> {ip}")
                     last_ip = ip
-                    callback(ip)
+                callback(ip)
             else:
                 log("No valid IP address found, retrying...")
+
             sleep(3)
 
     t = threading.Thread(target=watcher, daemon=True)
@@ -59,15 +60,15 @@ def update_wifi_settings(ssid, password, statusCallback = lambda x: None):
 
         statusCallback(f"Updating WiFi settings for SSID: {ssid}")
         new_config = f'''
-        ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-        update_config=1
-        country=US
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=US
 
-        network={{
-            ssid="{ssid}"
-            psk="{password}"
-        }}
-        '''
+network={{
+   ssid="{ssid}"
+   psk="{password}"
+}}
+'''
 
         statusCallback(f"Updating WiFi settings for SSID: {ssid}")
         statusCallback('Writing new wpa_supplicant.conf...')
@@ -268,8 +269,12 @@ class LanAddressService(BleService):
         self._network_status_characteristic = NetworkStatusCharacteristic("12345678-1234-5678-1234-56789abcdef5", b"Network Status")
         self._wlan_credentials_characteristic = WlanCredentialsCharacteristic("12345678-1234-5678-1234-56789abcdef3", b"WLAN Credentials", self._network_status_characteristic) # self._network_status_characteristic)
 
+        def send_ip_status(addrs):
+            # log(f"Ip associated: {addrs} - notifying ble")
+            self._lan_ip_characteristic.updateValue(addrs)
+
         # Start watching for IP changes and update the characteristic, let the user know if the wifi address changes.
-        watch_ip_changes(lambda addrs: self._lan_ip_characteristic.updateValue(addrs))
+        watch_ip_changes(send_ip_status)
 
         super().__init__(
             "12345678-1234-5678-1234-56789abcdef0",
