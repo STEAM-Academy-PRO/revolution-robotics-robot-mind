@@ -17,7 +17,7 @@ FPS_HIGH="30"
 FPS_LOW="15"
 
 STREAMER_FOLDER = "/home/pi/mjpg-streamer/mjpg-streamer-experimental/"
-STREAMER_COMMAND = f'mjpg_streamer -o "output_http.so -w ./www" -i "input_uvc.so -r {RESOLUTION_LOW} -f {FPS_LOW}"'
+STREAMER_COMMAND = 'mjpg_streamer -o "output_http.so -w ./www"'
 
 
 class Camera:
@@ -48,9 +48,38 @@ class Camera:
         except Exception:
             pass
 
+    def list_devices(self):
+        try:
+            # run with check=False so non-zero exit codes won't raise exceptions
+            result = subprocess.run(
+                ["v4l2-ctl", "--list-devices"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                text=True,
+                check=False
+            )
+            return result.stdout.strip()
+        except FileNotFoundError:
+            return "v4l2-ctl not found. Please install v4l-utils."
+
+    def find_webcam_device(self) -> None:
+
+        # Get the latest device that is a webcam
+        device_list = self.list_devices()
+        device_list = [line.strip() for line in device_list.split('\n') if 'video' in line]
+        if not device_list:
+            log('No webcam found')
+            return None
+        return device_list[0]
+
     def _run_bash_camera_script(self) -> None:
 
-        log(STREAMER_COMMAND)
+        # Get the latest device that is a webcam
+        device = self.find_webcam_device()
+
+        CURRENT_STREAMER_COMMAND = f'{STREAMER_COMMAND} -i "input_uvc.so --device {device} -r {RESOLUTION_LOW} -f {FPS_LOW}"'
+
+        log(CURRENT_STREAMER_COMMAND)
 
         self._stop()
 
@@ -59,7 +88,7 @@ class Camera:
         modprobe.wait()
 
         self._process = subprocess.Popen(
-            STREAMER_COMMAND,
+            CURRENT_STREAMER_COMMAND,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
