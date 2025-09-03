@@ -231,6 +231,12 @@ class MotorPortWrapper(Wrapper):
         self._pos_offset = val - self._motor.driver.pos
         self._log(f"setting position offset to {self._pos_offset}")
 
+    # This is a test. It works really crappy, but it's a demo.
+    # Motor movement in servo mode should be much more sophisticated and debounced.
+    def servo(self, angle: int) -> None:
+        self._log("servo")
+        self._motor.driver.set_position(angle)
+
     def move(self, direction, amount, unit_amount, limit, unit_limit) -> None:
         self._log("move")
 

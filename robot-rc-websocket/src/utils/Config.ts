@@ -9,6 +9,8 @@ import { conn } from "../settings"
 export enum DriveMode {
     drive_joystick = 'drive_joystick',
     drive_2sticks = 'drive_2sticks',
+    drive_4sticks = 'drive_4sticks',
+    drive_4sticks_b = 'drive_4sticks_b',
     custom = 'custom'
 }
 
@@ -133,7 +135,7 @@ function createPredefinedDriveBlocklyItem(mode: DriveMode, pythonCode?: string):
     const ret: BlocklyItem = {
         assignments: {
             analog: [{
-                channels: [0, 1],
+                channels: [0, 1, 2, 3],
                 priority: 0
             }]
         }
