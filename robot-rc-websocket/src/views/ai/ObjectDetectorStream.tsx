@@ -1,7 +1,7 @@
 
 import * as cocoSsd from '@tensorflow-models/coco-ssd';
 import '@tensorflow/tfjs';
-import { Accessor, createEffect, createSignal, onCleanup } from 'solid-js';
+import { Accessor, createEffect, createSignal, onCleanup, Show } from 'solid-js';
 
 
 
@@ -16,9 +16,40 @@ type Props = {
 export default function ObjectDetector(props: Props) {
   let imgRef: HTMLImageElement | undefined;
   let canvasRef: HTMLCanvasElement | undefined;
+  let containerRef: HTMLDivElement | undefined;
 
   const [modelLoading, setModelLoading] = createSignal(false);
   let model: cocoSsd.ObjectDetection | null = null;
+
+  const [width, setWidth] = createSignal(640);
+  const [height, setHeight] = createSignal(480);
+  const [top, setTop] = createSignal(0);
+  const [left, setLeft] = createSignal(0);
+
+  const measure = () => {
+    if (!imgRef || !containerRef) return;
+    const rect = imgRef.getBoundingClientRect();
+    const containerRect = containerRef.getBoundingClientRect();
+    setWidth(Math.round(rect.width));
+    setHeight(Math.round(rect.height));
+    setTop(Math.round(rect.top - containerRect.top));
+    setLeft(Math.round(rect.left - containerRect.left));
+    // Ensure canvas drawing buffer matches CSS size
+    if (canvasRef) {
+      canvasRef.width = Math.round(rect.width);
+      canvasRef.height = Math.round(rect.height);
+    }
+  };
+
+  createEffect(() => {
+    // Measure when refs exist
+    if (imgRef && containerRef) measure();
+  });
+
+  // Recalculate on window resize
+  const onResize = () => measure();
+  window.addEventListener('resize', onResize);
+  onCleanup(() => window.removeEventListener('resize', onResize));
 
   const loadModel = async () => {
     setModelLoading(true);
@@ -46,8 +77,6 @@ export default function ObjectDetector(props: Props) {
 
   const detect = async () => {
     if (!imgRef || !canvasRef || !model) return;
-
-    console.log('detect')
 
     const predictions = await model.detect(imgRef);
 
@@ -77,15 +106,21 @@ export default function ObjectDetector(props: Props) {
   return (
     <div style={{ display: 'flex',
     'justify-content': 'center', 'align-items': 'center', width: '100%', height: '100%' }}>
-      <div style={{ position: 'relative', width: '640px', height: '480px' }}>
+      <div ref={containerRef} style={{ position: 'relative', 'height': '100%', 'width': '100%'}}>
+        <div style={{position: 'absolute', top: 0, left: 0, width: '100%', 'max-height': '100vh', 'background-color': 'rgba(255, 0, 0, 0.1)'}}></div>
         <img
           ref={imgRef}
           src={props.src}
-          width="640"
-          height="480"
           crossorigin="anonymous"
+          style={{ height: 'calc(100vh - 60px)', width: 'auto', 'object-fit': 'contain', 'margin-top': '60px' }}
+          onLoad={measure}
         />
-        <canvas ref={canvasRef} width="640" height="480" style={{position: 'absolute', top: 0, left: 0}} />
+        <Show when={props.doDetect()}>
+          <canvas
+            ref={canvasRef}
+            style={{ position: 'absolute', top: `${top()}px`, left: `${left()}px`, width: `${width()}px`, height: `${height()}px`, 'pointer-events': 'none' }}
+          />
+        </Show>
         {modelLoading() && <div>Loading model…</div>}
       </div>
     </div>
