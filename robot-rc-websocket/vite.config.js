@@ -38,7 +38,9 @@ export default defineConfig({
       workbox: {
         cleanupOutdatedCaches: true,
         navigateFallback: 'index.html',
-        globPatterns: ['**/*.{js,css,html,png,svg,woff2}']
+        globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
+        // Increase default 2 MiB limit to allow our bundle to be precached
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
       }
     }),
 
