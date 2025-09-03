@@ -66,7 +66,8 @@ function CodeView() {
     updatedPrograms.forEach((p, i) => {
       if (!p.name){
         console.warn(`Program ${p.id} has no name, setting to default!!!`, p);
-        debugger
+        // debugger
+        p.name = String(i + 1);
       }
     }
     )
@@ -151,7 +152,7 @@ function Edited(props: {program: Program, onSave: (program: Program) => void}) {
   const [editedCode, setEditedCode] = createSignal<string>(props.program.python || "");
   const [editedXml, setEditedXml] = createSignal<string>(props.program.xml || "");
   const [editedName, setEditedName] = createSignal<string>(props.program.name || "");
-  const [tab, setTab] = createSignal<string>("blockly");
+  const [tab, setTab] = createSignal<string>("python");
 
   const onSave = (name: string, python: string, xml: string) => {
     const updatedProgram = {
@@ -195,16 +196,16 @@ function Edited(props: {program: Program, onSave: (program: Program) => void}) {
               </a>
           </div>
       </div>
-      <Show when={tab() === "blockly"}>
+      {/* <Show when={false && tab() === "blockly"}>
         <BlocklyView
           onSave={(xml, python) => onSave(editedName(), python, xml)}
           xml={props.program.xml || ""}
         />
-      </Show>
+      </Show> */}
       {/* This breaks everything, for now, it's just blockly */}
-      {/* <Show when={tab() === 'python'}> */}
-      {/* <CodeEditor value={editedCode} setValue={(python) => saveCode(python, '')}></CodeEditor> */}
-      {/* </Show> */}
+      <Show when={tab() === 'python'}>
+        <CodeEditor value={editedCode} setValue={(python) => onSave(editedName(), python, props.program.xml || '')}></CodeEditor>
+      </Show>
     </div>
   );
 }
