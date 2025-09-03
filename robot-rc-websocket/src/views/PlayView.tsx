@@ -5,8 +5,9 @@ import {
   Setter,
   Show,
   createMemo,
+  onCleanup,
 } from "solid-js";
-import { RobotMessage, WSEventType } from "../utils/Communicator";
+import { RobotMessage, WSEventResult, WSEventType } from "../utils/Communicator";
 import { Position } from "../utils/Position";
 import { mapAnalogNormal, toByte } from "../utils/mapping";
 import { Joystick } from "../components/Joystick";
@@ -46,9 +47,12 @@ export default function PlayView({
   const [orderError, setOrderError] = createSignal<number>(0);
   const [isListening, setIsListening] = createSignal<boolean>(false);
   const [toast, setToast] = createSignal<string>("");
+  // True if a control message was sent within the last second
+  const [hadRecentControl, setHadRecentControl] = createSignal<boolean>(false);
 
   let lastTimeControlMessageSent: number = new Date().getTime();
   let lastControlMessageId: number = 0;
+  let lastTimeControlConfirmReceived: number = new Date().getTime();
 
   interface SensorView {
     value: Accessor<any>;
@@ -69,12 +73,11 @@ export default function PlayView({
   });
 
   const reUploadConfig = () => {
-    console.log(currentConfig());
+    console.log('reUploadConfig', currentConfig());
     uploadConfig(conn(), currentConfig());
     // setIsConnected(true);
     sendControlMessage();
   };
-
 
   window.addEventListener("gamepadconnected", (event) => {
     log("✅ 🎮 A gamepad was connected");
@@ -163,15 +166,16 @@ export default function PlayView({
 
   // Process incoming messages.
   createEffect(() => {
-    conn()?.on(WSEventType.onMessage, (data) => {
+    conn()?.on(WSEventType.onMessage, (data: WSEventResult) => {
       switch (data.event) {
         case "confirm_success":
-          sendControlMessage();
+          setTimeout(()=>sendControlMessage(), 100);
           break;
         case "control_confirm":
           // Ready for the next control message.
           const now = new Date().getTime();
           if (data.data !== lastControlMessageId) {
+            // console.log("Order error", data.data, lastControlMessageId)
             setOrderError(orderError() + 1);
           }
           turnaroundArray[data.data] = now - lastTimeControlMessageSent;
@@ -179,7 +183,9 @@ export default function PlayView({
           setTurnaround(
             Math.round(turnaroundArray.reduce((a, b) => a + b, 0) / BUFFER)
           );
-          // Small delay to have at least 15 ms between messages.
+          // Mark the time we received the last confirmation
+          lastTimeControlConfirmReceived = now;
+          // Small delay to have at least some ms between messages.
           setTimeout(() => sendControlMessage(), 10);
           break;
         case "orientation_change":
@@ -237,6 +243,29 @@ export default function PlayView({
     // }
   });
 
+  // Maintain hadRecentControl() based on lastTimeControlMessageSent
+  createEffect(() => {
+    const id = setInterval(() => {
+      const now = new Date().getTime();
+      setHadRecentControl(now - lastTimeControlMessageSent <= 1000);
+    }, 200);
+    onCleanup(() => clearInterval(id));
+  });
+
+  // Watchdog: if no control confirmation received in 100ms, send a new control message
+  createEffect(() => {
+    const id = setInterval(() => {
+      if (!isActive() || !isConnected()) return;
+      const now = new Date().getTime();
+      if (now - lastTimeControlConfirmReceived > 100) {
+        setOrderError(orderError() + 10);
+        console.warn('Control Message Error')
+        // sendControlMessage();
+      }
+    }, 100);
+    onCleanup(() => clearInterval(id));
+  });
+
   const position = new Position();
   const position2 = new Position();
 
@@ -248,6 +277,45 @@ export default function PlayView({
   // We have to send the control messages whenever we uploaded it, or else it resets configuration state.
   // Try uncommenting the lines with doSendMove in them. The first time it stops receiving the messages
   // on the robot the state resets to not configured.
+
+  const updatePositionsFromGamepad = () => {
+    const gamepads = navigator.getGamepads();
+    for (const gamepad of gamepads) {
+      // Disregard empty slots.
+      if (!gamepad) {
+        continue;
+      }
+      // Analog controls for drive.
+      position.setX(gamepad.axes[0] * 0.8);
+      position.setY(-gamepad.axes[1] * 0.8);
+
+      // 2nd joystick
+      position2.setX(gamepad.axes[2] * 0.8);
+      position2.setY(-gamepad.axes[3] * 0.8);
+
+      // Process the gamepad buttons, map them to the controller. See map up there.
+      Object.keys(BUTTON_MAP_XBOX).map((keySrt) => {
+        const key = parseInt(keySrt);
+        const value = gamepad.buttons[BUTTON_MAP_XBOX[key]].pressed;
+        buttons[key].set(value);
+      });
+    }
+  }
+
+  // Timer loop: keep polling controller to update positions/buttons even if no messages are sent
+  createEffect(() => {
+    let rafId = 0;
+    const loop = () => {
+      // Update local positions/buttons from controller regardless of messaging cadence
+      if (hasGamepad() && isActive()) {
+        updatePositionsFromGamepad();
+      }
+      rafId = requestAnimationFrame(loop);
+    };
+    rafId = requestAnimationFrame(loop);
+    onCleanup(() => cancelAnimationFrame(rafId));
+  });
+
 
   const sendControlMessage = () => {
     if (!isActive() || !isConnected()) {
@@ -268,27 +336,7 @@ export default function PlayView({
 
     // Gamepad support!
     if (hasGamepad()) {
-      const gamepads = navigator.getGamepads();
-      for (const gamepad of gamepads) {
-        // Disregard empty slots.
-        if (!gamepad) {
-          continue;
-        }
-        // Analog controls for drive.
-        position.setX(gamepad.axes[0] * 0.8);
-        position.setY(-gamepad.axes[1] * 0.8);
-
-        // 2nd joystick
-        position2.setX(gamepad.axes[2] * 0.8);
-        position2.setY(-gamepad.axes[3] * 0.8);
-
-        // Process the gamepad buttons, map them to the controller. See map up there.
-        Object.keys(BUTTON_MAP_XBOX).map((keySrt) => {
-          const key = parseInt(keySrt);
-          const value = gamepad.buttons[BUTTON_MAP_XBOX[key]].pressed;
-          buttons[key].set(value);
-        });
-      }
+      updatePositionsFromGamepad()
     }
 
     const buttonByte = toByte(buttons.map((b) => b.get()));
@@ -323,6 +371,7 @@ export default function PlayView({
     );
     lastTimeControlMessageSent = now;
     lastControlMessageId = controlMessageId;
+    setHadRecentControl(true);
   };
 
   // onCleanup(() => {
@@ -378,11 +427,13 @@ export default function PlayView({
                 Connected 🔌 <br />
                 {/* <div>ctrl: {controlSignal()}</div> */}
               </Show>
+              <Show when={hadRecentControl()}>🟢</Show>
+              <Show when={!hadRecentControl()}>🔴</Show>
               <Show when={!isConnected()}>Disconnected 🚫</Show>
 
               <Show when={conn()}>
                 <div>
-                  <button onClick={()=>setIsConnected(!isConnected())}>RESTART</button>
+                  <button onClick={()=>reUploadConfig()}>RESTART</button>
                 </div>
               </Show>
             </span>
@@ -390,6 +441,7 @@ export default function PlayView({
           <div class={styles.controller}>
             <div class={styles.joystick}>
               <Joystick enabled={isConnected} position={position}></Joystick>
+              <Joystick enabled={isConnected} position={position2}></Joystick>
             </div>
             <div class={styles.placeholder}></div>
             <div class={styles.controllerButtons}>
